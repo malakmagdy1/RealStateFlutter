@@ -1,0 +1,130 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+
+class RobustNetworkImage extends StatefulWidget {
+  final String imageUrl;
+  final BoxFit fit;
+  final double? width;
+  final double? height;
+  final Widget Function(BuildContext, String)? errorBuilder;
+  final Widget Function(BuildContext)? loadingBuilder;
+
+  const RobustNetworkImage({
+    Key? key,
+    required this.imageUrl,
+    this.fit = BoxFit.cover,
+    this.width,
+    this.height,
+    this.errorBuilder,
+    this.loadingBuilder,
+  }) : super(key: key);
+
+  @override
+  State<RobustNetworkImage> createState() => _RobustNetworkImageState();
+}
+
+class _RobustNetworkImageState extends State<RobustNetworkImage> {
+  bool _hasError = false;
+  int _retryCount = 0;
+  final int _maxRetries = 3;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_hasError && _retryCount >= _maxRetries) {
+      return widget.errorBuilder?.call(context, widget.imageUrl) ??
+          Container(
+            width: widget.width,
+            height: widget.height,
+            color: Colors.grey.shade300,
+            child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+          );
+    }
+
+    return Image.network(
+      widget.imageUrl,
+      fit: widget.fit,
+      width: widget.width,
+      height: widget.height,
+      // Increase timeout for slow connections
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) {
+          // Schedule state update after build completes
+          if (_hasError) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                setState(() {
+                  _hasError = false;
+                });
+              }
+            });
+          }
+          return child;
+        }
+        return widget.loadingBuilder?.call(context) ??
+            Container(
+              width: widget.width,
+              height: widget.height,
+              color: Colors.grey.shade200,
+              child: Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded /
+                            loadingProgress.expectedTotalBytes!
+                      : null,
+                ),
+              ),
+            );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        // Retry on connection errors
+        if (error is SocketException ||
+            error is HttpException ||
+            error.toString().contains('Connection closed')) {
+          if (_retryCount < _maxRetries) {
+            // Schedule retry after build completes
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _retryCount++;
+              // Retry after a short delay
+              Future.delayed(Duration(milliseconds: 500 * _retryCount), () {
+                if (mounted) {
+                  setState(() {
+                    _hasError = false;
+                  });
+                }
+              });
+            });
+            return widget.loadingBuilder?.call(context) ??
+                Container(
+                  width: widget.width,
+                  height: widget.height,
+                  color: Colors.grey.shade200,
+                  child: const Center(child: CircularProgressIndicator()),
+                );
+          }
+        }
+
+        // Schedule state update after build completes
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _hasError = true;
+            });
+          }
+        });
+
+        return widget.errorBuilder?.call(context, widget.imageUrl) ??
+            Container(
+              width: widget.width,
+              height: widget.height,
+              color: Colors.grey.shade300,
+              child: const Icon(
+                Icons.broken_image,
+                size: 50,
+                color: Colors.grey,
+              ),
+            );
+      },
+    );
+  }
+}
