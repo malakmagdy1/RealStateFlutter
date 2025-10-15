@@ -1,0 +1,470 @@
+import 'package:flutter/material.dart';
+import 'package:real/core/utils/colors.dart';
+import 'package:real/core/utils/text_style.dart';
+
+import '../../data/models/search_filter_model.dart';
+
+class SearchFilterBottomSheet extends StatefulWidget {
+  final SearchFilter initialFilter;
+  final Function(SearchFilter) onApplyFilters;
+
+  const SearchFilterBottomSheet({
+    Key? key,
+    required this.initialFilter,
+    required this.onApplyFilters,
+  }) : super(key: key);
+
+  @override
+  State<SearchFilterBottomSheet> createState() =>
+      _SearchFilterBottomSheetState();
+}
+
+class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
+  late TextEditingController _locationController;
+  late TextEditingController _minPriceController;
+  late TextEditingController _maxPriceController;
+  late TextEditingController _deliveryDateController;
+
+  String? _selectedPropertyType;
+  int? _selectedBedrooms;
+  String? _selectedFinishing;
+  bool _hasClub = false;
+  bool _hasRoof = false;
+  bool _hasGarden = false;
+  String? _selectedSortBy;
+
+  final List<String> propertyTypes = [
+    'Villa',
+    'Apartment',
+    'Duplex',
+    'Studio',
+    'Penthouse',
+    'Townhouse',
+  ];
+
+  final List<int> bedroomOptions = [1, 2, 3, 4, 5, 6];
+
+  final List<String> finishingOptions = [
+    'Finished',
+    'Semi Finished',
+    'Not Finished',
+  ];
+
+  final Map<String, String> sortOptions = {
+    'price_asc': 'Price: Low to High',
+    'price_desc': 'Price: High to Low',
+    'date_asc': 'Date: Oldest First',
+    'date_desc': 'Date: Newest First',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _locationController = TextEditingController(
+      text: widget.initialFilter.location,
+    );
+    _minPriceController = TextEditingController(
+      text: widget.initialFilter.minPrice?.toString() ?? '',
+    );
+    _maxPriceController = TextEditingController(
+      text: widget.initialFilter.maxPrice?.toString() ?? '',
+    );
+    _deliveryDateController = TextEditingController(
+      text: widget.initialFilter.deliveryDate ?? '',
+    );
+    _selectedPropertyType = widget.initialFilter.propertyType;
+    _selectedBedrooms = widget.initialFilter.bedrooms;
+    _selectedFinishing = widget.initialFilter.finishing;
+    _hasClub = widget.initialFilter.hasClub ?? false;
+    _hasRoof = widget.initialFilter.hasRoof ?? false;
+    _hasGarden = widget.initialFilter.hasGarden ?? false;
+    _selectedSortBy = widget.initialFilter.sortBy;
+  }
+
+  @override
+  void dispose() {
+    _locationController.dispose();
+    _minPriceController.dispose();
+    _maxPriceController.dispose();
+    _deliveryDateController.dispose();
+    super.dispose();
+  }
+
+  void _clearAllFilters() {
+    setState(() {
+      _locationController.clear();
+      _minPriceController.clear();
+      _maxPriceController.clear();
+      _deliveryDateController.clear();
+      _selectedPropertyType = null;
+      _selectedBedrooms = null;
+      _selectedFinishing = null;
+      _hasClub = false;
+      _hasRoof = false;
+      _hasGarden = false;
+      _selectedSortBy = null;
+    });
+  }
+
+  void _applyFilters() {
+    final filter = SearchFilter(
+      location: _locationController.text.isEmpty
+          ? null
+          : _locationController.text,
+      minPrice: _minPriceController.text.isEmpty
+          ? null
+          : double.tryParse(_minPriceController.text),
+      maxPrice: _maxPriceController.text.isEmpty
+          ? null
+          : double.tryParse(_maxPriceController.text),
+      propertyType: _selectedPropertyType,
+      bedrooms: _selectedBedrooms,
+      finishing: _selectedFinishing,
+      deliveryDate: _deliveryDateController.text.isEmpty
+          ? null
+          : _deliveryDateController.text,
+      hasClub: _hasClub,
+      hasRoof: _hasRoof,
+      hasGarden: _hasGarden,
+      sortBy: _selectedSortBy,
+    );
+    widget.onApplyFilters(filter);
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: MediaQuery.of(context).size.height * 0.85,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(20),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                CustomText20('Filters', bold: true, color: AppColors.black),
+                TextButton(
+                  onPressed: _clearAllFilters,
+                  child: CustomText16('Clear All', color: Colors.red),
+                ),
+              ],
+            ),
+          ),
+
+          // Content
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Location
+                  _buildSectionTitle('Location'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _locationController,
+                    decoration: InputDecoration(
+                      hintText: 'e.g., New Cairo, 6th October',
+                      prefixIcon: const Icon(Icons.location_on_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Price Range
+                  _buildSectionTitle('Price Range (EGP)'),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _minPriceController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: 'Min',
+                            prefixIcon: const Icon(Icons.attach_money),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: _maxPriceController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: 'Max',
+                            prefixIcon: const Icon(Icons.attach_money),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Property Type
+                  _buildSectionTitle('Property Type'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: propertyTypes.map((type) {
+                      final isSelected = _selectedPropertyType == type;
+                      return ChoiceChip(
+                        label: Text(type),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedPropertyType = selected ? type : null;
+                          });
+                        },
+                        backgroundColor: Colors.grey.shade200,
+                        selectedColor: AppColors.mainColor.withOpacity(0.2),
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? AppColors.mainColor
+                              : Colors.black,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Number of Bedrooms
+                  _buildSectionTitle('Number of Bedrooms'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: bedroomOptions.map((beds) {
+                      final isSelected = _selectedBedrooms == beds;
+                      return ChoiceChip(
+                        label: Text('$beds Bed${beds > 1 ? 's' : ''}'),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedBedrooms = selected ? beds : null;
+                          });
+                        },
+                        backgroundColor: Colors.grey.shade200,
+                        selectedColor: AppColors.mainColor.withOpacity(0.2),
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? AppColors.mainColor
+                              : Colors.black,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Finishing
+                  _buildSectionTitle('Finishing'),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: finishingOptions.map((finishing) {
+                      final isSelected = _selectedFinishing == finishing;
+                      return ChoiceChip(
+                        label: Text(finishing),
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedFinishing = selected ? finishing : null;
+                          });
+                        },
+                        backgroundColor: Colors.grey.shade200,
+                        selectedColor: AppColors.mainColor.withOpacity(0.2),
+                        labelStyle: TextStyle(
+                          color: isSelected
+                              ? AppColors.mainColor
+                              : Colors.black,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Delivery Date
+                  _buildSectionTitle('Delivery Date'),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _deliveryDateController,
+                    decoration: InputDecoration(
+                      hintText: 'e.g., 2025, Q1 2026',
+                      prefixIcon: const Icon(Icons.calendar_today_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Amenities
+                  _buildSectionTitle('Amenities'),
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    title: const Text('Has Club'),
+                    value: _hasClub,
+                    onChanged: (value) {
+                      setState(() {
+                        _hasClub = value ?? false;
+                      });
+                    },
+                    activeColor: AppColors.mainColor,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  CheckboxListTile(
+                    title: const Text('Has Roof'),
+                    value: _hasRoof,
+                    onChanged: (value) {
+                      setState(() {
+                        _hasRoof = value ?? false;
+                      });
+                    },
+                    activeColor: AppColors.mainColor,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                  CheckboxListTile(
+                    title: const Text('Has Garden'),
+                    value: _hasGarden,
+                    onChanged: (value) {
+                      setState(() {
+                        _hasGarden = value ?? false;
+                      });
+                    },
+                    activeColor: AppColors.mainColor,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Sort By
+                  _buildSectionTitle('Sort By'),
+                  const SizedBox(height: 8),
+                  Column(
+                    children: sortOptions.entries.map((entry) {
+                      return RadioListTile<String>(
+                        title: Text(entry.value),
+                        value: entry.key,
+                        groupValue: _selectedSortBy,
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedSortBy = value;
+                          });
+                        },
+                        activeColor: AppColors.mainColor,
+                        contentPadding: EdgeInsets.zero,
+                      );
+                    }).toList(),
+                  ),
+
+                  const SizedBox(height: 80),
+                ],
+              ),
+            ),
+          ),
+
+          // Apply Button
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 4,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _applyFilters,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.mainColor,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: CustomText18(
+                  'Apply Filters',
+                  color: Colors.white,
+                  bold: true,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return CustomText18(title, bold: true, color: AppColors.black);
+  }
+}
