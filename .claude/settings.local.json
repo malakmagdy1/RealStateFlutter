@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(ipconfig)",
+      "Bash(findstr:*)",
+      "Bash(flutter pub:*)",
+      "Bash(flutter:*)",
+      "Bash(dir:*)",
+      "Bash(emulator:*)",
+      "Bash(where flutter)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
