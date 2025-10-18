@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import '../models/filter_units_response.dart';
 import '../models/search_filter_model.dart';
 import '../models/search_result_model.dart';
+import 'package:real/core/utils/constant.dart' as constants;
+import 'package:real/core/locale/language_service.dart';
 
 class SearchRepository {
   // IMPORTANT: For physical devices, replace this with your computer's IP address
@@ -53,8 +55,14 @@ class SearchRepository {
     SearchFilter? filter,
   }) async {
     try {
+      // Get current language
+      final currentLang = LanguageService.currentLanguage;
+
       // Build query parameters
-      final Map<String, String> queryParams = {'search': query};
+      final Map<String, String> queryParams = {
+        'search': query,
+        'lang': currentLang,
+      };
 
       if (type != null && type.isNotEmpty) {
         queryParams['type'] = type;
@@ -86,6 +94,8 @@ class SearchRepository {
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
+              if (constants.token != null && constants.token!.isNotEmpty)
+                'Authorization': 'Bearer ${constants.token}',
             },
           )
           .timeout(
@@ -96,26 +106,59 @@ class SearchRepository {
           );
 
       print('[SEARCH] Status code: ${response.statusCode}');
-      print('[SEARCH] Response body: ${response.body}');
+      // Only log first 1000 chars to avoid console overflow
+      final bodyPreview = response.body.length > 1000
+          ? '${response.body.substring(0, 1000)}... [truncated ${response.body.length} total chars]'
+          : response.body;
+      print('[SEARCH] Response body: $bodyPreview');
 
       if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        print('[SEARCH] Response data: $jsonData');
-        print(
-          '[SEARCH] Total results: ${jsonData['total_results'] ?? jsonData['total']}',
-        );
+        try {
+          // Sanitize response body by removing control characters
+          // but preserve valid whitespace (space, tab, newline, carriage return)
+          final sanitizedBody = response.body.replaceAllMapped(
+            RegExp(r'[\x00-\x08\x0B-\x0C\x0E-\x1F\x7F]'),
+            (match) => '', // Remove invalid control characters
+          );
 
-        return SearchResponse.fromJson(jsonData);
+          final jsonData = json.decode(sanitizedBody);
+          print('[SEARCH] Response parsed successfully');
+          print(
+            '[SEARCH] Total results: ${jsonData['total_results'] ?? jsonData['total']}',
+          );
+
+          return SearchResponse.fromJson(jsonData);
+        } catch (e) {
+          print('[SEARCH] JSON parsing error: $e');
+          print('[SEARCH] Response length: ${response.body.length} characters');
+
+          // Find the error location in the response
+          if (e is FormatException && e.offset != null) {
+            final errorOffset = e.offset!;
+            final start = errorOffset > 50 ? errorOffset - 50 : 0;
+            final end = errorOffset + 50 < response.body.length
+                ? errorOffset + 50
+                : response.body.length;
+            final snippet = response.body.substring(start, end);
+            print('[SEARCH] Error near position $errorOffset: "$snippet"');
+          }
+
+          throw Exception('Backend returned invalid JSON. Please check Laravel backend logs. Error: $e');
+        }
       } else {
         print('[SEARCH] Error: ${response.body}');
-        final errorData = json.decode(response.body);
-        final errorMessage =
-            errorData['message'] ?? 'Failed to search: ${response.statusCode}';
-        throw Exception(errorMessage);
+        try {
+          final errorData = json.decode(response.body);
+          final errorMessage =
+              errorData['message'] ?? 'Failed to search: ${response.statusCode}';
+          throw Exception(errorMessage);
+        } catch (e) {
+          throw Exception('Failed to search: ${response.statusCode}');
+        }
       }
     } catch (e) {
       print('[SEARCH] Exception: $e');
-      throw Exception('Search failed: $e');
+      rethrow;
     }
   }
 
@@ -164,8 +207,15 @@ class SearchRepository {
     String? token,
   }) async {
     try {
+      // Use provided token parameter, or fall back to global token
+      final authToken = token ?? constants.token ?? '';
+      final currentLang = LanguageService.currentLanguage;
+
       // Convert filter to query parameters
       final queryParams = filter.toQueryParameters();
+
+      // Add language parameter
+      queryParams['lang'] = currentLang;
 
       // Build URL with query parameters (convert to string)
       final stringParams = queryParams.map(
@@ -185,7 +235,7 @@ class SearchRepository {
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
-              if (token != null) 'Authorization': 'Bearer $token',
+              if (authToken.isNotEmpty) 'Authorization': 'Bearer $authToken',
             },
           )
           .timeout(
@@ -230,8 +280,15 @@ class SearchRepository {
     String? token,
   }) async {
     try {
+      // Use provided token parameter, or fall back to global token
+      final authToken = token ?? constants.token ?? '';
+      final currentLang = LanguageService.currentLanguage;
+
       // Convert filter to JSON body
       final body = filter.toJson();
+
+      // Add language parameter to body
+      body['lang'] = currentLang;
 
       final uri = Uri.parse('$baseUrl/filter-units');
 
@@ -245,7 +302,7 @@ class SearchRepository {
             headers: {
               'Content-Type': 'application/json',
               'Accept': 'application/json',
-              if (token != null) 'Authorization': 'Bearer $token',
+              if (authToken.isNotEmpty) 'Authorization': 'Bearer $authToken',
             },
             body: json.encode(body),
           )

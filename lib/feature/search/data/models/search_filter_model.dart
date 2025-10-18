@@ -39,6 +39,9 @@ class SearchFilter {
   final double? maxBasementArea;
   final double? minGarageArea;
   final double? maxGarageArea;
+  final String? companyId;
+  final String? usageType;
+  final String? search;
 
   const SearchFilter({
     this.location,
@@ -77,6 +80,9 @@ class SearchFilter {
     this.maxBasementArea,
     this.minGarageArea,
     this.maxGarageArea,
+    this.companyId,
+    this.usageType,
+    this.search,
   });
 
   // Create an empty filter
@@ -121,7 +127,10 @@ class SearchFilter {
       minBasementArea == null &&
       maxBasementArea == null &&
       minGarageArea == null &&
-      maxGarageArea == null;
+      maxGarageArea == null &&
+      companyId == null &&
+      usageType == null &&
+      search == null;
 
   // Count active filters
   int get activeFiltersCount {
@@ -153,6 +162,9 @@ class SearchFilter {
     if (minTotalPricing != null || maxTotalPricing != null) count++;
     if (minBasementArea != null || maxBasementArea != null) count++;
     if (minGarageArea != null || maxGarageArea != null) count++;
+    if (companyId != null && companyId!.isNotEmpty) count++;
+    if (usageType != null && usageType!.isNotEmpty) count++;
+    if (search != null && search!.isNotEmpty) count++;
     return count;
   }
 
@@ -160,8 +172,19 @@ class SearchFilter {
   Map<String, dynamic> toQueryParameters() {
     final Map<String, dynamic> params = {};
 
-    if (propertyType != null && propertyType!.isNotEmpty) {
+    // Add search parameter if provided
+    if (search != null && search!.isNotEmpty) {
+      params['search'] = search;
+    }
+    // Add usage_type - prefer explicit usageType over propertyType
+    if (usageType != null && usageType!.isNotEmpty) {
+      params['usage_type'] = usageType;
+    } else if (propertyType != null && propertyType!.isNotEmpty) {
       params['usage_type'] = propertyType;
+    }
+    // Add company_id
+    if (companyId != null && companyId!.isNotEmpty) {
+      params['company_id'] = companyId;
     }
     if (unitType != null && unitType!.isNotEmpty) {
       params['unit_type'] = unitType;
@@ -312,6 +335,9 @@ class SearchFilter {
       maxBasementArea: json['max_basement_area'] != null ? double.tryParse(json['max_basement_area'].toString()) : null,
       minGarageArea: json['min_garage_area'] != null ? double.tryParse(json['min_garage_area'].toString()) : null,
       maxGarageArea: json['max_garage_area'] != null ? double.tryParse(json['max_garage_area'].toString()) : null,
+      companyId: json['company_id']?.toString(),
+      usageType: json['usage_type']?.toString(),
+      search: json['search']?.toString(),
     );
   }
 
@@ -353,6 +379,9 @@ class SearchFilter {
     double? maxBasementArea,
     double? minGarageArea,
     double? maxGarageArea,
+    String? companyId,
+    String? usageType,
+    String? search,
     bool clearLocation = false,
     bool clearMinPrice = false,
     bool clearMaxPrice = false,
@@ -389,6 +418,9 @@ class SearchFilter {
     bool clearMaxBasementArea = false,
     bool clearMinGarageArea = false,
     bool clearMaxGarageArea = false,
+    bool clearCompanyId = false,
+    bool clearUsageType = false,
+    bool clearSearch = false,
   }) {
     return SearchFilter(
       location: clearLocation ? null : (location ?? this.location),
@@ -427,6 +459,9 @@ class SearchFilter {
       maxBasementArea: clearMaxBasementArea ? null : (maxBasementArea ?? this.maxBasementArea),
       minGarageArea: clearMinGarageArea ? null : (minGarageArea ?? this.minGarageArea),
       maxGarageArea: clearMaxGarageArea ? null : (maxGarageArea ?? this.maxGarageArea),
+      companyId: clearCompanyId ? null : (companyId ?? this.companyId),
+      usageType: clearUsageType ? null : (usageType ?? this.usageType),
+      search: clearSearch ? null : (search ?? this.search),
     );
   }
 

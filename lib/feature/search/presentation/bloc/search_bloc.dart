@@ -18,7 +18,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     SearchQueryEvent event,
     Emitter<SearchState> emit,
   ) async {
-    // Allow empty query if filters are present
+    // Require at least a query or filter
     if (event.query.trim().isEmpty && event.filter == null) {
       emit(const SearchEmpty());
       return;
@@ -27,48 +27,20 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     emit(const SearchLoading());
 
     try {
-      // If filters are present, use the dedicated filter API
-      if (event.filter != null) {
-        print('[SEARCH] Using filter API');
-        final filterResponse = await repository.filterUnits(event.filter!);
+      // Use the search API (returns companies, compounds, and units)
+      print('[SEARCH] Using search API with query: "${event.query}"');
+      final response = await repository.search(
+        query: event.query,
+        type: event.type,
+        perPage: 100,
+        filter: event.filter,
+      );
 
-        if (filterResponse.units.isEmpty) {
-          emit(const SearchEmpty());
-        } else {
-          // Convert FilteredUnit to SearchResult
-          final searchResults = filterResponse.units.map((unit) {
-            return SearchResult(
-              type: 'unit',
-              id: unit.id,
-              name: unit.unitName,
-              data: _convertFilteredUnitToSearchData(unit),
-            );
-          }).toList();
-
-          final searchResponse = SearchResponse(
-            status: filterResponse.success,
-            searchQuery: event.query,
-            totalResults: filterResponse.totalUnits,
-            results: searchResults,
-          );
-
-          print('[SEARCH] Filter API returned ${filterResponse.totalUnits} units');
-          emit(SearchSuccess(response: searchResponse));
-        }
+      if (response.results.isEmpty) {
+        emit(const SearchEmpty());
       } else {
-        // Normal search without filters
-        final response = await repository.search(
-          query: event.query,
-          type: event.type,
-          perPage: 100,
-          filter: null,
-        );
-
-        if (response.results.isEmpty) {
-          emit(const SearchEmpty());
-        } else {
-          emit(SearchSuccess(response: response));
-        }
+        print('[SEARCH] Found ${response.totalResults} results');
+        emit(SearchSuccess(response: response));
       }
     } catch (e) {
       print('[SEARCH] Error: ${e.toString()}');

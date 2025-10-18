@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 import '../../../../core/utils/constant.dart';
+import '../../../../core/locale/language_service.dart';
 import '../models/compound_response.dart';
 
 class CompoundWebServices {
@@ -74,10 +75,15 @@ class CompoundWebServices {
     try {
       // Get token from storage
       final authToken = token ?? '';
+      final currentLang = LanguageService.currentLanguage;
 
       Response response = await dio.get(
         '/compounds',
-        queryParameters: {'page': page, 'limit': limit},
+        queryParameters: {
+          'page': page,
+          'limit': limit,
+          'lang': currentLang,
+        },
         options: Options(headers: {'Authorization': 'Bearer $authToken'}),
       );
       print('Get Compounds Response: ${response.data.toString()}');
@@ -113,6 +119,7 @@ class CompoundWebServices {
     try {
       // Get token from storage
       final authToken = token ?? '';
+      final currentLang = LanguageService.currentLanguage;
 
       Response response = await dio.get(
         '/compounds',
@@ -120,6 +127,7 @@ class CompoundWebServices {
           'company_id': companyId,
           'page': page,
           'limit': limit,
+          'lang': currentLang,
         },
         options: Options(headers: {'Authorization': 'Bearer $authToken'}),
       );
@@ -145,6 +153,43 @@ class CompoundWebServices {
     } catch (e) {
       print('Get Compounds by Company Error: ${e.toString()}');
       throw Exception('Failed to fetch compounds by company: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> getSalespeopleByCompound(String compoundName) async {
+    try {
+      // Get token from storage
+      final authToken = token ?? '';
+
+      Response response = await dio.get(
+        '/salespeople-by-compound',
+        queryParameters: {
+          'compound_name': compoundName,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $authToken'}),
+      );
+      print('Get Salespeople by Compound Response: ${response.data.toString()}');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('Get Salespeople by Compound DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('Get Salespeople by Compound Error: ${e.toString()}');
+      throw Exception('Failed to fetch salespeople by compound: $e');
     }
   }
 

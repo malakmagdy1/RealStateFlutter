@@ -96,8 +96,10 @@ class Compound extends Equatable {
     return Compound(
       id: json['id']?.toString() ?? '',
       companyId: json['company_id']?.toString() ?? '',
-      project: json['project']?.toString() ?? '',
-      location: json['location']?.toString() ?? '',
+      // Use localized project name if available, fallback to original
+      project: json['project_localized']?.toString() ?? json['project']?.toString() ?? '',
+      // Use localized location if available, fallback to original
+      location: json['location_localized']?.toString() ?? json['location']?.toString() ?? '',
       locationUrl: json['location_url']?.toString(),
       images: imagesList,
       builtUpArea: json['built_up_area']?.toString() ?? '0.00',
@@ -110,7 +112,8 @@ class Compound extends Equatable {
       finishSpecs: json['finish_specs']?.toString(),
       club: json['club']?.toString() ?? '0',
       isSold: json['is_sold']?.toString() ?? '0',
-      status: json['status']?.toString() ?? 'in_progress',
+      // Use localized status if available, fallback to original
+      status: json['status_localized']?.toString() ?? json['status']?.toString() ?? 'in_progress',
       deliveredAt: json['delivered_at']?.toString(),
       totalUnits: json['total_units']?.toString() ?? '0',
       createdAt: json['created_at']?.toString() ?? '',

@@ -10,7 +10,12 @@
       "Bash(flutter:*)",
       "Bash(dir:*)",
       "Bash(emulator:*)",
-      "Bash(where flutter)"
+      "Bash(where flutter)",
+      "Bash(timeout:*)",
+      "Read(//c/xampp/htdocs/larvel2/real-estate-api/app/Traits/**)",
+      "Bash(npm install)",
+      "Bash(npm run dev:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

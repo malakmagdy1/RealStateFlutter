@@ -4,15 +4,20 @@ import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/widget/robust_network_image.dart';
 import '../../data/models/unit_model.dart';
 import '../screen/unit_detail_screen.dart';
+import 'package:real/feature/share/presentation/widgets/share_bottom_sheet.dart';
+import 'package:real/l10n/app_localizations.dart';
+import 'package:real/feature/compound/data/web_services/compound_web_services.dart';
+import 'package:real/feature/sale/data/models/sale_model.dart';
+import 'package:real/feature/sale/presentation/widgets/sales_person_selector.dart';
 
 class UnitCard extends StatelessWidget {
   final Unit unit;
 
   const UnitCard({Key? key, required this.unit}) : super(key: key);
 
-  String _formatPrice(String price) {
+  String _formatPrice(String? price) {
     try {
-      final numPrice = double.parse(price);
+      final numPrice = double.parse(price ?? '0');
       if (numPrice >= 1000000) {
         return '${(numPrice / 1000000).toStringAsFixed(2)}M';
       } else if (numPrice >= 1000) {
@@ -20,27 +25,24 @@ class UnitCard extends StatelessWidget {
       }
       return numPrice.toStringAsFixed(0);
     } catch (e) {
-      return price;
+      return price ?? '0';
     }
   }
 
-  String _formatDate(String dateStr) {
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return 'N/A';
     try {
-      // Parse the date string
       final date = DateTime.parse(dateStr);
-      // Format as day/month/year
       return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
     } catch (e) {
-      // If parsing fails, try to extract just the date part before 'T'
-      if (dateStr.contains('T')) {
-        return dateStr.split('T')[0];
-      }
+      if (dateStr.contains('T')) return dateStr.split('T')[0];
       return dateStr;
     }
   }
 
   Color _getStatusColor() {
-    switch (unit.status.toLowerCase()) {
+    final status = unit.status?.toLowerCase() ?? '';
+    switch (status) {
       case 'available':
         return Colors.green;
       case 'reserved':
@@ -54,17 +56,66 @@ class UnitCard extends StatelessWidget {
     }
   }
 
+  Future<void> _showSalespeople(BuildContext context) async {
+    final compoundWebServices = CompoundWebServices();
+    final l10n = AppLocalizations.of(context)!;
+
+    try {
+      // Use compound ID as the search parameter since we don't have compound name in Unit model
+      final response = await compoundWebServices.getSalespeopleByCompound(unit.compoundId);
+
+      if (response['success'] == true && response['salespeople'] != null) {
+        final salespeople = (response['salespeople'] as List)
+            .map((sp) => SalesPerson.fromJson(sp as Map<String, dynamic>))
+            .toList();
+
+        if (salespeople.isNotEmpty && context.mounted) {
+          SalesPersonSelector.show(
+            context,
+            salesPersons: salespeople,
+          );
+        } else if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.noSalesPersonAvailable),
+              backgroundColor: AppColors.mainColor,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${l10n.error}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final hasImages = unit.images.isNotEmpty;
+
+    // Default values if data is missing
+    final companyName = unit.companyName?.isNotEmpty == true ? unit.companyName! : 'Badya';
+    final companyLogo = unit.companyLogo?.isNotEmpty == true ? unit.companyLogo! : '';
+    final unitType = (unit.usageType ?? unit.unitType ?? 'Villa Type W2').toUpperCase();
+    final unitNumber = unit.unitNumber ?? '#D2V1A-VLV/2-177';
+    final area = unit.area ?? '0';
+    final price = unit.price ?? '52400000';
+    final finishing = unit.finishing ?? 'N/A';
+    final status = unit.status ?? 'available';
+    final deliveryDate = unit.deliveryDate ?? '';
 
     return InkWell(
       onTap: () {
         Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (context) => UnitDetailScreen(unit: unit),
-          ),
+          MaterialPageRoute(builder: (context) => UnitDetailScreen(unit: unit)),
         );
       },
       child: Container(
@@ -84,7 +135,7 @@ class UnitCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image Section
+            // ---------- IMAGE ----------
             if (hasImages)
               Stack(
                 children: [
@@ -100,147 +151,64 @@ class UnitCard extends StatelessWidget {
                         color: AppColors.grey,
                         child: const Center(child: CircularProgressIndicator()),
                       ),
-                      errorBuilder: (context, url) => Container(
-                        height: 200,
-                        color: AppColors.grey,
-                        child: const Icon(Icons.broken_image, size: 50, color: Colors.white),
-                      ),
+                      errorBuilder: (context, url) => _defaultImage(),
                     ),
                   ),
-                  Positioned(
-                    top: 12,
-                    right: 12,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: CustomText16(
-                        unit.status.toUpperCase(),
-                        bold: true,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
+                  _statusTag(status),
+                  _shareButton(context),
+                  _phoneButton(context),
+                ],
+              )
+            else
+              Stack(
+                children: [
+                  _defaultImage(),
+                  _shareButton(context),
+                  _phoneButton(context),
                 ],
               ),
 
-            // Info Section
+            // ---------- DETAILS ----------
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header Row
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (unit.companyLogo != null && unit.companyLogo!.isNotEmpty)
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: Colors.grey.shade200,
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Image.network(
-                              unit.companyLogo!,
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.business, size: 28, color: Colors.grey),
-                            ),
-                          ),
-                        ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (unit.companyName != null && unit.companyName!.isNotEmpty)
-                              CustomText16(unit.companyName!, color: Colors.grey),
-                            const SizedBox(height: 4),
-                            CustomText20(
-                              unit.usageType ?? unit.unitType.toUpperCase(),
-                              bold: true,
-                              color: AppColors.black,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Unit #${unit.unitNumber ?? unit.id}',
-                              style: TextStyle(
-                                color: AppColors.mainColor,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
+                  _companyInfo(companyLogo, companyName, unitType, unitNumber),
                   const SizedBox(height: 14),
                   const Divider(thickness: 0.5, color: Colors.grey),
-
-                  // Quick Info Chips
                   const SizedBox(height: 12),
+
+                  // ---------- INFO CHIPS ----------
                   Wrap(
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      _infoChip(Icons.square_foot, '${unit.area} m²'),
-                      if (unit.bedrooms != '0')
-                        _infoChip(Icons.bed, '${unit.bedrooms} Bedrooms'),
-                      if (unit.bathrooms != '0')
-                        _infoChip(Icons.bathtub_outlined, '${unit.bathrooms} Bathrooms'),
-                      if (unit.view != null && unit.view!.isNotEmpty)
+                      _infoChip(Icons.square_foot, '$area ${l10n.sqm}'),
+                      if ((unit.bedrooms ?? '0') != '0')
+                        _infoChip(Icons.bed, '${unit.bedrooms ?? 'N/A'} ${l10n.bedrooms}'),
+                      if ((unit.bathrooms ?? '0') != '0')
+                        _infoChip(Icons.bathtub_outlined, '${unit.bathrooms ?? 'N/A'} ${l10n.bathrooms}'),
+                      if ((unit.view ?? '').isNotEmpty)
                         _infoChip(Icons.landscape, unit.view!),
                     ],
                   ),
 
                   const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: AppColors.mainColor.withOpacity(0.05),
-                      border: Border.all(
-                        color: AppColors.mainColor.withOpacity(0.2),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        CustomText20(
-                          'EGP ${_formatPrice(unit.price)}',
-                          bold: true,
-                          color: AppColors.mainColor,
-                        ),
-                        if (unit.finishing != null && unit.finishing!.isNotEmpty)
-                          Chip(
-                            backgroundColor: Colors.teal.withOpacity(0.1),
-                            label: CustomText16(
-                              unit.finishing!,
-                              bold: true,
-                              color: Colors.teal,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
+                  _priceAndFinishing(price, finishing),
 
-                  if (unit.deliveryDate != null) ...[
+                  if (deliveryDate.isNotEmpty) ...[
                     const SizedBox(height: 12),
                     Row(
                       children: [
                         const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
                         const SizedBox(width: 6),
-                        CustomText16('Delivery: ', color: Colors.grey),
-                        CustomText16(_formatDate(unit.deliveryDate!), bold: true, color: Colors.black),
+                        CustomText16('${l10n.delivery}: ', color: Colors.grey),
+                        CustomText16(
+                          _formatDate(deliveryDate),
+                          bold: true,
+                          color: Colors.black,
+                        ),
                       ],
                     ),
                   ],
@@ -253,22 +221,202 @@ class UnitCard extends StatelessWidget {
     );
   }
 
-  Widget _infoChip(IconData icon, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+  Widget _defaultImage() => Container(
+    height: 200,
+    color: Colors.grey[200],
+    child: const Center(
+      child: Icon(Icons.image_not_supported, size: 60, color: Colors.grey),
+    ),
+  );
+
+  Widget _statusTag(String status) => Positioned(
+    top: 12,
+    right: 12,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        color: _getStatusColor(),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: AppColors.mainColor),
-          const SizedBox(width: 6),
-          CustomText16(label, color: AppColors.black),
-        ],
+      child: CustomText16(
+        status.toUpperCase(),
+        bold: true,
+        color: Colors.white,
       ),
-    );
-  }
+    ),
+  );
+
+  Widget _companyInfo(String logo, String name, String type, String number) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      if (logo.isNotEmpty)
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: Colors.grey.shade200,
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: RobustNetworkImage(
+            imageUrl: logo,
+            width: 48,
+            height: 48,
+            fit: BoxFit.contain,
+            errorBuilder: (context, url) =>
+            const Icon(Icons.business, size: 28, color: Colors.grey),
+          ),
+        )
+      else
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            color: Colors.grey.shade100,
+            border: Border.all(color: Colors.grey.shade300),
+          ),
+          child: const Icon(Icons.business, size: 28, color: Colors.grey),
+        ),
+      const SizedBox(width: 12),
+      Expanded(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CustomText16(name, color: Colors.grey),
+            const SizedBox(height: 4),
+            CustomText20(type, bold: true, color: AppColors.black),
+            const SizedBox(height: 4),
+            Builder(
+              builder: (context) {
+                final l10n = AppLocalizations.of(context)!;
+                return Text(
+                  '${l10n.unit} $number',
+                  style: TextStyle(
+                color: AppColors.mainColor,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+
+  Widget _priceAndFinishing(String price, String finishing) => Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(14),
+      color: AppColors.mainColor.withOpacity(0.05),
+      border: Border.all(color: AppColors.mainColor.withOpacity(0.2)),
+    ),
+    child: Builder(
+      builder: (context) {
+        final l10n = AppLocalizations.of(context)!;
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            CustomText20(
+              '${l10n.egp} ${_formatPrice(price)}',
+              bold: true,
+              color: AppColors.mainColor,
+            ),
+            Chip(
+              backgroundColor: Colors.teal.withOpacity(0.1),
+              label: CustomText16(
+                finishing,
+                bold: true,
+                color: Colors.teal,
+              ),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+
+  Widget _infoChip(IconData icon, String label) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    decoration: BoxDecoration(
+      color: Colors.grey.shade100,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: Colors.grey.shade300),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 16, color: AppColors.mainColor),
+        const SizedBox(width: 6),
+        CustomText16(label, color: AppColors.black),
+      ],
+    ),
+  );
+
+  Widget _shareButton(BuildContext context) => Positioned(
+    top: 12,
+    left: 12,
+    child: GestureDetector(
+      onTap: () {
+        showModalBottomSheet(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Colors.transparent,
+          builder: (context) => ShareBottomSheet(
+            type: 'unit',
+            id: unit.id,
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.share,
+          size: 20,
+          color: AppColors.mainColor,
+        ),
+      ),
+    ),
+  );
+
+  Widget _phoneButton(BuildContext context) => Positioned(
+    bottom: 12,
+    right: 12,
+    child: GestureDetector(
+      onTap: () => _showSalespeople(context),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: AppColors.mainColor,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.black.withOpacity(0.2),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          Icons.phone,
+          color: AppColors.white,
+          size: 20,
+        ),
+      ),
+    ),
+  );
 }

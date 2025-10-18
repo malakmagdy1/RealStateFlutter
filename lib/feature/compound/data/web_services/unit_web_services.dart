@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../../core/utils/constant.dart';
+import '../../../../core/locale/language_service.dart';
 import '../models/unit_model.dart';
 
 class UnitWebServices {
@@ -75,6 +76,7 @@ class UnitWebServices {
     try {
       // Get token from storage
       final authToken = token ?? '';
+      final currentLang = LanguageService.currentLanguage;
 
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
       print('[UNITS API] Fetching units for compound: $compoundId');
@@ -85,6 +87,7 @@ class UnitWebServices {
           'compound_id': compoundId,
           'page': page,
           'limit': limit,
+          'lang': currentLang,
         },
         options: Options(
           headers: {

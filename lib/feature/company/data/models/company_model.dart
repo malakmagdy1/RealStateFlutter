@@ -47,6 +47,20 @@ class CompanyCompound extends Equatable {
     try {
       if (url.isEmpty) return url;
 
+      // Check if it's a relative path (doesn't start with http:// or https://)
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        // Remove leading slash if present
+        url = url.replaceFirst(RegExp(r'^/'), '');
+
+        // Convert relative path to full URL
+        // For Android emulator, use 10.0.2.2 to access host machine's localhost
+        if (!kIsWeb && Platform.isAndroid) {
+          url = 'http://10.0.2.2:8001/storage/$url';
+        } else {
+          url = 'http://127.0.0.1:8001/storage/$url';
+        }
+      }
+
       // Fix Laravel storage path
       url = url.replaceAll('/storage/app/public/', '/storage/');
 
@@ -154,6 +168,22 @@ class Company extends Equatable {
   // Fix logo URL to work on Android emulator
   static String _fixLogoUrl(String url) {
     try {
+      if (url.isEmpty) return url;
+
+      // Check if it's a relative path (doesn't start with http:// or https://)
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        // Remove leading slash if present
+        url = url.replaceFirst(RegExp(r'^/'), '');
+
+        // Convert relative path to full URL
+        // For Android emulator, use 10.0.2.2 to access host machine's localhost
+        if (!kIsWeb && Platform.isAndroid) {
+          url = 'http://10.0.2.2:8001/storage/$url';
+        } else {
+          url = 'http://127.0.0.1:8001/storage/$url';
+        }
+      }
+
       // First, fix Laravel storage path: remove /app/public from storage path
       // Laravel storage links point public/storage -> storage/app/public
       // So /storage/app/public/... should be /storage/...

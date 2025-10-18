@@ -86,8 +86,12 @@ class Unit extends Equatable {
     return Unit(
       id: json['id']?.toString() ?? '',
       compoundId: json['compound_id']?.toString() ?? '',
+      // Use localized unit type if available, fallback to original
       unitType:
-          json['unit_type']?.toString() ?? json['usage_type']?.toString() ?? '',
+          json['unit_type_localized']?.toString() ??
+          json['unit_type']?.toString() ??
+          json['usage_type_localized']?.toString() ??
+          json['usage_type']?.toString() ?? '',
       area: area,
       price: price,
       bedrooms:
@@ -97,8 +101,10 @@ class Unit extends Equatable {
       bathrooms: json['bathrooms']?.toString() ?? '0',
       floor:
           json['floor_number']?.toString() ?? json['floor']?.toString() ?? '0',
-      status: json['status']?.toString() ?? 'available',
+      // Use localized status if available, fallback to original
+      status: json['status_localized']?.toString() ?? json['status']?.toString() ?? 'available',
       unitNumber:
+          json['unit_name_localized']?.toString() ??
           json['unit_name']?.toString() ??
           json['unit_number']?.toString() ??
           json['unit_code']?.toString(),
@@ -113,7 +119,8 @@ class Unit extends Equatable {
       buildingName: json['building_name']?.toString(),
       gardenArea: json['garden_area']?.toString(),
       roofArea: json['roof_area']?.toString(),
-      usageType: json['usage_type']?.toString(),
+      // Use localized usage type if available
+      usageType: json['usage_type_localized']?.toString() ?? json['usage_type']?.toString(),
       salesNumber:
           json['sales_number']?.toString() ?? json['sales_phone']?.toString(),
       companyLogo: json['company_logo']?.toString(),

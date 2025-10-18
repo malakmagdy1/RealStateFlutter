@@ -34,6 +34,7 @@ import 'package:real/feature/search/presentation/widget/search_filter_bottom_she
 import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
 import 'package:real/feature/home/presentation/CompoundScreen.dart';
+import 'package:real/l10n/app_localizations.dart';
 
 class HomeScreen extends StatefulWidget {
   static const String routeName = '/home';
@@ -116,6 +117,10 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _showSearchResults = true;
       _showSearchHistory = false;
+      // Reset expanded states for new search
+      _showAllCompanies = false;
+      _showAllCompounds = false;
+      _showAllUnits = false;
     });
 
     // Wait 500ms before performing search
@@ -187,8 +192,15 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _showSearchHistory = false;
       _showSearchResults = true;
+      // Reset expanded states for new search
+      _showAllCompanies = false;
+      _showAllCompounds = false;
+      _showAllUnits = false;
     });
-    _searchBloc.add(SearchQueryEvent(query: query));
+    _searchBloc.add(SearchQueryEvent(
+      query: query,
+      filter: _currentFilter.isEmpty ? null : _currentFilter,
+    ));
   }
 
   void _clearSearch() {
@@ -202,6 +214,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       body: Padding(
         padding: const EdgeInsets.all(10.0),
@@ -213,9 +227,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 BlocBuilder<UserBloc, UserState>(
                   builder: (context, state) {
                     if (state is UserSuccess) {
-                      return CustomText20("Welcome ${state.user.name}");
+                      return CustomText20("${l10n.welcome} ${state.user.name}");
                     }
-                    return CustomText20("Welcome");
+                    return CustomText20(l10n.welcome);
                   },
                 ),
                 const SizedBox(height: 16),
@@ -233,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           });
                         },
                         decoration: InputDecoration(
-                          hintText: "Search for companies, compounds, or units...",
+                          hintText: l10n.searchFor,
                           hintStyle: const TextStyle(color: Colors.grey),
                           prefixIcon: const Icon(Icons.search, color: Colors.grey),
                           suffixIcon: _searchController.text.isNotEmpty
@@ -349,7 +363,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         if (_currentFilter.bedrooms != null)
                           _buildFilterChip(
-                            '${_currentFilter.bedrooms} Beds',
+                            '${_currentFilter.bedrooms} ${l10n.beds}',
                             () => setState(() {
                               _currentFilter = _currentFilter.copyWith(clearBedrooms: true);
                               if (_searchController.text.isNotEmpty) {
@@ -360,7 +374,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         TextButton.icon(
                           onPressed: _clearFilters,
                           icon: const Icon(Icons.close, size: 14),
-                          label: const Text('Clear All'),
+                          label: Text(l10n.clearFilters),
                           style: TextButton.styleFrom(
                             foregroundColor: Colors.red,
                           ),
@@ -384,14 +398,14 @@ class _HomeScreenState extends State<HomeScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               CustomText16(
-                                'Recent Searches',
+                                l10n.recentSearches,
                                 bold: true,
                                 color: AppColors.black,
                               ),
                               TextButton(
                                 onPressed: _clearAllHistory,
                                 child: CustomText16(
-                                  'Clear All',
+                                  l10n.clearFilters,
                                   color: Colors.red,
                                 ),
                               ),
@@ -456,7 +470,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
                                   const SizedBox(height: 8),
                                   CustomText16(
-                                    'No results found',
+                                    l10n.noResults,
                                     color: Colors.grey[600]!,
                                   ),
                                 ],
@@ -484,7 +498,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         );
                       } else if (state is SearchSuccess) {
-                        return _buildSearchResults(state.response);
+                        return _buildSearchResults(state.response, l10n);
                       }
                       return const SizedBox.shrink();
                     },
@@ -494,7 +508,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
 
                 // 🏢 Companies section
-                CustomText20("Companies name"),
+                CustomText20(l10n.companiesName),
                 const SizedBox(height: 8),
 
                 BlocBuilder<CompanyBloc, CompanyState>(
@@ -511,7 +525,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         return SizedBox(
                           height: 100,
                           child: Center(
-                            child: CustomText16('No companies found', color: AppColors.grey),
+                            child: CustomText16(l10n.noCompanies, color: AppColors.grey),
                           ),
                         );
                       }
@@ -558,7 +572,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         const FetchCompaniesEvent(),
                                       );
                                 },
-                                child: CustomText16('Retry', color: AppColors.white),
+                                child: CustomText16(l10n.retry, color: AppColors.white),
                               ),
                             ],
                           ),
@@ -608,7 +622,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 Icon(Icons.error_outline, color: Colors.red.shade700, size: 40),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Sale data unavailable',
+                                  l10n.saleDataUnavailable,
                                   style: TextStyle(color: Colors.red.shade700),
                                 ),
                               ],
@@ -652,7 +666,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Icon(Icons.local_offer, size: 40, color: Colors.grey),
                               const SizedBox(height: 8),
                               Text(
-                                'No active sales at the moment',
+                                l10n.noActiveSales,
                                 style: TextStyle(color: Colors.grey.shade600),
                               ),
                             ],
@@ -677,7 +691,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            CustomText20("Available Compounds"),
+                            CustomText20(l10n.availableCompounds),
                             if (hasMultipleCompounds && state is CompoundSuccess)
                               TextButton.icon(
                                 onPressed: () {
@@ -691,7 +705,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   color: AppColors.mainColor,
                                 ),
                                 label: Text(
-                                  _showAllAvailableCompounds ? 'Show Less' : 'Show All',
+                                  _showAllAvailableCompounds ? l10n.showLess : l10n.showAll,
                                   style: TextStyle(
                                     color: AppColors.mainColor,
                                     fontWeight: FontWeight.bold,
@@ -723,7 +737,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         return SizedBox(
                           height: 200,
                           child: Center(
-                            child: CustomText16('No compounds found', color: AppColors.grey),
+                            child: CustomText16(l10n.noCompounds, color: AppColors.grey),
                           ),
                         );
                       }
@@ -769,7 +783,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         const FetchCompoundsEvent(),
                                       );
                                 },
-                                child: CustomText16('Retry', color: AppColors.white),
+                                child: CustomText16(l10n.retry, color: AppColors.white),
                               ),
                             ],
                           ),
@@ -801,7 +815,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              CustomText20("Recommended Compounds"),
+                              CustomText20(l10n.recommendedCompounds),
                               if (hasMultipleRecommended)
                                 TextButton.icon(
                                   onPressed: () {
@@ -815,7 +829,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     color: AppColors.mainColor,
                                   ),
                                   label: Text(
-                                    _showAllRecommendedCompounds ? 'Show Less' : 'Show All',
+                                    _showAllRecommendedCompounds ? l10n.showLess : l10n.showAll,
                                     style: TextStyle(
                                       color: AppColors.mainColor,
                                       fontWeight: FontWeight.bold,
@@ -834,7 +848,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CustomText20("Recommended Compounds"),
+                        CustomText20(l10n.recommendedCompounds),
                         const SizedBox(height: 8),
                       ],
                     );
@@ -855,7 +869,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         return SizedBox(
                           height: 200,
                           child: Center(
-                            child: CustomText16('No recommended compounds found', color: AppColors.grey),
+                            child: CustomText16(l10n.noCompoundsAvailable, color: AppColors.grey),
                           ),
                         );
                       }
@@ -909,7 +923,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         const FetchCompoundsEvent(),
                                       );
                                 },
-                                child: CustomText16('Retry', color: AppColors.white),
+                                child: CustomText16(l10n.retry, color: AppColors.white),
                               ),
                             ],
                           ),
@@ -927,7 +941,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSearchResults(SearchResponse response) {
+  Widget _buildSearchResults(SearchResponse response, AppLocalizations l10n) {
     final results = response.results;
     final companies = results.where((r) => r.type == 'company').toList();
     final compounds = results.where((r) => r.type == 'compound').toList();
@@ -958,13 +972,13 @@ class _HomeScreenState extends State<HomeScreen> {
             if (companies.isNotEmpty) ...[
               const SizedBox(height: 8),
               CustomText16(
-                'Companies (${companies.length})',
+                '${l10n.companies} (${companies.length})',
                 bold: true,
                 color: Colors.blue,
               ),
               const SizedBox(height: 8),
               ...(_showAllCompanies ? companies : companies.take(3))
-                  .map((result) => _buildCompanyResultItem(result)),
+                  .map((result) => _buildCompanyResultItem(result, l10n)),
               if (companies.length > 3)
                 TextButton.icon(
                   onPressed: () {
@@ -978,7 +992,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   label: Text(
                     _showAllCompanies
-                        ? 'Show Less'
+                        ? l10n.showLess
                         : '+ ${companies.length - 3} more',
                   ),
                   style: TextButton.styleFrom(
@@ -991,13 +1005,13 @@ class _HomeScreenState extends State<HomeScreen> {
             if (compounds.isNotEmpty) ...[
               const SizedBox(height: 16),
               CustomText16(
-                'Compounds (${compounds.length})',
+                '${l10n.compounds} (${compounds.length})',
                 bold: true,
                 color: Colors.green,
               ),
               const SizedBox(height: 8),
               ...(_showAllCompounds ? compounds : compounds.take(3))
-                  .map((result) => _buildCompoundResultItem(result)),
+                  .map((result) => _buildCompoundResultItem(result, l10n)),
               if (compounds.length > 3)
                 TextButton.icon(
                   onPressed: () {
@@ -1011,7 +1025,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   label: Text(
                     _showAllCompounds
-                        ? 'Show Less'
+                        ? l10n.showLess
                         : '+ ${compounds.length - 3} more',
                   ),
                   style: TextButton.styleFrom(
@@ -1024,13 +1038,13 @@ class _HomeScreenState extends State<HomeScreen> {
             if (units.isNotEmpty) ...[
               const SizedBox(height: 16),
               CustomText16(
-                'Units (${units.length})',
+                '${l10n.units} (${units.length})',
                 bold: true,
                 color: Colors.orange,
               ),
               const SizedBox(height: 8),
               ...(_showAllUnits ? units : units.take(3))
-                  .map((result) => _buildUnitResultItem(result)),
+                  .map((result) => _buildUnitResultItem(result, l10n)),
               if (units.length > 3)
                 TextButton.icon(
                   onPressed: () {
@@ -1044,7 +1058,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   label: Text(
                     _showAllUnits
-                        ? 'Show Less'
+                        ? l10n.showLess
                         : '+ ${units.length - 3} more',
                   ),
                   style: TextButton.styleFrom(
@@ -1058,7 +1072,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCompanyResultItem(SearchResult result) {
+  Widget _buildCompanyResultItem(SearchResult result, AppLocalizations l10n) {
     final data = result.data as CompanySearchData;
     return ListTile(
       dense: true,
@@ -1108,7 +1122,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCompoundResultItem(SearchResult result) {
+  Widget _buildCompoundResultItem(SearchResult result, AppLocalizations l10n) {
     final data = result.data as CompoundSearchData;
     return ListTile(
       dense: true,
@@ -1170,7 +1184,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildUnitResultItem(SearchResult result) {
+  Widget _buildUnitResultItem(SearchResult result, AppLocalizations l10n) {
     final data = result.data as UnitSearchData;
 
     Color getStatusColor() {
@@ -1361,7 +1375,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Icon(Icons.bed, size: 14, color: AppColors.mainColor),
                           const SizedBox(width: 4),
                           Text(
-                            '${data.numberOfBeds} Beds',
+                            '${data.numberOfBeds} ${l10n.beds}',
                             style: const TextStyle(fontSize: 11, color: Colors.black87),
                           ),
                         ],
@@ -1384,7 +1398,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 8),
                     // Price
                     Text(
-                      'EGP ${data.price ?? data.totalPrice}',
+                      '${l10n.egp} ${data.price ?? data.totalPrice}',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,

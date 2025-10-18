@@ -8,12 +8,16 @@ import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/home/presentation/widget/location.dart';
 import 'package:real/feature/home/presentation/widget/rete_review.dart';
+import 'package:real/l10n/app_localizations.dart';
 
 import '../../../core/widget/button/showAll.dart';
 import '../../compound/presentation/bloc/unit/unit_bloc.dart';
 import '../../compound/presentation/bloc/unit/unit_event.dart';
 import '../../compound/presentation/bloc/unit/unit_state.dart';
 import '../../compound/presentation/widget/unit_card.dart';
+import '../../compound/data/web_services/compound_web_services.dart';
+import '../../sale/data/models/sale_model.dart';
+import '../../sale/presentation/widgets/sales_person_selector.dart';
 
 class CompoundScreen extends StatefulWidget {
   static const String routeName = '/compund';
@@ -34,6 +38,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
   String _searchQuery = '';
   final PageController _imagePageController = PageController();
   Timer? _imageSliderTimer;
+  final CompoundWebServices _compoundWebServices = CompoundWebServices();
   final List<Map<String, dynamic>> _reviews = [
     {
       'userName': 'Ahmed Mohamed',
@@ -112,6 +117,41 @@ class _CompoundScreenState extends State<CompoundScreen> {
     }
   }
 
+  Future<void> _showSalespeople() async {
+    try {
+      final response = await _compoundWebServices.getSalespeopleByCompound(widget.compound.project);
+
+      if (response['success'] == true && response['salespeople'] != null) {
+        final salespeople = (response['salespeople'] as List)
+            .map((sp) => SalesPerson.fromJson(sp as Map<String, dynamic>))
+            .toList();
+
+        if (salespeople.isNotEmpty && mounted) {
+          SalesPersonSelector.show(
+            context,
+            salesPersons: salespeople,
+          );
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(AppLocalizations.of(context)!.noSalesPersonAvailable),
+              backgroundColor: AppColors.mainColor,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${AppLocalizations.of(context)!.error}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Widget _buildInfoRow(String label, String value) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -146,6 +186,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final hasImages = widget.compound.images.isNotEmpty;
     final displayImage = hasImages
         ? widget.compound.images[_currentImageIndex]
@@ -157,6 +198,24 @@ class _CompoundScreenState extends State<CompoundScreen> {
           SliverAppBar(
             expandedHeight: hasImages ? 300 : 120, // Smaller if no images
             pinned: true,
+            actions: [
+              IconButton(
+                icon: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.mainColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.phone,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                onPressed: _showSalespeople,
+                tooltip: l10n.contactSales,
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               title: Row(
                 children: [
@@ -289,77 +348,77 @@ class _CompoundScreenState extends State<CompoundScreen> {
 
                   // Units Information
                   CustomText20(
-                    "Units Information",
+                    l10n.unitsInformation,
                     bold: true,
                     color: AppColors.black,
                   ),
                   const SizedBox(height: 12),
                   _buildInfoRow(
-                    "Available Units",
+                    l10n.availableUnits,
                     widget.compound.availableUnits,
                   ),
-                  _buildInfoRow("Status", widget.compound.status.toUpperCase()),
+                  _buildInfoRow(l10n.status, widget.compound.status.toUpperCase()),
 
                   const SizedBox(height: 24),
 
                   // Project Details
                   CustomText20(
-                    "Project Details",
+                    l10n.projectDetails,
                     bold: true,
                     color: AppColors.black,
                   ),
                   const SizedBox(height: 12),
                   if (widget.compound.builtUpArea != "0.00")
                     _buildInfoRow(
-                      "Built Up Area",
-                      "${widget.compound.builtUpArea} m²",
+                      l10n.builtUpArea,
+                      "${widget.compound.builtUpArea} ${l10n.sqm}",
                     ),
                   if (widget.compound.builtArea != null &&
                       widget.compound.builtArea != "0.00")
                     _buildInfoRow(
-                      "Built Area",
-                      "${widget.compound.builtArea} m²",
+                      l10n.builtArea,
+                      "${widget.compound.builtArea} ${l10n.sqm}",
                     ),
                   if (widget.compound.landArea != null &&
                       widget.compound.landArea != "0.00")
                     _buildInfoRow(
-                      "Land Area",
-                      "${widget.compound.landArea} m²",
+                      l10n.landArea,
+                      "${widget.compound.landArea} ${l10n.sqm}",
                     ),
                   if (widget.compound.howManyFloors != "0")
                     _buildInfoRow(
-                      "Number of Floors",
+                      l10n.numberOfFloors,
                       widget.compound.howManyFloors,
                     ),
                   if (widget.compound.finishSpecs != null)
-                    _buildInfoRow("Finish Specs", widget.compound.finishSpecs!),
+                    _buildInfoRow(l10n.finishSpecs, widget.compound.finishSpecs!),
                   _buildInfoRow(
-                    "Has Club",
-                    widget.compound.club == "1" ? "Yes" : "No",
+                    l10n.hasClub,
+                    widget.compound.club == "1" ? l10n.yes : l10n.no,
                   ),
 
                   const SizedBox(height: 24),
 
                   // Delivery Information
                   CustomText20(
-                    "Delivery Information",
+                    l10n.deliveryInformation,
                     bold: true,
                     color: AppColors.black,
                   ),
                   const SizedBox(height: 12),
                   if (widget.compound.plannedDeliveryDate != null)
                     _buildInfoRow(
-                      "Planned Delivery",
+                      l10n.plannedDelivery,
                       _formatDate(widget.compound.plannedDeliveryDate!),
                     ),
                   if (widget.compound.actualDeliveryDate != null)
                     _buildInfoRow(
-                      "Actual Delivery",
+                      l10n.actualDelivery,
                       _formatDate(widget.compound.actualDeliveryDate!),
                     ),
                   if (widget.compound.completionProgress != null)
                     _buildInfoRow(
-                      "Completion Progress",
+                      l10n.completionProgress,
                       "${widget.compound.completionProgress}%",
                     ),
 
@@ -368,7 +427,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                   // Sales Team Section
                   if (widget.compound.sales.isNotEmpty) ...[
                     CustomText20(
-                      "Sales Team",
+                      l10n.salesTeam,
                       bold: true,
                       color: AppColors.black,
                     ),
@@ -511,7 +570,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                                                     ),
                                                     const SizedBox(width: 4),
                                                     Text(
-                                                      'Verified',
+                                                      l10n.verified,
                                                       style: TextStyle(
                                                         fontSize: 10,
                                                         fontWeight:
@@ -591,7 +650,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                                         ).showSnackBar(
                                           SnackBar(
                                             content: Text(
-                                              'Calling ${sale.name}...',
+                                              l10n.calling2(sale.name),
                                             ),
                                             backgroundColor:
                                                 AppColors.mainColor,
@@ -614,7 +673,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       CustomText20(
-                        "Ratings & Reviews",
+                        l10n.ratingsReviews,
                         bold: true,
                         color: AppColors.black,
                       ),
@@ -629,7 +688,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                           size: 20,
                         ),
                         label: Text(
-                          _showReviews ? 'Hide Reviews' : 'Show Reviews',
+                          _showReviews ? l10n.hideReviews : l10n.showReviews,
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.mainColor,
@@ -705,7 +764,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                                     ),
                                     const SizedBox(width: 8),
                                     CustomText18(
-                                      'Rate this compound',
+                                      l10n.rateThisCompound,
                                       bold: true,
                                       color: AppColors.black,
                                     ),
@@ -724,7 +783,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                                       ).showSnackBar(
                                         SnackBar(
                                           content: Text(
-                                            'You rated $_userRating stars!',
+                                            l10n.youRatedStars(_userRating),
                                           ),
                                           duration: const Duration(seconds: 2),
                                           backgroundColor: AppColors.mainColor,
@@ -738,14 +797,14 @@ class _CompoundScreenState extends State<CompoundScreen> {
                                   Center(
                                     child: CustomText16(
                                       _userRating == 5
-                                          ? 'Excellent!'
+                                          ? l10n.excellent
                                           : _userRating == 4
-                                          ? 'Very Good!'
+                                          ? l10n.veryGood
                                           : _userRating == 3
-                                          ? 'Good'
+                                          ? l10n.good
                                           : _userRating == 2
-                                          ? 'Fair'
-                                          : 'Needs Improvement',
+                                          ? l10n.fair
+                                          : l10n.needsImprovement,
                                       color: AppColors.mainColor,
                                       bold: true,
                                     ),
@@ -795,7 +854,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                                     StaticStars(rating: 5, size: 20),
                                     const SizedBox(height: 4),
                                     CustomText16(
-                                      '${_reviews.length} reviews',
+                                      '${_reviews.length} ${l10n.reviews}',
                                       color: AppColors.grey,
                                     ),
                                   ],
@@ -818,7 +877,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                           const SizedBox(height: 24),
                           // --- Reviews List ---
                           CustomText18(
-                            "User Reviews",
+                            l10n.userReviews,
                             bold: true,
                             color: AppColors.black,
                           ),
@@ -869,7 +928,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                         });
                       },
                       decoration: InputDecoration(
-                        hintText: 'Search units by number, type, or area...',
+                        hintText: l10n.searchUnits,
                         hintStyle: TextStyle(
                           color: AppColors.grey,
                           fontSize: 14,
@@ -901,7 +960,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                   const SizedBox(height: 16),
 
                   CustomText20(
-                    "Available Units",
+                    l10n.availableUnits,
                     bold: true,
                     color: AppColors.black,
                   ),
@@ -959,15 +1018,15 @@ class _CompoundScreenState extends State<CompoundScreen> {
                                   const SizedBox(height: 16),
                                   CustomText18(
                                     _searchQuery.isEmpty
-                                        ? 'No units available'
-                                        : 'No units match your search',
+                                        ? l10n.noUnitsAvailable
+                                        : l10n.noUnitsMatch,
                                     color: AppColors.grey,
                                     bold: true,
                                   ),
                                   if (_searchQuery.isNotEmpty) ...[
                                     const SizedBox(height: 8),
                                     CustomText16(
-                                      'Try different keywords',
+                                      l10n.tryDifferentKeywords,
                                       color: AppColors.grey,
                                     ),
                                   ],
@@ -991,8 +1050,8 @@ class _CompoundScreenState extends State<CompoundScreen> {
                               const SizedBox(height: 16),
                               ShowAllButton(
                                 label: _showAllUnits
-                                    ? 'Show Less'
-                                    : 'Show All Units',
+                                    ? l10n.showLess
+                                    : l10n.showAllUnits,
                                 pressed: () {
                                   setState(() {
                                     _showAllUnits = !_showAllUnits;
@@ -1016,7 +1075,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                                 ),
                                 const SizedBox(height: 16),
                                 CustomText16(
-                                  'Error: ${state.message}',
+                                  '${l10n.error}: ${state.message}',
                                   color: Colors.red,
                                   align: TextAlign.center,
                                 ),
@@ -1035,7 +1094,7 @@ class _CompoundScreenState extends State<CompoundScreen> {
                                     );
                                   },
                                   child: CustomText16(
-                                    'Retry',
+                                    l10n.retry,
                                     color: AppColors.white,
                                   ),
                                 ),

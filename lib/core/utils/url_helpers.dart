@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 class UrlHelpers {
   // Base URL for the Laravel backend
   // For Android emulator, use 10.0.2.2 to access host machine's localhost
-  static const String _baseUrl = 'http://10.0.2.2/larvel2';
+  static const String _baseUrl = 'http://10.0.2.2:8001';
 
   /// Fixes image URL to work on Android emulator
   ///
@@ -32,12 +32,35 @@ class UrlHelpers {
     if (url.startsWith('http://') || url.startsWith('https://')) {
       // If running on Android emulator, replace localhost/127.0.0.1 with 10.0.2.2
       if (!kIsWeb && Platform.isAndroid) {
-        return url
+        var fixedUrl = url
             .replaceFirst(RegExp(r'https?://localhost'), 'http://10.0.2.2')
             .replaceFirst(RegExp(r'https?://127\.0\.0\.1'), 'http://10.0.2.2')
             .replaceFirst(RegExp(r'https?://192\.168\.[0-9.]+'), 'http://10.0.2.2');
+
+        // Fix missing port - add :8001 if not present
+        // Use a more robust regex that matches the host without port
+        if (!fixedUrl.contains(':8001')) {
+          fixedUrl = fixedUrl.replaceFirst(
+            RegExp(r'http://10\.0\.2\.2/'),
+            'http://10.0.2.2:8001/'
+          );
+        }
+
+        // Fix incorrect path: /larvel2/ should be /storage/
+        if (fixedUrl.contains('/larvel2/')) {
+          fixedUrl = fixedUrl.replaceAll('/larvel2/', '/storage/');
+        }
+
+        return fixedUrl;
       }
-      return url;
+
+      // For other platforms, just fix the path if needed
+      var fixedUrl = url;
+      if (fixedUrl.contains('/larvel2/')) {
+        fixedUrl = fixedUrl.replaceAll('/larvel2/', '/storage/');
+      }
+
+      return fixedUrl;
     }
 
     // Case 2: Relative path - prepend base URL

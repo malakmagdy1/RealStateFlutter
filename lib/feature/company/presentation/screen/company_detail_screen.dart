@@ -8,6 +8,9 @@ import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
+import 'package:real/feature/sale/data/models/sale_model.dart';
+import 'package:real/feature/sale/presentation/widgets/sales_person_selector.dart';
+import 'package:real/l10n/app_localizations.dart';
 import '../../../home/presentation/widget/compunds_name.dart';
 
 class CompanyDetailScreen extends StatefulWidget {
@@ -29,14 +32,45 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
   @override
   void initState() {
     super.initState();
+    print('[CompanyDetailScreen] Opening company: ${widget.company.name} (ID: ${widget.company.id})');
     // Fetch compounds for this company when screen loads
     context.read<CompoundBloc>().add(
           FetchCompoundsByCompanyEvent(companyId: widget.company.id),
         );
   }
 
+  void _showSalespeople() {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Convert company sales to SalesPerson list
+    final salespeople = widget.company.sales.map((sale) {
+      return SalesPerson(
+        id: sale.id?.toString() ?? '0',
+        name: sale.name,
+        email: sale.email,
+        phone: sale.phone,
+        image: sale.image,
+      );
+    }).toList();
+
+    if (salespeople.isNotEmpty) {
+      SalesPersonSelector.show(
+        context,
+        salesPersons: salespeople,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(l10n.noSalesPersonAvailable),
+          backgroundColor: AppColors.mainColor,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // TODO: Replace with actual rating from API when available
     final double rating = 4.5;
     final int reviewCount = 128;
@@ -78,7 +112,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 CustomText16(
-                                  'Logo not available',
+                                  l10n.noResults,
                                   color: AppColors.grey,
                                 ),
                               ],
@@ -115,6 +149,30 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     ),
                   ),
                 ),
+                // Phone icon button
+                if (widget.company.salesCount > 0)
+                  Positioned(
+                    top: 40,
+                    right: 16,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.mainColor,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.black.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: Icon(Icons.phone, color: AppColors.white),
+                        onPressed: _showSalespeople,
+                        tooltip: l10n.contactSales,
+                      ),
+                    ),
+                  ),
               ],
             ),
 
@@ -139,7 +197,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                         color: AppColors.black,
                       ),
                       CustomText16(
-                        ' ($reviewCount reviews)',
+                        ' ($reviewCount ${l10n.reviews})',
                         color: AppColors.grey,
                       ),
                     ],
@@ -152,7 +210,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                       Expanded(
                         child: _buildStatCard(
                           icon: Icons.apartment,
-                          title: 'Compounds',
+                          title: l10n.compounds,
                           value: widget.company.numberOfCompounds,
                           color: AppColors.mainColor,
                         ),
@@ -161,7 +219,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                       Expanded(
                         child: _buildStatCard(
                           icon: Icons.home_work,
-                          title: 'Available Units',
+                          title: l10n.availableUnits,
                           value: widget.company.numberOfAvailableUnits,
                           color: Colors.orange,
                         ),
@@ -171,7 +229,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                   const SizedBox(height: 20),
 
                   // About Section
-                  CustomText18('About Company', bold: true, color: AppColors.black),
+                  CustomText18(l10n.aboutCompany, bold: true, color: AppColors.black),
                   const SizedBox(height: 8),
                   CustomText16(
                     'One of the leading real estate companies in Egypt, specializing in residential and commercial developments with a strong commitment to quality and customer satisfaction.',
@@ -183,14 +241,14 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                   if (widget.company.email.isNotEmpty) ...[
                     _buildContactInfo(
                       icon: Icons.email_outlined,
-                      title: 'Email',
+                      title: l10n.email,
                       value: widget.company.email,
                     ),
                     const SizedBox(height: 12),
                   ],
                   _buildContactInfo(
                     icon: Icons.calendar_today_outlined,
-                    title: 'Member Since',
+                    title: l10n.memberSince,
                     value: _formatDate(widget.company.createdAt),
                   ),
                   const SizedBox(height: 30),
@@ -200,7 +258,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        CustomText18('Sales Team', bold: true, color: AppColors.black),
+                        CustomText18(l10n.salesTeam, bold: true, color: AppColors.black),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
@@ -208,7 +266,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: CustomText16(
-                            '${widget.company.salesCount} ${widget.company.salesCount == 1 ? "Member" : "Members"}',
+                            '${widget.company.salesCount} ${widget.company.salesCount == 1 ? l10n.member : l10n.members}',
                             bold: true,
                             color: AppColors.mainColor,
                           ),
@@ -218,16 +276,24 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     const SizedBox(height: 12),
                     ...widget.company.sales.map((sale) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
-                      child: _buildSalesCard(sale),
+                      child: _buildSalesCard(sale, l10n),
                     )).toList(),
                     const SizedBox(height: 30),
                   ],
+                ],
+              ),
+            ),
 
-                  // All Compounds Section
+            // All Compounds Section
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CustomText18('All Compounds', bold: true, color: AppColors.black),
+                      CustomText18(l10n.allCompounds, bold: true, color: AppColors.black),
                       BlocBuilder<CompoundBloc, CompoundState>(
                         builder: (context, state) {
                           if (state is CompoundSuccess && state.response.data.isNotEmpty) {
@@ -236,7 +302,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                                 // TODO: Navigate to full compounds list
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('View all ${state.response.data.length} compounds for ${widget.company.name}'),
+                                    content: Text('${l10n.viewAll} ${state.response.data.length} ${l10n.compounds} ${widget.company.name}'),
                                     backgroundColor: AppColors.mainColor,
                                   ),
                                 );
@@ -244,7 +310,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                               child: Row(
                                 children: [
                                   CustomText16(
-                                    'See All',
+                                    l10n.seeAll,
                                     bold: true,
                                     color: AppColors.mainColor,
                                   ),
@@ -298,7 +364,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                               ),
                               const SizedBox(height: 8),
                               CustomText16(
-                                'No compounds available',
+                                l10n.noCompoundsAvailable,
                                 color: AppColors.grey,
                               ),
                             ],
@@ -322,7 +388,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                         if (compounds.length > 5) ...[
                           const SizedBox(height: 16),
                           ShowAllButton(
-                            label: _showAllCompounds ? 'Show Less' : 'Show All Compounds',
+                            label: _showAllCompounds ? l10n.showLess : '${l10n.showAll} ${l10n.compounds}',
                             pressed: () {
                               setState(() {
                                 _showAllCompounds = !_showAllCompounds;
@@ -353,7 +419,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                             ),
                             const SizedBox(height: 8),
                             CustomText16(
-                              'Error loading compounds',
+                              '${l10n.error} loading ${l10n.compounds.toLowerCase()}',
                               color: AppColors.grey,
                             ),
                             const SizedBox(height: 8),
@@ -368,7 +434,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.mainColor,
                               ),
-                              child: CustomText16('Retry', color: AppColors.white),
+                              child: CustomText16(l10n.retry, color: AppColors.white),
                             ),
                           ],
                         ),
@@ -390,13 +456,13 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      CustomText18('Customer Reviews', bold: true, color: AppColors.black),
+                      CustomText18(l10n.customerReviews, bold: true, color: AppColors.black),
                       TextButton(
                         onPressed: () {
                           // TODO: Navigate to reviews page
                         },
                         child: CustomText16(
-                          'View All',
+                          l10n.viewAll,
                           bold: true,
                           color: AppColors.mainColor,
                         ),
@@ -684,7 +750,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
   }
 
   // Sales Card Widget
-  Widget _buildSalesCard(sale) {
+  Widget _buildSalesCard(sale, AppLocalizations l10n) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -784,7 +850,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                             ),
                             const SizedBox(width: 4),
                             CustomText16(
-                              'Verified',
+                              l10n.verified,
                               bold: true,
                               color: Colors.green.shade700,
                             ),
@@ -845,9 +911,10 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                   ),
                   onPressed: () {
                     // TODO: Implement call functionality
+                    final l10nLocal = AppLocalizations.of(context)!;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: CustomText16('Calling ${sale.name}...', color: AppColors.white),
+                        content: CustomText16(l10nLocal.calling2(sale.name), color: AppColors.white),
                         backgroundColor: AppColors.mainColor,
                       ),
                     );
@@ -869,9 +936,10 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                   ),
                   onPressed: () {
                     // TODO: Implement email functionality
+                    final l10nLocal = AppLocalizations.of(context)!;
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: CustomText16('Emailing ${sale.name}...', color: AppColors.white),
+                        content: CustomText16('${l10nLocal.email} ${sale.name}...', color: AppColors.white),
                         backgroundColor: AppColors.mainColor,
                       ),
                     );

@@ -92,13 +92,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
     setState(() {
       _showSearchResults = true;
       _showSearchHistory = false;
+      // Reset expanded states for new search
+      _showAllCompanies = false;
+      _showAllCompounds = false;
+      _showAllUnits = false;
     });
 
     // Wait 500ms before performing search
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
       _searchBloc.add(SearchQueryEvent(
         query: query.trim(),
-        type: _currentFilter.isEmpty ? null : 'unit', // Filter-only searches show units only
+        type: 'unit', // Always search for units in this screen
         filter: _currentFilter.isEmpty ? null : _currentFilter,
       ));
       // Save to history after search is triggered (only if there's a query)
@@ -163,8 +167,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     setState(() {
       _showSearchHistory = false;
       _showSearchResults = true;
+      // Reset expanded states for new search
+      _showAllCompanies = false;
+      _showAllCompounds = false;
+      _showAllUnits = false;
     });
-    _searchBloc.add(SearchQueryEvent(query: query));
+    _searchBloc.add(SearchQueryEvent(query: query, type: 'unit'));
   }
 
   void _clearSearch() {
@@ -523,26 +531,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
             const SizedBox(height: 8),
             ...(_showAllCompanies ? companies : companies.take(3))
                 .map((result) => _buildCompanyResultItem(result)),
-            if (companies.length > 3)
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _showAllCompanies = !_showAllCompanies;
-                  });
-                },
-                icon: Icon(
-                  _showAllCompanies ? Icons.expand_less : Icons.expand_more,
-                  size: 18,
-                ),
-                label: Text(
-                  _showAllCompanies
-                      ? 'Show Less'
-                      : '+ ${companies.length - 3} more',
-                ),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.grey[600],
+            if (companies.length > 3) ...[
+              const SizedBox(height: 8),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _showAllCompanies = !_showAllCompanies;
+                    });
+                  },
+                  icon: Icon(
+                    _showAllCompanies ? Icons.expand_less : Icons.expand_more,
+                    size: 20,
+                  ),
+                  label: Text(
+                    _showAllCompanies
+                        ? 'Show Less'
+                        : 'Show All (${companies.length} Companies)',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
                 ),
               ),
+              const SizedBox(height: 8),
+            ],
           ],
 
           // Compounds
@@ -556,26 +574,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
             const SizedBox(height: 8),
             ...(_showAllCompounds ? compounds : compounds.take(3))
                 .map((result) => _buildCompoundResultItem(result)),
-            if (compounds.length > 3)
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _showAllCompounds = !_showAllCompounds;
-                  });
-                },
-                icon: Icon(
-                  _showAllCompounds ? Icons.expand_less : Icons.expand_more,
-                  size: 18,
-                ),
-                label: Text(
-                  _showAllCompounds
-                      ? 'Show Less'
-                      : '+ ${compounds.length - 3} more',
-                ),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.grey[600],
+            if (compounds.length > 3) ...[
+              const SizedBox(height: 8),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _showAllCompounds = !_showAllCompounds;
+                    });
+                  },
+                  icon: Icon(
+                    _showAllCompounds ? Icons.expand_less : Icons.expand_more,
+                    size: 20,
+                  ),
+                  label: Text(
+                    _showAllCompounds
+                        ? 'Show Less'
+                        : 'Show All (${compounds.length} Compounds)',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
                 ),
               ),
+              const SizedBox(height: 8),
+            ],
           ],
 
           // Units
@@ -589,26 +617,36 @@ class _HistoryScreenState extends State<HistoryScreen> {
             const SizedBox(height: 8),
             ...(_showAllUnits ? units : units.take(3))
                 .map((result) => _buildUnitResultItem(result)),
-            if (units.length > 3)
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _showAllUnits = !_showAllUnits;
-                  });
-                },
-                icon: Icon(
-                  _showAllUnits ? Icons.expand_less : Icons.expand_more,
-                  size: 18,
-                ),
-                label: Text(
-                  _showAllUnits
-                      ? 'Show Less'
-                      : '+ ${units.length - 3} more',
-                ),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.grey[600],
+            if (units.length > 3) ...[
+              const SizedBox(height: 8),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      _showAllUnits = !_showAllUnits;
+                    });
+                  },
+                  icon: Icon(
+                    _showAllUnits ? Icons.expand_less : Icons.expand_more,
+                    size: 20,
+                  ),
+                  label: Text(
+                    _showAllUnits
+                        ? 'Show Less'
+                        : 'Show All (${units.length} Units)',
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mainColor,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
                 ),
               ),
+              const SizedBox(height: 8),
+            ],
           ],
         ],
       ),

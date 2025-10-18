@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:real/core/utils/constant.dart';
 import 'package:real/core/network/auth_interceptor.dart';
+import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import '../models/register_request.dart';
 import '../models/register_response.dart';
 import '../models/login_request.dart';
@@ -336,17 +337,22 @@ class AuthWebServices {
 
   Future<UserModel> getUserByToken() async {
     try {
-      // Get token from storage
+      // Get token and user_id from storage
       final authToken = token ?? '';
+      final userId = CasheNetwork.getCasheData(key: "user_id");
 
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
       print('[API] Fetching user with token: $authToken');
       print('[API] Token length: ${authToken.length}');
+      print('[API] User ID: $userId');
       print('[API] Using /profile endpoint');
 
-      // Use /profile endpoint with Bearer token
+      // Use /profile endpoint with Bearer token and user_id
       Response response = await dio.get(
         '/profile',
+        queryParameters: {
+          if (userId.isNotEmpty) 'user_id': userId,
+        },
         options: Options(
           headers: {
             'Authorization': 'Bearer $authToken',

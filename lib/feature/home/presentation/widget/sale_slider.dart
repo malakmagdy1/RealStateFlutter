@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/feature/sale/data/models/sale_model.dart';
+import 'package:real/feature/compound/data/models/unit_model.dart';
+import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
 
 class SaleSlider extends StatefulWidget {
   final List<Sale> sales;
@@ -105,19 +107,52 @@ class _SaleSliderState extends State<SaleSlider> {
                   ? _fixImageUrl(sale.images[0])
                   : '';
 
-              return Container(
-                margin: const EdgeInsets.symmetric(horizontal: 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
+              return GestureDetector(
+                onTap: () {
+                  // Only navigate if this is a unit sale (not compound sale)
+                  if (sale.unitId != null && sale.unitId!.isNotEmpty) {
+                    // Create a Unit object from the sale data
+                    final unit = Unit(
+                      id: sale.unitId!,
+                      compoundId: sale.compoundId ?? '',
+                      unitType: sale.itemName,
+                      area: '0', // Not available in sale data
+                      price: sale.newPrice.toString(),
+                      bedrooms: '0', // Not available in sale data
+                      bathrooms: '0', // Not available in sale data
+                      floor: '0', // Not available in sale data
+                      status: 'available', // Assuming available if on sale
+                      unitNumber: '', // Not available in sale data
+                      createdAt: sale.createdAt,
+                      updatedAt: sale.updatedAt,
+                      images: sale.images,
+                      usageType: sale.saleType,
+                      companyName: sale.companyName,
+                      companyLogo: sale.companyLogo,
+                    );
+
+                    // Navigate to Unit Detail Screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => UnitDetailScreen(unit: unit),
+                      ),
+                    );
+                  }
+                },
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
                   borderRadius: BorderRadius.circular(15),
                   child: Stack(
                     fit: StackFit.expand,
@@ -316,7 +351,8 @@ class _SaleSliderState extends State<SaleSlider> {
                             ),
                           ),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );

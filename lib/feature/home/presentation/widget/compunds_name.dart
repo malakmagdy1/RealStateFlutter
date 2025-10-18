@@ -5,6 +5,11 @@ import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_state.dart';
 import 'package:real/feature/home/presentation/widget/location.dart';
+import 'package:real/core/utils/url_helpers.dart';
+import 'package:real/feature/compound/data/web_services/compound_web_services.dart';
+import 'package:real/feature/sale/data/models/sale_model.dart';
+import 'package:real/feature/sale/presentation/widgets/sales_person_selector.dart';
+import 'package:real/l10n/app_localizations.dart';
 
 import '../../../../core/utils/colors.dart';
 import '../../../../core/utils/text_style.dart';
@@ -29,6 +34,44 @@ class CompoundsName extends StatelessWidget {
         return dateStr.split('T')[0];
       }
       return dateStr;
+    }
+  }
+
+  Future<void> _showSalespeople(BuildContext context) async {
+    final compoundWebServices = CompoundWebServices();
+    final l10n = AppLocalizations.of(context)!;
+
+    try {
+      final response = await compoundWebServices.getSalespeopleByCompound(compound.project);
+
+      if (response['success'] == true && response['salespeople'] != null) {
+        final salespeople = (response['salespeople'] as List)
+            .map((sp) => SalesPerson.fromJson(sp as Map<String, dynamic>))
+            .toList();
+
+        if (salespeople.isNotEmpty && context.mounted) {
+          SalesPersonSelector.show(
+            context,
+            salesPersons: salespeople,
+          );
+        } else if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(l10n.noSalesPersonAvailable),
+              backgroundColor: AppColors.mainColor,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${l10n.error}: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -140,6 +183,33 @@ class CompoundsName extends StatelessWidget {
                           },
                         ),
                   ),
+                  // Phone Button
+                  Positioned(
+                    bottom: 12,
+                    right: 12,
+                    child: GestureDetector(
+                      onTap: () => _showSalespeople(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.mainColor,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.black.withOpacity(0.2),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Icon(
+                          Icons.phone,
+                          color: AppColors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
 
@@ -157,14 +227,14 @@ class CompoundsName extends StatelessWidget {
                         backgroundImage:
                             compound.companyLogo != null &&
                                 compound.companyLogo!.isNotEmpty
-                            ? NetworkImage(compound.companyLogo!)
+                            ? NetworkImage(UrlHelpers.fixImageUrl(compound.companyLogo!))
                             : null,
                         child:
                             compound.companyLogo == null ||
                                 compound.companyLogo!.isEmpty
                             ? CustomText16(
                                 compound.companyName.isNotEmpty
-                                    ? compound.companyName.toUpperCase()
+                                    ? compound.companyName[0].toUpperCase()
                                     : '?',
                                 bold: true,
                                 color: AppColors.mainColor,
@@ -172,12 +242,14 @@ class CompoundsName extends StatelessWidget {
                             : null,
                       ),
                       SizedBox(width: 10),
-                      CustomText18(
-                        compound.project,
-                        bold: true,
-                        color: AppColors.black,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      Expanded(
+                        child: CustomText18(
+                          compound.project,
+                          bold: true,
+                          color: AppColors.black,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:real/core/utils/url_helpers.dart';
 
 class RobustNetworkImage extends StatefulWidget {
   final String imageUrl;
@@ -31,6 +32,9 @@ class _RobustNetworkImageState extends State<RobustNetworkImage> {
 
   @override
   Widget build(BuildContext context) {
+    // Fix the image URL for Android emulator
+    final fixedUrl = UrlHelpers.fixImageUrl(widget.imageUrl);
+
     if (_hasError && _retryCount >= _maxRetries) {
       return widget.errorBuilder?.call(context, widget.imageUrl) ??
           Container(
@@ -42,7 +46,7 @@ class _RobustNetworkImageState extends State<RobustNetworkImage> {
     }
 
     return Image.network(
-      widget.imageUrl,
+      fixedUrl,
       fit: widget.fit,
       width: widget.width,
       height: widget.height,

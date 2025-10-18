@@ -67,6 +67,8 @@ class SaleWebServices {
     int limit = 20,
     String? saleType,
     String? companyId,
+    String? compoundId,
+    String? unitId,
     bool activeOnly = true,
   }) async {
     try {
@@ -86,6 +88,12 @@ class SaleWebServices {
       }
       if (companyId != null && companyId.isNotEmpty) {
         queryParams['company_id'] = companyId;
+      }
+      if (compoundId != null && compoundId.isNotEmpty) {
+        queryParams['compound_id'] = compoundId;
+      }
+      if (unitId != null && unitId.isNotEmpty) {
+        queryParams['unit_id'] = unitId;
       }
 
       print('[SALE API] Fetching sales - Query params: $queryParams');
@@ -117,5 +125,20 @@ class SaleWebServices {
       print('[SALE API] Error: $e');
       throw Exception('Failed to fetch sales: $e');
     }
+  }
+
+  /// Get sales for a specific company
+  Future<Map<String, dynamic>> getSalesByCompany(String companyId, {int page = 1, int limit = 20}) async {
+    return getSales(companyId: companyId, page: page, limit: limit);
+  }
+
+  /// Get sales for a specific compound
+  Future<Map<String, dynamic>> getSalesByCompound(String compoundId, {int page = 1, int limit = 20}) async {
+    return getSales(compoundId: compoundId, page: page, limit: limit);
+  }
+
+  /// Get sales for a specific unit
+  Future<Map<String, dynamic>> getSalesByUnit(String unitId, {int page = 1, int limit = 20}) async {
+    return getSales(unitId: unitId, page: page, limit: limit);
   }
 }

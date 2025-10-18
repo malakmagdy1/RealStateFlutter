@@ -5,6 +5,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
+import 'package:real/core/locale/locale_cubit.dart';
+import 'package:real/l10n/app_localizations.dart';
 import 'package:real/feature/auth/presentation/bloc/login_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/login_event.dart';
 import 'package:real/feature/auth/presentation/bloc/login_state.dart';
@@ -52,26 +54,102 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _handleLogout(BuildContext context) {
     // Capture the LoginBloc before showing the dialog
     final loginBloc = context.read<LoginBloc>();
+    final l10n = AppLocalizations.of(context)!;
 
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout?'),
+          title: Text(l10n.logout),
+          content: Text(l10n.logoutConfirm),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
                 loginBloc.add(const LogoutEvent());
               },
-              child: const Text('Logout', style: TextStyle(color: Colors.red)),
+              child: Text(l10n.logout, style: const TextStyle(color: Colors.red)),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void _showLanguageDialog(BuildContext context) {
+    final localeCubit = context.read<LocaleCubit>();
+    final currentLocale = localeCubit.state;
+    final l10n = AppLocalizations.of(context)!;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.language, color: AppColors.mainColor),
+              const SizedBox(width: 8),
+              Text(l10n.selectLanguage),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _languageOption(
+                dialogContext,
+                localeCubit,
+                'English',
+                'en',
+                currentLocale.languageCode == 'en',
+              ),
+              const Divider(),
+              _languageOption(
+                dialogContext,
+                localeCubit,
+                'العربية',
+                'ar',
+                currentLocale.languageCode == 'ar',
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _languageOption(
+    BuildContext context,
+    LocaleCubit localeCubit,
+    String languageName,
+    String languageCode,
+    bool isSelected,
+  ) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      title: Text(
+        languageName,
+        style: TextStyle(
+          color: isSelected ? AppColors.mainColor : Colors.black,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+      ),
+      trailing: isSelected
+          ? Icon(Icons.check_circle, color: AppColors.mainColor)
+          : null,
+      onTap: () {
+        localeCubit.changeLocale(Locale(languageCode));
+        Navigator.of(context).pop();
+        final l10n = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.languageChanged),
+            backgroundColor: AppColors.mainColor,
+            duration: const Duration(seconds: 2),
+          ),
         );
       },
     );
@@ -81,6 +159,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final l10n = AppLocalizations.of(context)!;
 
     return BlocListener<LoginBloc, LoginState>(
       listener: (context, state) {
@@ -194,14 +273,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
                   child: CustomText20(
-                    "Personal Information",
+                    l10n.personalInformation,
                     color: Colors.black,
                   ),
                 ),
                 SizedBox(height: screenHeight * 0.015),
                 CustomListTile(
                   icon: Icons.person_outline,
-                  title: "Edit Name",
+                  title: l10n.editName,
                   onTap: () {
                     Navigator.pushNamed(context, EditNameScreen.routeName);
                   },
@@ -209,7 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 CustomListTile(
                   icon: Icons.phone_outlined,
-                  title: "Edit Phone",
+                  title: l10n.editPhone,
                   onTap: () {
                     Navigator.pushNamed(context, EditPhoneScreen.routeName);
                   },
@@ -221,12 +300,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Security Section
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-                  child: CustomText20("Security", color: Colors.black),
+                  child: CustomText20(l10n.security, color: Colors.black),
                 ),
                 SizedBox(height: screenHeight * 0.015),
                 CustomListTile(
                   icon: Icons.lock_outline,
-                  title: "Change Password",
+                  title: l10n.changePassword,
                   onTap: () {
                     Navigator.pushNamed(
                       context,
@@ -239,26 +318,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SizedBox(height: screenHeight * 0.02),
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-                  child: CustomText20("Preferences", color: Colors.black),
+                  child: CustomText20(l10n.preferences, color: Colors.black),
                 ),
                 SizedBox(height: screenHeight * 0.015),
                 CustomListTile(
                   icon: Icons.brightness_6_outlined,
-                  title: "Theme",
-                  subtitle: "Light",
+                  title: l10n.theme,
+                  subtitle: l10n.light,
                   onTap: () {
                     // TODO: Navigate to theme settings
                   },
                   screenWidth: screenWidth,
                 ),
-                CustomListTile(
-                  icon: Icons.language_outlined,
-                  title: "Language",
-                  subtitle: "English",
-                  onTap: () {
-                    // TODO: Navigate to language settings
+                BlocBuilder<LocaleCubit, Locale>(
+                  builder: (context, locale) {
+                    return CustomListTile(
+                      icon: Icons.language_outlined,
+                      title: l10n.language,
+                      subtitle: locale.languageCode == 'en' ? 'English' : 'العربية',
+                      onTap: () => _showLanguageDialog(context),
+                      screenWidth: screenWidth,
+                    );
                   },
-                  screenWidth: screenWidth,
                 ),
 
                 SizedBox(height: screenHeight * 0.02),
@@ -266,12 +347,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Account Section
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-                  child: CustomText20("Account", color: Colors.black),
+                  child: CustomText20(l10n.account, color: Colors.black),
                 ),
                 SizedBox(height: screenHeight * 0.015),
                 CustomListTile(
                   icon: Icons.notifications_outlined,
-                  title: "Notifications",
+                  title: l10n.notifications,
                   onTap: () {
                     // TODO: Navigate to notification settings
                   },
@@ -279,7 +360,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 CustomListTile(
                   icon: Icons.privacy_tip_outlined,
-                  title: "Privacy Policy",
+                  title: l10n.privacyPolicy,
                   onTap: () {
                     // TODO: Navigate to privacy policy
                   },
@@ -287,7 +368,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 CustomListTile(
                   icon: Icons.help_outline,
-                  title: "Help & Support",
+                  title: l10n.helpSupport,
                   onTap: () {
                     // TODO: Navigate to help screen
                   },
@@ -340,7 +421,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                             SizedBox(width: screenWidth * 0.04),
                             CustomText18(
-                              "Logout",
+                              l10n.logout,
                               color: Colors.red,
                               bold: true,
                             ),

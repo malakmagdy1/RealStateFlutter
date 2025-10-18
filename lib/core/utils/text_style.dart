@@ -8,6 +8,7 @@ class CustomText16 extends StatelessWidget {
   final TextAlign? align;
   final int? maxLines;
   final TextOverflow? overflow;
+  final TextDecoration? decoration;
 
   const CustomText16(
       this.text, {
@@ -17,6 +18,7 @@ class CustomText16 extends StatelessWidget {
         this.align,
         this.maxLines,
         this.overflow,
+        this.decoration,
       });
 
   @override
@@ -31,6 +33,7 @@ class CustomText16 extends StatelessWidget {
         fontSize: 16,
         fontWeight: bold ? FontWeight.bold : FontWeight.normal,
         color: color ?? AppColors.black,
+        decoration: decoration,
       ),
     );
   }

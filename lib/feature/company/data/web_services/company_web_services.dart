@@ -2,6 +2,7 @@ import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:real/core/utils/constant.dart';
+import 'package:real/core/locale/language_service.dart';
 import '../models/company_response.dart';
 
 class CompanyWebServices {
@@ -70,9 +71,13 @@ class CompanyWebServices {
     try {
       // Get token from storage
       final authToken = token ?? '';
+      final currentLang = LanguageService.currentLanguage;
 
       Response response = await dio.get(
         '/companies',
+        queryParameters: {
+          'lang': currentLang,
+        },
         options: Options(
           headers: {
             'Authorization': 'Bearer $authToken',

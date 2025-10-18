@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:real/core/network/api_service.dart';
 import 'package:real/core/utils/constant.dart';
+import 'package:real/core/locale/locale_cubit.dart';
+import 'package:real/core/locale/language_service.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/core/network/token_manager.dart';
 import 'dart:async';
@@ -27,6 +30,10 @@ import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
 import 'package:real/feature/home/presentation/homeScreen.dart';
 import 'package:real/feature/onboarding/onboardingScreen.dart';
 import 'package:real/splash_screen.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:real/services/fcm_service.dart';
+import 'package:real/l10n/app_localizations.dart';
 
 import 'feature/auth/presentation/screen/SignupScreen.dart';
 import 'feature/company/data/models/company_model.dart';
@@ -34,17 +41,65 @@ import 'feature/company/presentation/screen/company_detail_screen.dart';
 import 'feature/home/presentation/CompoundScreen.dart';
 import 'feature/home/presentation/CustomNav.dart';
 import 'feature/compound/presentation/screen/favorite_compounds_screen.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  print('');
+  print('╔════════════════════════════════════════════════════════╗');
+  print('║              🚀 REAL ESTATE APP STARTUP                ║');
+  print('╚════════════════════════════════════════════════════════╝');
+  print('');
+
+  // Initialize Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  print('✅ Firebase initialized');
+
+  // Set up background message handler
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  print('✅ Background message handler registered');
+
+  // Initialize cache
   await CasheNetwork.casheInitialization();
   token = await CasheNetwork.getCasheData(key: 'token');
-  print('========================================');
-  print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-  print('APP STARTED - Token loaded: $token');
-  print('Token is empty: ${token == null || token == ""}');
-  print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-  print('========================================');
+
+  // Initialize LanguageService
+  await LanguageService.initialize();
+  print('✅ Language service initialized: ${LanguageService.currentLanguage}');
+
+  print('');
+  print('═══════════════════════════════════════════════════════');
+  print('📱 Auth Token Status');
+  print('═══════════════════════════════════════════════════════');
+  print('Token exists: ${token != null && token != ""}');
+  if (token != null && token != "") {
+    print('Token: ${token!.substring(0, 20)}...');
+  }
+  print('═══════════════════════════════════════════════════════');
+  print('');
+
+  // Initialize FCM Service
+  await FCMService().initialize();
+
+  // Setup FCM message listeners
+  FCMService().setupMessageListeners();
+
+  // Check if app was opened from notification (terminated state)
+  final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+  if (initialMessage != null) {
+    print('🚀 App opened from notification (terminated state)');
+    FCMService().handleNotificationTap(initialMessage);
+  }
+
+  print('');
+  print('╔════════════════════════════════════════════════════════╗');
+  print('║          ✅ APP INITIALIZATION COMPLETE                ║');
+  print('╚════════════════════════════════════════════════════════╝');
+  print('');
+
   runApp(const MyApp());
 }
 
@@ -100,6 +155,9 @@ class _MyAppState extends State<MyApp> {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
+          create: (context) => LocaleCubit(),
+        ),
+        BlocProvider(
           create: (context) =>
               RegisterBloc(repository: apiService.authRepository),
         ),
@@ -147,31 +205,53 @@ class _MyAppState extends State<MyApp> {
                 ..add(const FetchSalesEvent()),
         ),
       ],
-      child: MaterialApp(
-        navigatorKey: TokenManager.navigatorKey, // Add global navigator key
-        debugShowCheckedModeBanner: false,
-     //   initialRoute: LoginScreen.routeName,
-        initialRoute: //LoginScreen.routeName,
-        token != null && token != ""
-            ? CustomNav.routeName
-            : LoginScreen.routeName,
-        theme: ThemeData(scaffoldBackgroundColor: Colors.white),
-        routes: {
-          SplashScreen.routeName: (context) => SplashScreen(),
-          CustomNav.routeName: (context) => CustomNav(),
-          LoginScreen.routeName: (context) => LoginScreen(),
-          OnboardingScreen.routeName: (context) => OnboardingScreen(),
-          SignUpScreen.routeName: (context) => SignUpScreen(),
-          ForgetPasswordScreen.routeName: (context) => ForgetPasswordScreen(),
-          ChangePasswordScreen.routeName: (context) => ChangePasswordScreen(),
-          EditNameScreen.routeName: (context) => EditNameScreen(),
-          EditPhoneScreen.routeName: (context) => EditPhoneScreen(),
-          HomeScreen.routeName: (context) => HomeScreen(),
-          FavoriteCompoundsScreen.routeName: (context) => const FavoriteCompoundsScreen(),
-          CompanyDetailScreen.routeName: (context) {
-            final company = ModalRoute.of(context)!.settings.arguments as Company;
-            return CompanyDetailScreen(company: company);
-          }
+      child: BlocBuilder<LocaleCubit, Locale>(
+        builder: (context, locale) {
+          return MaterialApp(
+            navigatorKey: TokenManager.navigatorKey,
+            debugShowCheckedModeBanner: false,
+
+            // Localization delegates
+            localizationsDelegates: const [
+              AppLocalizations.delegate,
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+
+            // Supported locales
+            supportedLocales: const [
+              Locale('en'), // English
+              Locale('ar'), // Arabic
+            ],
+
+            // Current locale from LocaleCubit
+            locale: locale,
+
+            initialRoute: token != null && token != ""
+                ? CustomNav.routeName
+                : LoginScreen.routeName,
+
+            theme: ThemeData(scaffoldBackgroundColor: Colors.white),
+
+            routes: {
+              SplashScreen.routeName: (context) => SplashScreen(),
+              CustomNav.routeName: (context) => CustomNav(),
+              LoginScreen.routeName: (context) => LoginScreen(),
+              OnboardingScreen.routeName: (context) => OnboardingScreen(),
+              SignUpScreen.routeName: (context) => SignUpScreen(),
+              ForgetPasswordScreen.routeName: (context) => ForgetPasswordScreen(),
+              ChangePasswordScreen.routeName: (context) => ChangePasswordScreen(),
+              EditNameScreen.routeName: (context) => EditNameScreen(),
+              EditPhoneScreen.routeName: (context) => EditPhoneScreen(),
+              HomeScreen.routeName: (context) => HomeScreen(),
+              FavoriteCompoundsScreen.routeName: (context) => const FavoriteCompoundsScreen(),
+              CompanyDetailScreen.routeName: (context) {
+                final company = ModalRoute.of(context)!.settings.arguments as Company;
+                return CompanyDetailScreen(company: company);
+              }
+            },
+          );
         },
       ),
     );
