@@ -331,7 +331,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                           ),
                         );
                       } else if (state is SearchSuccess) {
-                        return _buildSearchResults(state.response);
+                        return _buildSearchResults(state.response, l10n);
                       } else if (state is SearchError) {
                         return Center(
                           child: Padding(
@@ -349,10 +349,6 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                       return SizedBox.shrink();
                     },
                   ),
-
-                // Show search history if focused and no text
-                if (_showSearchHistory)
-                  _buildSearchHistory(),
 
                 // Regular home content (only show when not searching)
                 if (!_showSearchResults && !_showSearchHistory) ...[
@@ -765,6 +761,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                     return SizedBox(height: 200);
                   },
                 ),
+                ], // End of if (!_showSearchResults && !_showSearchHistory)
               ],
             ),
           ),
@@ -1267,7 +1264,6 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
           ),
         ),
       ),
-                ], // End of if (!_showSearchResults && !_showSearchHistory)
     );
   }
 
