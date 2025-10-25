@@ -44,66 +44,16 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     try {
       GoogleSignInAccount? account;
 
-      // For web, try silent sign-in first (recommended for web)
-      if (kIsWeb) {
-        account = await _googleSignIn.signInSilently();
-        // If silent sign-in fails, use the standard sign-in
-        account ??= await _googleSignIn.signIn();
-      } else {
-        // For mobile/desktop, use standard sign-in
+      // For mobile/desktop, use standard sign-in
+      if (!kIsWeb) {
         account = await _googleSignIn.signIn();
+      } else {
+        // For web, try silent sign-in first
+        account = await _googleSignIn.signInSilently();
       }
 
-      setState(() => _user = account);
-
       if (account != null) {
-        print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-        print('GOOGLE SIGN-IN SUCCESS!');
-        print('User: ${account.displayName}');
-        print('Email: ${account.email}');
-        print('ID: ${account.id}');
-        print('Sending to backend for authentication...');
-
-        // Send Google account info to backend and get proper token
-        try {
-          final repository = context.read<LoginBloc>().repository;
-          final response = await repository.googleLogin(
-            googleId: account.id,
-            email: account.email,
-            name: account.displayName ?? '',
-            photoUrl: account.photoUrl,
-          );
-
-          // Save the BACKEND token (not Google ID)
-          await CasheNetwork.insertToCashe(
-            key: "token",
-            value: response.token ?? '',
-          );
-
-          // IMPORTANT: Update global token variable
-          token = response.token ?? '';
-
-          print('Backend Token SAVED: ${response.token}');
-          print('Global token variable updated: $token');
-          print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-
-          // Refresh user data with new token
-          context.read<UserBloc>().add(RefreshUserEvent());
-
-          // Navigate to home screen after successful Google sign-in
-          Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
-        } catch (backendError) {
-          print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-          print('BACKEND ERROR: $backendError');
-          print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Backend authentication failed: $backendError'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        await _processGoogleAccount(account);
       }
     } catch (error) {
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
@@ -113,7 +63,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       // Handle specific popup_closed error
       if (error.toString().contains('popup_closed')) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Sign-in cancelled. Please try again.'),
             backgroundColor: Colors.orange,
           ),
@@ -129,10 +79,156 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     }
   }
 
+  Future<void> _processGoogleAccount(GoogleSignInAccount account) async {
+    setState(() => _user = account);
+
+    print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+    print('GOOGLE SIGN-IN SUCCESS!');
+    print('User: ${account.displayName}');
+    print('Email: ${account.email}');
+    print('ID: ${account.id}');
+    print('Sending to backend for authentication...');
+
+    // Send Google account info to backend and get proper token
+    try {
+      final repository = context.read<LoginBloc>().repository;
+      final response = await repository.googleLogin(
+        googleId: account.id,
+        email: account.email,
+        name: account.displayName ?? '',
+        photoUrl: account.photoUrl,
+      );
+
+      // Save the BACKEND token (not Google ID)
+      await CasheNetwork.insertToCashe(
+        key: "token",
+        value: response.token ?? '',
+      );
+
+      // IMPORTANT: Update global token variable
+      token = response.token ?? '';
+
+      print('Backend Token SAVED: ${response.token}');
+      print('Global token variable updated: $token');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      // Refresh user data with new token
+      context.read<UserBloc>().add(RefreshUserEvent());
+
+      // Navigate to home screen after successful Google sign-in
+      Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
+    } catch (backendError) {
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('BACKEND ERROR: $backendError');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Backend authentication failed: $backendError'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Future<void> _handleSignOut() async {
     await _googleSignIn.signOut();
     await CasheNetwork.deletecasheItem(key: "token");
     setState(() => _user = null);
+  }
+
+  Widget _buildWebGoogleButton() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () async {
+            // Try silent sign-in first
+            final account = await _googleSignIn.signInSilently();
+            if (account != null) {
+              await _processGoogleAccount(account);
+            } else {
+              // Show instructions if silent sign-in fails
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: Row(
+                    children: [
+                      Icon(Icons.info_outline, color: AppColors.mainColor),
+                      SizedBox(width: 8),
+                      Text('Google Sign-In'),
+                    ],
+                  ),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'To sign in with Google on web, please:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 12),
+                      Text('1. Make sure you\'re signed in to Google in this browser'),
+                      SizedBox(height: 8),
+                      Text('2. Allow popups for this website'),
+                      SizedBox(height: 8),
+                      Text('3. Check that the domain is authorized in Google Cloud Console'),
+                      SizedBox(height: 16),
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.orange.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Google Sign-In on web is currently experiencing issues. Please use email/password to sign in.',
+                                style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+            }
+          },
+          style: OutlinedButton.styleFrom(
+            padding: EdgeInsets.symmetric(vertical: 14),
+            side: BorderSide(color: Colors.grey[300]!),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          icon: Image.asset(
+            'assets/images/google.png',
+            height: 20,
+            width: 20,
+          ),
+          label: Text(
+            'Continue with Google',
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -456,29 +552,31 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                             SizedBox(height: 24),
 
                             // Google Sign In
-                            OutlinedButton.icon(
-                              onPressed: _handleSignIn,
-                              style: OutlinedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 14),
-                                side: BorderSide(color: Colors.grey[300]!),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                            kIsWeb
+                              ? _buildWebGoogleButton()
+                              : OutlinedButton.icon(
+                                  onPressed: _handleSignIn,
+                                  style: OutlinedButton.styleFrom(
+                                    padding: EdgeInsets.symmetric(vertical: 14),
+                                    side: BorderSide(color: Colors.grey[300]!),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  icon: Image.asset(
+                                    'assets/images/google.png',
+                                    height: 20,
+                                    width: 20,
+                                  ),
+                                  label: Text(
+                                    'Continue with Google',
+                                    style: TextStyle(
+                                      color: Colors.black87,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              icon: Image.asset(
-                                'assets/images/google.png',
-                                height: 20,
-                                width: 20,
-                              ),
-                              label: Text(
-                                'Continue with Google',
-                                style: TextStyle(
-                                  color: Colors.black87,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
                             SizedBox(height: 32),
 
                             // Sign Up Link
