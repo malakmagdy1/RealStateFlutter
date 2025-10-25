@@ -164,12 +164,14 @@ class AuthWebServices {
       print('Email: $email');
       print('Name: $name');
 
-      Response response = await dio.post('/google-login.php', data: {
-        'google_id': googleId,
+      // Use /login endpoint with login_method: google
+      Response response = await dio.post('/login', data: {
         'email': email,
+        'password': googleId, // Use Google ID as password for Google sign-in
+        'login_method': 'google',
+        'google_id': googleId,
         'name': name,
         'photo_url': photoUrl,
-        'login_method': 'google',
       });
 
       print('Google Login Response: ${response.data.toString()}');
