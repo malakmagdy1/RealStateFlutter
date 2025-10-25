@@ -226,7 +226,137 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                 ),
                 SizedBox(height: 24),
 
-                // Companies section
+                // Search Bar
+                Container(
+                  constraints: BoxConstraints(maxWidth: 600),
+                  child: TextField(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    onChanged: _performSearch,
+                    decoration: InputDecoration(
+                      hintText: 'Search for companies, compounds, or units...',
+                      hintStyle: TextStyle(
+                        fontSize: 16,
+                        color: Color(0xFF8E8E8E),
+                      ),
+                      prefixIcon: Icon(
+                        Icons.search,
+                        size: 24,
+                        color: AppColors.mainColor,
+                      ),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.tune, size: 20, color: AppColors.mainColor),
+                                  onPressed: _openFilterBottomSheet,
+                                  tooltip: 'Filters',
+                                ),
+                                IconButton(
+                                  icon: Icon(Icons.clear, size: 20),
+                                  onPressed: _clearSearch,
+                                ),
+                              ],
+                            )
+                          : IconButton(
+                              icon: Icon(Icons.tune, size: 20, color: AppColors.mainColor),
+                              onPressed: _openFilterBottomSheet,
+                              tooltip: 'Filters',
+                            ),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Color(0xFFE6E6E6),
+                          width: 1,
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: Color(0xFFE6E6E6),
+                          width: 1,
+                        ),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: AppColors.mainColor,
+                          width: 2,
+                        ),
+                      ),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // Show active filters badge
+                if (!_currentFilter.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: Wrap(
+                      spacing: 8,
+                      children: [
+                        Chip(
+                          label: Text('${_currentFilter.activeFiltersCount} filters active'),
+                          deleteIcon: Icon(Icons.close, size: 16),
+                          onDeleted: _clearFilters,
+                          backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                          labelStyle: TextStyle(
+                            color: AppColors.mainColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                SizedBox(height: 24),
+
+                // Show search results if searching
+                if (_showSearchResults)
+                  BlocBuilder<SearchBloc, SearchState>(
+                    bloc: _searchBloc,
+                    builder: (context, state) {
+                      if (state is SearchLoading) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: CircularProgressIndicator(),
+                          ),
+                        );
+                      } else if (state is SearchSuccess) {
+                        return _buildSearchResults(state.response);
+                      } else if (state is SearchError) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              children: [
+                                Icon(Icons.error_outline, size: 64, color: Colors.red),
+                                SizedBox(height: 16),
+                                Text(state.message, style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      return SizedBox.shrink();
+                    },
+                  ),
+
+                // Show search history if focused and no text
+                if (_showSearchHistory)
+                  _buildSearchHistory(),
+
+                // Regular home content (only show when not searching)
+                if (!_showSearchResults && !_showSearchHistory) ...[
+                  // Companies section
                 CustomText20(l10n.companiesName),
                 SizedBox(height: 8),
 
@@ -1137,6 +1267,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
           ),
         ),
       ),
+                ], // End of if (!_showSearchResults && !_showSearchHistory)
     );
   }
 
