@@ -42,7 +42,18 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
   Future<void> _handleSignIn() async {
     try {
-      final account = await _googleSignIn.signIn();
+      GoogleSignInAccount? account;
+
+      // For web, try silent sign-in first (recommended for web)
+      if (kIsWeb) {
+        account = await _googleSignIn.signInSilently();
+        // If silent sign-in fails, use the standard sign-in
+        account ??= await _googleSignIn.signIn();
+      } else {
+        // For mobile/desktop, use standard sign-in
+        account = await _googleSignIn.signIn();
+      }
+
       setState(() => _user = account);
 
       if (account != null) {
@@ -98,12 +109,23 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
       print('GOOGLE SIGN-IN ERROR: $error');
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Sign-in error: $error'),
-          backgroundColor: Colors.red,
-        ),
-      );
+
+      // Handle specific popup_closed error
+      if (error.toString().contains('popup_closed')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sign-in cancelled. Please try again.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Sign-in error: $error'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -159,7 +181,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                 child: Container(
                   decoration: BoxDecoration(
                     image: DecorationImage(
-                      image: AssetImage('assets/images/property_bg.jpg'),
+                      image: AssetImage('assets/images/onboarding1.jpg'),
                       fit: BoxFit.cover,
                     ),
                   ),
