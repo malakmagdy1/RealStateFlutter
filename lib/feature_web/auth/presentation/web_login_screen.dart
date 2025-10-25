@@ -34,23 +34,36 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
   bool _obscurePassword = true;
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: '641586807593-1drlkrodshb5toe1374l26m0lpmausor.apps.googleusercontent.com',
-  );
-
+  GoogleSignIn? _googleSignIn;
   GoogleSignInAccount? _user;
 
-  Future<void> _handleSignIn() async {
-    try {
-      GoogleSignInAccount? account;
+  @override
+  void initState() {
+    super.initState();
+    // Only initialize Google Sign-In on mobile platforms
+    if (!kIsWeb) {
+      _googleSignIn = GoogleSignIn(
+        clientId: '641586807593-1drlkrodshb5toe1374l26m0lpmausor.apps.googleusercontent.com',
+      );
+    }
+  }
 
-      // For mobile/desktop, use standard sign-in
-      if (!kIsWeb) {
-        account = await _googleSignIn.signIn();
-      } else {
-        // For web, try silent sign-in first
-        account = await _googleSignIn.signInSilently();
-      }
+  Future<void> _handleSignIn() async {
+    // Google Sign-In is not supported on web
+    if (kIsWeb) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Google Sign-In is not available on web. Please use email/password.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (_googleSignIn == null) return;
+
+    try {
+      final account = await _googleSignIn!.signIn();
 
       if (account != null) {
         await _processGoogleAccount(account);
@@ -132,102 +145,50 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   }
 
   Future<void> _handleSignOut() async {
-    await _googleSignIn.signOut();
+    if (_googleSignIn != null) {
+      await _googleSignIn!.signOut();
+    }
     await CasheNetwork.deletecasheItem(key: "token");
     setState(() => _user = null);
   }
 
   Widget _buildWebGoogleButton() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        OutlinedButton.icon(
-          onPressed: () async {
-            // Try silent sign-in first
-            final account = await _googleSignIn.signInSilently();
-            if (account != null) {
-              await _processGoogleAccount(account);
-            } else {
-              // Show instructions if silent sign-in fails
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: Row(
-                    children: [
-                      Icon(Icons.info_outline, color: AppColors.mainColor),
-                      SizedBox(width: 8),
-                      Text('Google Sign-In'),
-                    ],
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.blue.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline, color: Colors.blue.shade700, size: 24),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Google Sign-In Unavailable on Web',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade900,
                   ),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'To sign in with Google on web, please:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 12),
-                      Text('1. Make sure you\'re signed in to Google in this browser'),
-                      SizedBox(height: 8),
-                      Text('2. Allow popups for this website'),
-                      SizedBox(height: 8),
-                      Text('3. Check that the domain is authorized in Google Cloud Console'),
-                      SizedBox(height: 16),
-                      Container(
-                        padding: EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.orange.shade200),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.warning_amber, color: Colors.orange.shade700, size: 20),
-                            SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Google Sign-In on web is currently experiencing issues. Please use email/password to sign in.',
-                                style: TextStyle(fontSize: 12, color: Colors.orange.shade900),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('OK'),
-                    ),
-                  ],
                 ),
-              );
-            }
-          },
-          style: OutlinedButton.styleFrom(
-            padding: EdgeInsets.symmetric(vertical: 14),
-            side: BorderSide(color: Colors.grey[300]!),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+                SizedBox(height: 4),
+                Text(
+                  'Please use email and password to sign in on web. Google Sign-In is available on mobile apps.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.blue.shade700,
+                  ),
+                ),
+              ],
             ),
           ),
-          icon: Image.asset(
-            'assets/images/google.png',
-            height: 20,
-            width: 20,
-          ),
-          label: Text(
-            'Continue with Google',
-            style: TextStyle(
-              color: Colors.black87,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
