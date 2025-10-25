@@ -7,7 +7,7 @@ class OnboardingTemplate extends StatelessWidget {
   final String title;
   final String textt;
 
-  const OnboardingTemplate(
+  OnboardingTemplate(
       this.title,
       this.imagePath,
       this.textt, {
@@ -28,8 +28,8 @@ class OnboardingTemplate extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 30),
-            decoration: const BoxDecoration(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 30),
+            decoration: BoxDecoration(
               color: AppColors.mainColor,
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(30),
@@ -37,7 +37,7 @@ class OnboardingTemplate extends StatelessWidget {
               ),
             ),
             child: Padding(
-              padding: const EdgeInsets.only(left: 10,right: 10,top: 10,bottom: 20),
+              padding: EdgeInsets.only(left: 10,right: 10,top: 10,bottom: 20),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -47,7 +47,7 @@ class OnboardingTemplate extends StatelessWidget {
                     color: AppColors.white,
                     align: TextAlign.center,
                   ),
-                  const SizedBox(height: 15),
+                  SizedBox(height: 15),
                   CustomText16(
                     textt,
                     color: AppColors.white,

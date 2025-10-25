@@ -6,7 +6,7 @@ class LoginResponse extends Equatable {
   final UserModel user;
   final String? token;
 
-  const LoginResponse({
+  LoginResponse({
     required this.message,
     required this.user,
     this.token,

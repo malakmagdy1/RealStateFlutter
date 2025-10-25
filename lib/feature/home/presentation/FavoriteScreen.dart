@@ -11,7 +11,7 @@ import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dar
 import 'package:real/feature/home/presentation/widget/compunds_name.dart';
 
 class FavoriteScreen extends StatelessWidget {
-  const FavoriteScreen({super.key});
+  FavoriteScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +26,7 @@ class FavoriteScreen extends StatelessWidget {
             labelColor: AppColors.mainColor,
             unselectedLabelColor: Colors.grey,
             indicatorColor: AppColors.mainColor,
-            tabs: const [
+            tabs: [
               Tab(text: 'Compounds'),
               Tab(text: 'Units'),
             ],
@@ -54,22 +54,25 @@ class FavoriteScreen extends StatelessWidget {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
+          return GridView.builder(
+            padding: EdgeInsets.all(16),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.65,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+            ),
             itemCount: state.favorites.length,
             itemBuilder: (context, index) {
               final compound = state.favorites[index];
-              return SizedBox(
-                height: 500,
-                child: CompoundsName(compound: compound),
-              );
+              return CompoundsName(compound: compound);
             },
           );
         } else if (state is CompoundFavoriteError) {
           return _buildErrorState(state.message);
         }
 
-        return const Center(child: CircularProgressIndicator());
+        return Center(child: CircularProgressIndicator());
       },
     );
   }
@@ -86,8 +89,14 @@ class FavoriteScreen extends StatelessWidget {
             );
           }
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
+          return GridView.builder(
+            padding: EdgeInsets.all(16),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.65,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
+            ),
             itemCount: state.favorites.length,
             itemBuilder: (context, index) {
               final unit = state.favorites[index];
@@ -98,7 +107,7 @@ class FavoriteScreen extends StatelessWidget {
           return _buildErrorState(state.message);
         }
 
-        return const Center(child: CircularProgressIndicator());
+        return Center(child: CircularProgressIndicator());
       },
     );
   }
@@ -118,7 +127,7 @@ class FavoriteScreen extends StatelessWidget {
     }
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: 16),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
@@ -131,7 +140,7 @@ class FavoriteScreen extends StatelessWidget {
           );
         },
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -150,14 +159,14 @@ class FavoriteScreen extends StatelessWidget {
                               width: 100,
                               height: 100,
                               color: Colors.grey.shade200,
-                              child: const Icon(Icons.home, size: 40, color: Colors.grey),
+                              child: Icon(Icons.home, size: 40, color: AppColors.greyText),
                             ),
                           )
                         : Container(
                             width: 100,
                             height: 100,
                             color: Colors.grey.shade200,
-                            child: const Icon(Icons.home, size: 40, color: Colors.grey),
+                            child: Icon(Icons.home, size: 40, color: AppColors.greyText),
                           ),
                   ),
                   // Favorite Button
@@ -172,7 +181,7 @@ class FavoriteScreen extends StatelessWidget {
                         return GestureDetector(
                           onTap: () => bloc.toggleFavorite(unit),
                           child: Container(
-                            padding: const EdgeInsets.all(4),
+                            padding: EdgeInsets.all(4),
                             decoration: BoxDecoration(
                               color: AppColors.white.withOpacity(0.9),
                               shape: BoxShape.circle,
@@ -189,7 +198,7 @@ class FavoriteScreen extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12),
               // Content
               Expanded(
                 child: Column(
@@ -202,7 +211,7 @@ class FavoriteScreen extends StatelessWidget {
                         Expanded(
                           child: Text(
                             unit.usageType ?? unit.unitType ?? 'Unit',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
@@ -212,14 +221,14 @@ class FavoriteScreen extends StatelessWidget {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: getStatusColor(),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             unit.status.toUpperCase(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
@@ -228,37 +237,37 @@ class FavoriteScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4),
                     // Unit Number
                     if (unit.unitNumber != null && unit.unitNumber!.isNotEmpty)
                       Text(
                         'Unit #${unit.unitNumber}',
-                        style: TextStyle(fontSize:12, color: Colors.grey.shade600),
+                        style: TextStyle(fontSize:12, color: AppColors.greyText),
                       ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     // Details
                     Row(
                       children: [
                         if (unit.bedrooms != null && unit.bedrooms.isNotEmpty && unit.bedrooms != '0') ...[
                           Icon(Icons.bed, size: 14, color: AppColors.mainColor),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4),
                           Text(
                             '${unit.bedrooms} Beds',
-                            style: const TextStyle(fontSize: 11, color: Colors.black87),
+                            style: TextStyle(fontSize: 11, color: Colors.black87),
                           ),
-                          const SizedBox(width: 12),
+                          SizedBox(width: 12),
                         ],
                         if (unit.area != null && unit.area.isNotEmpty && unit.area != '0') ...[
                           Icon(Icons.straighten, size: 14, color: AppColors.mainColor),
-                          const SizedBox(width: 4),
+                          SizedBox(width: 4),
                           Text(
                             '${unit.area} m²',
-                            style: const TextStyle(fontSize: 11, color: Colors.black87),
+                            style: TextStyle(fontSize: 11, color: Colors.black87),
                           ),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     // Price
                     Text(
                       'EGP ${unit.price}',
@@ -271,7 +280,7 @@ class FavoriteScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
+              Icon(Icons.chevron_right, size: 20, color: AppColors.greyText),
             ],
           ),
         ),
@@ -289,21 +298,21 @@ class FavoriteScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, size: 80, color: Colors.grey.shade400),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             title,
             style: TextStyle(
               fontSize: 20,
-              color: Colors.grey.shade600,
+              color: AppColors.greyText,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             subtitle,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey.shade500,
+              color: AppColors.greyText,
             ),
             textAlign: TextAlign.center,
           ),
@@ -318,7 +327,7 @@ class FavoriteScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.error_outline, size: 80, color: Colors.red.shade400),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           Text(
             'Error loading favorites',
             style: TextStyle(
@@ -327,10 +336,10 @@ class FavoriteScreen extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           Text(
             message,
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            style: TextStyle(fontSize: 14, color: AppColors.greyText),
             textAlign: TextAlign.center,
           ),
         ],

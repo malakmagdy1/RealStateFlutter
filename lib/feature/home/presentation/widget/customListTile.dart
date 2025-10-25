@@ -9,7 +9,7 @@ class CustomListTile extends StatelessWidget {
   final VoidCallback onTap;
   final double screenWidth;
 
-  const CustomListTile({
+  CustomListTile({
     super.key,
     required this.icon,
     required this.title,

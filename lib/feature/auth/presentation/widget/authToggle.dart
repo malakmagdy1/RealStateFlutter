@@ -7,7 +7,7 @@ class AuthToggle extends StatelessWidget {
   final VoidCallback onSignUpPressed;
   final VoidCallback onLoginPressed;
 
-  const AuthToggle({
+  AuthToggle({
     Key? key,
     required this.isSignUp,
     required this.onSignUpPressed,
@@ -33,7 +33,7 @@ class AuthToggle extends StatelessWidget {
                     : Colors.transparent,
                 foregroundColor: Colors.black,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),
@@ -45,7 +45,7 @@ class AuthToggle extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 20),
+          SizedBox(width: 20),
           // Log In button
           Expanded(
             child: ElevatedButton(
@@ -56,7 +56,7 @@ class AuthToggle extends StatelessWidget {
                     : Colors.transparent,
                 foregroundColor: Colors.black,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(30),
                 ),

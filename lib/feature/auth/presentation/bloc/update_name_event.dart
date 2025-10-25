@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:real/feature/auth/data/models/update_name_request.dart';
 
 abstract class UpdateNameEvent extends Equatable {
-  const UpdateNameEvent();
+  UpdateNameEvent();
 
   @override
   List<Object?> get props => [];
@@ -11,7 +11,7 @@ abstract class UpdateNameEvent extends Equatable {
 class UpdateNameSubmitEvent extends UpdateNameEvent {
   final UpdateNameRequest request;
 
-  const UpdateNameSubmitEvent(this.request);
+  UpdateNameSubmitEvent(this.request);
 
   @override
   List<Object?> get props => [request];

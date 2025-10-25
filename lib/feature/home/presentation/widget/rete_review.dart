@@ -8,7 +8,7 @@ class StarRating extends StatelessWidget {
   final double size;
   final Function(int) onChanged;
 
-  const StarRating({
+  StarRating({
     super.key,
     required this.rating,
     required this.onChanged,
@@ -24,10 +24,10 @@ class StarRating extends StatelessWidget {
         return GestureDetector(
           onTap: () => onChanged(index + 1),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+            padding: EdgeInsets.symmetric(horizontal: 4),
             child: AnimatedScale(
               scale: isFilled ? 1.2 : 1.0,
-              duration: const Duration(milliseconds: 150),
+              duration: Duration(milliseconds: 150),
               child: Icon(
                 isFilled ? Icons.star : Icons.star_border,
                 color: Colors.amber,
@@ -46,7 +46,7 @@ class StaticStars extends StatelessWidget {
   final int rating;
   final double size;
 
-  const StaticStars({super.key, required this.rating, this.size = 16});
+  StaticStars({super.key, required this.rating, this.size = 16});
 
   @override
   Widget build(BuildContext context) {
@@ -67,16 +67,16 @@ class StaticStars extends StatelessWidget {
 class ReviewCard extends StatelessWidget {
   final Map<String, dynamic> review;
 
-  const ReviewCard({super.key, required this.review});
+  ReviewCard({super.key, required this.review});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 12),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -90,7 +90,7 @@ class ReviewCard extends StatelessWidget {
                     bold: true,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,11 +99,11 @@ class ReviewCard extends StatelessWidget {
                         review['userName'],
                         bold: true,
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Row(
                         children: [
                           StaticStars(rating: review['rating']),
-                          const SizedBox(width: 6),
+                          SizedBox(width: 6),
                           CustomText16(
                             review['date'],
                             color: AppColors.grey,
@@ -115,7 +115,7 @@ class ReviewCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             CustomText16(
               review['comment'],
               color: AppColors.black,
@@ -132,7 +132,7 @@ class RatingBar extends StatelessWidget {
   final String stars;
   final double percentage;
 
-  const RatingBar({
+  RatingBar({
     super.key,
     required this.stars,
     required this.percentage,
@@ -141,25 +141,25 @@ class RatingBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
           CustomText16(stars, bold: true),
-          const SizedBox(width: 4),
+          SizedBox(width: 4),
           Icon(Icons.star, size: 12, color: AppColors.grey),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Expanded(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(4),
               child: LinearProgressIndicator(
                 value: percentage,
                 backgroundColor: AppColors.grey,
-                valueColor: const AlwaysStoppedAnimation<Color>(Colors.amber),
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.amber),
                 minHeight: 6,
               ),
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           CustomText16(
             '${(percentage * 100).toInt()}%',
             color: AppColors.grey,

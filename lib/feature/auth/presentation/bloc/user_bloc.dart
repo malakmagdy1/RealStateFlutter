@@ -8,7 +8,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
 
   UserBloc({required AuthRepository repository})
       : _repository = repository,
-        super(const UserInitial()) {
+        super(UserInitial()) {
     on<FetchUserEvent>(_onFetchUser);
     on<RefreshUserEvent>(_onRefreshUser);
   }
@@ -17,7 +17,7 @@ class UserBloc extends Bloc<UserEvent, UserState> {
     FetchUserEvent event,
     Emitter<UserState> emit,
   ) async {
-    emit(const UserLoading());
+    emit(UserLoading());
     try {
       final user = await _repository.getUserByToken();
       emit(UserSuccess(user));

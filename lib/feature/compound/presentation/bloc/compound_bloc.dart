@@ -8,16 +8,17 @@ class CompoundBloc extends Bloc<CompoundEvent, CompoundState> {
 
   CompoundBloc({required CompoundRepository repository})
       : _repository = repository,
-        super(const CompoundInitial()) {
+        super(CompoundInitial()) {
     on<FetchCompoundsEvent>(_onFetchCompounds);
     on<FetchCompoundsByCompanyEvent>(_onFetchCompoundsByCompany);
+    on<FetchCompoundDetailEvent>(_onFetchCompoundDetail);
   }
 
   Future<void> _onFetchCompounds(
     FetchCompoundsEvent event,
     Emitter<CompoundState> emit,
   ) async {
-    emit(const CompoundLoading());
+    emit(CompoundLoading());
     try {
       final response = await _repository.getCompounds(
         page: event.page,
@@ -33,7 +34,7 @@ class CompoundBloc extends Bloc<CompoundEvent, CompoundState> {
     FetchCompoundsByCompanyEvent event,
     Emitter<CompoundState> emit,
   ) async {
-    emit(const CompoundLoading());
+    emit(CompoundLoading());
     try {
       final response = await _repository.getCompoundsByCompany(
         companyId: event.companyId,
@@ -43,6 +44,19 @@ class CompoundBloc extends Bloc<CompoundEvent, CompoundState> {
       emit(CompoundSuccess(response));
     } catch (e) {
       emit(CompoundError(e.toString().replaceAll('Exception: ', '')));
+    }
+  }
+
+  Future<void> _onFetchCompoundDetail(
+    FetchCompoundDetailEvent event,
+    Emitter<CompoundState> emit,
+  ) async {
+    emit(CompoundDetailLoading());
+    try {
+      final compoundData = await _repository.getCompoundById(event.compoundId);
+      emit(CompoundDetailSuccess(compoundData));
+    } catch (e) {
+      emit(CompoundDetailError(e.toString().replaceAll('Exception: ', '')));
     }
   }
 }

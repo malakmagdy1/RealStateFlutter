@@ -3,8 +3,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/core/utils/constant.dart';
+import 'package:real/feature/notifications/data/services/notification_cache_service.dart';
+import 'package:real/feature/notifications/data/models/notification_model.dart';
 
 // ============================================================
 // BACKGROUND MESSAGE HANDLER (Top-level function required)
@@ -13,6 +16,23 @@ import 'package:real/core/utils/constant.dart';
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   print('📬 Background Message: ${message.notification?.title}');
+
+  // Save notification to cache
+  if (message.notification != null) {
+    final notificationModel = NotificationModel(
+      id: message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      title: message.notification!.title ?? 'Notification',
+      message: message.notification!.body ?? '',
+      type: message.data['type'] ?? 'general',
+      timestamp: DateTime.now(),
+      isRead: false,
+      imageUrl: message.data['image_url'],
+      data: message.data,
+    );
+
+    await NotificationCacheService().saveNotification(notificationModel);
+    print('💾 Background notification saved to cache');
+  }
 }
 
 // ============================================================
@@ -33,15 +53,25 @@ class FCMService {
   String? get fcmToken => _fcmToken;
 
   // ⚠️ IMPORTANT: Use correct URL for your platform
-  // Android Emulator: http://10.0.2.2:8001
-  // iOS Simulator: http://127.0.0.1:8001
+  // Android Emulator: https://aqar.bdcbiz.com
+  // iOS Simulator: https://aqar.bdcbiz.com
   // Physical Device: http://YOUR_COMPUTER_IP:8001
-  static const String API_BASE = 'http://10.0.2.2:8001';
+  static String API_BASE = 'https://aqar.bdcbiz.com';
 
   // ============================================================
   // INITIALIZATION - Call this in main.dart
   // ============================================================
   Future<void> initialize() async {
+    // Skip FCM initialization on web platform
+    if (kIsWeb) {
+      print('');
+      print('═══════════════════════════════════════════════════════');
+      print('ℹ️  FCM Service skipped (Web platform)');
+      print('═══════════════════════════════════════════════════════');
+      print('');
+      return;
+    }
+
     print('');
     print('═══════════════════════════════════════════════════════');
     print('🔔 Initializing FCM Service...');
@@ -100,13 +130,13 @@ class FCMService {
   // LOCAL NOTIFICATIONS SETUP (for foreground messages)
   // ============================================================
   Future<void> _initializeLocalNotifications() async {
-    const AndroidInitializationSettings androidSettings =
+    AndroidInitializationSettings androidSettings =
         AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const DarwinInitializationSettings iosSettings =
+    DarwinInitializationSettings iosSettings =
         DarwinInitializationSettings();
 
-    const InitializationSettings initSettings = InitializationSettings(
+    InitializationSettings initSettings = InitializationSettings(
       android: androidSettings,
       iOS: iosSettings,
     );
@@ -120,7 +150,7 @@ class FCMService {
     );
 
     // Create Android notification channel
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    AndroidNotificationChannel channel = AndroidNotificationChannel(
       'high_importance_channel', // id
       'High Importance Notifications', // name
       description: 'This channel is used for important notifications.',
@@ -202,7 +232,7 @@ class FCMService {
   // ============================================================
   // HANDLE FOREGROUND MESSAGES (App is open)
   // ============================================================
-  void handleForegroundMessage(RemoteMessage message) {
+  void handleForegroundMessage(RemoteMessage message) async {
     print('');
     print('═══════════════════════════════════════════════════════');
     print('📨 FOREGROUND MESSAGE RECEIVED');
@@ -215,6 +245,23 @@ class FCMService {
 
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
+
+    // Save notification to cache
+    if (notification != null) {
+      final notificationModel = NotificationModel(
+        id: message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        title: notification.title ?? 'Notification',
+        message: notification.body ?? '',
+        type: message.data['type'] ?? 'general',
+        timestamp: DateTime.now(),
+        isRead: false,
+        imageUrl: message.data['image_url'],
+        data: message.data,
+      );
+
+      await NotificationCacheService().saveNotification(notificationModel);
+      print('💾 Notification saved to cache');
+    }
 
     // Show local notification when app is in foreground
     if (notification != null) {
@@ -233,7 +280,7 @@ class FCMService {
             playSound: true,
             enableVibration: true,
           ),
-          iOS: const DarwinNotificationDetails(
+          iOS: DarwinNotificationDetails(
             presentAlert: true,
             presentBadge: true,
             presentSound: true,

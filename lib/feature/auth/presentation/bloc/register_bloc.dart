@@ -8,7 +8,7 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
 
   RegisterBloc({required AuthRepository repository})
       : _repository = repository,
-        super(const RegisterInitial()) {
+        super(RegisterInitial()) {
     on<RegisterSubmitEvent>(_onRegisterSubmit);
   }
 
@@ -16,7 +16,7 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
     RegisterSubmitEvent event,
     Emitter<RegisterState> emit,
   ) async {
-    emit(const RegisterLoading());
+    emit(RegisterLoading());
     try {
       final response = await _repository.register(event.request);
       emit(RegisterSuccess(response));

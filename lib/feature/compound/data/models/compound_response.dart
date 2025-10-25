@@ -10,7 +10,7 @@ class CompoundResponse extends Equatable {
   final int totalPages;
   final List<Compound> data;
 
-  const CompoundResponse({
+  CompoundResponse({
     required this.success,
     required this.count,
     required this.total,

@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../data/models/register_request.dart';
 
 abstract class RegisterEvent extends Equatable {
-  const RegisterEvent();
+  RegisterEvent();
 
   @override
   List<Object?> get props => [];
@@ -12,7 +12,7 @@ abstract class RegisterEvent extends Equatable {
 class RegisterSubmitEvent extends RegisterEvent {
   final RegisterRequest request;
 
-  const RegisterSubmitEvent(this.request);
+  RegisterSubmitEvent(this.request);
 
   @override
   List<Object?> get props => [request];

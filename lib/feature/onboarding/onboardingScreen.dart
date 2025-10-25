@@ -7,7 +7,7 @@ import '../auth/presentation/screen/loginScreen.dart';
 import 'onboarding.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  static const String routeName = '/onboarding2';
+  static String routeName = '/onboarding2';
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -24,7 +24,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         children: [
           PageView(
             controller: _controller,
-            children: const [
+            children: [
               OnboardingTemplate(
                 "Find Your Perfect Home",
                 "assets/images/onboarding1.jpg",
@@ -52,7 +52,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 SmoothPageIndicator(
                   controller: _controller,
                   count: 3,
-                  effect: const ExpandingDotsEffect(
+                  effect: ExpandingDotsEffect(
                     activeDotColor: AppColors.white,
                     dotColor: Colors.white54,
                     dotHeight: 8,

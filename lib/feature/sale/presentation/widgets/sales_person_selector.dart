@@ -14,7 +14,7 @@ class SalesPersonSelector {
 
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       isScrollControlled: true,
@@ -29,7 +29,7 @@ class SalesPersonSelector {
             children: [
               // Handle bar
               Container(
-                margin: const EdgeInsets.only(top: 12),
+                margin: EdgeInsets.only(top: 12),
                 width: 40,
                 height: 5,
                 decoration: BoxDecoration(
@@ -40,7 +40,7 @@ class SalesPersonSelector {
 
               // Header
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: EdgeInsets.all(20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -57,7 +57,7 @@ class SalesPersonSelector {
                 ),
               ),
 
-              const Divider(height: 1),
+              Divider(height: 1),
 
               // Sales persons list
               Expanded(
@@ -71,7 +71,7 @@ class SalesPersonSelector {
                               size: 64,
                               color: AppColors.grey,
                             ),
-                            const SizedBox(height: 16),
+                            SizedBox(height: 16),
                             CustomText18(
                               l10n.noSalesPersonAvailable,
                               color: AppColors.grey,
@@ -81,7 +81,7 @@ class SalesPersonSelector {
                       )
                     : ListView.builder(
                         controller: scrollController,
-                        padding: const EdgeInsets.all(20),
+                        padding: EdgeInsets.all(20),
                         itemCount: salesPersons.length,
                         itemBuilder: (context, index) {
                           final salesPerson = salesPersons[index];
@@ -102,8 +102,8 @@ class SalesPersonSelector {
     AppLocalizations l10n,
   ) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -122,7 +122,7 @@ class SalesPersonSelector {
           BoxShadow(
             color: AppColors.mainColor.withOpacity(0.08),
             blurRadius: 12,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -173,7 +173,7 @@ class SalesPersonSelector {
                     ),
                   ),
           ),
-          const SizedBox(width: 16),
+          SizedBox(width: 16),
 
           // Sales Person Info
           Expanded(
@@ -185,7 +185,7 @@ class SalesPersonSelector {
                   bold: true,
                   color: AppColors.black,
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Row(
                   children: [
                     Icon(
@@ -193,7 +193,7 @@ class SalesPersonSelector {
                       size: 16,
                       color: AppColors.grey,
                     ),
-                    const SizedBox(width: 6),
+                    SizedBox(width: 6),
                     Expanded(
                       child: CustomText16(
                         salesPerson.email,
@@ -203,7 +203,7 @@ class SalesPersonSelector {
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Row(
                   children: [
                     Icon(
@@ -211,7 +211,7 @@ class SalesPersonSelector {
                       size: 16,
                       color: AppColors.grey,
                     ),
-                    const SizedBox(width: 6),
+                    SizedBox(width: 6),
                     CustomText16(
                       salesPerson.phone,
                       color: AppColors.grey,
@@ -258,10 +258,10 @@ class SalesPersonSelector {
                       }
                     }
                   },
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(10),
                 ),
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               // WhatsApp button (optional)
               Container(
                 decoration: BoxDecoration(
@@ -286,7 +286,7 @@ class SalesPersonSelector {
                       }
                     }
                   },
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(10),
                 ),
               ),
             ],

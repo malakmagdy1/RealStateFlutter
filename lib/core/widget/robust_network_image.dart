@@ -1,7 +1,7 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:real/core/utils/url_helpers.dart';
+
+import '../utils/colors.dart';
 
 class RobustNetworkImage extends StatefulWidget {
   final String imageUrl;
@@ -11,7 +11,7 @@ class RobustNetworkImage extends StatefulWidget {
   final Widget Function(BuildContext, String)? errorBuilder;
   final Widget Function(BuildContext)? loadingBuilder;
 
-  const RobustNetworkImage({
+  RobustNetworkImage({
     Key? key,
     required this.imageUrl,
     this.fit = BoxFit.cover,
@@ -32,7 +32,7 @@ class _RobustNetworkImageState extends State<RobustNetworkImage> {
 
   @override
   Widget build(BuildContext context) {
-    // Fix the image URL for Android emulator
+    // Fix the image URL for both mobile and web
     final fixedUrl = UrlHelpers.fixImageUrl(widget.imageUrl);
 
     if (_hasError && _retryCount >= _maxRetries) {
@@ -41,7 +41,7 @@ class _RobustNetworkImageState extends State<RobustNetworkImage> {
             width: widget.width,
             height: widget.height,
             color: Colors.grey.shade300,
-            child: const Icon(Icons.broken_image, size: 50, color: Colors.grey),
+            child: Icon(Icons.broken_image, size: 50, color: AppColors.greyText),
           );
     }
 
@@ -81,10 +81,13 @@ class _RobustNetworkImageState extends State<RobustNetworkImage> {
             );
       },
       errorBuilder: (context, error, stackTrace) {
-        // Retry on connection errors
-        if (error is SocketException ||
-            error is HttpException ||
-            error.toString().contains('Connection closed')) {
+        print('[RobustNetworkImage] Error loading: ${widget.imageUrl}');
+        print('[RobustNetworkImage] Error: $error');
+
+        // Retry on connection errors (simplified for web compatibility)
+        if (error.toString().contains('Connection') ||
+            error.toString().contains('Failed') ||
+            error.toString().contains('NetworkImage')) {
           if (_retryCount < _maxRetries) {
             // Schedule retry after build completes
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -103,7 +106,7 @@ class _RobustNetworkImageState extends State<RobustNetworkImage> {
                   width: widget.width,
                   height: widget.height,
                   color: Colors.grey.shade200,
-                  child: const Center(child: CircularProgressIndicator()),
+                  child: Center(child: CircularProgressIndicator()),
                 );
           }
         }
@@ -122,10 +125,10 @@ class _RobustNetworkImageState extends State<RobustNetworkImage> {
               width: widget.width,
               height: widget.height,
               color: Colors.grey.shade300,
-              child: const Icon(
+              child: Icon(
                 Icons.broken_image,
                 size: 50,
-                color: Colors.grey,
+                color: AppColors.greyText,
               ),
             );
       },

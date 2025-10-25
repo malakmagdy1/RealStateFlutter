@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import '../../data/models/search_filter_model.dart';
 
 abstract class SearchEvent extends Equatable {
-  const SearchEvent();
+  SearchEvent();
 
   @override
   List<Object?> get props => [];
@@ -14,7 +14,7 @@ class SearchQueryEvent extends SearchEvent {
   final int perPage;
   final SearchFilter? filter;
 
-  const SearchQueryEvent({
+  SearchQueryEvent({
     required this.query,
     this.type,
     this.perPage = 20,
@@ -26,5 +26,5 @@ class SearchQueryEvent extends SearchEvent {
 }
 
 class ClearSearchEvent extends SearchEvent {
-  const ClearSearchEvent();
+  ClearSearchEvent();
 }

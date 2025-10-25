@@ -6,7 +6,7 @@ class LanguageService {
   factory LanguageService() => _instance;
   LanguageService._internal();
 
-  static const String _localeKey = 'app_locale';
+  static String _localeKey = 'app_locale';
 
   /// Statically get current language (use this in web services)
   /// Returns 'en' or 'ar'

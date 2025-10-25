@@ -9,7 +9,7 @@ class Sales extends Equatable {
   final String isVerified;
   final String createdAt;
 
-  const Sales({
+  Sales({
     required this.id,
     required this.name,
     required this.email,

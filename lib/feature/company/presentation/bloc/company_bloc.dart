@@ -8,7 +8,7 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
 
   CompanyBloc({required CompanyRepository repository})
       : _repository = repository,
-        super(const CompanyInitial()) {
+        super(CompanyInitial()) {
     on<FetchCompaniesEvent>(_onFetchCompanies);
   }
 
@@ -16,7 +16,7 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
     FetchCompaniesEvent event,
     Emitter<CompanyState> emit,
   ) async {
-    emit(const CompanyLoading());
+    emit(CompanyLoading());
     try {
       final response = await _repository.getCompanies();
       emit(CompanySuccess(response));

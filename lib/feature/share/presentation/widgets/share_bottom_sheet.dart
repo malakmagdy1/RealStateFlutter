@@ -10,7 +10,7 @@ class ShareBottomSheet extends StatefulWidget {
   final String type; // 'unit' or 'compound'
   final String id;
 
-  const ShareBottomSheet({
+  ShareBottomSheet({
     Key? key,
     required this.type,
     required this.id,
@@ -64,7 +64,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text('Could not open link'),
               backgroundColor: Colors.red,
             ),
@@ -87,7 +87,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
     await Clipboard.setData(ClipboardData(text: text));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('Link copied to clipboard!'),
           backgroundColor: Colors.green,
           duration: Duration(seconds: 2),
@@ -100,11 +100,11 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(20),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -117,7 +117,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // Title
           CustomText20(
@@ -125,26 +125,26 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
             bold: true,
             color: AppColors.black,
           ),
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
 
           // Content
           if (_isLoading)
-            const Padding(
+            Padding(
               padding: EdgeInsets.all(40),
               child: CircularProgressIndicator(),
             )
           else if (_error != null)
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(20),
               child: Column(
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 12),
+                  Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  SizedBox(height: 12),
                   CustomText16(_error!, color: Colors.red, align: TextAlign.center),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _loadShareLink,
-                    child: const Text('Retry'),
+                    child: Text('Retry'),
                   ),
                 ],
               ),
@@ -159,17 +159,17 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                   color: AppColors.mainColor,
                   onTap: () => _copyToClipboard(_shareData!.url),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 _ShareOption(
                   icon: Icons.message,
                   label: 'WhatsApp',
-                  color: const Color(0xFF25D366),
+                  color: Color(0xFF25D366),
                   onTap: () => _launchUrl(_shareData!.whatsappUrl),
                 ),
               ],
             ),
 
-          const SizedBox(height: 20),
+          SizedBox(height: 20),
         ],
       ),
     );
@@ -182,7 +182,7 @@ class _ShareOption extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
 
-  const _ShareOption({
+  _ShareOption({
     required this.icon,
     required this.label,
     required this.color,
@@ -195,7 +195,7 @@ class _ShareOption extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
@@ -204,16 +204,16 @@ class _ShareOption extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: color,
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: Colors.white, size: 20),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16),
             CustomText16(label, bold: true, color: color),
-            const Spacer(),
+            Spacer(),
             Icon(Icons.arrow_forward_ios, size: 16, color: color),
           ],
         ),

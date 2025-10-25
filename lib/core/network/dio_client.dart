@@ -6,11 +6,14 @@ class DioClient {
   // Expose dio instance for external use
   Dio get dio => _dio;
 
+  // Production base URL
+  static String baseUrl = 'https://aqar.bdcbiz.com/api';
+
   DioClient() {
     _dio = Dio(BaseOptions(
-      baseUrl: 'http://192.168.8.58:8000/larvel2/api',
-      connectTimeout: const Duration(seconds: 60),
-      receiveTimeout: const Duration(seconds: 60),
+      baseUrl: baseUrl,
+      connectTimeout: Duration(seconds: 60),
+      receiveTimeout: Duration(seconds: 60),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

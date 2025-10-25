@@ -397,6 +397,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get beds => 'غرف نوم';
 
   @override
+  String get baths => 'حمامات';
+
+  @override
   String get verified => 'موثق';
 
   @override
@@ -601,4 +604,200 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noActiveSalesForThisItem => 'لا توجد عروض نشطة لهذا العنصر';
+
+  @override
+  String get all => 'الكل';
+
+  @override
+  String get updates => 'التحديثات';
+
+  @override
+  String get markAllAsRead => 'تعليم الكل كمقروء';
+
+  @override
+  String get markedAllAsRead => 'تم تعليم جميع الإشعارات كمقروءة';
+
+  @override
+  String get clearAll => 'مسح الكل';
+
+  @override
+  String get notificationDeleted => 'تم حذف الإشعار';
+
+  @override
+  String get allNotificationsCleared => 'تم مسح جميع الإشعارات';
+
+  @override
+  String get clearAllNotifications => 'مسح جميع الإشعارات';
+
+  @override
+  String get clearAllConfirm =>
+      'هل أنت متأكد من حذف جميع الإشعارات؟ لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get noNotifications => 'لا توجد إشعارات';
+
+  @override
+  String get allCaughtUp => 'أنت على اطلاع بكل شيء!';
+
+  @override
+  String get markAsRead => 'تعليم كمقروء';
+
+  @override
+  String get markAsUnread => 'تعليم كغير مقروء';
+
+  @override
+  String get delete => 'حذف';
+
+  @override
+  String get noDetailsAvailable => 'لا توجد تفاصيل متاحة لهذا الإشعار';
+
+  @override
+  String get perSqm => 'لكل م²';
+
+  @override
+  String get details => 'التفاصيل';
+
+  @override
+  String get gallery => 'المعرض';
+
+  @override
+  String get viewOnMap => 'عرض على الخريطة';
+
+  @override
+  String get floorPlan => 'مخطط الطابق';
+
+  @override
+  String get noDescriptionAvailable => 'لا يوجد وصف متاح';
+
+  @override
+  String get saleType => 'نوع البيع';
+
+  @override
+  String get numberOfBedrooms => 'عدد غرف النوم';
+
+  @override
+  String get numberOfBathrooms => 'عدد الحمامات';
+
+  @override
+  String get mapViewNotAvailable => 'عرض الخريطة غير متاح';
+
+  @override
+  String get floorPlanNotAvailable => 'مخطط الطابق غير متاح';
+
+  @override
+  String get paymentPlans => 'خطط الدفع';
+
+  @override
+  String get noMortgageAvailable => 'لا يوجد رهن عقاري متاح';
+
+  @override
+  String get fillForm => 'املأ النموذج';
+
+  @override
+  String get yourName => 'اسمك';
+
+  @override
+  String get pleaseEnterYourName => 'الرجاء إدخال اسمك';
+
+  @override
+  String get pleaseEnterYourPhone => 'الرجاء إدخال رقم هاتفك';
+
+  @override
+  String get requestInfo => 'طلب معلومات';
+
+  @override
+  String get callNow => 'اتصل الآن';
+
+  @override
+  String get noData => 'لا توجد بيانات';
+
+  @override
+  String get developerInformation => 'معلومات المطور';
+
+  @override
+  String get trustedDeveloperDescription =>
+      'مطور موثوق به مع مشاريع ناجحة متعددة في مصر';
+
+  @override
+  String get pricingPayment => 'الأسعار والدفع';
+
+  @override
+  String get startingPrice => 'السعر المبدئي';
+
+  @override
+  String get contactForDetails => 'اتصل للتفاصيل';
+
+  @override
+  String get tba => 'سيتم الإعلان عنه';
+
+  @override
+  String get complete => 'مكتمل';
+
+  @override
+  String get whatsapp => 'واتساب';
+
+  @override
+  String get finishSpecifications => 'مواصفات التشطيب';
+
+  @override
+  String get masterPlan => 'المخطط العام';
+
+  @override
+  String get featuresAmenities => 'المميزات والمرافق';
+
+  @override
+  String get swimmingPool => 'حمام سباحة';
+
+  @override
+  String get gym => 'صالة رياضية';
+
+  @override
+  String get sportsClub => 'نادي رياضي';
+
+  @override
+  String get security247 => 'أمن على مدار الساعة';
+
+  @override
+  String get parking => 'موقف سيارات';
+
+  @override
+  String get greenAreas => 'مساحات خضراء';
+
+  @override
+  String get commercialArea => 'منطقة تجارية';
+
+  @override
+  String get kidsArea => 'منطقة أطفال';
+
+  @override
+  String get requestMoreInformation => 'طلب المزيد من المعلومات';
+
+  @override
+  String get emailAddress => 'البريد الإلكتروني';
+
+  @override
+  String get messageOptional => 'رسالة (اختياري)';
+
+  @override
+  String get submitRequest => 'إرسال الطلب';
+
+  @override
+  String get requestSubmittedSuccessfully => 'تم إرسال الطلب بنجاح!';
+
+  @override
+  String get aboutTheDeveloper => 'عن المطور';
+
+  @override
+  String get amenities => 'المرافق';
+
+  @override
+  String get floors => 'الطوابق';
+
+  @override
+  String get club => 'نادي';
+
+  @override
+  String leadingDeveloper(String companyName) {
+    return '$companyName هي شركة رائدة في مجال التطوير العقاري في مصر، معروفة بإنشاء عقارات سكنية وتجارية استثنائية.';
+  }
 }

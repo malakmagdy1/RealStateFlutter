@@ -397,6 +397,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get beds => 'Beds';
 
   @override
+  String get baths => 'Baths';
+
+  @override
   String get verified => 'Verified';
 
   @override
@@ -603,4 +606,200 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noActiveSalesForThisItem => 'No active sales for this item';
+
+  @override
+  String get all => 'All';
+
+  @override
+  String get updates => 'Updates';
+
+  @override
+  String get markAllAsRead => 'Mark all as read';
+
+  @override
+  String get markedAllAsRead => 'All notifications marked as read';
+
+  @override
+  String get clearAll => 'Clear all';
+
+  @override
+  String get notificationDeleted => 'Notification deleted';
+
+  @override
+  String get allNotificationsCleared => 'All notifications cleared';
+
+  @override
+  String get clearAllNotifications => 'Clear All Notifications';
+
+  @override
+  String get clearAllConfirm =>
+      'Are you sure you want to delete all notifications? This action cannot be undone.';
+
+  @override
+  String get noNotifications => 'No notifications';
+
+  @override
+  String get allCaughtUp => 'You\'re all caught up!';
+
+  @override
+  String get markAsRead => 'Mark as Read';
+
+  @override
+  String get markAsUnread => 'Mark as Unread';
+
+  @override
+  String get delete => 'Delete';
+
+  @override
+  String get noDetailsAvailable => 'No details available for this notification';
+
+  @override
+  String get perSqm => 'per m²';
+
+  @override
+  String get details => 'Details';
+
+  @override
+  String get gallery => 'Gallery';
+
+  @override
+  String get viewOnMap => 'View on Map';
+
+  @override
+  String get floorPlan => 'Floor Plan';
+
+  @override
+  String get noDescriptionAvailable => 'No description available';
+
+  @override
+  String get saleType => 'Sale Type';
+
+  @override
+  String get numberOfBedrooms => 'Number of Bedrooms';
+
+  @override
+  String get numberOfBathrooms => 'Number of Bathrooms';
+
+  @override
+  String get mapViewNotAvailable => 'Map view not available';
+
+  @override
+  String get floorPlanNotAvailable => 'Floor plan not available';
+
+  @override
+  String get paymentPlans => 'Payment Plans';
+
+  @override
+  String get noMortgageAvailable => 'No Mortgage Available';
+
+  @override
+  String get fillForm => 'Fill Form';
+
+  @override
+  String get yourName => 'Your Name';
+
+  @override
+  String get pleaseEnterYourName => 'Please enter your name';
+
+  @override
+  String get pleaseEnterYourPhone => 'Please enter your phone number';
+
+  @override
+  String get requestInfo => 'Request Info';
+
+  @override
+  String get callNow => 'Call Now';
+
+  @override
+  String get noData => 'No data';
+
+  @override
+  String get developerInformation => 'Developer Information';
+
+  @override
+  String get trustedDeveloperDescription =>
+      'Trusted developer with multiple successful projects in Egypt';
+
+  @override
+  String get pricingPayment => 'Pricing & Payment';
+
+  @override
+  String get startingPrice => 'Starting Price';
+
+  @override
+  String get contactForDetails => 'Contact for details';
+
+  @override
+  String get tba => 'TBA';
+
+  @override
+  String get complete => 'Complete';
+
+  @override
+  String get whatsapp => 'WhatsApp';
+
+  @override
+  String get finishSpecifications => 'Finish Specifications';
+
+  @override
+  String get masterPlan => 'Master Plan';
+
+  @override
+  String get featuresAmenities => 'Features & Amenities';
+
+  @override
+  String get swimmingPool => 'Swimming Pool';
+
+  @override
+  String get gym => 'Gym';
+
+  @override
+  String get sportsClub => 'Sports Club';
+
+  @override
+  String get security247 => '24/7 Security';
+
+  @override
+  String get parking => 'Parking';
+
+  @override
+  String get greenAreas => 'Green Areas';
+
+  @override
+  String get commercialArea => 'Commercial Area';
+
+  @override
+  String get kidsArea => 'Kids Area';
+
+  @override
+  String get requestMoreInformation => 'Request More Information';
+
+  @override
+  String get emailAddress => 'Email Address';
+
+  @override
+  String get messageOptional => 'Message (Optional)';
+
+  @override
+  String get submitRequest => 'Submit Request';
+
+  @override
+  String get requestSubmittedSuccessfully => 'Request submitted successfully!';
+
+  @override
+  String get aboutTheDeveloper => 'About the Developer';
+
+  @override
+  String get amenities => 'Amenities';
+
+  @override
+  String get floors => 'Floors';
+
+  @override
+  String get club => 'Club';
+
+  @override
+  String leadingDeveloper(String companyName) {
+    return '$companyName is a leading real estate developer in Egypt, known for creating exceptional residential and commercial properties.';
+  }
 }

@@ -1,72 +1,68 @@
-import 'dart:io' show Platform;
-import 'package:flutter/foundation.dart' show kIsWeb;
-
 /// Defensive URL helper to handle both full URLs and relative paths
 /// This ensures images load correctly regardless of the format stored in the database
 class UrlHelpers {
-  // Base URL for the Laravel backend
-  // For Android emulator, use 10.0.2.2 to access host machine's localhost
-  static const String _baseUrl = 'http://10.0.2.2:8001';
+  // Production base URL
+  static String _baseUrl = 'https://aqar.bdcbiz.com';
 
-  /// Fixes image URL to work on Android emulator
+  /// Fixes image URL to work with production server
   ///
-  /// Handles three cases:
-  /// 1. If URL already has http/https -> replaces localhost with 10.0.2.2
+  /// Handles multiple cases:
+  /// 1. If URL already has http/https -> uses it as is (after fixing path)
   /// 2. If URL is a relative path -> prepends base URL
   /// 3. If URL is empty/null -> returns empty string
-  ///
-  /// Example:
-  /// ```dart
-  /// // Full URL from DB
-  /// fixImageUrl('http://localhost/larvel2/storage/company-logos/123.png')
-  /// // Returns: 'http://10.0.2.2/larvel2/storage/company-logos/123.png'
-  ///
-  /// // Relative path from DB
-  /// fixImageUrl('storage/company-logos/123.png')
-  /// // Returns: 'http://10.0.2.2/larvel2/storage/company-logos/123.png'
-  /// ```
   static String fixImageUrl(String? url) {
-    if (url == null || url.isEmpty) return '';
+    if (url == null || url.isEmpty) {
+      print('[URL HELPER] Empty or null URL');
+      return '';
+    }
+
+    print('[URL HELPER] Original URL: $url');
 
     // Case 1: URL already has http/https prefix
     if (url.startsWith('http://') || url.startsWith('https://')) {
-      // If running on Android emulator, replace localhost/127.0.0.1 with 10.0.2.2
-      if (!kIsWeb && Platform.isAndroid) {
-        var fixedUrl = url
-            .replaceFirst(RegExp(r'https?://localhost'), 'http://10.0.2.2')
-            .replaceFirst(RegExp(r'https?://127\.0\.0\.1'), 'http://10.0.2.2')
-            .replaceFirst(RegExp(r'https?://192\.168\.[0-9.]+'), 'http://10.0.2.2');
-
-        // Fix missing port - add :8001 if not present
-        // Use a more robust regex that matches the host without port
-        if (!fixedUrl.contains(':8001')) {
-          fixedUrl = fixedUrl.replaceFirst(
-            RegExp(r'http://10\.0\.2\.2/'),
-            'http://10.0.2.2:8001/'
-          );
-        }
-
-        // Fix incorrect path: /larvel2/ should be /storage/
-        if (fixedUrl.contains('/larvel2/')) {
-          fixedUrl = fixedUrl.replaceAll('/larvel2/', '/storage/');
-        }
-
-        return fixedUrl;
-      }
-
-      // For other platforms, just fix the path if needed
+      // Fix incorrect paths
       var fixedUrl = url;
+
+      // Fix /larvel2/ -> /storage/
       if (fixedUrl.contains('/larvel2/')) {
         fixedUrl = fixedUrl.replaceAll('/larvel2/', '/storage/');
+        print('[URL HELPER] Fixed /larvel2/ path');
       }
 
+      // Fix /storage/app/public/ -> /storage/
+      if (fixedUrl.contains('/storage/app/public/')) {
+        fixedUrl = fixedUrl.replaceAll('/storage/app/public/', '/storage/');
+        print('[URL HELPER] Fixed /storage/app/public/ path');
+      }
+
+      print('[URL HELPER] Final URL: $fixedUrl');
       return fixedUrl;
     }
 
     // Case 2: Relative path - prepend base URL
     // Remove leading slash if present to avoid double slashes
-    final path = url.startsWith('/') ? url.substring(1) : url;
-    return '$_baseUrl/$path';
+    String path = url.startsWith('/') ? url.substring(1) : url;
+
+    // Fix /storage/app/public/ -> /storage/ in relative paths
+    if (path.contains('storage/app/public/')) {
+      path = path.replaceAll('storage/app/public/', 'storage/');
+      print('[URL HELPER] Fixed relative path /storage/app/public/');
+    }
+
+    // Add /storage/ prefix if the path doesn't already have it
+    // Common patterns: company-logos/, compound-images/, unit-images/, etc.
+    if (!path.startsWith('storage/') &&
+        (path.contains('company-logos/') ||
+         path.contains('compound-images/') ||
+         path.contains('unit-images/') ||
+         path.contains('images/'))) {
+      path = 'storage/$path';
+      print('[URL HELPER] Added /storage/ prefix to relative path');
+    }
+
+    final finalUrl = '$_baseUrl/$path';
+    print('[URL HELPER] Final URL (relative): $finalUrl');
+    return finalUrl;
   }
 
   /// Checks if a URL is valid and ready to be used

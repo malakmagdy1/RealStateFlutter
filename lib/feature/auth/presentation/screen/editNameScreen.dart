@@ -12,7 +12,7 @@ import '../../../../core/widget/button/authButton.dart';
 import '../widget/textFormField.dart';
 
 class EditNameScreen extends StatefulWidget {
-  static const String routeName = '/edit-name';
+  static String routeName = '/edit-name';
 
   @override
   State<EditNameScreen> createState() => _EditNameScreenState();
@@ -63,26 +63,26 @@ class _EditNameScreenState extends State<EditNameScreen> {
         },
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: EdgeInsets.all(20.0),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   CustomText16(
                     "Enter your new name to update your profile",
-                    color: Colors.grey,
+                    color: AppColors.greyText,
                   ),
-                  const SizedBox(height: 30),
+                  SizedBox(height: 30),
                   CustomText16("Name", bold: true, color: AppColors.mainColor),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   CustomTextField(
                     controller: nameController,
                     hintText: 'Enter your name',
                     validator: Validators.validateName,
                   ),
-                  const SizedBox(height: 30),
+                  SizedBox(height: 30),
                   BlocBuilder<UpdateNameBloc, UpdateNameState>(
                     builder: (context, state) {
                       final isLoading = state is UpdateNameLoading;

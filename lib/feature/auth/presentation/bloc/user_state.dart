@@ -2,24 +2,24 @@ import 'package:equatable/equatable.dart';
 import '../../data/models/user_model.dart';
 
 abstract class UserState extends Equatable {
-  const UserState();
+  UserState();
 
   @override
   List<Object?> get props => [];
 }
 
 class UserInitial extends UserState {
-  const UserInitial();
+  UserInitial();
 }
 
 class UserLoading extends UserState {
-  const UserLoading();
+  UserLoading();
 }
 
 class UserSuccess extends UserState {
   final UserModel user;
 
-  const UserSuccess(this.user);
+  UserSuccess(this.user);
 
   @override
   List<Object?> get props => [user];
@@ -28,7 +28,7 @@ class UserSuccess extends UserState {
 class UserError extends UserState {
   final String message;
 
-  const UserError(this.message);
+  UserError(this.message);
 
   @override
   List<Object?> get props => [message];

@@ -5,7 +5,7 @@ class UpdateNameResponse extends Equatable {
   final bool success;
   final String name;
 
-  const UpdateNameResponse({
+  UpdateNameResponse({
     required this.message,
     required this.success,
     required this.name,

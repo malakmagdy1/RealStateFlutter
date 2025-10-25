@@ -13,7 +13,7 @@ import '../../../../core/widget/button/authButton.dart';
 import '../widget/textFormField.dart';
 
 class ForgetPasswordScreen extends StatefulWidget {
-  static const String routeName = '/forget-password';
+  static String routeName = '/forget-password';
 
   @override
   State<ForgetPasswordScreen> createState() => _ForgetPasswordScreenState();
@@ -62,24 +62,24 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
         },
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(10.0),
+            padding: EdgeInsets.all(10.0),
             child: Form(key: _formKey,
               child: Column(
                 children: [
-              const SizedBox(height: 40),
+              SizedBox(height: 40),
               CustomText24("Reset Password", color: AppColors.black, bold: true),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               CustomText16("Email",bold: true,color: AppColors.mainColor,),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               CustomTextField(
                 controller: emailController,
                 hintText: 'Enter your email',
                 keyboardType: TextInputType.emailAddress,
                 validator: Validators.validateEmail,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               CustomText16("New Password",bold: true,color: AppColors.mainColor,),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               CustomTextField(
                 controller: newPasswordController,
                 hintText: 'Enter new password',
@@ -94,9 +94,9 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                   });
                 },
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               CustomText16("Confirm New Password",bold: true,color: AppColors.mainColor,),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               CustomTextField(
                 controller: confirmNewPasswordController,
                 hintText: 'Confirm new password',
@@ -114,7 +114,7 @@ class _ForgetPasswordScreenState extends State<ForgetPasswordScreen> {
                   });
                 },
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
               BlocBuilder<ForgotPasswordBloc, ForgotPasswordState>(
                 builder: (context, state) {
                   final isLoading = state is ForgotPasswordLoading;

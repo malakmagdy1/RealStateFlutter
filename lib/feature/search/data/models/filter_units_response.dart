@@ -11,7 +11,7 @@ class FilterUnitsResponse extends Equatable {
   final List<String> filtersApplied;
   final List<FilteredUnit> units;
 
-  const FilterUnitsResponse({
+  FilterUnitsResponse({
     required this.success,
     required this.totalUnits,
     required this.page,
@@ -83,7 +83,7 @@ class FilteredUnit extends Equatable {
   final String createdAt;
   final String updatedAt;
 
-  const FilteredUnit({
+  FilteredUnit({
     required this.id,
     required this.compoundId,
     required this.compoundName,

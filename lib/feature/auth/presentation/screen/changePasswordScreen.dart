@@ -12,7 +12,7 @@ import '../../../../core/widget/button/authButton.dart';
 import '../widget/textFormField.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
-  static const String routeName = '/change-password';
+  static String routeName = '/change-password';
 
   @override
   State<ChangePasswordScreen> createState() => _ChangePasswordScreenState();
@@ -68,20 +68,20 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         },
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(20.0),
+            padding: EdgeInsets.all(20.0),
             child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   CustomText16(
                     "Enter your new password to change your password",
-                    color: Colors.grey,
+                    color: AppColors.greyText,
                   ),
-                  const SizedBox(height: 30),
+                  SizedBox(height: 30),
                   CustomText16("New Password", bold: true, color: AppColors.mainColor),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   CustomTextField(
                     controller: newPasswordController,
                     hintText: 'Enter new password',
@@ -96,9 +96,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       });
                     },
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   CustomText16("Confirm New Password", bold: true, color: AppColors.mainColor),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   CustomTextField(
                     controller: confirmNewPasswordController,
                     hintText: 'Confirm new password',
@@ -116,7 +116,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       });
                     },
                   ),
-                  const SizedBox(height: 30),
+                  SizedBox(height: 30),
                   BlocBuilder<ForgotPasswordBloc, ForgotPasswordState>(
                     builder: (context, state) {
                       final isLoading = state is ForgotPasswordLoading;

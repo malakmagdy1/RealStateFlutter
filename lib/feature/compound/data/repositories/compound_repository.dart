@@ -34,4 +34,24 @@ class CompoundRepository {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>> getCompoundById(String compoundId) async {
+    try {
+      final response = await _compoundWebServices.getCompoundById(compoundId);
+      return response;
+    } catch (e) {
+      print('Repository Get Compound by ID Error: ${e.toString()}');
+      rethrow;
+    }
+  }
+
+  Future<Map<String, dynamic>> getSalespeopleByCompound(String compoundName) async {
+    try {
+      final response = await _compoundWebServices.getSalespeopleByCompound(compoundName);
+      return response;
+    } catch (e) {
+      print('Repository Get Salespeople by Compound Error: ${e.toString()}');
+      rethrow;
+    }
+  }
 }

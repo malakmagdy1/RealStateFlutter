@@ -7,7 +7,7 @@ class ImageSlider extends StatefulWidget {
   final List<String> images; // you pass list of images from HomeScreen
   final bool isNetworkImage; // true for network images, false for asset images
 
-  const ImageSlider({
+  ImageSlider({
     super.key,
     required this.images,
     this.isNetworkImage = false,
@@ -27,13 +27,13 @@ class _ImageSliderState extends State<ImageSlider> {
     super.initState();
 
     // Automatically change image every 2 seconds
-    _timer = Timer.periodic(const Duration(seconds: 2), (Timer timer) {
+    _timer = Timer.periodic(Duration(seconds: 2), (Timer timer) {
       if (widget.images.isEmpty) return;
 
       final random = Random().nextInt(widget.images.length);
       _pageController.animateToPage(
         random,
-        duration: const Duration(milliseconds: 600),
+        duration: Duration(milliseconds: 600),
         curve: Curves.easeInOut,
       );
       setState(() {
@@ -77,7 +77,7 @@ class _ImageSliderState extends State<ImageSlider> {
                               child: Icon(
                                 Icons.broken_image,
                                 size: 40,
-                                color: Colors.grey,
+                                color: AppColors.greyText,
                               ),
                             ),
                           );
@@ -113,8 +113,8 @@ class _ImageSliderState extends State<ImageSlider> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(widget.images.length, (index) {
                 return AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  duration: Duration(milliseconds: 300),
+                  margin: EdgeInsets.symmetric(horizontal: 3),
                   width: _currentPage == index ? 10 : 6,
                   height: _currentPage == index ? 10 : 6,
                   decoration: BoxDecoration(

@@ -2,24 +2,24 @@ import 'package:equatable/equatable.dart';
 import '../../data/models/login_response.dart';
 
 abstract class LoginState extends Equatable {
-  const LoginState();
+  LoginState();
 
   @override
   List<Object?> get props => [];
 }
 
 class LoginInitial extends LoginState {
-  const LoginInitial();
+  LoginInitial();
 }
 
 class LoginLoading extends LoginState {
-  const LoginLoading();
+  LoginLoading();
 }
 
 class LoginSuccess extends LoginState {
   final LoginResponse response;
 
-  const LoginSuccess(this.response);
+  LoginSuccess(this.response);
 
   @override
   List<Object?> get props => [response];
@@ -28,20 +28,20 @@ class LoginSuccess extends LoginState {
 class LoginError extends LoginState {
   final String message;
 
-  const LoginError(this.message);
+  LoginError(this.message);
 
   @override
   List<Object?> get props => [message];
 }
 
 class LogoutLoading extends LoginState {
-  const LogoutLoading();
+  LogoutLoading();
 }
 
 class LogoutSuccess extends LoginState {
   final String message;
 
-  const LogoutSuccess(this.message);
+  LogoutSuccess(this.message);
 
   @override
   List<Object?> get props => [message];
@@ -50,7 +50,7 @@ class LogoutSuccess extends LoginState {
 class LogoutError extends LoginState {
   final String message;
 
-  const LogoutError(this.message);
+  LogoutError(this.message);
 
   @override
   List<Object?> get props => [message];

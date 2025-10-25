@@ -2,24 +2,24 @@ import 'package:equatable/equatable.dart';
 import 'package:real/feature/compound/data/models/compound_response.dart';
 
 abstract class CompoundState extends Equatable {
-  const CompoundState();
+  CompoundState();
 
   @override
   List<Object?> get props => [];
 }
 
 class CompoundInitial extends CompoundState {
-  const CompoundInitial();
+  CompoundInitial();
 }
 
 class CompoundLoading extends CompoundState {
-  const CompoundLoading();
+  CompoundLoading();
 }
 
 class CompoundSuccess extends CompoundState {
   final CompoundResponse response;
 
-  const CompoundSuccess(this.response);
+  CompoundSuccess(this.response);
 
   @override
   List<Object?> get props => [response];
@@ -28,7 +28,29 @@ class CompoundSuccess extends CompoundState {
 class CompoundError extends CompoundState {
   final String message;
 
-  const CompoundError(this.message);
+  CompoundError(this.message);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class CompoundDetailLoading extends CompoundState {
+  CompoundDetailLoading();
+}
+
+class CompoundDetailSuccess extends CompoundState {
+  final Map<String, dynamic> compoundData;
+
+  CompoundDetailSuccess(this.compoundData);
+
+  @override
+  List<Object?> get props => [compoundData];
+}
+
+class CompoundDetailError extends CompoundState {
+  final String message;
+
+  CompoundDetailError(this.message);
 
   @override
   List<Object?> get props => [message];

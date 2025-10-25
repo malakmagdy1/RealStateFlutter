@@ -34,7 +34,7 @@ class _DisplayManyImageState extends State<DisplayManyImage> {
               });
             },
             child: Container(
-              margin: const EdgeInsets.only(right: 10),
+              margin: EdgeInsets.only(right: 10),
               width: 100,
               decoration: BoxDecoration(
                 border: Border.all(
@@ -52,7 +52,7 @@ class _DisplayManyImageState extends State<DisplayManyImage> {
                   fit: BoxFit.cover,
                   loadingBuilder: (context) => Container(
                     color: Colors.grey.shade200,
-                    child: const Center(
+                    child: Center(
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),
@@ -66,7 +66,7 @@ class _DisplayManyImageState extends State<DisplayManyImage> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.broken_image, color: Colors.red.shade400),
-                          const SizedBox(height: 4),
+                          SizedBox(height: 4),
                           Text(
                             'Image ${index + 1}',
                             style: TextStyle(

@@ -8,7 +8,7 @@ class SavedSearchBloc extends Bloc<SavedSearchEvent, SavedSearchState> {
 
   SavedSearchBloc({required SavedSearchRepository repository})
       : _repository = repository,
-        super(const SavedSearchInitial()) {
+        super(SavedSearchInitial()) {
     on<FetchSavedSearchesEvent>(_onFetchSavedSearches);
     on<FetchSavedSearchByIdEvent>(_onFetchSavedSearchById);
     on<CreateSavedSearchEvent>(_onCreateSavedSearch);
@@ -20,7 +20,7 @@ class SavedSearchBloc extends Bloc<SavedSearchEvent, SavedSearchState> {
     FetchSavedSearchesEvent event,
     Emitter<SavedSearchState> emit,
   ) async {
-    emit(const SavedSearchLoading());
+    emit(SavedSearchLoading());
     try {
       final response = await _repository.getAllSavedSearches(token: event.token);
 
@@ -38,7 +38,7 @@ class SavedSearchBloc extends Bloc<SavedSearchEvent, SavedSearchState> {
     FetchSavedSearchByIdEvent event,
     Emitter<SavedSearchState> emit,
   ) async {
-    emit(const SavedSearchLoading());
+    emit(SavedSearchLoading());
     try {
       final response = await _repository.getSavedSearchById(
         id: event.id,
@@ -59,7 +59,7 @@ class SavedSearchBloc extends Bloc<SavedSearchEvent, SavedSearchState> {
     CreateSavedSearchEvent event,
     Emitter<SavedSearchState> emit,
   ) async {
-    emit(const SavedSearchLoading());
+    emit(SavedSearchLoading());
     try {
       final response = await _repository.createSavedSearch(
         request: event.request,
@@ -85,7 +85,7 @@ class SavedSearchBloc extends Bloc<SavedSearchEvent, SavedSearchState> {
     UpdateSavedSearchEvent event,
     Emitter<SavedSearchState> emit,
   ) async {
-    emit(const SavedSearchLoading());
+    emit(SavedSearchLoading());
     try {
       final response = await _repository.updateSavedSearch(
         id: event.id,
@@ -112,7 +112,7 @@ class SavedSearchBloc extends Bloc<SavedSearchEvent, SavedSearchState> {
     DeleteSavedSearchEvent event,
     Emitter<SavedSearchState> emit,
   ) async {
-    emit(const SavedSearchLoading());
+    emit(SavedSearchLoading());
     try {
       final response = await _repository.deleteSavedSearch(
         id: event.id,

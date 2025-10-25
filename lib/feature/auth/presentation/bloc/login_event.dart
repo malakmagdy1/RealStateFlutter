@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import '../../data/models/login_request.dart';
 
 abstract class LoginEvent extends Equatable {
-  const LoginEvent();
+  LoginEvent();
 
   @override
   List<Object?> get props => [];
@@ -11,14 +11,14 @@ abstract class LoginEvent extends Equatable {
 class LoginSubmitEvent extends LoginEvent {
   final LoginRequest request;
 
-  const LoginSubmitEvent(this.request);
+  LoginSubmitEvent(this.request);
 
   @override
   List<Object?> get props => [request];
 }
 
 class LogoutEvent extends LoginEvent {
-  const LogoutEvent();
+  LogoutEvent();
 
   @override
   List<Object?> get props => [];

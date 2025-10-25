@@ -2,12 +2,23 @@ import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
+import 'package:real/core/utils/constant.dart';
 import 'compound_favorite_event.dart';
 import 'compound_favorite_state.dart';
 
 class CompoundFavoriteBloc extends Bloc<CompoundFavoriteEvent, CompoundFavoriteState> {
   final List<Compound> _favorites = [];
-  static const String _favoritesKey = 'favorite_compounds';
+  static String _baseFavoritesKey = 'favorite_compounds';
+
+  // Get user-specific key based on token
+  String get _favoritesKey {
+    if (token != null && token!.isNotEmpty) {
+      // Use first 20 chars of token as identifier to keep key reasonable length
+      final tokenHash = token!.length > 20 ? token!.substring(0, 20) : token!;
+      return '${_baseFavoritesKey}_$tokenHash';
+    }
+    return _baseFavoritesKey; // Fallback for no token
+  }
 
   CompoundFavoriteBloc() : super(CompoundFavoriteInitial()) {
     on<LoadFavoriteCompounds>(_onLoadFavorites);

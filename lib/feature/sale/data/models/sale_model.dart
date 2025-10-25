@@ -7,7 +7,7 @@ class SalesPerson extends Equatable {
   final String phone;
   final String? image;
 
-  const SalesPerson({
+  SalesPerson({
     required this.id,
     required this.name,
     required this.email,
@@ -65,7 +65,7 @@ class Sale extends Equatable {
   final String createdAt;
   final String updatedAt;
 
-  const Sale({
+  Sale({
     required this.id,
     required this.companyId,
     required this.companyName,
@@ -99,6 +99,20 @@ class Sale extends Equatable {
       imagesList = (json['images'] as List)
           .map((img) => img.toString())
           .toList();
+
+      print('================================');
+      print('[SALE MODEL] Sale: ${json['sale_name']}');
+      print('[SALE MODEL] Total images from API: ${imagesList.length}');
+      for (int i = 0; i < imagesList.length; i++) {
+        print('[SALE MODEL] Image $i: ${imagesList[i]}');
+      }
+      print('================================');
+    } else {
+      print('================================');
+      print('[SALE MODEL] Sale: ${json['sale_name']}');
+      print('[SALE MODEL] No images found in JSON!');
+      print('[SALE MODEL] JSON images field: ${json['images']}');
+      print('================================');
     }
 
     // Parse sales person
@@ -211,7 +225,7 @@ class SaleResponse extends Equatable {
   final int totalPages;
   final List<Sale> sales;
 
-  const SaleResponse({
+  SaleResponse({
     required this.success,
     required this.totalSales,
     required this.page,

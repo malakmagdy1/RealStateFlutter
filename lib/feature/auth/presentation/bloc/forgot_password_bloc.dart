@@ -8,7 +8,7 @@ class ForgotPasswordBloc extends Bloc<ForgotPasswordEvent, ForgotPasswordState> 
 
   ForgotPasswordBloc({required AuthRepository repository})
       : _repository = repository,
-        super(const ForgotPasswordInitial()) {
+        super(ForgotPasswordInitial()) {
     on<ForgotPasswordSubmitEvent>(_onForgotPasswordSubmit);
   }
 
@@ -16,7 +16,7 @@ class ForgotPasswordBloc extends Bloc<ForgotPasswordEvent, ForgotPasswordState> 
     ForgotPasswordSubmitEvent event,
     Emitter<ForgotPasswordState> emit,
   ) async {
-    emit(const ForgotPasswordLoading());
+    emit(ForgotPasswordLoading());
     try {
       final response = await _repository.forgotPassword(event.request);
       emit(ForgotPasswordSuccess(response));

@@ -14,7 +14,7 @@ import '../widget/authToggle.dart';
 import '../widget/textFormField.dart';
 
 class SignUpScreen extends StatefulWidget {
-  static const String routeName = '/signup';
+  static String routeName = '/signup';
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -68,18 +68,18 @@ class _SignUpScreenState extends State<SignUpScreen> {
         },
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(10.0),
+            padding: EdgeInsets.all(10.0),
             child: Form(
               key: _formKey,
               child: Column(
                 children: [
-                  const SizedBox(height: 40),
+                  SizedBox(height: 40),
                   CustomText24(
                     "Get Started Now",
                     color: AppColors.black,
                     bold: true,
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   AuthToggle(
                     isSignUp: true,
                     onSignUpPressed: () {},
@@ -90,34 +90,34 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       );
                     },
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   CustomText16(
                     "Enter your Full name",
                     bold: true,
                     color: AppColors.mainColor,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   CustomTextField(
                     controller: nameController,
                     hintText: 'Enter your full name',
                     validator: Validators.validateName,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   CustomText16("Email", bold: true, color: AppColors.mainColor),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   CustomTextField(
                     controller: emailController,
                     hintText: 'Enter your email',
                     keyboardType: TextInputType.emailAddress,
                     validator: Validators.validateEmail,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   CustomText16(
                     "Password",
                     bold: true,
                     color: AppColors.mainColor,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   CustomTextField(
                     controller: passwordController,
                     hintText: 'Enter your password',
@@ -132,13 +132,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       });
                     },
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   CustomText16(
                     "Confirm Password",
                     bold: true,
                     color: AppColors.mainColor,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   CustomTextField(
                     controller: confirmPasswordController,
                     hintText: 'Confirm your password',
@@ -156,20 +156,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       passwordController.text,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   CustomText16(
                     "Phone Number",
                     bold: true,
                     color: AppColors.mainColor,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   CustomTextField(
                     controller: phoneController,
                     hintText: 'Enter your phone number',
                     keyboardType: TextInputType.phone,
                     validator: Validators.validatePhone,
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
                   BlocBuilder<RegisterBloc, RegisterState>(
                     builder: (context, state) {
                       final isLoading = state is RegisterLoading;

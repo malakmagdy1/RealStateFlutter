@@ -5,7 +5,7 @@ class UpdatePhoneResponse extends Equatable {
   final bool success;
   final String phone;
 
-  const UpdatePhoneResponse({
+  UpdatePhoneResponse({
     required this.message,
     required this.success,
     required this.phone,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:real/core/network/api_service.dart';
@@ -34,6 +35,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:real/services/fcm_service.dart';
 import 'package:real/l10n/app_localizations.dart';
+import 'package:real/feature_web/navigation/web_main_screen.dart';
+import 'package:real/feature_web/auth/presentation/web_login_screen.dart';
+import 'package:real/feature_web/auth/presentation/web_signup_screen.dart';
 
 import 'feature/auth/presentation/screen/SignupScreen.dart';
 import 'feature/company/data/models/company_model.dart';
@@ -41,17 +45,11 @@ import 'feature/company/presentation/screen/company_detail_screen.dart';
 import 'feature/home/presentation/CompoundScreen.dart';
 import 'feature/home/presentation/CustomNav.dart';
 import 'feature/compound/presentation/screen/favorite_compounds_screen.dart';
+import 'feature/notifications/presentation/screens/notifications_screen.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  print('');
-  print('╔════════════════════════════════════════════════════════╗');
-  print('║              🚀 REAL ESTATE APP STARTUP                ║');
-  print('╚════════════════════════════════════════════════════════╝');
-  print('');
-
   // Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
@@ -93,18 +91,11 @@ void main() async {
     print('🚀 App opened from notification (terminated state)');
     FCMService().handleNotificationTap(initialMessage);
   }
-
-  print('');
-  print('╔════════════════════════════════════════════════════════╗');
-  print('║          ✅ APP INITIALIZATION COMPLETE                ║');
-  print('╚════════════════════════════════════════════════════════╝');
-  print('');
-
-  runApp(const MyApp());
+  runApp(MyApp());
 }
 
 class MyApp extends StatefulWidget {
-  const MyApp({super.key});
+  MyApp({super.key});
 
   @override
   State<MyApp> createState() => _MyAppState();
@@ -125,7 +116,7 @@ class _MyAppState extends State<MyApp> {
       final context = TokenManager.navigatorKey.currentContext;
       if (context != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('Session expired. Please login again.'),
             backgroundColor: Colors.orange,
             duration: Duration(seconds: 3),
@@ -134,6 +125,7 @@ class _MyAppState extends State<MyApp> {
 
         // Navigate to login screen
         Navigator.of(context).pushNamedAndRemoveUntil(
+          kIsWeb ? WebLoginScreen.routeName : 
           LoginScreen.routeName,
           (route) => false,
         );
@@ -179,7 +171,7 @@ class _MyAppState extends State<MyApp> {
         BlocProvider(
           create: (context) =>
               UserBloc(repository: apiService.authRepository)
-                ..add(const FetchUserEvent()),
+                ..add(FetchUserEvent()),
         ),
         BlocProvider(
           create: (context) =>
@@ -202,7 +194,7 @@ class _MyAppState extends State<MyApp> {
         BlocProvider(
           create: (context) =>
               SaleBloc(repository: apiService.saleRepository)
-                ..add(const FetchSalesEvent()),
+                ..add(FetchSalesEvent()),
         ),
       ],
       child: BlocBuilder<LocaleCubit, Locale>(
@@ -212,7 +204,7 @@ class _MyAppState extends State<MyApp> {
             debugShowCheckedModeBanner: false,
 
             // Localization delegates
-            localizationsDelegates: const [
+            localizationsDelegates: [
               AppLocalizations.delegate,
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
@@ -220,7 +212,7 @@ class _MyAppState extends State<MyApp> {
             ],
 
             // Supported locales
-            supportedLocales: const [
+            supportedLocales: [
               Locale('en'), // English
               Locale('ar'), // Arabic
             ],
@@ -228,13 +220,20 @@ class _MyAppState extends State<MyApp> {
             // Current locale from LocaleCubit
             locale: locale,
 
-            initialRoute: token != null && token != ""
-                ? CustomNav.routeName
-                : LoginScreen.routeName,
+            initialRoute: kIsWeb
+                ? (token != null && token != ""
+                    ? WebMainScreen.routeName
+                    : WebLoginScreen.routeName)
+                : (token != null && token != ""
+                    ? CustomNav.routeName
+                    : LoginScreen.routeName),
 
             theme: ThemeData(scaffoldBackgroundColor: Colors.white),
 
             routes: {
+              WebMainScreen.routeName: (context) => WebMainScreen(),
+              WebLoginScreen.routeName: (context) => WebLoginScreen(),
+              WebSignUpScreen.routeName: (context) => WebSignUpScreen(),
               SplashScreen.routeName: (context) => SplashScreen(),
               CustomNav.routeName: (context) => CustomNav(),
               LoginScreen.routeName: (context) => LoginScreen(),
@@ -245,7 +244,8 @@ class _MyAppState extends State<MyApp> {
               EditNameScreen.routeName: (context) => EditNameScreen(),
               EditPhoneScreen.routeName: (context) => EditPhoneScreen(),
               HomeScreen.routeName: (context) => HomeScreen(),
-              FavoriteCompoundsScreen.routeName: (context) => const FavoriteCompoundsScreen(),
+              FavoriteCompoundsScreen.routeName: (context) => FavoriteCompoundsScreen(),
+              NotificationsScreen.routeName: (context) => NotificationsScreen(),
               CompanyDetailScreen.routeName: (context) {
                 final company = ModalRoute.of(context)!.settings.arguments as Company;
                 return CompanyDetailScreen(company: company);

@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 abstract class SaleEvent extends Equatable {
-  const SaleEvent();
+  SaleEvent();
 
   @override
   List<Object?> get props => [];
@@ -11,7 +11,7 @@ class FetchSalesEvent extends SaleEvent {
   final int page;
   final int limit;
 
-  const FetchSalesEvent({this.page = 1, this.limit = 20});
+  FetchSalesEvent({this.page = 1, this.limit = 20});
 
   @override
   List<Object?> get props => [page, limit];
@@ -22,7 +22,7 @@ class FetchSalesByCompanyEvent extends SaleEvent {
   final int page;
   final int limit;
 
-  const FetchSalesByCompanyEvent({
+  FetchSalesByCompanyEvent({
     required this.companyId,
     this.page = 1,
     this.limit = 20,
@@ -37,7 +37,7 @@ class FetchSalesByCompoundEvent extends SaleEvent {
   final int page;
   final int limit;
 
-  const FetchSalesByCompoundEvent({
+  FetchSalesByCompoundEvent({
     required this.compoundId,
     this.page = 1,
     this.limit = 20,
@@ -52,7 +52,7 @@ class FetchSalesByUnitEvent extends SaleEvent {
   final int page;
   final int limit;
 
-  const FetchSalesByUnitEvent({
+  FetchSalesByUnitEvent({
     required this.unitId,
     this.page = 1,
     this.limit = 20,

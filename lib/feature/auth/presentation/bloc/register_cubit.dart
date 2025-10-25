@@ -9,10 +9,10 @@ class RegisterCubit extends Cubit<RegisterState> {
 
   RegisterCubit(AuthRepository authRepository)
       : _authRepository = authRepository,
-        super(const RegisterInitial());
+        super(RegisterInitial());
 
   Future<void> register(RegisterRequest request) async {
-    emit(const RegisterLoading());
+    emit(RegisterLoading());
 
     try {
       final response = await _authRepository.register(request);

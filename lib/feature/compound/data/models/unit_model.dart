@@ -26,8 +26,9 @@ class Unit extends Equatable {
   final String? salesNumber;
   final String? companyLogo;
   final String? companyName;
+  final String? companyId;
 
-  const Unit({
+  Unit({
     required this.id,
     required this.compoundId,
     required this.unitType,
@@ -43,7 +44,7 @@ class Unit extends Equatable {
     this.finishing,
     required this.createdAt,
     required this.updatedAt,
-    this.images = const [],
+    required this.images,
     // New fields
     this.buildingName,
     this.gardenArea,
@@ -52,6 +53,7 @@ class Unit extends Equatable {
     this.salesNumber,
     this.companyLogo,
     this.companyName,
+    this.companyId,
   });
 
   factory Unit.fromJson(Map<String, dynamic> json) {
@@ -62,6 +64,14 @@ class Unit extends Equatable {
         imagesList = (json['images'] as List)
             .map((img) => img.toString())
             .toList();
+
+        print('================================');
+        print('[UNIT MODEL] Unit ID: ${json['id']}');
+        print('[UNIT MODEL] Total images from API: ${imagesList.length}');
+        for (int i = 0; i < imagesList.length; i++) {
+          print('[UNIT MODEL] Image $i: ${imagesList[i]}');
+        }
+        print('================================');
       }
     }
 
@@ -125,6 +135,7 @@ class Unit extends Equatable {
           json['sales_number']?.toString() ?? json['sales_phone']?.toString(),
       companyLogo: json['company_logo']?.toString(),
       companyName: json['company_name']?.toString(),
+      companyId: json['company_id']?.toString(),
     );
   }
 
@@ -153,6 +164,7 @@ class Unit extends Equatable {
       'sales_number': salesNumber,
       'company_logo': companyLogo,
       'company_name': companyName,
+      'company_id': companyId,
     };
   }
 
@@ -181,6 +193,7 @@ class Unit extends Equatable {
     salesNumber,
     companyLogo,
     companyName,
+    companyId,
   ];
 
   @override

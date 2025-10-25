@@ -8,7 +8,7 @@ class SearchResponse extends Equatable {
   final int totalResults;
   final List<SearchResult> results;
 
-  const SearchResponse({
+  SearchResponse({
     required this.status,
     required this.searchQuery,
     required this.totalResults,
@@ -44,7 +44,7 @@ class SearchResult extends Equatable {
   final String name;
   final dynamic data; // CompanySearchData, CompoundSearchData, or UnitSearchData
 
-  const SearchResult({
+  SearchResult({
     required this.type,
     required this.id,
     required this.name,
@@ -91,7 +91,7 @@ class CompanySearchData extends Equatable {
   final String compoundsCount;
   final String? createdAt;
 
-  const CompanySearchData({
+  CompanySearchData({
     required this.id,
     required this.name,
     required this.email,
@@ -172,7 +172,7 @@ class CompoundSearchData extends Equatable {
   final List<String> images;
   final String createdAt;
 
-  const CompoundSearchData({
+  CompoundSearchData({
     required this.id,
     required this.name,
     required this.location,
@@ -262,7 +262,7 @@ class UnitSearchData extends Equatable {
   final CompoundInfo compound;
   final List<String> images;
 
-  const UnitSearchData({
+  UnitSearchData({
     required this.id,
     required this.name,
     required this.code,
@@ -354,7 +354,7 @@ class CompanyInfo extends Equatable {
   final String name;
   final String? logo;
 
-  const CompanyInfo({
+  CompanyInfo({
     required this.id,
     required this.name,
     this.logo,
@@ -411,7 +411,7 @@ class CompoundInfo extends Equatable {
   final String location;
   final CompanyInfo company;
 
-  const CompoundInfo({
+  CompoundInfo({
     required this.id,
     required this.name,
     required this.location,

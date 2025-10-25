@@ -8,7 +8,7 @@ class UpdatePhoneBloc extends Bloc<UpdatePhoneEvent, UpdatePhoneState> {
 
   UpdatePhoneBloc({required AuthRepository repository})
       : _repository = repository,
-        super(const UpdatePhoneInitial()) {
+        super(UpdatePhoneInitial()) {
     on<UpdatePhoneSubmitEvent>(_onUpdatePhoneSubmit);
   }
 
@@ -16,7 +16,7 @@ class UpdatePhoneBloc extends Bloc<UpdatePhoneEvent, UpdatePhoneState> {
     UpdatePhoneSubmitEvent event,
     Emitter<UpdatePhoneState> emit,
   ) async {
-    emit(const UpdatePhoneLoading());
+    emit(UpdatePhoneLoading());
     try {
       final response = await _repository.updatePhone(event.request);
       emit(UpdatePhoneSuccess(response));

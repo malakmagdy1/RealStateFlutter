@@ -1,6 +1,4 @@
-import 'dart:io' show Platform;
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'sales_model.dart';
 
 class CompanyCompound extends Equatable {
@@ -12,22 +10,22 @@ class CompanyCompound extends Equatable {
   final String? completionProgress;
   final List<String> images;
 
-  const CompanyCompound({
+  CompanyCompound({
     required this.id,
     required this.name,
     required this.project,
     required this.location,
     required this.status,
     this.completionProgress,
-    this.images = const [],
+    required this.images,
   });
 
   factory CompanyCompound.fromJson(Map<String, dynamic> json) {
-    // Parse images list
+    // Parse images list - store URLs as-is from API
     List<String> imagesList = [];
     if (json['images'] != null && json['images'] is List) {
       imagesList = (json['images'] as List)
-          .map((img) => _fixImageUrl(img.toString()))
+          .map((img) => img.toString())
           .toList();
     }
 
@@ -40,48 +38,6 @@ class CompanyCompound extends Equatable {
       completionProgress: json['completion_progress']?.toString(),
       images: imagesList,
     );
-  }
-
-  // Fix image URL to work on Android emulator
-  static String _fixImageUrl(String url) {
-    try {
-      if (url.isEmpty) return url;
-
-      // Check if it's a relative path (doesn't start with http:// or https://)
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        // Remove leading slash if present
-        url = url.replaceFirst(RegExp(r'^/'), '');
-
-        // Convert relative path to full URL
-        // For Android emulator, use 10.0.2.2 to access host machine's localhost
-        if (!kIsWeb && Platform.isAndroid) {
-          url = 'http://10.0.2.2:8001/storage/$url';
-        } else {
-          url = 'http://127.0.0.1:8001/storage/$url';
-        }
-      }
-
-      // Fix Laravel storage path
-      url = url.replaceAll('/storage/app/public/', '/storage/');
-
-      final uri = Uri.parse(url);
-
-      // If running on Android emulator, replace localhost or any IP with 10.0.2.2
-      if (!kIsWeb && Platform.isAndroid) {
-        if (uri.host == 'localhost' || uri.host == '127.0.0.1') {
-          final port = uri.hasPort ? ':${uri.port}' : '';
-          return url.replaceFirst(RegExp(r'https?://(localhost|127\.0\.0\.1)(:\d+)?'), 'http://10.0.2.2$port');
-        }
-        else if (uri.host.startsWith('192.168.') || uri.host.startsWith('10.')) {
-          final port = uri.hasPort ? ':${uri.port}' : '';
-          return url.replaceFirst(RegExp(r'https?://[0-9.]+(:\d+)?'), 'http://10.0.2.2$port');
-        }
-      }
-
-      return url;
-    } catch (e) {
-      return url;
-    }
   }
 
   Map<String, dynamic> toJson() {
@@ -112,7 +68,7 @@ class Company extends Equatable {
   final int salesCount;
   final List<CompanyCompound> compounds;
 
-  const Company({
+  Company({
     required this.id,
     required this.name,
     this.logo,
@@ -120,20 +76,14 @@ class Company extends Equatable {
     required this.numberOfCompounds,
     required this.numberOfAvailableUnits,
     required this.createdAt,
-    this.sales = const [],
+    required this.sales ,
     this.salesCount = 0,
-    this.compounds = const [],
+    required this.compounds,
   });
 
   factory Company.fromJson(Map<String, dynamic> json) {
+    // Store logo URL as-is from API
     String? logo = json['logo']?.toString();
-    print('Company ${json['name']}: Original logo URL: $logo');
-
-    // Fix logo URL for Android emulator (convert localhost to 10.0.2.2)
-    if (logo != null && logo.isNotEmpty) {
-      logo = _fixLogoUrl(logo);
-      print('Company ${json['name']}: Fixed logo URL: $logo');
-    }
 
     // Parse sales list
     List<Sales> salesList = [];
@@ -163,53 +113,6 @@ class Company extends Equatable {
       salesCount: int.tryParse(json['sales_count']?.toString() ?? '0') ?? 0,
       compounds: compoundsList,
     );
-  }
-
-  // Fix logo URL to work on Android emulator
-  static String _fixLogoUrl(String url) {
-    try {
-      if (url.isEmpty) return url;
-
-      // Check if it's a relative path (doesn't start with http:// or https://)
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        // Remove leading slash if present
-        url = url.replaceFirst(RegExp(r'^/'), '');
-
-        // Convert relative path to full URL
-        // For Android emulator, use 10.0.2.2 to access host machine's localhost
-        if (!kIsWeb && Platform.isAndroid) {
-          url = 'http://10.0.2.2:8001/storage/$url';
-        } else {
-          url = 'http://127.0.0.1:8001/storage/$url';
-        }
-      }
-
-      // First, fix Laravel storage path: remove /app/public from storage path
-      // Laravel storage links point public/storage -> storage/app/public
-      // So /storage/app/public/... should be /storage/...
-      url = url.replaceAll('/storage/app/public/', '/storage/');
-
-      final uri = Uri.parse(url);
-
-      // If running on Android emulator, replace localhost or any IP with 10.0.2.2
-      if (!kIsWeb && Platform.isAndroid) {
-        // Replace localhost with 10.0.2.2 (preserve port)
-        if (uri.host == 'localhost' || uri.host == '127.0.0.1') {
-          final port = uri.hasPort ? ':${uri.port}' : '';
-          return url.replaceFirst(RegExp(r'https?://(localhost|127\.0\.0\.1)(:\d+)?'), 'http://10.0.2.2$port');
-        }
-        // Replace any private IP address (192.168.x.x, 10.x.x.x) with 10.0.2.2 (preserve port)
-        else if (uri.host.startsWith('192.168.') || uri.host.startsWith('10.')) {
-          final port = uri.hasPort ? ':${uri.port}' : '';
-          return url.replaceFirst(RegExp(r'https?://[0-9.]+(:\d+)?'), 'http://10.0.2.2$port');
-        }
-      }
-
-      return url;
-    } catch (e) {
-      print('Error fixing logo URL: $e');
-      return url;
-    }
   }
 
   Map<String, dynamic> toJson() {

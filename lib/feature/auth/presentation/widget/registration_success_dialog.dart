@@ -11,7 +11,7 @@ class RegistrationSuccessDialog extends StatelessWidget {
   final String? verificationUrl;
   final VoidCallback onClose;
 
-  const RegistrationSuccessDialog({
+  RegistrationSuccessDialog({
     Key? key,
     required this.message,
     required this.user,
@@ -27,7 +27,7 @@ class RegistrationSuccessDialog extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(20),
@@ -38,7 +38,7 @@ class RegistrationSuccessDialog extends StatelessWidget {
             children: [
               // Success Icon
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.green.shade50,
                   shape: BoxShape.circle,
@@ -49,7 +49,7 @@ class RegistrationSuccessDialog extends StatelessWidget {
                   size: 60,
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
 
               // Title
               CustomText24(
@@ -58,7 +58,7 @@ class RegistrationSuccessDialog extends StatelessWidget {
                 bold: true,
                 align: TextAlign.center,
               ),
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
 
               // Message
               CustomText16(
@@ -66,12 +66,12 @@ class RegistrationSuccessDialog extends StatelessWidget {
                 color: AppColors.black,
                 align: TextAlign.center,
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               // User Details Container
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: AppColors.grey,
                   borderRadius: BorderRadius.circular(12),
@@ -84,28 +84,28 @@ class RegistrationSuccessDialog extends StatelessWidget {
                       bold: true,
                       color: AppColors.mainColor,
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     _buildDetailRow('Name', user.name),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     _buildDetailRow('Email', user.email),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     _buildDetailRow('Phone', user.phone),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     _buildDetailRow('Role', user.role),
                     if (user.id != null) ...[
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _buildDetailRow('User ID', '#${user.id}'),
                     ],
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
 
               // Email Sent Status
               if (emailSent)
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(8),
@@ -113,7 +113,7 @@ class RegistrationSuccessDialog extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(Icons.email, color: Colors.blue, size: 20),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       Expanded(
                         child: CustomText16(
                           'Verification email sent!',
@@ -123,7 +123,7 @@ class RegistrationSuccessDialog extends StatelessWidget {
                     ],
                   ),
                 ),
-              const SizedBox(height: 24),
+              SizedBox(height: 24),
 
               // Close Button
               AuthButton(
@@ -146,7 +146,7 @@ class RegistrationSuccessDialog extends StatelessWidget {
           bold: true,
           color: AppColors.mainColor,
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         CustomText16(
           value,
           color: AppColors.black,

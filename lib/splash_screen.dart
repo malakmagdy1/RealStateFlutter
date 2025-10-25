@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:real/feature/onboarding/onboardingScreen.dart';
 
 class SplashScreen extends StatefulWidget {
-  static const String routeName='/splash';
+  static String routeName='/splash';
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }

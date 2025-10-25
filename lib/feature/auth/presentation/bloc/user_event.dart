@@ -1,16 +1,16 @@
 import 'package:equatable/equatable.dart';
 
 abstract class UserEvent extends Equatable {
-  const UserEvent();
+  UserEvent();
 
   @override
   List<Object?> get props => [];
 }
 
 class FetchUserEvent extends UserEvent {
-  const FetchUserEvent();
+  FetchUserEvent();
 }
 
 class RefreshUserEvent extends UserEvent {
-  const RefreshUserEvent();
+  RefreshUserEvent();
 }

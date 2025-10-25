@@ -10,10 +10,10 @@ import '../bloc/unit/unit_state.dart';
 import '../widget/unit_card.dart';
 
 class AllUnitsScreen extends StatefulWidget {
-  static const String routeName = '/all-units';
+  static String routeName = '/all-units';
   final Compound compound;
 
-  const AllUnitsScreen({Key? key, required this.compound, required int compoundId})
+  AllUnitsScreen({Key? key, required this.compound, required int compoundId})
       : super(key: key);
 
   @override
@@ -44,7 +44,7 @@ class _AllUnitsScreenState extends State<AllUnitsScreen> {
       body: BlocBuilder<UnitBloc, UnitState>(
         builder: (context, state) {
           if (state is UnitLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator());
           } else if (state is UnitSuccess) {
             if (state.response.data.isEmpty) {
               return _emptyState();
@@ -60,14 +60,14 @@ class _AllUnitsScreenState extends State<AllUnitsScreen> {
                 _headerSection(state.response.count, state.response.total),
                 Expanded(
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.all(16),
                     itemCount: displayList.length + (_showAll ? 0 : 1),
                     itemBuilder: (context, index) {
                       if (index < displayList.length) {
                         return UnitCard(unit: displayList[index]);
                       } else {
                         return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          padding: EdgeInsets.symmetric(vertical: 10),
                           child: ShowAllButton(
                             label: 'Show All Units',
                             pressed: () => setState(() => _showAll = true),
@@ -82,7 +82,7 @@ class _AllUnitsScreenState extends State<AllUnitsScreen> {
           } else if (state is UnitError) {
             return _errorState(state.message);
           }
-          return const SizedBox.shrink();
+          return SizedBox.shrink();
         },
       ),
     );
@@ -90,12 +90,12 @@ class _AllUnitsScreenState extends State<AllUnitsScreen> {
 
   Widget _headerSection(int count, int total) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(16),
       color: AppColors.mainColor.withOpacity(0.1),
       child: Row(
         children: [
           Icon(Icons.info_outline, color: AppColors.mainColor),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: CustomText16(
               'Found $count units (Total: $total)',
@@ -114,7 +114,7 @@ class _AllUnitsScreenState extends State<AllUnitsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.home_outlined, size: 80, color: AppColors.grey),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           CustomText18('No units available', bold: true, color: AppColors.grey),
         ],
       ),
@@ -124,27 +124,27 @@ class _AllUnitsScreenState extends State<AllUnitsScreen> {
   Widget _errorState(String message) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.error_outline, size: 80, color: AppColors.grey),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             CustomText18('Error loading units', bold: true, color: AppColors.grey),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             CustomText16(message, align: TextAlign.center, color: AppColors.grey),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () {
                 context.read<UnitBloc>().add(
                   FetchUnitsEvent(compoundId: widget.compound.id, limit: 1000),
                 );
               },
-              icon: const Icon(Icons.refresh),
+              icon: Icon(Icons.refresh),
               label: CustomText16('Retry', color: Colors.white),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.mainColor,
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 12),
               ),
             ),
           ],

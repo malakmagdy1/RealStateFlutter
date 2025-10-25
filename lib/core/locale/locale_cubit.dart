@@ -4,9 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// Cubit to manage app locale (language)
 class LocaleCubit extends Cubit<Locale> {
-  static const String _localeKey = 'app_locale';
+  static String _localeKey = 'app_locale';
 
-  LocaleCubit() : super(const Locale('en')) {
+  LocaleCubit() : super(Locale('en')) {
     _loadLocale();
   }
 
@@ -37,8 +37,8 @@ class LocaleCubit extends Cubit<Locale> {
   /// Toggle between English and Arabic
   Future<void> toggleLocale() async {
     final newLocale = state.languageCode == 'en'
-        ? const Locale('ar')
-        : const Locale('en');
+        ? Locale('ar')
+        : Locale('en');
 
     await changeLocale(newLocale);
   }

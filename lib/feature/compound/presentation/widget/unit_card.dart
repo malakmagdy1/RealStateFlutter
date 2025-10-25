@@ -13,11 +13,17 @@ import 'package:real/feature/sale/presentation/widgets/sales_person_selector.dar
 class UnitCard extends StatelessWidget {
   final Unit unit;
 
-  const UnitCard({Key? key, required this.unit}) : super(key: key);
+  UnitCard({Key? key, required this.unit}) : super(key: key);
 
   String _formatPrice(String? price) {
+    if (price == null || price.isEmpty || price == '0') {
+      return 'Contact for Price';
+    }
     try {
-      final numPrice = double.parse(price ?? '0');
+      final numPrice = double.parse(price);
+      if (numPrice == 0) {
+        return 'Contact for Price';
+      }
       if (numPrice >= 1000000) {
         return '${(numPrice / 1000000).toStringAsFixed(2)}M';
       } else if (numPrice >= 1000) {
@@ -25,7 +31,7 @@ class UnitCard extends StatelessWidget {
       }
       return numPrice.toStringAsFixed(0);
     } catch (e) {
-      return price ?? '0';
+      return 'Contact for Price';
     }
   }
 
@@ -100,13 +106,13 @@ class UnitCard extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
     final hasImages = unit.images.isNotEmpty;
 
-    // Default values if data is missing
-    final companyName = unit.companyName?.isNotEmpty == true ? unit.companyName! : 'Badya';
+    // Default values if data is missing - use reasonable defaults without hardcoded data
+    final companyName = unit.companyName?.isNotEmpty == true ? unit.companyName! : '';
     final companyLogo = unit.companyLogo?.isNotEmpty == true ? unit.companyLogo! : '';
-    final unitType = (unit.usageType ?? unit.unitType ?? 'Villa Type W2').toUpperCase();
-    final unitNumber = unit.unitNumber ?? '#D2V1A-VLV/2-177';
+    final unitType = (unit.usageType ?? unit.unitType ?? 'Unit').toUpperCase();
+    final unitNumber = unit.unitNumber ?? 'N/A';
     final area = unit.area ?? '0';
-    final price = unit.price ?? '52400000';
+    final price = unit.price ?? '0';
     final finishing = unit.finishing ?? 'N/A';
     final status = unit.status ?? 'available';
     final deliveryDate = unit.deliveryDate ?? '';
@@ -119,7 +125,7 @@ class UnitCard extends StatelessWidget {
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
+        margin: EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(20),
@@ -127,7 +133,7 @@ class UnitCard extends StatelessWidget {
             BoxShadow(
               color: Colors.black12.withOpacity(0.05),
               blurRadius: 10,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
         ),
@@ -140,7 +146,7 @@ class UnitCard extends StatelessWidget {
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                     child: RobustNetworkImage(
                       imageUrl: unit.images.first,
                       width: double.infinity,
@@ -149,7 +155,7 @@ class UnitCard extends StatelessWidget {
                       loadingBuilder: (context) => Container(
                         height: 200,
                         color: AppColors.grey,
-                        child: const Center(child: CircularProgressIndicator()),
+                        child: Center(child: CircularProgressIndicator()),
                       ),
                       errorBuilder: (context, url) => _defaultImage(),
                     ),
@@ -170,44 +176,69 @@ class UnitCard extends StatelessWidget {
 
             // ---------- DETAILS ----------
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _companyInfo(companyLogo, companyName, unitType, unitNumber),
-                  const SizedBox(height: 14),
-                  const Divider(thickness: 0.5, color: Colors.grey),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 14),
+                  Divider(thickness: 0.5, color: AppColors.greyText),
+                  SizedBox(height: 12),
 
                   // ---------- INFO CHIPS ----------
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      _infoChip(Icons.square_foot, '$area ${l10n.sqm}'),
-                      if ((unit.bedrooms ?? '0') != '0')
-                        _infoChip(Icons.bed, '${unit.bedrooms ?? 'N/A'} ${l10n.bedrooms}'),
-                      if ((unit.bathrooms ?? '0') != '0')
-                        _infoChip(Icons.bathtub_outlined, '${unit.bathrooms ?? 'N/A'} ${l10n.bathrooms}'),
-                      if ((unit.view ?? '').isNotEmpty)
-                        _infoChip(Icons.landscape, unit.view!),
-                    ],
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxHeight: 150),
+                    child: SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: [
+                          if (area != '0' && area.isNotEmpty)
+                            _infoChip(Icons.square_foot, '$area ${l10n.sqm}'),
+                          if ((unit.bedrooms ?? '0') != '0' && (unit.bedrooms ?? '').isNotEmpty)
+                            _infoChip(Icons.bed, '${unit.bedrooms} ${l10n.beds}'),
+                          if ((unit.bathrooms ?? '0') != '0' && (unit.bathrooms ?? '').isNotEmpty)
+                            _infoChip(Icons.bathtub_outlined, '${unit.bathrooms} ${l10n.baths}'),
+                          if ((unit.view ?? '').isNotEmpty)
+                            _infoChip(Icons.landscape, unit.view!),
+                        ],
+                      ),
+                    ),
                   ),
 
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   _priceAndFinishing(price, finishing),
 
                   if (deliveryDate.isNotEmpty) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-                        const SizedBox(width: 6),
-                        CustomText16('${l10n.delivery}: ', color: Colors.grey),
-                        CustomText16(
-                          _formatDate(deliveryDate),
-                          bold: true,
-                          color: Colors.black,
+                        Icon(Icons.calendar_today, size: 16, color: AppColors.greyText),
+                        SizedBox(width: 6),
+                        Flexible(
+                          child: RichText(
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: '${l10n.delivery}: ',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: AppColors.greyText,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: _formatDate(deliveryDate),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -224,8 +255,8 @@ class UnitCard extends StatelessWidget {
   Widget _defaultImage() => Container(
     height: 200,
     color: Colors.grey[200],
-    child: const Center(
-      child: Icon(Icons.image_not_supported, size: 60, color: Colors.grey),
+    child: Center(
+      child: Icon(Icons.image_not_supported, size: 60, color: AppColors.greyText),
     ),
   );
 
@@ -233,7 +264,7 @@ class UnitCard extends StatelessWidget {
     top: 12,
     right: 12,
     child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
       decoration: BoxDecoration(
         color: _getStatusColor(),
         borderRadius: BorderRadius.circular(20),
@@ -265,7 +296,7 @@ class UnitCard extends StatelessWidget {
             height: 48,
             fit: BoxFit.contain,
             errorBuilder: (context, url) =>
-            const Icon(Icons.business, size: 28, color: Colors.grey),
+            Icon(Icons.business, size: 28, color: AppColors.greyText),
           ),
         )
       else
@@ -277,22 +308,35 @@ class UnitCard extends StatelessWidget {
             color: Colors.grey.shade100,
             border: Border.all(color: Colors.grey.shade300),
           ),
-          child: const Icon(Icons.business, size: 28, color: Colors.grey),
+          child: Icon(Icons.business, size: 28, color: AppColors.greyText),
         ),
-      const SizedBox(width: 12),
+      SizedBox(width: 12),
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CustomText16(name, color: Colors.grey),
-            const SizedBox(height: 4),
-            CustomText20(type, bold: true, color: AppColors.black),
-            const SizedBox(height: 4),
+            CustomText16(
+              name,
+              color: AppColors.greyText,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: 4),
+            CustomText20(
+              type,
+              bold: true,
+              color: AppColors.black,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            SizedBox(height: 4),
             Builder(
               builder: (context) {
                 final l10n = AppLocalizations.of(context)!;
                 return Text(
                   '${l10n.unit} $number',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                 color: AppColors.mainColor,
                     fontWeight: FontWeight.w600,
@@ -308,7 +352,7 @@ class UnitCard extends StatelessWidget {
   );
 
   Widget _priceAndFinishing(String price, String finishing) => Container(
-    padding: const EdgeInsets.all(14),
+    padding: EdgeInsets.all(14),
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(14),
       color: AppColors.mainColor.withOpacity(0.05),
@@ -320,17 +364,28 @@ class UnitCard extends StatelessWidget {
         return Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            CustomText20(
-              '${l10n.egp} ${_formatPrice(price)}',
-              bold: true,
-              color: AppColors.mainColor,
-            ),
-            Chip(
-              backgroundColor: Colors.teal.withOpacity(0.1),
-              label: CustomText16(
-                finishing,
+            Expanded(
+              flex: 3,
+              child: CustomText20(
+                '${l10n.egp} ${_formatPrice(price)}',
                 bold: true,
-                color: Colors.teal,
+                color: AppColors.mainColor,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            SizedBox(width: 8),
+            Flexible(
+              flex: 2,
+              child: Chip(
+                backgroundColor: Colors.teal.withOpacity(0.1),
+                label: CustomText16(
+                  finishing,
+                  bold: true,
+                  color: Colors.teal,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ),
           ],
@@ -340,7 +395,7 @@ class UnitCard extends StatelessWidget {
   );
 
   Widget _infoChip(IconData icon, String label) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
     decoration: BoxDecoration(
       color: Colors.grey.shade100,
       borderRadius: BorderRadius.circular(8),
@@ -350,7 +405,7 @@ class UnitCard extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(icon, size: 16, color: AppColors.mainColor),
-        const SizedBox(width: 6),
+        SizedBox(width: 6),
         CustomText16(label, color: AppColors.black),
       ],
     ),
@@ -372,7 +427,7 @@ class UnitCard extends StatelessWidget {
         );
       },
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
@@ -380,7 +435,7 @@ class UnitCard extends StatelessWidget {
             BoxShadow(
               color: Colors.black.withOpacity(0.2),
               blurRadius: 6,
-              offset: const Offset(0, 2),
+              offset: Offset(0, 2),
             ),
           ],
         ),
@@ -399,7 +454,7 @@ class UnitCard extends StatelessWidget {
     child: GestureDetector(
       onTap: () => _showSalespeople(context),
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: AppColors.mainColor,
           shape: BoxShape.circle,
@@ -407,7 +462,7 @@ class UnitCard extends StatelessWidget {
             BoxShadow(
               color: AppColors.black.withOpacity(0.2),
               blurRadius: 4,
-              offset: const Offset(0, 2),
+              offset: Offset(0, 2),
             ),
           ],
         ),

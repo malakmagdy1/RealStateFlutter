@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 class ForgotPasswordResponse extends Equatable {
   final String message;
 
-  const ForgotPasswordResponse({
+  ForgotPasswordResponse({
     required this.message,
   });
 

@@ -1,8 +1,19 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:real/core/utils/constant.dart';
 
 class SearchHistoryService {
-  static const String _searchHistoryKey = 'search_history';
-  static const int maxHistoryItems = 10;
+  static String _baseSearchHistoryKey = 'search_history';
+  static int maxHistoryItems = 10;
+
+  // Get user-specific key based on token
+  String get _searchHistoryKey {
+    if (token != null && token!.isNotEmpty) {
+      // Use first 20 chars of token as identifier to keep key reasonable length
+      final tokenHash = token!.length > 20 ? token!.substring(0, 20) : token!;
+      return '${_baseSearchHistoryKey}_$tokenHash';
+    }
+    return _baseSearchHistoryKey; // Fallback for no token
+  }
 
   /// Get all search history
   Future<List<String>> getSearchHistory() async {

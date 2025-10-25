@@ -6,7 +6,7 @@ import 'unit_state.dart';
 class UnitBloc extends Bloc<UnitEvent, UnitState> {
   final UnitRepository repository;
 
-  UnitBloc({required this.repository}) : super(const UnitInitial()) {
+  UnitBloc({required this.repository}) : super(UnitInitial()) {
     on<FetchUnitsEvent>(_onFetchUnits);
   }
 
@@ -14,7 +14,7 @@ class UnitBloc extends Bloc<UnitEvent, UnitState> {
     FetchUnitsEvent event,
     Emitter<UnitState> emit,
   ) async {
-    emit(const UnitLoading());
+    emit(UnitLoading());
     try {
       final response = await repository.getUnitsByCompound(
         compoundId: event.compoundId,

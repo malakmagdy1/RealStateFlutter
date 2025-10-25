@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/utils/colors.dart';
 import '../../../../core/widget/button/showAll.dart';
 import '../../../../core/widget/robust_network_image.dart';
 import '../../../compound/data/models/compound_model.dart';
@@ -13,7 +14,7 @@ class UnitName extends StatefulWidget {
   final int compoundId;
   final Compound compound;
 
-  const UnitName({super.key, required this.compoundId, required this.compound});
+  UnitName({super.key, required this.compoundId, required this.compound});
 
   @override
   State<UnitName> createState() => _UnitNameState();
@@ -36,7 +37,7 @@ class _UnitNameState extends State<UnitName> {
     return BlocBuilder<UnitBloc, UnitState>(
       builder: (context, state) {
         if (state is UnitLoading) {
-          return const Center(
+          return Center(
             child: Padding(
               padding: EdgeInsets.all(32.0),
               child: CircularProgressIndicator(),
@@ -46,12 +47,12 @@ class _UnitNameState extends State<UnitName> {
           final units = state.response.data;
 
           if (units.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
                 padding: EdgeInsets.all(32.0),
                 child: Text(
                   'No units available for this compound',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(fontSize: 16, color: AppColors.greyText),
                 ),
               ),
             );
@@ -65,7 +66,7 @@ class _UnitNameState extends State<UnitName> {
             children: [
               ListView.builder(
                 shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
+                physics: NeverScrollableScrollPhysics(),
                 itemCount: displayUnits.length,
                 itemBuilder: (context, index) {
                   final unit = displayUnits[index];
@@ -82,7 +83,7 @@ class _UnitNameState extends State<UnitName> {
                       );
                     },
                     child: Card(
-                      margin: const EdgeInsets.only(bottom: 16),
+                      margin: EdgeInsets.only(bottom: 16),
                       elevation: 2,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -105,7 +106,7 @@ class _UnitNameState extends State<UnitName> {
                                         width: double.infinity,
                                         height: 200,
                                         color: Colors.grey.shade200,
-                                        child: const Center(
+                                        child: Center(
                                           child: CircularProgressIndicator(),
                                         ),
                                       ),
@@ -114,10 +115,10 @@ class _UnitNameState extends State<UnitName> {
                                           width: double.infinity,
                                           height: 200,
                                           color: Colors.grey.shade300,
-                                          child: const Icon(
+                                          child: Icon(
                                             Icons.image_not_supported,
                                             size: 50,
-                                            color: Colors.grey,
+                                            color: AppColors.greyText,
                                           ),
                                         );
                                       },
@@ -142,7 +143,7 @@ class _UnitNameState extends State<UnitName> {
                                             fit: BoxFit.cover,
                                             loadingBuilder: (context) => Container(
                                               color: Colors.grey.shade200,
-                                              child: const Center(
+                                              child: Center(
                                                 child:
                                                     CircularProgressIndicator(),
                                               ),
@@ -150,10 +151,10 @@ class _UnitNameState extends State<UnitName> {
                                             errorBuilder: (context, url) {
                                               return Container(
                                                 color: Colors.grey.shade300,
-                                                child: const Icon(
+                                                child: Icon(
                                                   Icons.image_not_supported,
                                                   size: 50,
-                                                  color: Colors.grey,
+                                                  color: AppColors.greyText,
                                                 ),
                                               );
                                             },
@@ -164,7 +165,7 @@ class _UnitNameState extends State<UnitName> {
                             ),
 
                           Padding(
-                            padding: const EdgeInsets.all(16),
+                            padding: EdgeInsets.all(16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -175,14 +176,14 @@ class _UnitNameState extends State<UnitName> {
                                   children: [
                                     Text(
                                       unit.unitType.toUpperCase(),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 18,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.black87,
                                       ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(
+                                      padding: EdgeInsets.symmetric(
                                         horizontal: 12,
                                         vertical: 6,
                                       ),
@@ -196,7 +197,7 @@ class _UnitNameState extends State<UnitName> {
                                       ),
                                       child: Text(
                                         unit.status.toUpperCase(),
-                                        style: const TextStyle(
+                                        style: TextStyle(
                                           color: Colors.white,
                                           fontSize: 12,
                                           fontWeight: FontWeight.bold,
@@ -207,16 +208,16 @@ class _UnitNameState extends State<UnitName> {
                                 ),
 
                                 if (unit.unitNumber != null) ...[
-                                  const SizedBox(height: 4),
+                                  SizedBox(height: 4),
                                   Text(
                                     'Unit #${unit.unitNumber}',
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey.shade600,
+                                      color: AppColors.greyText,
                                     ),
                                   ),
                                 ],
-                                const SizedBox(height: 16),
+                                SizedBox(height: 16),
 
                                 // --- Details ---
                                 Row(
@@ -237,7 +238,7 @@ class _UnitNameState extends State<UnitName> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 12),
+                                SizedBox(height: 12),
                                 Row(
                                   children: [
                                     Expanded(
@@ -259,7 +260,7 @@ class _UnitNameState extends State<UnitName> {
 
                                 if (unit.view != null ||
                                     unit.finishing != null) ...[
-                                  const SizedBox(height: 12),
+                                  SizedBox(height: 12),
                                   Row(
                                     children: [
                                       if (unit.view != null)
@@ -282,14 +283,14 @@ class _UnitNameState extends State<UnitName> {
                                   ),
                                 ],
 
-                                const SizedBox(height: 16),
-                                const Divider(),
-                                const SizedBox(height: 8),
+                                SizedBox(height: 16),
+                                Divider(),
+                                SizedBox(height: 8),
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    const Text(
+                                    Text(
                                       'Price',
                                       style: TextStyle(
                                         fontSize: 16,
@@ -299,7 +300,7 @@ class _UnitNameState extends State<UnitName> {
                                     ),
                                     Text(
                                       'EGP ${_formatPrice(unit.price)}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontSize: 20,
                                         fontWeight: FontWeight.bold,
                                         color: Colors.blue,
@@ -319,7 +320,7 @@ class _UnitNameState extends State<UnitName> {
 
               // ✅ Show All button (toggle)
               if (units.length > 5) ...[
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 ShowAllButton(
                   label: _showAll ? 'Show Less' : 'Show All Units',
                   pressed: () {
@@ -334,18 +335,18 @@ class _UnitNameState extends State<UnitName> {
         } else if (state is UnitError) {
           return Center(
             child: Padding(
-              padding: const EdgeInsets.all(32.0),
+              padding: EdgeInsets.all(32.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
+                  Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  SizedBox(height: 16),
                   Text(
                     'Error: ${state.message}',
-                    style: const TextStyle(color: Colors.red, fontSize: 14),
+                    style: TextStyle(color: Colors.red, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
                       context.read<UnitBloc>().add(
@@ -354,7 +355,7 @@ class _UnitNameState extends State<UnitName> {
                         ),
                       );
                     },
-                    child: const Text('Retry'),
+                    child: Text('Retry'),
                   ),
                 ],
               ),
@@ -362,7 +363,7 @@ class _UnitNameState extends State<UnitName> {
           );
         }
 
-        return const SizedBox.shrink();
+        return SizedBox.shrink();
       },
     );
   }
@@ -378,22 +379,22 @@ class _UnitNameState extends State<UnitName> {
       children: [
         Row(
           children: [
-            Icon(icon, size: 18, color: Colors.grey.shade600),
-            const SizedBox(width: 6),
+            Icon(icon, size: 18, color: AppColors.greyText),
+            SizedBox(width: 6),
             Text(
               label,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey.shade600,
+                color: AppColors.greyText,
                 fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 4),
+        SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,
             color: Colors.black87,

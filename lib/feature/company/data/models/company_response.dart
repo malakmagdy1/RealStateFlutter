@@ -6,7 +6,7 @@ class CompanyResponse extends Equatable {
   final int count;
   final List<Company> companies;
 
-  const CompanyResponse({
+  CompanyResponse({
     required this.success,
     required this.count,
     required this.companies,

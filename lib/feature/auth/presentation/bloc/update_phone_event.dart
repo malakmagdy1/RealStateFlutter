@@ -2,7 +2,7 @@ import 'package:equatable/equatable.dart';
 import 'package:real/feature/auth/data/models/update_phone_request.dart';
 
 abstract class UpdatePhoneEvent extends Equatable {
-  const UpdatePhoneEvent();
+  UpdatePhoneEvent();
 
   @override
   List<Object?> get props => [];
@@ -11,7 +11,7 @@ abstract class UpdatePhoneEvent extends Equatable {
 class UpdatePhoneSubmitEvent extends UpdatePhoneEvent {
   final UpdatePhoneRequest request;
 
-  const UpdatePhoneSubmitEvent(this.request);
+  UpdatePhoneSubmitEvent(this.request);
 
   @override
   List<Object?> get props => [request];

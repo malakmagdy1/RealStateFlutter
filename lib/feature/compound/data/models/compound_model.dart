@@ -1,6 +1,4 @@
-import 'dart:io' show Platform;
 import 'package:equatable/equatable.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../company/data/models/sales_model.dart';
 
 class Compound extends Equatable {
@@ -18,6 +16,7 @@ class Compound extends Equatable {
   final String? landArea;
   final String? builtArea;
   final String? finishSpecs;
+  final String? masterPlan;
   final String club;
   final String isSold;
   final String status;
@@ -32,7 +31,7 @@ class Compound extends Equatable {
   final String availableUnits;
   final List<Sales> sales;
 
-  const Compound({
+  Compound({
     required this.id,
     required this.companyId,
     required this.project,
@@ -47,6 +46,7 @@ class Compound extends Equatable {
     this.landArea,
     this.builtArea,
     this.finishSpecs,
+    this.masterPlan,
     required this.club,
     required this.isSold,
     required this.status,
@@ -59,31 +59,28 @@ class Compound extends Equatable {
     this.companyLogo,
     required this.soldUnits,
     required this.availableUnits,
-    this.sales = const [],
+    required this.sales ,
   });
 
   factory Compound.fromJson(Map<String, dynamic> json) {
-    // Parse images array
+    // Parse images array - store URLs as-is from API
     List<String> imagesList = [];
     if (json['images'] != null && json['images'] is List) {
       imagesList = (json['images'] as List)
-          .map((img) {
-            final originalUrl = img.toString();
-            final fixedUrl = _fixImageUrl(originalUrl);
-            print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-            print('[IMAGE URL] Original: $originalUrl');
-            print('[IMAGE URL] Fixed: $fixedUrl');
-            print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-            return fixedUrl;
-          })
+          .map((img) => img.toString())
           .toList();
+
+      print('================================');
+      print('[COMPOUND MODEL] Compound: ${json['project']}');
+      print('[COMPOUND MODEL] Total images from API: ${imagesList.length}');
+      for (int i = 0; i < imagesList.length; i++) {
+        print('[COMPOUND MODEL] Image $i: ${imagesList[i]}');
+      }
+      print('================================');
     }
 
-    // Fix company logo URL
+    // Store company logo URL as-is from API
     String? companyLogo = json['company_logo']?.toString();
-    if (companyLogo != null && companyLogo.isNotEmpty) {
-      companyLogo = _fixImageUrl(companyLogo);
-    }
 
     // Parse sales array
     List<Sales> salesList = [];
@@ -110,6 +107,7 @@ class Compound extends Equatable {
       landArea: json['land_area']?.toString(),
       builtArea: json['built_area']?.toString(),
       finishSpecs: json['finish_specs']?.toString(),
+      masterPlan: json['master_plan']?.toString(),
       club: json['club']?.toString() ?? '0',
       isSold: json['is_sold']?.toString() ?? '0',
       // Use localized status if available, fallback to original
@@ -127,46 +125,6 @@ class Compound extends Equatable {
     );
   }
 
-  // Fix image URL to work on Android emulator
-  static String _fixImageUrl(String url) {
-    try {
-      // If URL is empty or null, return as is
-      if (url.isEmpty) return url;
-
-      // Check if it's a relative path (doesn't start with http:// or https://)
-      if (!url.startsWith('http://') && !url.startsWith('https://')) {
-        // Remove leading slash if present
-        url = url.replaceFirst(RegExp(r'^/'), '');
-
-        // Convert relative path to full URL
-        // Base URL for images on your server
-        const String baseUrl = 'http://192.168.1.225/larvel2';
-        url = '$baseUrl/$url';
-      }
-
-      // First, fix Laravel storage path: remove /app/public from storage path
-      url = url.replaceAll('/storage/app/public/', '/storage/');
-
-      final uri = Uri.parse(url);
-
-      // If running on Android emulator, replace localhost or any IP with 10.0.2.2
-      if (!kIsWeb && Platform.isAndroid) {
-        // Replace localhost with 10.0.2.2
-        if (uri.host == 'localhost' || uri.host == '127.0.0.1') {
-          return url.replaceFirst(RegExp(r'https?://localhost'), 'http://10.0.2.2')
-                    .replaceFirst(RegExp(r'https?://127\.0\.0\.1'), 'http://10.0.2.2');
-        }
-        // Replace any private IP address (192.168.x.x, 10.x.x.x) with 10.0.2.2
-        else if (uri.host.startsWith('192.168.') || uri.host.startsWith('10.')) {
-          return url.replaceFirst(RegExp(r'https?://[0-9.]+'), 'http://10.0.2.2');
-        }
-      }
-
-      return url;
-    } catch (e) {
-      return url;
-    }
-  }
 
   Map<String, dynamic> toJson() {
     return {
@@ -184,6 +142,7 @@ class Compound extends Equatable {
       'land_area': landArea,
       'built_area': builtArea,
       'finish_specs': finishSpecs,
+      'master_plan': masterPlan,
       'club': club,
       'is_sold': isSold,
       'status': status,
@@ -216,6 +175,7 @@ class Compound extends Equatable {
         landArea,
         builtArea,
         finishSpecs,
+        masterPlan,
         club,
         isSold,
         status,

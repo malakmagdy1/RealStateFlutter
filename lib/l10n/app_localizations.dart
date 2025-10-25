@@ -866,6 +866,12 @@ abstract class AppLocalizations {
   /// **'Beds'**
   String get beds;
 
+  /// No description provided for @baths.
+  ///
+  /// In en, this message translates to:
+  /// **'Baths'**
+  String get baths;
+
   /// No description provided for @verified.
   ///
   /// In en, this message translates to:
@@ -1267,6 +1273,390 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No active sales for this item'**
   String get noActiveSalesForThisItem;
+
+  /// No description provided for @all.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get all;
+
+  /// No description provided for @updates.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates'**
+  String get updates;
+
+  /// No description provided for @markAllAsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark all as read'**
+  String get markAllAsRead;
+
+  /// No description provided for @markedAllAsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'All notifications marked as read'**
+  String get markedAllAsRead;
+
+  /// No description provided for @clearAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all'**
+  String get clearAll;
+
+  /// No description provided for @notificationDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Notification deleted'**
+  String get notificationDeleted;
+
+  /// No description provided for @allNotificationsCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'All notifications cleared'**
+  String get allNotificationsCleared;
+
+  /// No description provided for @clearAllNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear All Notifications'**
+  String get clearAllNotifications;
+
+  /// No description provided for @clearAllConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete all notifications? This action cannot be undone.'**
+  String get clearAllConfirm;
+
+  /// No description provided for @noNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'No notifications'**
+  String get noNotifications;
+
+  /// No description provided for @allCaughtUp.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re all caught up!'**
+  String get allCaughtUp;
+
+  /// No description provided for @markAsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as Read'**
+  String get markAsRead;
+
+  /// No description provided for @markAsUnread.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as Unread'**
+  String get markAsUnread;
+
+  /// No description provided for @delete.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get delete;
+
+  /// No description provided for @noDetailsAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No details available for this notification'**
+  String get noDetailsAvailable;
+
+  /// No description provided for @perSqm.
+  ///
+  /// In en, this message translates to:
+  /// **'per m²'**
+  String get perSqm;
+
+  /// No description provided for @details.
+  ///
+  /// In en, this message translates to:
+  /// **'Details'**
+  String get details;
+
+  /// No description provided for @gallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get gallery;
+
+  /// No description provided for @viewOnMap.
+  ///
+  /// In en, this message translates to:
+  /// **'View on Map'**
+  String get viewOnMap;
+
+  /// No description provided for @floorPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Floor Plan'**
+  String get floorPlan;
+
+  /// No description provided for @noDescriptionAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No description available'**
+  String get noDescriptionAvailable;
+
+  /// No description provided for @saleType.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale Type'**
+  String get saleType;
+
+  /// No description provided for @numberOfBedrooms.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of Bedrooms'**
+  String get numberOfBedrooms;
+
+  /// No description provided for @numberOfBathrooms.
+  ///
+  /// In en, this message translates to:
+  /// **'Number of Bathrooms'**
+  String get numberOfBathrooms;
+
+  /// No description provided for @mapViewNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Map view not available'**
+  String get mapViewNotAvailable;
+
+  /// No description provided for @floorPlanNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Floor plan not available'**
+  String get floorPlanNotAvailable;
+
+  /// No description provided for @paymentPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Plans'**
+  String get paymentPlans;
+
+  /// No description provided for @noMortgageAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No Mortgage Available'**
+  String get noMortgageAvailable;
+
+  /// No description provided for @fillForm.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill Form'**
+  String get fillForm;
+
+  /// No description provided for @yourName.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Name'**
+  String get yourName;
+
+  /// No description provided for @pleaseEnterYourName.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your name'**
+  String get pleaseEnterYourName;
+
+  /// No description provided for @pleaseEnterYourPhone.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter your phone number'**
+  String get pleaseEnterYourPhone;
+
+  /// No description provided for @requestInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Request Info'**
+  String get requestInfo;
+
+  /// No description provided for @callNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Call Now'**
+  String get callNow;
+
+  /// No description provided for @noData.
+  ///
+  /// In en, this message translates to:
+  /// **'No data'**
+  String get noData;
+
+  /// No description provided for @developerInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer Information'**
+  String get developerInformation;
+
+  /// No description provided for @trustedDeveloperDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Trusted developer with multiple successful projects in Egypt'**
+  String get trustedDeveloperDescription;
+
+  /// No description provided for @pricingPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Pricing & Payment'**
+  String get pricingPayment;
+
+  /// No description provided for @startingPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting Price'**
+  String get startingPrice;
+
+  /// No description provided for @contactForDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact for details'**
+  String get contactForDetails;
+
+  /// No description provided for @tba.
+  ///
+  /// In en, this message translates to:
+  /// **'TBA'**
+  String get tba;
+
+  /// No description provided for @complete.
+  ///
+  /// In en, this message translates to:
+  /// **'Complete'**
+  String get complete;
+
+  /// No description provided for @whatsapp.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp'**
+  String get whatsapp;
+
+  /// No description provided for @finishSpecifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish Specifications'**
+  String get finishSpecifications;
+
+  /// No description provided for @masterPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Master Plan'**
+  String get masterPlan;
+
+  /// No description provided for @featuresAmenities.
+  ///
+  /// In en, this message translates to:
+  /// **'Features & Amenities'**
+  String get featuresAmenities;
+
+  /// No description provided for @swimmingPool.
+  ///
+  /// In en, this message translates to:
+  /// **'Swimming Pool'**
+  String get swimmingPool;
+
+  /// No description provided for @gym.
+  ///
+  /// In en, this message translates to:
+  /// **'Gym'**
+  String get gym;
+
+  /// No description provided for @sportsClub.
+  ///
+  /// In en, this message translates to:
+  /// **'Sports Club'**
+  String get sportsClub;
+
+  /// No description provided for @security247.
+  ///
+  /// In en, this message translates to:
+  /// **'24/7 Security'**
+  String get security247;
+
+  /// No description provided for @parking.
+  ///
+  /// In en, this message translates to:
+  /// **'Parking'**
+  String get parking;
+
+  /// No description provided for @greenAreas.
+  ///
+  /// In en, this message translates to:
+  /// **'Green Areas'**
+  String get greenAreas;
+
+  /// No description provided for @commercialArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Commercial Area'**
+  String get commercialArea;
+
+  /// No description provided for @kidsArea.
+  ///
+  /// In en, this message translates to:
+  /// **'Kids Area'**
+  String get kidsArea;
+
+  /// No description provided for @requestMoreInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Request More Information'**
+  String get requestMoreInformation;
+
+  /// No description provided for @emailAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Email Address'**
+  String get emailAddress;
+
+  /// No description provided for @messageOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Message (Optional)'**
+  String get messageOptional;
+
+  /// No description provided for @submitRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'Submit Request'**
+  String get submitRequest;
+
+  /// No description provided for @requestSubmittedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Request submitted successfully!'**
+  String get requestSubmittedSuccessfully;
+
+  /// No description provided for @aboutTheDeveloper.
+  ///
+  /// In en, this message translates to:
+  /// **'About the Developer'**
+  String get aboutTheDeveloper;
+
+  /// No description provided for @amenities.
+  ///
+  /// In en, this message translates to:
+  /// **'Amenities'**
+  String get amenities;
+
+  /// No description provided for @floors.
+  ///
+  /// In en, this message translates to:
+  /// **'Floors'**
+  String get floors;
+
+  /// No description provided for @club.
+  ///
+  /// In en, this message translates to:
+  /// **'Club'**
+  String get club;
+
+  /// Company description
+  ///
+  /// In en, this message translates to:
+  /// **'{companyName} is a leading real estate developer in Egypt, known for creating exceptional residential and commercial properties.'**
+  String leadingDeveloper(String companyName);
 }
 
 class _AppLocalizationsDelegate

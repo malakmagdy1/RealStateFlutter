@@ -8,7 +8,7 @@ class SaleCard extends StatelessWidget {
   final Sale sale;
   final VoidCallback? onTap;
 
-  const SaleCard({
+  SaleCard({
     Key? key,
     required this.sale,
     this.onTap,
@@ -21,7 +21,7 @@ class SaleCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
+        margin: EdgeInsets.only(bottom: 12),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
@@ -40,7 +40,7 @@ class SaleCard extends StatelessWidget {
             BoxShadow(
               color: AppColors.mainColor.withOpacity(0.1),
               blurRadius: 12,
-              offset: const Offset(0, 4),
+              offset: Offset(0, 4),
             ),
           ],
         ),
@@ -49,7 +49,7 @@ class SaleCard extends StatelessWidget {
           children: [
             // Sale Header with Discount Badge
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
@@ -59,7 +59,7 @@ class SaleCard extends StatelessWidget {
                     Colors.red.withOpacity(0.08),
                   ],
                 ),
-                borderRadius: const BorderRadius.only(
+                borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(14),
                   topRight: Radius.circular(14),
                 ),
@@ -76,7 +76,7 @@ class SaleCard extends StatelessWidget {
                           bold: true,
                           color: AppColors.black,
                         ),
-                        const SizedBox(height: 4),
+                        SizedBox(height: 4),
                         CustomText16(
                           sale.itemName,
                           color: AppColors.grey,
@@ -85,7 +85,7 @@ class SaleCard extends StatelessWidget {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.red,
                       borderRadius: BorderRadius.circular(20),
@@ -93,7 +93,7 @@ class SaleCard extends StatelessWidget {
                         BoxShadow(
                           color: Colors.red.withOpacity(0.3),
                           blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          offset: Offset(0, 2),
                         ),
                       ],
                     ),
@@ -104,7 +104,7 @@ class SaleCard extends StatelessWidget {
                           bold: true,
                           color: AppColors.white,
                         ),
-                        const SizedBox(width: 4),
+                        SizedBox(width: 4),
                         CustomText16(
                           l10n.discount,
                           color: AppColors.white,
@@ -118,7 +118,7 @@ class SaleCard extends StatelessWidget {
 
             // Sale Details
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -134,7 +134,7 @@ class SaleCard extends StatelessWidget {
                               l10n.oldPrice,
                               color: AppColors.grey,
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             CustomText16(
                               '${sale.oldPrice.toStringAsFixed(0)} ${l10n.egp}',
                               bold: true,
@@ -153,7 +153,7 @@ class SaleCard extends StatelessWidget {
                               l10n.newPrice,
                               color: AppColors.grey,
                             ),
-                            const SizedBox(height: 4),
+                            SizedBox(height: 4),
                             CustomText18(
                               '${sale.newPrice.toStringAsFixed(0)} ${l10n.egp}',
                               bold: true,
@@ -165,11 +165,11 @@ class SaleCard extends StatelessWidget {
                     ],
                   ),
 
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
 
                   // Savings
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: Colors.green.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(10),
@@ -185,7 +185,7 @@ class SaleCard extends StatelessWidget {
                           color: Colors.green.shade700,
                           size: 20,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         CustomText16(
                           '${l10n.save} ${sale.savings.toStringAsFixed(0)} ${l10n.egp}',
                           bold: true,
@@ -197,7 +197,7 @@ class SaleCard extends StatelessWidget {
 
                   // Days Remaining
                   if (sale.daysRemaining > 0) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Row(
                       children: [
                         Icon(
@@ -205,7 +205,7 @@ class SaleCard extends StatelessWidget {
                           color: Colors.orange.shade700,
                           size: 18,
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         CustomText16(
                           '${l10n.endsIn} ${sale.daysRemaining.toInt()} ${l10n.days}',
                           color: Colors.orange.shade700,
@@ -217,9 +217,9 @@ class SaleCard extends StatelessWidget {
 
                   // Sales Person Info
                   if (sale.salesPerson != null) ...[
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.all(10),
+                      padding: EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: AppColors.mainColor.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(10),
@@ -235,7 +235,7 @@ class SaleCard extends StatelessWidget {
                               bold: true,
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          SizedBox(width: 10),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,

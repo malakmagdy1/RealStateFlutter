@@ -9,7 +9,7 @@ import 'search_state.dart';
 class SearchBloc extends Bloc<SearchEvent, SearchState> {
   final SearchRepository repository;
 
-  SearchBloc({required this.repository}) : super(const SearchInitial()) {
+  SearchBloc({required this.repository}) : super(SearchInitial()) {
     on<SearchQueryEvent>(_onSearchQuery);
     on<ClearSearchEvent>(_onClearSearch);
   }
@@ -20,11 +20,11 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
   ) async {
     // Require at least a query or filter
     if (event.query.trim().isEmpty && event.filter == null) {
-      emit(const SearchEmpty());
+      emit(SearchEmpty());
       return;
     }
 
-    emit(const SearchLoading());
+    emit(SearchLoading());
 
     try {
       // Use the search API (returns companies, compounds, and units)
@@ -37,7 +37,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       );
 
       if (response.results.isEmpty) {
-        emit(const SearchEmpty());
+        emit(SearchEmpty());
       } else {
         print('[SEARCH] Found ${response.totalResults} results');
         emit(SearchSuccess(response: response));
@@ -81,6 +81,6 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     ClearSearchEvent event,
     Emitter<SearchState> emit,
   ) async {
-    emit(const SearchInitial());
+    emit(SearchInitial());
   }
 }

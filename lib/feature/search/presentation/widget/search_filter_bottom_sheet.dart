@@ -8,7 +8,7 @@ class SearchFilterBottomSheet extends StatefulWidget {
   final SearchFilter initialFilter;
   final Function(SearchFilter) onApplyFilters;
 
-  const SearchFilterBottomSheet({
+  SearchFilterBottomSheet({
     Key? key,
     required this.initialFilter,
     required this.onApplyFilters,
@@ -136,7 +136,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
   Widget build(BuildContext context) {
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -144,17 +144,17 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
         children: [
           // Header
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: const BorderRadius.vertical(
+              borderRadius: BorderRadius.vertical(
                 top: Radius.circular(20),
               ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.05),
                   blurRadius: 4,
-                  offset: const Offset(0, 2),
+                  offset: Offset(0, 2),
                 ),
               ],
             ),
@@ -162,7 +162,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: Icon(Icons.close),
                   onPressed: () => Navigator.pop(context),
                 ),
                 CustomText20('Filters', bold: true, color: AppColors.black),
@@ -177,33 +177,33 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
           // Content
           Expanded(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Location
                   _buildSectionTitle('Location'),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   TextField(
                     controller: _locationController,
                     decoration: InputDecoration(
                       hintText: 'e.g., New Cairo, 6th October',
-                      prefixIcon: const Icon(Icons.location_on_outlined),
+                      prefixIcon: Icon(Icons.location_on_outlined),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // Price Range
                   _buildSectionTitle('Price Range (EGP)'),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
@@ -212,29 +212,29 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
                             hintText: 'Min',
-                            prefixIcon: const Icon(Icons.attach_money),
+                            prefixIcon: Icon(Icons.attach_money),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(
+                            contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 12,
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 16),
+                      SizedBox(width: 16),
                       Expanded(
                         child: TextField(
                           controller: _maxPriceController,
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
                             hintText: 'Max',
-                            prefixIcon: const Icon(Icons.attach_money),
+                            prefixIcon: Icon(Icons.attach_money),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            contentPadding: const EdgeInsets.symmetric(
+                            contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 12,
                             ),
@@ -244,11 +244,11 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     ],
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // Property Type
                   _buildSectionTitle('Property Type'),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -276,11 +276,11 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     }).toList(),
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // Number of Bedrooms
                   _buildSectionTitle('Number of Bedrooms'),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -308,11 +308,11 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     }).toList(),
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // Finishing
                   _buildSectionTitle('Finishing'),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
@@ -340,33 +340,33 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     }).toList(),
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // Delivery Date
                   _buildSectionTitle('Delivery Date'),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   TextField(
                     controller: _deliveryDateController,
                     decoration: InputDecoration(
                       hintText: 'e.g., 2025, Q1 2026',
-                      prefixIcon: const Icon(Icons.calendar_today_outlined),
+                      prefixIcon: Icon(Icons.calendar_today_outlined),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
+                      contentPadding: EdgeInsets.symmetric(
                         horizontal: 16,
                         vertical: 12,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // Amenities
                   _buildSectionTitle('Amenities'),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   CheckboxListTile(
-                    title: const Text('Has Club'),
+                    title: Text('Has Club'),
                     value: _hasClub,
                     onChanged: (value) {
                       setState(() {
@@ -377,7 +377,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     contentPadding: EdgeInsets.zero,
                   ),
                   CheckboxListTile(
-                    title: const Text('Has Roof'),
+                    title: Text('Has Roof'),
                     value: _hasRoof,
                     onChanged: (value) {
                       setState(() {
@@ -388,7 +388,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     contentPadding: EdgeInsets.zero,
                   ),
                   CheckboxListTile(
-                    title: const Text('Has Garden'),
+                    title: Text('Has Garden'),
                     value: _hasGarden,
                     onChanged: (value) {
                       setState(() {
@@ -399,11 +399,11 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     contentPadding: EdgeInsets.zero,
                   ),
 
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24),
 
                   // Sort By
                   _buildSectionTitle('Sort By'),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   Column(
                     children: sortOptions.entries.map((entry) {
                       return RadioListTile<String>(
@@ -421,7 +421,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     }).toList(),
                   ),
 
-                  const SizedBox(height: 80),
+                  SizedBox(height: 80),
                 ],
               ),
             ),
@@ -429,14 +429,14 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
 
           // Apply Button
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.1),
                   blurRadius: 4,
-                  offset: const Offset(0, -2),
+                  offset: Offset(0, -2),
                 ),
               ],
             ),
@@ -446,7 +446,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                 onPressed: _applyFilters,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.mainColor,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  padding: EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),

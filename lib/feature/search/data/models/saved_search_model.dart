@@ -9,7 +9,7 @@ class SavedSearch extends Equatable {
   final String? createdAt;
   final String? updatedAt;
 
-  const SavedSearch({
+  SavedSearch({
     required this.id,
     required this.userId,
     required this.name,
@@ -57,7 +57,7 @@ class SavedSearchResponse extends Equatable {
   final SavedSearch? savedSearch;
   final List<SavedSearch>? savedSearches;
 
-  const SavedSearchResponse({
+  SavedSearchResponse({
     required this.success,
     this.message,
     this.savedSearch,
@@ -107,7 +107,7 @@ class CreateSavedSearchRequest {
   final String name;
   final Map<String, dynamic> searchParameters;
 
-  const CreateSavedSearchRequest({
+  CreateSavedSearchRequest({
     required this.userId,
     required this.name,
     required this.searchParameters,
@@ -126,7 +126,7 @@ class UpdateSavedSearchRequest {
   final String? name;
   final Map<String, dynamic>? searchParameters;
 
-  const UpdateSavedSearchRequest({
+  UpdateSavedSearchRequest({
     this.name,
     this.searchParameters,
   });

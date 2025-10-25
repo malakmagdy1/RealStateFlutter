@@ -17,9 +17,10 @@ import 'package:real/feature/auth/presentation/screen/editNameScreen.dart';
 import 'package:real/feature/auth/presentation/screen/editPhoneScreen.dart';
 import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
 import 'package:real/feature/home/presentation/widget/customListTile.dart';
+import 'package:real/feature/notifications/presentation/screens/notifications_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -28,6 +29,9 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
+  bool _isPersonalInfoExpanded = true;
+  bool _isSecurityExpanded = false;
+  bool _isPreferencesExpanded = false;
 
   Future<void> _pickImage() async {
     try {
@@ -70,9 +74,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                loginBloc.add(const LogoutEvent());
+                loginBloc.add(LogoutEvent());
               },
-              child: Text(l10n.logout, style: const TextStyle(color: Colors.red)),
+              child: Text(l10n.logout, style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -92,7 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: Row(
             children: [
               Icon(Icons.language, color: AppColors.mainColor),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               Text(l10n.selectLanguage),
             ],
           ),
@@ -106,7 +110,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 'en',
                 currentLocale.languageCode == 'en',
               ),
-              const Divider(),
+              Divider(),
               _languageOption(
                 dialogContext,
                 localeCubit,
@@ -148,7 +152,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           SnackBar(
             content: Text(l10n.languageChanged),
             backgroundColor: AppColors.mainColor,
-            duration: const Duration(seconds: 2),
+            duration: Duration(seconds: 2),
           ),
         );
       },
@@ -180,34 +184,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
         }
       },
       child: Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+          title: Text(
+            'Profile & Settings',
+            style: TextStyle(
+              color: Colors.black,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          centerTitle: true,
+        ),
         body: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.all(screenWidth * 0.04),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Profile Section
+              Container(
+                padding: EdgeInsets.symmetric(vertical: screenHeight * 0.03),
+                child: Center(
                   child: Column(
                     children: [
-                      SizedBox(height: screenHeight * 0.02),
                       Stack(
                         children: [
-                          CircleAvatar(
-                            radius: screenWidth * 0.15,
-                            backgroundColor: AppColors.mainColor.withOpacity(
-                              0.2,
+                          Container(
+                            width: screenWidth * 0.28,
+                            height: screenWidth * 0.28,
+                            decoration: BoxDecoration(
+                              color: Color(0xFFFFF4E6),
+                              borderRadius: BorderRadius.circular(20),
                             ),
-                            backgroundImage: _imageFile != null
-                                ? FileImage(_imageFile!)
-                                : null,
-
                             child: _imageFile == null
                                 ? Icon(
-                                    Icons.person,
-                                    size: screenWidth * 0.15,
-                                    color: AppColors.mainColor,
+                                    Icons.description_outlined,
+                                    size: screenWidth * 0.12,
+                                    color: Color(0xFFFFB74D),
                                   )
-                                : null,
+                                : ClipRRect(
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Image.file(
+                                      _imageFile!,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
                           ),
                           Positioned(
                             bottom: 0,
@@ -215,18 +241,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             child: GestureDetector(
                               onTap: _pickImage,
                               child: Container(
-                                padding: EdgeInsets.all(screenWidth * 0.02),
+                                padding: EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: AppColors.mainColor,
+                                  color: Colors.blue,
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: Colors.white,
-                                    width: 2,
+                                    width: 3,
                                   ),
                                 ),
                                 child: Icon(
-                                  Icons.camera_alt,
-                                  size: screenWidth * 0.05,
+                                  Icons.edit,
+                                  size: 16,
                                   color: Colors.white,
                                 ),
                               ),
@@ -234,212 +260,239 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ],
                       ),
-                      SizedBox(height: screenHeight * 0.015),
+                      SizedBox(height: screenHeight * 0.02),
                       BlocBuilder<UserBloc, UserState>(
                         builder: (context, state) {
                           if (state is UserSuccess) {
                             return Column(
                               children: [
-                                CustomText20(
+                                Text(
                                   state.user.name,
-                                  color: Colors.black,
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black,
+                                  ),
                                 ),
-                                SizedBox(height: screenHeight * 0.005),
-                                CustomText16(
+                                SizedBox(height: 4),
+                                Text(
                                   state.user.email,
-                                  color: Colors.grey,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
                                 ),
                               ],
                             );
                           } else if (state is UserLoading) {
-                            return const CircularProgressIndicator();
+                            return CircularProgressIndicator();
                           }
                           return Column(
                             children: [
-                              CustomText20("User Name", color: Colors.black),
-                              SizedBox(height: screenHeight * 0.005),
-                              CustomText16(
-                                "user@email.com",
-                                color: Colors.grey,
+                              Text(
+                                "John Doe",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                "john.doe@email.com",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
                               ),
                             ],
                           );
                         },
                       ),
-                      SizedBox(height: screenHeight * 0.03),
                     ],
                   ),
                 ),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-                  child: CustomText20(
-                    l10n.personalInformation,
+              ),
+
+              Divider(height: 1, thickness: 1),
+
+              // Personal Information Section
+              ExpansionTile(
+                title: Text(
+                  l10n.personalInformation,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                     color: Colors.black,
                   ),
                 ),
-                SizedBox(height: screenHeight * 0.015),
-                CustomListTile(
-                  icon: Icons.person_outline,
-                  title: l10n.editName,
-                  onTap: () {
-                    Navigator.pushNamed(context, EditNameScreen.routeName);
-                  },
-                  screenWidth: screenWidth,
-                ),
-                CustomListTile(
-                  icon: Icons.phone_outlined,
-                  title: l10n.editPhone,
-                  onTap: () {
-                    Navigator.pushNamed(context, EditPhoneScreen.routeName);
-                  },
-                  screenWidth: screenWidth,
-                ),
+                initiallyExpanded: _isPersonalInfoExpanded,
+                onExpansionChanged: (expanded) {
+                  setState(() {
+                    _isPersonalInfoExpanded = expanded;
+                  });
+                },
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.person_outline, color: Colors.black87),
+                    title: Text(l10n.editName),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.pushNamed(context, EditNameScreen.routeName);
+                    },
+                  ),
+                  ListTile(
+                    leading: Icon(Icons.phone_outlined, color: Colors.black87),
+                    title: Text('Edit Phone Number'),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.pushNamed(context, EditPhoneScreen.routeName);
+                    },
+                  ),
+                ],
+              ),
 
-                SizedBox(height: screenHeight * 0.02),
+              Divider(height: 1, thickness: 1),
 
-                // Security Section
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-                  child: CustomText20(l10n.security, color: Colors.black),
+              // Security Section
+              ExpansionTile(
+                title: Text(
+                  l10n.security,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
                 ),
-                SizedBox(height: screenHeight * 0.015),
-                CustomListTile(
-                  icon: Icons.lock_outline,
-                  title: l10n.changePassword,
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      ChangePasswordScreen.routeName,
-                    );
-                  },
-                  screenWidth: screenWidth,
-                ),
+                initiallyExpanded: _isSecurityExpanded,
+                onExpansionChanged: (expanded) {
+                  setState(() {
+                    _isSecurityExpanded = expanded;
+                  });
+                },
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.lock_outline, color: Colors.black87),
+                    title: Text(l10n.changePassword),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.pushNamed(
+                        context,
+                        ChangePasswordScreen.routeName,
+                      );
+                    },
+                  ),
+                ],
+              ),
 
-                SizedBox(height: screenHeight * 0.02),
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-                  child: CustomText20(l10n.preferences, color: Colors.black),
-                ),
-                SizedBox(height: screenHeight * 0.015),
-                CustomListTile(
-                  icon: Icons.brightness_6_outlined,
-                  title: l10n.theme,
-                  subtitle: l10n.light,
-                  onTap: () {
-                    // TODO: Navigate to theme settings
-                  },
-                  screenWidth: screenWidth,
-                ),
-                BlocBuilder<LocaleCubit, Locale>(
-                  builder: (context, locale) {
-                    return CustomListTile(
-                      icon: Icons.language_outlined,
-                      title: l10n.language,
-                      subtitle: locale.languageCode == 'en' ? 'English' : 'العربية',
-                      onTap: () => _showLanguageDialog(context),
-                      screenWidth: screenWidth,
-                    );
-                  },
-                ),
+              Divider(height: 1, thickness: 1),
 
-                SizedBox(height: screenHeight * 0.02),
+              // Preferences Section
+              ExpansionTile(
+                title: Text(
+                  l10n.preferences,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black,
+                  ),
+                ),
+                initiallyExpanded: _isPreferencesExpanded,
+                onExpansionChanged: (expanded) {
+                  setState(() {
+                    _isPreferencesExpanded = expanded;
+                  });
+                },
+                children: [
+                  ListTile(
+                    leading: Icon(Icons.brightness_6_outlined, color: Colors.black87),
+                    title: Text(l10n.theme),
+                    subtitle: Text(l10n.light),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      // TODO: Navigate to theme settings
+                    },
+                  ),
+                  BlocBuilder<LocaleCubit, Locale>(
+                    builder: (context, locale) {
+                      return ListTile(
+                        leading: Icon(Icons.language_outlined, color: Colors.black87),
+                        title: Text(l10n.language),
+                        subtitle: Text(locale.languageCode == 'en' ? 'English' : 'العربية'),
+                        trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                        onTap: () => _showLanguageDialog(context),
+                      );
+                    },
+                  ),
+                ],
+              ),
 
-                // Account Section
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.02),
-                  child: CustomText20(l10n.account, color: Colors.black),
-                ),
-                SizedBox(height: screenHeight * 0.015),
-                CustomListTile(
-                  icon: Icons.notifications_outlined,
-                  title: l10n.notifications,
-                  onTap: () {
-                    // TODO: Navigate to notification settings
-                  },
-                  screenWidth: screenWidth,
-                ),
-                CustomListTile(
-                  icon: Icons.privacy_tip_outlined,
-                  title: l10n.privacyPolicy,
-                  onTap: () {
-                    // TODO: Navigate to privacy policy
-                  },
-                  screenWidth: screenWidth,
-                ),
-                CustomListTile(
-                  icon: Icons.help_outline,
-                  title: l10n.helpSupport,
-                  onTap: () {
-                    // TODO: Navigate to help screen
-                  },
-                  screenWidth: screenWidth,
-                ),
-                SizedBox(height: screenHeight * 0.02),
+              Divider(height: 1, thickness: 1),
 
-                // Logout Button
-                BlocBuilder<LoginBloc, LoginState>(
+              SizedBox(height: screenHeight * 0.04),
+
+              // Logout Button
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                child: BlocBuilder<LoginBloc, LoginState>(
                   builder: (context, state) {
                     if (state is LogoutLoading) {
                       return Container(
-                        margin: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.02,
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          vertical: screenHeight * 0.02,
-                        ),
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(vertical: 16),
                         decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(12),
+                          color: Color(0xFFFFE5E5),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: const Center(
-                          child: CircularProgressIndicator(color: Colors.red),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.red,
+                            strokeWidth: 2,
+                          ),
                         ),
                       );
                     }
 
-                    return GestureDetector(
+                    return InkWell(
                       onTap: () => _handleLogout(context),
                       child: Container(
-                        margin: EdgeInsets.symmetric(
-                          horizontal: screenWidth * 0.02,
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          vertical: screenHeight * 0.02,
-                          horizontal: screenWidth * 0.04,
-                        ),
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(vertical: 16),
                         decoration: BoxDecoration(
-                          color: Colors.red.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.red.shade200),
+                          color: Color(0xFFFFE5E5),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.logout,
+                        child: Center(
+                          child: Text(
+                            l10n.logout,
+                            style: TextStyle(
                               color: Colors.red,
-                              size: screenWidth * 0.06,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
                             ),
-                            SizedBox(width: screenWidth * 0.04),
-                            CustomText18(
-                              l10n.logout,
-                              color: Colors.red,
-                              bold: true,
-                            ),
-                            const Spacer(),
-                            Icon(
-                              Icons.arrow_forward_ios,
-                              color: Colors.red,
-                              size: screenWidth * 0.04,
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     );
                   },
                 ),
-                SizedBox(height: screenHeight * 0.02),
-              ],
-            ),
+              ),
+
+              SizedBox(height: screenHeight * 0.02),
+
+              // App Version
+              Center(
+                child: Text(
+                  'App Version 1.0.0',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ),
+
+              SizedBox(height: screenHeight * 0.03),
+            ],
           ),
         ),
       ),

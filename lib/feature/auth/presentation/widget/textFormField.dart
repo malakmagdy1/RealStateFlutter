@@ -3,7 +3,7 @@ import 'package:real/core/utils/colors.dart';
 
 
 class CustomTextField extends StatelessWidget {
-  const CustomTextField({
+  CustomTextField({
     super.key,
     required this.controller,
     required this.hintText,
@@ -34,7 +34,7 @@ class CustomTextField extends StatelessWidget {
       keyboardType: keyboardType,
       textInputAction: textInputAction,
       cursorColor: Colors.black,
-      style: const TextStyle(color: Colors.black, fontSize: 16),
+      style: TextStyle(color: Colors.black, fontSize: 16),
 
       // Use custom validator if provided, otherwise use default
       validator: validator ?? (value) {
@@ -46,7 +46,7 @@ class CustomTextField extends StatelessWidget {
 
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.black),
+        hintStyle: TextStyle(color: Colors.black),
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon != null
             ? IconButton(

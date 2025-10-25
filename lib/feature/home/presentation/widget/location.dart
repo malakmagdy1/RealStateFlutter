@@ -8,7 +8,7 @@ import '../../../compound/data/models/compound_model.dart';
 class Location extends StatelessWidget {
   final Compound compound; // ✅ receive the compound object
 
-  const Location({Key? key, required this.compound}) : super(key: key);
+  Location({Key? key, required this.compound}) : super(key: key);
 
   Future<void> _openLocation() async {
     // If there's a location URL, use it directly
@@ -40,23 +40,25 @@ class Location extends StatelessWidget {
     return GestureDetector(
       onTap: _openLocation,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
           color: AppColors.mainColor.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
           children: [
-            Icon(Icons.location_on, color: AppColors.mainColor),
-            const SizedBox(width: 8),
+            Icon(Icons.location_on, color: AppColors.mainColor, size: 12),
+            SizedBox(width: 4),
             Expanded(
-              child: CustomText16(
+              child: CustomText12(
                 compound.location,
                 color: AppColors.mainColor,
                 bold: true,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mainColor),
+            Icon(Icons.arrow_forward_ios, size: 10, color: AppColors.mainColor),
           ],
         ),
       ),

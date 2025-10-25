@@ -22,7 +22,7 @@ import '../widget/textFormField.dart';
 import '../widget/authToggle.dart';
 
 class LoginScreen extends StatefulWidget {
-  static const String routeName = '/login';
+  static String routeName = '/login';
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -78,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
           print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
           // Refresh user data with new token
-          context.read<UserBloc>().add(const RefreshUserEvent());
+          context.read<UserBloc>().add(RefreshUserEvent());
 
           // Navigate to home screen after successful Google sign-in
           Navigator.pushReplacementNamed(context, CustomNav.routeName);
@@ -131,7 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
     print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('Token cleared! STOP the app completely and start again.'),
         backgroundColor: Colors.green,
         duration: Duration(seconds: 5),
@@ -160,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             );
             // Refresh user data with new token
-            context.read<UserBloc>().add(const RefreshUserEvent());
+            context.read<UserBloc>().add(RefreshUserEvent());
 
             // Navigate to home screen after successful login
             Navigator.pushReplacementNamed(context, CustomNav.routeName);
@@ -175,13 +175,13 @@ class _LoginScreenState extends State<LoginScreen> {
         },
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(10.0),
+            padding: EdgeInsets.all(10.0),
             child: Form(key: _formKey,
               child: Column(
                 children: [
-              const SizedBox(height: 40),
+              SizedBox(height: 40),
               CustomText24("Welcome Back", color: AppColors.black, bold: true),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               AuthToggle(
                 isSignUp: false,
                 onSignUpPressed: () {
@@ -189,18 +189,18 @@ class _LoginScreenState extends State<LoginScreen> {
                 },
                 onLoginPressed: () {},
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               CustomText16("Email",bold: true,color: AppColors.mainColor,),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               CustomTextField(
                 controller: emailController,
                 hintText: 'Enter your email',
                 keyboardType: TextInputType.emailAddress,
                 validator: Validators.validateEmail,
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               CustomText16("Password",bold: true,color: AppColors.mainColor,),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               CustomTextField(
                 controller: passwordController,
                 hintText: 'Enter your password',
@@ -215,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   });
                 },
               ),
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
@@ -229,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: 16),
               BlocBuilder<LoginBloc, LoginState>(
                 builder: (context, state) {
                   final isLoading = state is LoginLoading;
@@ -250,22 +250,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   );
                 },
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(child: Divider(color: Colors.grey[400])),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: CustomText16('OR', color: Colors.grey[600]!),
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: CustomText16('OR', color: AppColors.greyText),
                   ),
                   Expanded(child: Divider(color: Colors.grey[400])),
                 ],
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               OutlinedButton.icon(
                 onPressed: _handleSignIn,
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                   side: BorderSide(color: Colors.grey[400]!),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -281,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: AppColors.black,
                 ),
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: 20),
               // Temporary button for testing - DELETE THIS AFTER TESTING
               TextButton(
                 onPressed: _clearToken,

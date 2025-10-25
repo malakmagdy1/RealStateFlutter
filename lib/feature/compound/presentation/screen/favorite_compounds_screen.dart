@@ -7,9 +7,9 @@ import 'package:real/feature/compound/presentation/bloc/favorite/compound_favori
 import 'package:real/feature/home/presentation/widget/compunds_name.dart';
 
 class FavoriteCompoundsScreen extends StatelessWidget {
-  static const String routeName = '/favorite-compounds';
+  static String routeName = '/favorite-compounds';
 
-  const FavoriteCompoundsScreen({Key? key}) : super(key: key);
+  FavoriteCompoundsScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -32,13 +32,13 @@ class FavoriteCompoundsScreen extends StatelessWidget {
                       size: 80,
                       color: AppColors.grey,
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
                     CustomText20(
                       'No favorites yet',
                       bold: true,
                       color: AppColors.grey,
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     CustomText16(
                       'Start adding compounds to your favorites!',
                       color: AppColors.grey,
@@ -49,7 +49,7 @@ class FavoriteCompoundsScreen extends StatelessWidget {
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               itemCount: state.favorites.length,
               itemBuilder: (context, index) {
                 final compound = state.favorites[index];
@@ -65,13 +65,13 @@ class FavoriteCompoundsScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.error_outline, size: 80, color: AppColors.grey),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   CustomText20(
                     'Error loading favorites',
                     bold: true,
                     color: AppColors.grey,
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: 8),
                   CustomText16(
                     state.message,
                     align: TextAlign.center,
@@ -82,7 +82,7 @@ class FavoriteCompoundsScreen extends StatelessWidget {
             );
           }
 
-          return const Center(child: CircularProgressIndicator());
+          return Center(child: CircularProgressIndicator());
         },
       ),
     );

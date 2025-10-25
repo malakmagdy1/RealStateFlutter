@@ -23,35 +23,35 @@ class AuthWebServices {
   // Find your IP: Windows (ipconfig), Mac/Linux (ifconfig)
   // Example: '192.168.1.100' or '192.168.0.105'
   // Use 'localhost' for emulators (auto-uses 10.0.2.2 for Android emulator)
-  static const String physicalDeviceIP = 'localhost';
+  static String physicalDeviceIP = 'localhost';
 
   // API Authentication Token (optional for register/login, required for authenticated endpoints)
-  static const String bearerToken = 'NDQ6MTc2MDE2NjAyNA==';
+  static String bearerToken = 'NDQ6MTc2MDE2NjAyNA==';
 
   // Automatically detect the correct base URL based on platform
   static String get baseUrl {
-    const String apiPath = '/api';
+    String apiPath = '/api';
 
     if (kIsWeb) {
       // Web (Chrome, Firefox, etc.) - use 127.0.0.1:8001
-      return 'http://127.0.0.1:8001$apiPath';
+      return 'https://aqar.bdcbiz.com$apiPath';
     } else if (Platform.isAndroid) {
       // Android Emulator uses 10.0.2.2 to access host machine's localhost
       // For physical Android device, use your computer's IP
       if (physicalDeviceIP != 'localhost') {
         return 'http://$physicalDeviceIP:8001$apiPath';
       }
-      return 'http://10.0.2.2:8001$apiPath';
+      return 'https://aqar.bdcbiz.com$apiPath';
     } else if (Platform.isIOS) {
       // iOS Simulator can use localhost
       // For physical iOS device, use your computer's IP
       if (physicalDeviceIP != 'localhost') {
         return 'http://$physicalDeviceIP:8001$apiPath';
       }
-      return 'http://127.0.0.1:8001$apiPath';
+      return 'https://aqar.bdcbiz.com$apiPath';
     } else {
       // Desktop (Windows, macOS, Linux) - use 127.0.0.1:8001
-      return 'http://127.0.0.1:8001$apiPath';
+      return 'https://aqar.bdcbiz.com$apiPath';
     }
   }
 
@@ -59,8 +59,8 @@ class AuthWebServices {
     BaseOptions options = BaseOptions(
       baseUrl: baseUrl,
       receiveDataWhenStatusError: true,
-      connectTimeout: const Duration(seconds: 60),
-      receiveTimeout: const Duration(seconds: 60),
+      connectTimeout: Duration(seconds: 60),
+      receiveTimeout: Duration(seconds: 60),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',

@@ -2,24 +2,24 @@ import 'package:equatable/equatable.dart';
 import '../../data/models/register_response.dart';
 
 abstract class RegisterState extends Equatable {
-  const RegisterState();
+  RegisterState();
 
   @override
   List<Object?> get props => [];
 }
 
 class RegisterInitial extends RegisterState {
-  const RegisterInitial();
+  RegisterInitial();
 }
 
 class RegisterLoading extends RegisterState {
-  const RegisterLoading();
+  RegisterLoading();
 }
 
 class RegisterSuccess extends RegisterState {
   final RegisterResponse response;
 
-  const RegisterSuccess(this.response);
+  RegisterSuccess(this.response);
 
   @override
   List<Object?> get props => [response];
@@ -28,7 +28,7 @@ class RegisterSuccess extends RegisterState {
 class RegisterError extends RegisterState {
   final String message;
 
-  const RegisterError(this.message);
+  RegisterError(this.message);
 
   @override
   List<Object?> get props => [message];

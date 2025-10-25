@@ -11,7 +11,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
   LoginBloc({required AuthRepository repository})
       : _repository = repository,
-        super(const LoginInitial()) {
+        super(LoginInitial()) {
     on<LoginSubmitEvent>(_onLoginSubmit);
     on<LogoutEvent>(_onLogout);
   }
@@ -23,7 +23,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     LoginSubmitEvent event,
     Emitter<LoginState> emit,
   ) async {
-    emit(const LoginLoading());
+    emit(LoginLoading());
     try {
       final response = await _repository.login(event.request);
       await CasheNetwork.insertToCashe(key: "token", value:response.token??'');
@@ -63,7 +63,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
     LogoutEvent event,
     Emitter<LoginState> emit,
   ) async {
-    emit(const LogoutLoading());
+    emit(LogoutLoading());
     try {
       // ⭐ CLEAR FCM TOKEN FROM BACKEND BEFORE LOGOUT
       print('[LoginBloc] 🗑️ Clearing FCM token from backend...');
@@ -101,7 +101,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         token = '';
 
         print('[LoginBloc] Token was invalid/expired - Cleared local token, user ID, and FCM token');
-        emit(const LogoutSuccess('Logged out successfully'));
+        emit(LogoutSuccess('Logged out successfully'));
       } else {
         // For other errors, still try to clear everything but show error
         await FCMService().clearToken();

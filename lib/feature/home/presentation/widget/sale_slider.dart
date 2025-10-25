@@ -1,10 +1,8 @@
 import 'dart:async';
-import 'dart:io' show Platform;
-
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
+import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/sale/data/models/sale_model.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
@@ -12,7 +10,7 @@ import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dar
 class SaleSlider extends StatefulWidget {
   final List<Sale> sales;
 
-  const SaleSlider({super.key, required this.sales});
+  SaleSlider({super.key, required this.sales});
 
   @override
   State<SaleSlider> createState() => _SaleSliderState();
@@ -28,13 +26,13 @@ class _SaleSliderState extends State<SaleSlider> {
     super.initState();
 
     // Automatically change slide every 3 seconds
-    _timer = Timer.periodic(const Duration(seconds: 3), (Timer timer) {
+    _timer = Timer.periodic(Duration(seconds: 3), (Timer timer) {
       if (widget.sales.isEmpty) return;
 
       int nextPage = (_currentPage + 1) % widget.sales.length;
       _pageController.animateToPage(
         nextPage,
-        duration: const Duration(milliseconds: 600),
+        duration: Duration(milliseconds: 600),
         curve: Curves.easeInOut,
       );
     });
@@ -45,38 +43,6 @@ class _SaleSliderState extends State<SaleSlider> {
     _pageController.dispose();
     _timer.cancel();
     super.dispose();
-  }
-
-  String _fixImageUrl(String url) {
-    try {
-      if (url.isEmpty) return url;
-
-      final uri = Uri.parse(url);
-
-      // If running on Android emulator, replace any IP with 10.0.2.2
-      if (!kIsWeb && Platform.isAndroid) {
-        if (uri.host == 'localhost' || uri.host == '127.0.0.1') {
-          return url
-              .replaceFirst(RegExp(r'https?://localhost'), 'http://10.0.2.2')
-              .replaceFirst(
-                RegExp(r'https?://127\.0\.0\.1'),
-                'http://10.0.2.2',
-              );
-        }
-        // Replace any private IP address (192.168.x.x, 10.x.x.x) with 10.0.2.2
-        else if (uri.host.startsWith('192.168.') ||
-            uri.host.startsWith('10.')) {
-          return url.replaceFirst(
-            RegExp(r'https?://[0-9.]+'),
-            'http://10.0.2.2',
-          );
-        }
-      }
-
-      return url;
-    } catch (e) {
-      return url;
-    }
   }
 
   String _formatPrice(double price) {
@@ -104,8 +70,18 @@ class _SaleSliderState extends State<SaleSlider> {
             itemBuilder: (context, index) {
               final sale = widget.sales[index];
               final imageUrl = sale.images.isNotEmpty
-                  ? _fixImageUrl(sale.images[0])
+                  ? sale.images[0]
                   : '';
+
+              print('==================== SALE DEBUG ====================');
+              print('[SALE SLIDER] Sale Name: ${sale.saleName}');
+              print('[SALE SLIDER] Old Price: ${sale.oldPrice}');
+              print('[SALE SLIDER] New Price: ${sale.newPrice}');
+              print('[SALE SLIDER] Savings: ${sale.savings}');
+              print('[SALE SLIDER] Discount: ${sale.discountPercentage}%');
+              print('[SALE SLIDER] Images count: ${sale.images.length}');
+              print('[SALE SLIDER] Company Logo: ${sale.companyLogo ?? "NULL"}');
+              print('===================================================');
 
               return GestureDetector(
                 onTap: () {
@@ -141,14 +117,14 @@ class _SaleSliderState extends State<SaleSlider> {
                   }
                 },
                 child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
+                  margin: EdgeInsets.symmetric(horizontal: 8),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(15),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.1),
                         blurRadius: 8,
-                        offset: const Offset(0, 4),
+                        offset: Offset(0, 4),
                       ),
                     ],
                   ),
@@ -159,39 +135,31 @@ class _SaleSliderState extends State<SaleSlider> {
                     children: [
                       // Background Image
                       if (imageUrl.isNotEmpty)
-                        Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            print(
-                              '[SaleSlider] Error loading image: $imageUrl',
-                            );
-                            return Container(
-                              color: Colors.grey.shade200,
-                              child: const Center(
-                                child: Icon(
-                                  Icons.broken_image,
-                                  size: 40,
-                                  color: Colors.grey,
+                        Positioned.fill(
+                          child: RobustNetworkImage(
+                            imageUrl: imageUrl,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, url) {
+                              return Container(
+                                color: Colors.grey.shade200,
+                                child: Center(
+                                  child: Icon(
+                                    Icons.broken_image,
+                                    size: 40,
+                                    color: AppColors.greyText,
+                                  ),
                                 ),
-                              ),
-                            );
-                          },
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return Container(
-                              color: Colors.grey.shade200,
-                              child: Center(
-                                child: CircularProgressIndicator(
-                                  value:
-                                      loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                            loadingProgress.expectedTotalBytes!
-                                      : null,
+                              );
+                            },
+                            loadingBuilder: (context) {
+                              return Container(
+                                color: Colors.grey.shade200,
+                                child: Center(
+                                  child: CircularProgressIndicator(),
                                 ),
-                              ),
-                            );
-                          },
+                              );
+                            },
+                          ),
                         )
                       else
                         Container(color: Colors.grey.shade200),
@@ -207,7 +175,7 @@ class _SaleSliderState extends State<SaleSlider> {
                               Colors.black.withOpacity(0.3),
                               Colors.black.withOpacity(0.8),
                             ],
-                            stops: const [0.0, 0.5, 1.0],
+                            stops: [0.0, 0.5, 1.0],
                           ),
                         ),
                       ),
@@ -218,7 +186,7 @@ class _SaleSliderState extends State<SaleSlider> {
                         left: 0,
                         right: 0,
                         child: Padding(
-                          padding: const EdgeInsets.all(12),
+                          padding: EdgeInsets.all(12),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
@@ -236,7 +204,7 @@ class _SaleSliderState extends State<SaleSlider> {
                                     ),
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
+                                    padding: EdgeInsets.symmetric(
                                       horizontal: 8,
                                       vertical: 4,
                                     ),
@@ -246,7 +214,7 @@ class _SaleSliderState extends State<SaleSlider> {
                                     ),
                                     child: Text(
                                       '${sale.discountPercentage.toStringAsFixed(0)}% OFF',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
@@ -255,44 +223,44 @@ class _SaleSliderState extends State<SaleSlider> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 4),
+                              SizedBox(height: 4),
                               // Item Name & Compound
                               Text(
                                 '${sale.itemName} • ${sale.compoundName}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white70,
                                   fontSize: 12,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               // Prices
                               Row(
                                 children: [
                                   // Old Price (strikethrough)
                                   Text(
                                     'EGP ${_formatPrice(sale.oldPrice)}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Colors.white54,
                                       fontSize: 12,
                                       decoration: TextDecoration.lineThrough,
                                     ),
                                   ),
-                                  const SizedBox(width: 8),
+                                  SizedBox(width: 8),
                                   // New Price
                                   Text(
                                     'EGP ${_formatPrice(sale.newPrice)}',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
-                                  const Spacer(),
+                                  Spacer(),
                                   // Savings
                                   Container(
-                                    padding: const EdgeInsets.symmetric(
+                                    padding: EdgeInsets.symmetric(
                                       horizontal: 6,
                                       vertical: 2,
                                     ),
@@ -302,7 +270,7 @@ class _SaleSliderState extends State<SaleSlider> {
                                     ),
                                     child: Text(
                                       'Save ${_formatPrice(sale.savings)}',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 10,
                                         fontWeight: FontWeight.bold,
@@ -332,19 +300,23 @@ class _SaleSliderState extends State<SaleSlider> {
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.2),
                                   blurRadius: 4,
-                                  offset: const Offset(0, 2),
+                                  offset: Offset(0, 2),
                                 ),
                               ],
                             ),
                             child: ClipOval(
-                              child: Image.network(
-                                _fixImageUrl(sale.companyLogo!),
+                              child: RobustNetworkImage(
+                                imageUrl: sale.companyLogo!,
+                                width: 40,
+                                height: 40,
                                 fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Icon(
-                                    Icons.business,
-                                    size: 20,
-                                    color: AppColors.mainColor,
+                                errorBuilder: (context, url) {
+                                  return Center(
+                                    child: Icon(
+                                      Icons.business,
+                                      size: 20,
+                                      color: AppColors.mainColor,
+                                    ),
                                   );
                                 },
                               ),
@@ -366,8 +338,8 @@ class _SaleSliderState extends State<SaleSlider> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(widget.sales.length, (index) {
                 return AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  duration: Duration(milliseconds: 300),
+                  margin: EdgeInsets.symmetric(horizontal: 3),
                   width: _currentPage == index ? 10 : 6,
                   height: _currentPage == index ? 10 : 6,
                   decoration: BoxDecoration(

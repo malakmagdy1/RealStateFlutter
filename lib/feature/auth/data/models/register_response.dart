@@ -6,7 +6,7 @@ class RegisterResponse extends Equatable {
   final bool emailSent;
   final String? verificationUrl;
 
-  const RegisterResponse({
+  RegisterResponse({
     required this.message,
     required this.userId,
     required this.emailSent,

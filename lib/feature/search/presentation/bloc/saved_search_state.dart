@@ -3,24 +3,24 @@ import 'package:equatable/equatable.dart';
 import '../../data/models/saved_search_model.dart';
 
 abstract class SavedSearchState extends Equatable {
-  const SavedSearchState();
+  SavedSearchState();
 
   @override
   List<Object?> get props => [];
 }
 
 class SavedSearchInitial extends SavedSearchState {
-  const SavedSearchInitial();
+  SavedSearchInitial();
 }
 
 class SavedSearchLoading extends SavedSearchState {
-  const SavedSearchLoading();
+  SavedSearchLoading();
 }
 
 class SavedSearchesLoaded extends SavedSearchState {
   final List<SavedSearch> savedSearches;
 
-  const SavedSearchesLoaded({required this.savedSearches});
+  SavedSearchesLoaded({required this.savedSearches});
 
   @override
   List<Object?> get props => [savedSearches];
@@ -29,7 +29,7 @@ class SavedSearchesLoaded extends SavedSearchState {
 class SavedSearchLoaded extends SavedSearchState {
   final SavedSearch savedSearch;
 
-  const SavedSearchLoaded({required this.savedSearch});
+  SavedSearchLoaded({required this.savedSearch});
 
   @override
   List<Object?> get props => [savedSearch];
@@ -39,7 +39,7 @@ class SavedSearchCreated extends SavedSearchState {
   final SavedSearch savedSearch;
   final String message;
 
-  const SavedSearchCreated({
+  SavedSearchCreated({
     required this.savedSearch,
     this.message = 'Search saved successfully',
   });
@@ -52,7 +52,7 @@ class SavedSearchUpdated extends SavedSearchState {
   final SavedSearch savedSearch;
   final String message;
 
-  const SavedSearchUpdated({
+  SavedSearchUpdated({
     required this.savedSearch,
     this.message = 'Search updated successfully',
   });
@@ -64,7 +64,7 @@ class SavedSearchUpdated extends SavedSearchState {
 class SavedSearchDeleted extends SavedSearchState {
   final String message;
 
-  const SavedSearchDeleted({this.message = 'Search deleted successfully'});
+  SavedSearchDeleted({this.message = 'Search deleted successfully'});
 
   @override
   List<Object?> get props => [message];
@@ -73,7 +73,7 @@ class SavedSearchDeleted extends SavedSearchState {
 class SavedSearchError extends SavedSearchState {
   final String message;
 
-  const SavedSearchError({required this.message});
+  SavedSearchError({required this.message});
 
   @override
   List<Object?> get props => [message];

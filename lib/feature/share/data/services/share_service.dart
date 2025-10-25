@@ -8,16 +8,16 @@ import '../models/share_model.dart';
 class ShareService {
   // Automatically detect the correct base URL based on platform
   static String get baseUrl {
-    const String apiPath = '/api';
+    String apiPath = '/api';
 
     if (kIsWeb) {
-      return 'http://127.0.0.1:8001$apiPath';
+      return 'https://aqar.bdcbiz.com$apiPath';
     } else if (Platform.isAndroid) {
-      return 'http://10.0.2.2:8001$apiPath';
+      return 'https://aqar.bdcbiz.com$apiPath';
     } else if (Platform.isIOS) {
-      return 'http://127.0.0.1:8001$apiPath';
+      return 'https://aqar.bdcbiz.com$apiPath';
     } else {
-      return 'http://127.0.0.1:8001$apiPath';
+      return 'https://aqar.bdcbiz.com$apiPath';
     }
   }
 
@@ -48,7 +48,7 @@ class ShareService {
           if (token != null && token!.isNotEmpty) 'Authorization': 'Bearer $token',
         },
       ).timeout(
-        const Duration(seconds: 30),
+        Duration(seconds: 30),
         onTimeout: () {
           throw Exception('Request timeout');
         },

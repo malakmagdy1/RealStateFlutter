@@ -7,7 +7,7 @@ class CompanyName extends StatelessWidget {
   final Company company;
   final VoidCallback onTap;
 
-  const CompanyName({Key? key, required this.company, required this.onTap})
+  CompanyName({Key? key, required this.company, required this.onTap})
     : super(key: key);
 
   @override
@@ -17,7 +17,7 @@ class CompanyName extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.all(6.0),
+        padding: EdgeInsets.all(6.0),
         child: Column(
           children: [
             CircleAvatar(

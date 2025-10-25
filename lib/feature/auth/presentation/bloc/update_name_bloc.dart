@@ -8,7 +8,7 @@ class UpdateNameBloc extends Bloc<UpdateNameEvent, UpdateNameState> {
 
   UpdateNameBloc({required AuthRepository repository})
       : _repository = repository,
-        super(const UpdateNameInitial()) {
+        super(UpdateNameInitial()) {
     on<UpdateNameSubmitEvent>(_onUpdateNameSubmit);
   }
 
@@ -16,7 +16,7 @@ class UpdateNameBloc extends Bloc<UpdateNameEvent, UpdateNameState> {
     UpdateNameSubmitEvent event,
     Emitter<UpdateNameState> emit,
   ) async {
-    emit(const UpdateNameLoading());
+    emit(UpdateNameLoading());
     try {
       final response = await _repository.updateName(event.request);
       emit(UpdateNameSuccess(response));

@@ -1,187 +1,137 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
-import 'package:real/feature/search/data/repositories/search_repository.dart';
-import 'package:real/feature/search/data/services/search_history_service.dart';
-import 'package:real/feature/search/data/models/search_filter_model.dart';
-import 'package:real/feature/search/presentation/bloc/search_bloc.dart';
-import 'package:real/feature/search/presentation/bloc/search_event.dart';
-import 'package:real/feature/search/presentation/bloc/search_state.dart';
-import 'package:real/feature/search/data/models/search_result_model.dart';
-import 'package:real/feature/search/presentation/widget/search_filter_bottom_sheet.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
-import 'package:real/feature/company/data/models/company_model.dart';
-import 'package:real/feature/company/presentation/screen/company_detail_screen.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/home/presentation/CompoundScreen.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_state.dart';
+import 'package:real/feature/search/data/services/view_history_service.dart';
 
 class HistoryScreen extends StatefulWidget {
-  const HistoryScreen({super.key});
+  HistoryScreen({super.key});
 
   @override
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
+  final ViewHistoryService _viewHistoryService = ViewHistoryService();
   final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode();
-  late SearchBloc _searchBloc;
-  final SearchHistoryService _searchHistoryService = SearchHistoryService();
-  bool _showSearchResults = false;
-  bool _showSearchHistory = false;
-  Timer? _debounceTimer;
-  List<String> _searchHistory = [];
-  SearchFilter _currentFilter = SearchFilter.empty();
-
-  // Track expanded state for search results
-  bool _showAllCompanies = false;
-  bool _showAllCompounds = false;
-  bool _showAllUnits = false;
+  List<Map<String, dynamic>> _historyItems = [];
+  bool _isLoading = true;
+  String _filter = 'all'; // all, compounds, units
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _searchBloc = SearchBloc(repository: SearchRepository());
-    _loadSearchHistory();
-
-    // Listen to focus changes
-    _searchFocusNode.addListener(() {
-      setState(() {
-        _showSearchHistory = _searchFocusNode.hasFocus &&
-                            _searchController.text.isEmpty &&
-                            _searchHistory.isNotEmpty;
-      });
-    });
-  }
-
-  Future<void> _loadSearchHistory() async {
-    final history = await _searchHistoryService.getSearchHistory();
-    setState(() {
-      _searchHistory = history;
-    });
+    _loadHistory();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
-    _searchFocusNode.dispose();
-    _searchBloc.close();
-    _debounceTimer?.cancel();
     super.dispose();
   }
 
-  void _performSearch(String query) {
-    // Cancel previous timer
-    _debounceTimer?.cancel();
-
-    // If both query is empty AND no filters are active, clear search
-    if (query.trim().isEmpty && _currentFilter.isEmpty) {
-      setState(() {
-        _showSearchResults = false;
-        _showSearchHistory = _searchFocusNode.hasFocus && _searchHistory.isNotEmpty;
-      });
-      _searchBloc.add(const ClearSearchEvent());
-      return;
-    }
-
+  Future<void> _loadHistory() async {
+    setState(() => _isLoading = true);
+    final items = await _viewHistoryService.getAllViewedItems();
     setState(() {
-      _showSearchResults = true;
-      _showSearchHistory = false;
-      // Reset expanded states for new search
-      _showAllCompanies = false;
-      _showAllCompounds = false;
-      _showAllUnits = false;
-    });
-
-    // Wait 500ms before performing search
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      _searchBloc.add(SearchQueryEvent(
-        query: query.trim(),
-        type: 'unit', // Always search for units in this screen
-        filter: _currentFilter.isEmpty ? null : _currentFilter,
-      ));
-      // Save to history after search is triggered (only if there's a query)
-      if (query.trim().isNotEmpty) {
-        _saveToHistory(query.trim());
-      }
-    });
-  }
-
-  void _openFilterBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => SearchFilterBottomSheet(
-        initialFilter: _currentFilter,
-        onApplyFilters: (filter) {
-          setState(() {
-            _currentFilter = filter;
-          });
-          // Re-run search with new filters (works with or without query text)
-          _performSearch(_searchController.text);
-        },
-      ),
-    );
-  }
-
-  void _clearFilters() {
-    setState(() {
-      _currentFilter = SearchFilter.empty();
-    });
-    // Re-run search without filters (or clear results if no query)
-    _performSearch(_searchController.text);
-  }
-
-  Future<void> _saveToHistory(String query) async {
-    await _searchHistoryService.addToHistory(query);
-    await _loadSearchHistory();
-  }
-
-  Future<void> _deleteFromHistory(String query) async {
-    await _searchHistoryService.removeFromHistory(query);
-    await _loadSearchHistory();
-    // Update visibility
-    setState(() {
-      _showSearchHistory = _searchFocusNode.hasFocus &&
-                          _searchController.text.isEmpty &&
-                          _searchHistory.isNotEmpty;
+      _historyItems = items;
+      _isLoading = false;
     });
   }
 
   Future<void> _clearAllHistory() async {
-    await _searchHistoryService.clearHistory();
-    await _loadSearchHistory();
-    setState(() {
-      _showSearchHistory = false;
-    });
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: CustomText18('Clear History', bold: true),
+        content: Text('Are you sure you want to clear all viewing history?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Clear', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _viewHistoryService.clearAllHistory();
+      _loadHistory();
+    }
   }
 
-  void _selectHistoryItem(String query) {
-    _searchController.text = query;
-    setState(() {
-      _showSearchHistory = false;
-      _showSearchResults = true;
-      // Reset expanded states for new search
-      _showAllCompanies = false;
-      _showAllCompounds = false;
-      _showAllUnits = false;
-    });
-    _searchBloc.add(SearchQueryEvent(query: query, type: 'unit'));
+  Future<void> _removeItem(Map<String, dynamic> item) async {
+    if (item['itemType'] == 'compound') {
+      await _viewHistoryService.removeCompound(item['id'] as int);
+    } else {
+      await _viewHistoryService.removeUnit(item['id'] as int);
+    }
+    _loadHistory();
   }
 
-  void _clearSearch() {
-    _searchController.clear();
-    setState(() {
-      _showSearchResults = false;
-    });
-    _searchBloc.add(const ClearSearchEvent());
-    _searchFocusNode.unfocus();
+  List<Map<String, dynamic>> get _filteredItems {
+    var items = _historyItems;
+
+    // Filter by type
+    if (_filter == 'compounds') {
+      items = items.where((item) => item['itemType'] == 'compound').toList();
+    } else if (_filter == 'units') {
+      items = items.where((item) => item['itemType'] == 'unit').toList();
+    }
+
+    // Filter by search query
+    if (_searchQuery.isNotEmpty) {
+      items = items.where((item) {
+        final searchLower = _searchQuery.toLowerCase();
+
+        if (item['itemType'] == 'compound') {
+          final compound = Compound.fromJson(item);
+          return compound.project.toLowerCase().contains(searchLower) ||
+                 compound.location.toLowerCase().contains(searchLower) ||
+                 compound.companyName.toLowerCase().contains(searchLower);
+        } else {
+          final unit = Unit.fromJson(item);
+          return (unit.unitNumber != null && unit.unitNumber!.toLowerCase().contains(searchLower)) ||
+                 unit.unitType.toLowerCase().contains(searchLower) ||
+                 unit.status.toLowerCase().contains(searchLower);
+        }
+      }).toList();
+    }
+
+    return items;
+  }
+
+  String _getTimeAgo(String dateTimeString) {
+    try {
+      final viewedAt = DateTime.parse(dateTimeString);
+      final now = DateTime.now();
+      final difference = now.difference(viewedAt);
+
+      if (difference.inMinutes < 1) {
+        return 'Just now';
+      } else if (difference.inHours < 1) {
+        return '${difference.inMinutes}m ago';
+      } else if (difference.inDays < 1) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inDays < 7) {
+        return '${difference.inDays}d ago';
+      } else {
+        return '${(difference.inDays / 7).floor()}w ago';
+      }
+    } catch (e) {
+      return '';
+    }
   }
 
   @override
@@ -189,303 +139,87 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(16.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Title
-              CustomText24("All Units", bold: true, color: AppColors.black),
-              const SizedBox(height: 16),
-
-              // Search bar with filter button
+              // Header
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      focusNode: _searchFocusNode,
-                      onChanged: (value) {
-                        setState(() {
-                          _performSearch(value);
-                        });
-                      },
-                      decoration: InputDecoration(
-                        hintText: "Search for companies, compounds, or units...",
-                        hintStyle: const TextStyle(color: Colors.grey),
-                        prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.clear, color: Colors.grey),
-                                onPressed: _clearSearch,
-                              )
-                            : null,
-                        filled: true,
-                        fillColor: Colors.grey.shade200,
-                        contentPadding: const EdgeInsets.symmetric(
-                          vertical: 0,
-                          horizontal: 16,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
+                  CustomText24("View History", bold: true, color: AppColors.black),
+                  if (_historyItems.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: _clearAllHistory,
+                      icon: Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                      label: CustomText14('Clear All', color: Colors.red),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Filter button with badge
-                  Stack(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: _currentFilter.isEmpty
-                              ? Colors.grey.shade200
-                              : AppColors.mainColor.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          icon: Icon(
-                            Icons.filter_list,
-                            color: _currentFilter.isEmpty
-                                ? Colors.grey
-                                : AppColors.mainColor,
-                          ),
-                          onPressed: _openFilterBottomSheet,
-                        ),
-                      ),
-                      if (_currentFilter.activeFiltersCount > 0)
-                        Positioned(
-                          right: 6,
-                          top: 6,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: AppColors.mainColor,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 18,
-                              minHeight: 18,
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${_currentFilter.activeFiltersCount}',
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
                 ],
               ),
+              SizedBox(height: 8),
+              CustomText14('Recently viewed properties', color: AppColors.greyText),
+              SizedBox(height: 16),
 
-              // Active filters chips
-              if (_currentFilter.activeFiltersCount > 0) ...[
-                const SizedBox(height: 12),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      if (_currentFilter.location != null)
-                        _buildFilterChip(
-                          'Location: ${_currentFilter.location}',
-                          () => setState(() {
-                            _currentFilter = _currentFilter.copyWith(clearLocation: true);
-                            if (_searchController.text.isNotEmpty) {
-                              _performSearch(_searchController.text);
-                            }
-                          }),
-                        ),
-                      if (_currentFilter.propertyType != null)
-                        _buildFilterChip(
-                          'Type: ${_currentFilter.propertyType}',
-                          () => setState(() {
-                            _currentFilter = _currentFilter.copyWith(clearPropertyType: true);
-                            if (_searchController.text.isNotEmpty) {
-                              _performSearch(_searchController.text);
-                            }
-                          }),
-                        ),
-                      if (_currentFilter.minPrice != null || _currentFilter.maxPrice != null)
-                        _buildFilterChip(
-                          'Price: ${_currentFilter.minPrice ?? "0"} - ${_currentFilter.maxPrice ?? "∞"}',
-                          () => setState(() {
-                            _currentFilter = _currentFilter.copyWith(
-                              clearMinPrice: true,
-                              clearMaxPrice: true,
-                            );
-                            if (_searchController.text.isNotEmpty) {
-                              _performSearch(_searchController.text);
-                            }
-                          }),
-                        ),
-                      if (_currentFilter.bedrooms != null)
-                        _buildFilterChip(
-                          '${_currentFilter.bedrooms} Beds',
-                          () => setState(() {
-                            _currentFilter = _currentFilter.copyWith(clearBedrooms: true);
-                            if (_searchController.text.isNotEmpty) {
-                              _performSearch(_searchController.text);
-                            }
-                          }),
-                        ),
-                      TextButton.icon(
-                        onPressed: _clearFilters,
-                        icon: const Icon(Icons.close, size: 14),
-                        label: const Text('Clear All'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.red,
-                        ),
-                      ),
-                    ],
+              // Search bar
+              TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() => _searchQuery = value);
+                },
+                decoration: InputDecoration(
+                  hintText: "Search in history...",
+                  hintStyle: TextStyle(color: AppColors.greyText),
+                  prefixIcon: Icon(Icons.search, color: AppColors.greyText),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: Icon(Icons.clear, color: AppColors.greyText),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: Colors.grey.shade200,
+                  contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(30),
+                    borderSide: BorderSide.none,
                   ),
                 ),
-              ],
+              ),
+              SizedBox(height: 16),
 
-              const SizedBox(height: 16),
-
-              // Search History Dropdown
-              if (_showSearchHistory)
-                Card(
-                  elevation: 4,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            CustomText16(
-                              'Recent Searches',
-                              bold: true,
-                              color: AppColors.black,
-                            ),
-                            TextButton(
-                              onPressed: _clearAllHistory,
-                              child: CustomText16(
-                                'Clear All',
-                                color: Colors.red,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _searchHistory.length,
-                        itemBuilder: (context, index) {
-                          final historyItem = _searchHistory[index];
-                          return ListTile(
-                            dense: true,
-                            leading: const Icon(
-                              Icons.history,
-                              size: 20,
-                              color: Colors.grey,
-                            ),
-                            title: Text(
-                              historyItem,
-                              style: const TextStyle(fontSize: 14),
-                            ),
-                            trailing: IconButton(
-                              icon: const Icon(
-                                Icons.close,
-                                size: 18,
-                                color: Colors.grey,
-                              ),
-                              onPressed: () => _deleteFromHistory(historyItem),
-                            ),
-                            onTap: () => _selectHistoryItem(historyItem),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
+              // Filter tabs
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildFilterTab('all', 'All', _historyItems.length),
+                    SizedBox(width: 8),
+                    _buildFilterTab(
+                      'compounds',
+                      'Compounds',
+                      _historyItems.where((i) => i['itemType'] == 'compound').length,
+                    ),
+                    SizedBox(width: 8),
+                    _buildFilterTab(
+                      'units',
+                      'Units',
+                      _historyItems.where((i) => i['itemType'] == 'unit').length,
+                    ),
+                  ],
                 ),
+              ),
+              SizedBox(height: 16),
 
-              if (_showSearchHistory) const SizedBox(height: 16),
-
-              // Search Results or Default View
+              // History list
               Expanded(
-                child: _showSearchResults
-                    ? BlocBuilder<SearchBloc, SearchState>(
-                        bloc: _searchBloc,
-                        builder: (context, state) {
-                          if (state is SearchLoading) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          } else if (state is SearchEmpty) {
-                            return Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.search_off,
-                                      size: 64, color: Colors.grey[400]),
-                                  const SizedBox(height: 16),
-                                  CustomText18(
-                                    'No results found',
-                                    color: Colors.grey[600]!,
-                                  ),
-                                ],
-                              ),
-                            );
-                          } else if (state is SearchError) {
-                            return Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.error_outline,
-                                      size: 64, color: Colors.red[400]),
-                                  const SizedBox(height: 16),
-                                  CustomText16(
-                                    'Error: ${state.message}',
-                                    color: Colors.red,
-                                    align: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            );
-                          } else if (state is SearchSuccess) {
-                            return _buildSearchResults(state.response);
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      )
-                    : Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.search,
-                              size: 80,
-                              color: AppColors.grey.withOpacity(0.5),
-                            ),
-                            const SizedBox(height: 24),
-                            CustomText20(
-                              'Search for Units',
-                              bold: true,
-                              color: AppColors.grey,
-                            ),
-                            const SizedBox(height: 12),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 40),
-                              child: CustomText16(
-                                'Use the search bar above to find companies, compounds, or units',
-                                color: AppColors.grey,
-                                align: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                child: _isLoading
+                    ? Center(child: CircularProgressIndicator())
+                    : _filteredItems.isEmpty
+                        ? _buildEmptyState()
+                        : _buildHistoryList(),
               ),
             ],
           ),
@@ -494,270 +228,130 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  Widget _buildSearchResults(SearchResponse response) {
-    final results = response.results;
-    final companies = results.where((r) => r.type == 'company').toList();
-    final compounds = results.where((r) => r.type == 'compound').toList();
-    final units = results.where((r) => r.type == 'unit').toList();
+  Widget _buildFilterTab(String value, String label, int count) {
+    final isSelected = _filter == value;
+    return InkWell(
+      onTap: () => setState(() => _filter = value),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.mainColor : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? Colors.white : AppColors.black,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+            SizedBox(width: 6),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Colors.white.withOpacity(0.3)
+                    : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$count',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: isSelected ? Colors.white : AppColors.black,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    return SingleChildScrollView(
+  Widget _buildEmptyState() {
+    final hasSearch = _searchQuery.isNotEmpty;
+    final hasFilter = _filter != 'all';
+
+    return Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              CustomText16(
-                'Found ${response.totalResults} result${response.totalResults == 1 ? '' : 's'}',
-                bold: true,
-              ),
-              IconButton(
-                icon: const Icon(Icons.close),
-                onPressed: _clearSearch,
-              ),
-            ],
+          Icon(
+            hasSearch ? Icons.search_off : Icons.history,
+            size: 64,
+            color: AppColors.grey.withOpacity(0.5),
           ),
-          const Divider(),
-
-          // Companies
-          if (companies.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            CustomText16(
-              'Companies (${companies.length})',
-              bold: true,
-              color: Colors.blue,
-            ),
-            const SizedBox(height: 8),
-            ...(_showAllCompanies ? companies : companies.take(3))
-                .map((result) => _buildCompanyResultItem(result)),
-            if (companies.length > 3) ...[
-              const SizedBox(height: 8),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllCompanies = !_showAllCompanies;
-                    });
-                  },
-                  icon: Icon(
-                    _showAllCompanies ? Icons.expand_less : Icons.expand_more,
-                    size: 20,
-                  ),
-                  label: Text(
-                    _showAllCompanies
-                        ? 'Show Less'
-                        : 'Show All (${companies.length} Companies)',
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ),
+          SizedBox(height: 16),
+          CustomText20(
+            hasSearch
+                ? 'No results found'
+                : _filter == 'all'
+                    ? 'No viewing history yet'
+                    : _filter == 'compounds'
+                        ? 'No compound views yet'
+                        : 'No unit views yet',
+            bold: true,
+            color: AppColors.grey,
+          ),
+          SizedBox(height: 8),
+          CustomText14(
+            hasSearch
+                ? 'Try adjusting your search'
+                : 'Properties you view will appear here',
+            color: AppColors.greyText,
+          ),
+          if (hasSearch || hasFilter) ...[
+            SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _searchController.clear();
+                  _searchQuery = '';
+                  _filter = 'all';
+                });
+              },
+              icon: Icon(Icons.clear_all, size: 18),
+              label: Text('Clear Filters'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.mainColor,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
-              const SizedBox(height: 8),
-            ],
-          ],
-
-          // Compounds
-          if (compounds.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            CustomText16(
-              'Compounds (${compounds.length})',
-              bold: true,
-              color: Colors.green,
             ),
-            const SizedBox(height: 8),
-            ...(_showAllCompounds ? compounds : compounds.take(3))
-                .map((result) => _buildCompoundResultItem(result)),
-            if (compounds.length > 3) ...[
-              const SizedBox(height: 8),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllCompounds = !_showAllCompounds;
-                    });
-                  },
-                  icon: Icon(
-                    _showAllCompounds ? Icons.expand_less : Icons.expand_more,
-                    size: 20,
-                  ),
-                  label: Text(
-                    _showAllCompounds
-                        ? 'Show Less'
-                        : 'Show All (${compounds.length} Compounds)',
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ],
-
-          // Units
-          if (units.isNotEmpty) ...[
-            const SizedBox(height: 16),
-            CustomText16(
-              'Units (${units.length})',
-              bold: true,
-              color: Colors.orange,
-            ),
-            const SizedBox(height: 8),
-            ...(_showAllUnits ? units : units.take(3))
-                .map((result) => _buildUnitResultItem(result)),
-            if (units.length > 3) ...[
-              const SizedBox(height: 8),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllUnits = !_showAllUnits;
-                    });
-                  },
-                  icon: Icon(
-                    _showAllUnits ? Icons.expand_less : Icons.expand_more,
-                    size: 20,
-                  ),
-                  label: Text(
-                    _showAllUnits
-                        ? 'Show Less'
-                        : 'Show All (${units.length} Units)',
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.mainColor,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
           ],
         ],
       ),
     );
   }
 
-  Widget _buildCompanyResultItem(SearchResult result) {
-    final data = result.data as CompanySearchData;
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Colors.blue.shade100,
-          child: data.logo != null && data.logo!.isNotEmpty
-              ? ClipOval(
-                  child: Image.network(
-                    data.logo!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.business, size: 20),
-                  ),
-                )
-              : const Icon(Icons.business, size: 20),
-        ),
-        title: Text(
-          data.name,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          data.email,
-          style: const TextStyle(fontSize: 12),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: const Icon(Icons.chevron_right, size: 20),
-        onTap: () {
-          _clearSearch();
-          final company = Company(
-            id: data.id,
-            name: data.name,
-            email: data.email,
-            logo: data.logo,
-            numberOfCompounds: data.numberOfCompounds,
-            numberOfAvailableUnits: data.numberOfAvailableUnits, createdAt: '',
-          );
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CompanyDetailScreen(company: company),
-            ),
-          );
-        },
-      ),
+  Widget _buildHistoryList() {
+    return ListView.builder(
+      itemCount: _filteredItems.length,
+      itemBuilder: (context, index) {
+        final item = _filteredItems[index];
+        final viewedAt = item['viewedAt'] as String?;
+
+        if (item['itemType'] == 'compound') {
+          return _buildCompoundHistoryItem(Compound.fromJson(item), viewedAt);
+        } else {
+          return _buildUnitHistoryItem(Unit.fromJson(item), viewedAt);
+        }
+      },
     );
   }
 
-  Widget _buildCompoundResultItem(SearchResult result) {
-    final data = result.data as CompoundSearchData;
+  Widget _buildCompoundHistoryItem(Compound compound, String? viewedAt) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: Colors.green.shade100,
-          child: data.images.isNotEmpty
-              ? ClipOval(
-                  child: Image.network(
-                    data.images.first,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const Icon(Icons.apartment, size: 20),
-                  ),
-                )
-              : const Icon(Icons.apartment, size: 20),
-        ),
-        title: Text(
-          data.name,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          data.location,
-          style: const TextStyle(fontSize: 12),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: const Icon(Icons.chevron_right, size: 20),
+      margin: EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
         onTap: () {
-          _clearSearch();
-          final compound = Compound(
-            id: data.id,
-            companyId: data.company.id,
-            project: data.name,
-            location: data.location,
-            images: data.images,
-            builtUpArea: '0',
-            howManyFloors: '0',
-            completionProgress: data.completionProgress,
-            club: '0',
-            isSold: '0',
-            status: data.status,
-            totalUnits: data.unitsCount,
-            createdAt: data.createdAt,
-            updatedAt: '',
-            companyName: data.company.name,
-            companyLogo: data.company.logo,
-            soldUnits: '0',
-            availableUnits: data.unitsCount,
-          );
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -765,15 +359,142 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           );
         },
+        child: Stack(
+          children: [
+            Padding(
+              padding: EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Image
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: compound.images.isNotEmpty
+                        ? Image.network(
+                            compound.images.first,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                              width: 80,
+                              height: 80,
+                              color: Colors.grey.shade200,
+                              child: Icon(Icons.apartment,
+                                  size: 30, color: AppColors.greyText),
+                            ),
+                          )
+                        : Container(
+                            width: 80,
+                            height: 80,
+                            color: Colors.grey.shade200,
+                            child: Icon(Icons.apartment,
+                                size: 30, color: AppColors.greyText),
+                          ),
+                  ),
+                  SizedBox(width: 12),
+                  // Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.apartment,
+                                size: 14, color: Colors.green),
+                            SizedBox(width: 4),
+                            Text(
+                              'COMPOUND',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          compound.project,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on,
+                                size: 14, color: AppColors.greyText),
+                            SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                compound.location,
+                                style: TextStyle(
+                                    fontSize: 12, color: AppColors.greyText),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 4),
+                        if (viewedAt != null)
+                          Text(
+                            'Viewed ${_getTimeAgo(viewedAt)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.mainColor,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.chevron_right,
+                      size: 20, color: AppColors.greyText),
+                ],
+              ),
+            ),
+            // Remove button
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () => _removeItem({'itemType': 'compound', 'id': compound.id}),
+                child: Container(
+                  padding: EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.close,
+                    color: Colors.red,
+                    size: 14,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildUnitResultItem(SearchResult result) {
-    final data = result.data as UnitSearchData;
-
+  Widget _buildUnitHistoryItem(Unit unit, String? viewedAt) {
     Color getStatusColor() {
-      switch (data.status.toLowerCase()) {
+      final status = unit.status.toLowerCase();
+      switch (status) {
         case 'available':
           return Colors.green;
         case 'reserved':
@@ -786,30 +507,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.only(bottom: 12),
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
-          _clearSearch();
-          final unit = Unit(
-            id: data.id,
-            compoundId: data.compound.id,
-            unitType: data.unitType,
-            area: '0',
-            price: data.price ?? data.totalPrice,
-            bedrooms: data.numberOfBeds ?? '0',
-            bathrooms: '0',
-            floor: '0', // Floor info not available in search results
-            status: data.status,
-            unitNumber: data.code,
-            createdAt: '',
-            updatedAt: '',
-            images: data.images,
-            usageType: data.usageType,
-            companyName: data.compound.company.name,
-            companyLogo: data.compound.company.logo,
-          );
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -817,202 +519,209 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           );
         },
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image with favorite button
-              Stack(
+        child: Stack(
+          children: [
+            Padding(
+              padding: EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: data.images.isNotEmpty
-                        ? Image.network(
-                            data.images.first,
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              width: 80,
-                              height: 80,
-                              color: Colors.grey.shade200,
-                              child: const Icon(Icons.home, size: 30, color: Colors.grey),
-                            ),
-                          )
-                        : Container(
-                            width: 80,
-                            height: 80,
-                            color: Colors.grey.shade200,
-                            child: const Icon(Icons.home, size: 30, color: Colors.grey),
-                          ),
-                  ),
-                  // Favorite Button
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: BlocBuilder<UnitFavoriteBloc, UnitFavoriteState>(
-                      builder: (context, state) {
-                        final bloc = context.read<UnitFavoriteBloc>();
-                        final unit = Unit(
-                          id: data.id,
-                          compoundId: data.compound.id,
-                          unitType: data.unitType,
-                          area: '0',
-                          price: data.price ?? data.totalPrice,
-                          bedrooms: data.numberOfBeds ?? '0',
-                          bathrooms: '0',
-                          floor: '0',
-                          status: data.status,
-                          unitNumber: data.code,
-                          createdAt: '',
-                          updatedAt: '',
-                          images: data.images,
-                          usageType: data.usageType,
-                          companyName: data.compound.company.name,
-                          companyLogo: data.compound.company.logo,
-                        );
-                        final isFavorite = bloc.isFavorite(unit);
+                  // Image with favorite button
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: unit.images.isNotEmpty
+                            ? Image.network(
+                                unit.images.first,
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) =>
+                                    Container(
+                                  width: 80,
+                                  height: 80,
+                                  color: Colors.grey.shade200,
+                                  child: Icon(Icons.home,
+                                      size: 30, color: AppColors.greyText),
+                                ),
+                              )
+                            : Container(
+                                width: 80,
+                                height: 80,
+                                color: Colors.grey.shade200,
+                                child: Icon(Icons.home,
+                                    size: 30, color: AppColors.greyText),
+                              ),
+                      ),
+                      // Favorite Button
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: BlocBuilder<UnitFavoriteBloc, UnitFavoriteState>(
+                          builder: (context, state) {
+                            final bloc = context.read<UnitFavoriteBloc>();
+                            final isFavorite = bloc.isFavorite(unit);
 
-                        return GestureDetector(
-                          onTap: () => bloc.toggleFavorite(unit),
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: AppColors.white.withOpacity(0.9),
-                              shape: BoxShape.circle,
+                            return GestureDetector(
+                              onTap: () => bloc.toggleFavorite(unit),
+                              child: Container(
+                                padding: EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.9),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  isFavorite
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: Colors.red,
+                                  size: 16,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(width: 12),
+                  // Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Type badge and Status
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(Icons.home, size: 14, color: Colors.orange),
+                                SizedBox(width: 4),
+                                Text(
+                                  'UNIT',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.orange,
+                                  ),
+                                ),
+                              ],
                             ),
-                            child: Icon(
-                              isFavorite
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: Colors.red,
-                              size: 16,
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: getStatusColor(),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                unit.status.toUpperCase(),
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 4),
+                        // Unit number
+                        Text(
+                          unit.unitNumber ?? unit.unitType,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 4),
+                        // Details Row
+                        Row(
+                          children: [
+                            if (unit.usageType != null) ...[
+                              Icon(Icons.category,
+                                  size: 12, color: AppColors.greyText),
+                              SizedBox(width: 4),
+                              Text(
+                                unit.usageType!,
+                                style: TextStyle(
+                                    fontSize: 11, color: AppColors.greyText),
+                              ),
+                              SizedBox(width: 8),
+                            ],
+                            if (unit.bedrooms != '0') ...[
+                              Icon(Icons.bed,
+                                  size: 12, color: AppColors.greyText),
+                              SizedBox(width: 4),
+                              Text(
+                                '${unit.bedrooms} Beds',
+                                style: TextStyle(
+                                    fontSize: 11, color: AppColors.greyText),
+                              ),
+                            ],
+                          ],
+                        ),
+                        SizedBox(height: 4),
+                        // Price
+                        Text(
+                          'EGP ${unit.price}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.mainColor,
+                          ),
+                        ),
+                        if (viewedAt != null) ...[
+                          SizedBox(height: 4),
+                          Text(
+                            'Viewed ${_getTimeAgo(viewedAt)}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: AppColors.mainColor,
+                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                        );
-                      },
+                        ],
+                      ],
                     ),
                   ),
+                  Icon(Icons.chevron_right,
+                      size: 20, color: AppColors.greyText),
                 ],
               ),
-              const SizedBox(width: 12),
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Unit Name & Status
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            data.name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: getStatusColor(),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            data.status.toUpperCase(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    // Compound name
-                    Text(
-                      data.compound.name,
-                      style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 8),
-                    // Details Row 1
-                    Row(
-                      children: [
-                        if (data.usageType != null) ...[
-                          Icon(Icons.category, size: 14, color: AppColors.mainColor),
-                          const SizedBox(width: 4),
-                          Text(
-                            data.usageType!,
-                            style: const TextStyle(fontSize: 11, color: Colors.black87),
-                          ),
-                          const SizedBox(width: 12),
-                        ],
-                        if (data.numberOfBeds != null) ...[
-                          Icon(Icons.bed, size: 14, color: AppColors.mainColor),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${data.numberOfBeds} Beds',
-                            style: const TextStyle(fontSize: 11, color: Colors.black87),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    // Details Row 2
-                    Row(
-                      children: [
-                        if (data.code.isNotEmpty) ...[
-                          Icon(Icons.tag, size: 14, color: AppColors.mainColor),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Unit #${data.code}',
-                            style: const TextStyle(fontSize: 11, color: Colors.black87),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    // Price
-                    Text(
-                      'EGP ${data.price ?? data.totalPrice}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.mainColor,
+            ),
+            // Remove button
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: () => _removeItem({'itemType': 'unit', 'id': unit.id}),
+                child: Container(
+                  padding: EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 4,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.close,
+                    color: Colors.red,
+                    size: 14,
+                  ),
                 ),
               ),
-              const Icon(Icons.chevron_right, size: 20, color: Colors.grey),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, VoidCallback onRemove) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      child: Chip(
-        label: Text(label),
-        onDeleted: onRemove,
-        deleteIcon: const Icon(Icons.close, size: 16),
-        backgroundColor: AppColors.mainColor.withOpacity(0.1),
-        labelStyle: TextStyle(
-          color: AppColors.mainColor,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
+            ),
+          ],
         ),
       ),
     );

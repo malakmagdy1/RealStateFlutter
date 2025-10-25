@@ -14,9 +14,10 @@ import '../../../core/utils/text_style.dart';
 import 'FavoriteScreen.dart';
 import 'HistoryScreen.dart';
 import 'homeScreen.dart';
+import '../../notifications/presentation/screens/notifications_screen.dart';
 
 class CustomNav extends StatefulWidget {
-  static const String routeName = '/nav';
+  static String routeName = '/nav';
 
   @override
   State<CustomNav> createState() => _CustomNavState();
@@ -42,19 +43,19 @@ class _CustomNavState extends State<CustomNav> {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
-          title: const Text('Logout'),
-          content: const Text('Are you sure you want to logout?'),
+          title: Text('Logout'),
+          content: Text('Are you sure you want to logout?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
+              child: Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
-                loginBloc.add(const LogoutEvent());
+                loginBloc.add(LogoutEvent());
               },
-              child: const Text('Logout', style: TextStyle(color: Colors.red)),
+              child: Text('Logout', style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -91,7 +92,9 @@ class _CustomNavState extends State<CustomNav> {
           backgroundColor: Colors.white,
           actions: [
             IconButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.pushNamed(context, NotificationsScreen.routeName);
+              },
               icon: Icon(
                 Icons.notifications,
                 color: AppColors.mainColor,
@@ -205,11 +208,11 @@ class _CustomNavState extends State<CustomNav> {
                 ),
                 onTap: () {},
               ),
-              const Divider(),
+              Divider(),
               BlocBuilder<LoginBloc, LoginState>(
                 builder: (context, state) {
                   if (state is LogoutLoading) {
-                    return const ListTile(
+                    return ListTile(
                       title: Center(
                         child: CircularProgressIndicator(color: Colors.red),
                       ),
@@ -258,12 +261,12 @@ class _CustomNavState extends State<CustomNav> {
                 // active icon color
                 iconSize: screenWidth * 0.07,
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                duration: const Duration(milliseconds: 400),
+                duration: Duration(milliseconds: 400),
                 tabBackgroundColor: AppColors.mainColor.withOpacity(0.9),
                 // highlight color (main color)
                 tabBorderRadius: 12,
                 // decrease radius of background bubble
-                tabs: const [
+                tabs: [
                   GButton(icon: Icons.home_outlined, text: 'Home'),
                   GButton(
                     icon: Icons.favorite_border_outlined,

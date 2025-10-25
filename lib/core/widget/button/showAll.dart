@@ -5,7 +5,7 @@ class ShowAllButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback pressed;
 
-  const ShowAllButton({
+  ShowAllButton({
     super.key,
     this.label = 'Show All',
     this.icon = Icons.grid_view,
@@ -19,7 +19,7 @@ class ShowAllButton extends StatelessWidget {
         onPressed: pressed, // ✅ fixed
          child:Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
         ),

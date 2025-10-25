@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 abstract class UnitEvent extends Equatable {
-  const UnitEvent();
+  UnitEvent();
 
   @override
   List<Object?> get props => [];
@@ -12,7 +12,7 @@ class FetchUnitsEvent extends UnitEvent {
   final int page;
   final int limit;
 
-  const FetchUnitsEvent({
+  FetchUnitsEvent({
     required this.compoundId,
     this.page = 1,
     this.limit = 100,

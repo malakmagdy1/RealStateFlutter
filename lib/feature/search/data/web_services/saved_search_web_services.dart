@@ -6,32 +6,32 @@ import '../models/saved_search_model.dart';
 
 class SavedSearchWebServices {
   // IMPORTANT: For physical devices, replace this with your computer's IP address
-  static const String physicalDeviceIP = 'localhost';
+  static String physicalDeviceIP = 'localhost';
 
   // Automatically detect the correct base URL based on platform
   static String get baseUrl {
-    const String apiPath = '/api';
+    String apiPath = '/api';
 
     if (kIsWeb) {
       // Web (Chrome, Firefox, etc.) - use 127.0.0.1:8001
-      return 'http://127.0.0.1:8001$apiPath';
+      return 'https://aqar.bdcbiz.com$apiPath';
     } else if (Platform.isAndroid) {
       // Android Emulator uses 10.0.2.2 to access host machine's localhost
       // For physical Android device, use your computer's IP
       if (physicalDeviceIP != 'localhost') {
         return 'http://$physicalDeviceIP:8001$apiPath';
       }
-      return 'http://10.0.2.2:8001$apiPath';
+      return 'https://aqar.bdcbiz.com$apiPath';
     } else if (Platform.isIOS) {
       // iOS Simulator can use localhost
       // For physical iOS device, use your computer's IP
       if (physicalDeviceIP != 'localhost') {
         return 'http://$physicalDeviceIP:8001$apiPath';
       }
-      return 'http://127.0.0.1:8001$apiPath';
+      return 'https://aqar.bdcbiz.com$apiPath';
     } else {
       // Desktop (Windows, macOS, Linux) - use 127.0.0.1:8001
-      return 'http://127.0.0.1:8001$apiPath';
+      return 'https://aqar.bdcbiz.com$apiPath';
     }
   }
 
@@ -50,7 +50,7 @@ class SavedSearchWebServices {
           'Authorization': 'Bearer $token',
         },
       ).timeout(
-        const Duration(seconds: 30),
+        Duration(seconds: 30),
         onTimeout: () {
           throw Exception('Request timeout');
         },
@@ -91,7 +91,7 @@ class SavedSearchWebServices {
           'Authorization': 'Bearer $token',
         },
       ).timeout(
-        const Duration(seconds: 30),
+        Duration(seconds: 30),
         onTimeout: () {
           throw Exception('Request timeout');
         },
@@ -134,7 +134,7 @@ class SavedSearchWebServices {
         },
         body: json.encode(request.toJson()),
       ).timeout(
-        const Duration(seconds: 30),
+        Duration(seconds: 30),
         onTimeout: () {
           throw Exception('Request timeout');
         },
@@ -178,7 +178,7 @@ class SavedSearchWebServices {
         },
         body: json.encode(request.toJson()),
       ).timeout(
-        const Duration(seconds: 30),
+        Duration(seconds: 30),
         onTimeout: () {
           throw Exception('Request timeout');
         },
@@ -219,7 +219,7 @@ class SavedSearchWebServices {
           'Authorization': 'Bearer $token',
         },
       ).timeout(
-        const Duration(seconds: 30),
+        Duration(seconds: 30),
         onTimeout: () {
           throw Exception('Request timeout');
         },

@@ -43,7 +43,7 @@ class SearchFilter {
   final String? usageType;
   final String? search;
 
-  const SearchFilter({
+  SearchFilter({
     this.location,
     this.minPrice,
     this.maxPrice,
@@ -87,7 +87,7 @@ class SearchFilter {
 
   // Create an empty filter
   factory SearchFilter.empty() {
-    return const SearchFilter();
+    return SearchFilter();
   }
 
   // Check if filter is empty
