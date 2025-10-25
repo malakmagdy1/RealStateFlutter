@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:real/core/utils/colors.dart';
-import 'package:real/core/utils/text_style.dart';
 import '../home/presentation/web_home_screen.dart';
 import '../compounds/presentation/web_compounds_screen.dart';
 import '../favorites/presentation/web_favorites_screen.dart';
@@ -16,14 +15,14 @@ import '../../../feature/company/data/models/company_model.dart';
 import '../../../feature/compound/data/models/compound_model.dart';
 import '../../../feature/compound/data/models/unit_model.dart';
 import '../../../feature/compound/presentation/screen/unit_detail_screen.dart';
-import '../../../feature/company/presentation/web_company_detail_screen.dart';
+import '../company/presentation/web_company_detail_screen.dart';
 import '../../../feature/home/presentation/CompoundScreen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class WebMainScreen extends StatefulWidget {
   static String routeName = '/web-main';
 
-  WebMainScreen({Key? key}) : super(key: key);
+  const WebMainScreen({Key? key}) : super(key: key);
 
   @override
   State<WebMainScreen> createState() => _WebMainScreenState();
@@ -35,7 +34,6 @@ class _WebMainScreenState extends State<WebMainScreen> {
   final FocusNode _searchFocusNode = FocusNode();
   late SearchBloc _searchBloc;
   Timer? _debounceTimer;
-  bool _showSearchResults = false;
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
 
@@ -78,7 +76,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
       return;
     }
 
-    _debounceTimer = Timer(Duration(milliseconds: 500), () {
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
       _searchBloc.add(SearchQueryEvent(query: query.trim()));
       _showSearchOverlay();
     });
@@ -88,13 +86,11 @@ class _WebMainScreenState extends State<WebMainScreen> {
     _hideSearchOverlay();
     _overlayEntry = _createOverlayEntry();
     Overlay.of(context).insert(_overlayEntry!);
-    setState(() => _showSearchResults = true);
   }
 
   void _hideSearchOverlay() {
     _overlayEntry?.remove();
     _overlayEntry = null;
-    setState(() => _showSearchResults = false);
   }
 
   void _clearSearch() {
@@ -123,7 +119,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
       height: 70,
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(
+        border: const Border(
           bottom: BorderSide(
             color: Color(0xFFE6E6E6),
             width: 1,
@@ -133,23 +129,23 @@ class _WebMainScreenState extends State<WebMainScreen> {
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
             blurRadius: 3,
-            offset: Offset(0, 1),
+            offset: const Offset(0, 1),
           ),
         ],
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: 1400),
+          constraints: const BoxConstraints(maxWidth: 1400),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 32),
             child: Row(
               children: [
                 // Logo
-                Text(
+                const Text(
                   '🏘️',
                   style: TextStyle(fontSize: 28),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: 8),
                 Text(
                   'Real Estate',
                   style: TextStyle(
@@ -158,14 +154,14 @@ class _WebMainScreenState extends State<WebMainScreen> {
                     color: AppColors.mainColor,
                   ),
                 ),
-                SizedBox(width: 32),
+                const SizedBox(width: 32),
 
                 // Search Bar
                 Expanded(
                   child: CompositedTransformTarget(
                     link: _layerLink,
                     child: Container(
-                      constraints: BoxConstraints(maxWidth: 500),
+                      constraints: const BoxConstraints(maxWidth: 500),
                       height: 42,
                       child: TextField(
                         controller: _searchController,
@@ -173,7 +169,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                         onChanged: _performSearch,
                         decoration: InputDecoration(
                           hintText: 'Search for companies, compounds, or units...',
-                          hintStyle: TextStyle(
+                          hintStyle: const TextStyle(
                             fontSize: 14,
                             color: Color(0xFF8E8E8E),
                           ),
@@ -184,22 +180,22 @@ class _WebMainScreenState extends State<WebMainScreen> {
                           ),
                           suffixIcon: _searchController.text.isNotEmpty
                               ? IconButton(
-                                  icon: Icon(Icons.clear, size: 20),
+                                  icon: const Icon(Icons.clear, size: 20),
                                   onPressed: _clearSearch,
                                 )
                               : null,
                           filled: true,
-                          fillColor: Color(0xFFF8F9FA),
+                          fillColor: const Color(0xFFF8F9FA),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(
+                            borderSide: const BorderSide(
                               color: Color(0xFFE6E6E6),
                               width: 1,
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
-                            borderSide: BorderSide(
+                            borderSide: const BorderSide(
                               color: Color(0xFFE6E6E6),
                               width: 1,
                             ),
@@ -211,7 +207,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                               width: 2,
                             ),
                           ),
-                          contentPadding: EdgeInsets.symmetric(
+                          contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16,
                             vertical: 10,
                           ),
@@ -220,17 +216,17 @@ class _WebMainScreenState extends State<WebMainScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: 32),
+                const SizedBox(width: 32),
 
                 // Navigation Links
                 _buildNavItem('Home', 0, Icons.home_outlined, Icons.home),
-                SizedBox(width: 24),
+                const SizedBox(width: 24),
                 _buildNavItem('Compounds', 1, Icons.apartment_outlined, Icons.apartment),
-                SizedBox(width: 24),
+                const SizedBox(width: 24),
                 _buildNavItem('Favorites', 2, Icons.favorite_border, Icons.favorite),
-                SizedBox(width: 24),
+                const SizedBox(width: 24),
                 _buildNavItem('History', 3, Icons.history_outlined, Icons.history),
-                SizedBox(width: 24),
+                const SizedBox(width: 24),
                 _buildNavItem('Profile', 4, Icons.person_outline, Icons.person),
               ],
             ),
@@ -250,7 +246,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
         });
       },
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.mainColor.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
@@ -260,15 +256,15 @@ class _WebMainScreenState extends State<WebMainScreen> {
             Icon(
               isSelected ? filledIcon : outlinedIcon,
               size: 20,
-              color: isSelected ? AppColors.mainColor : Color(0xFF666666),
+              color: isSelected ? AppColors.mainColor : const Color(0xFF666666),
             ),
-            SizedBox(width: 8),
+            const SizedBox(width: 8),
             Text(
               title,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? AppColors.mainColor : Color(0xFF333333),
+                color: isSelected ? AppColors.mainColor : const Color(0xFF333333),
               ),
             ),
           ],
@@ -278,30 +274,28 @@ class _WebMainScreenState extends State<WebMainScreen> {
   }
 
   OverlayEntry _createOverlayEntry() {
-    RenderBox? renderBox = context.findRenderObject() as RenderBox?;
-
     return OverlayEntry(
       builder: (context) => Positioned(
         width: 500,
         child: CompositedTransformFollower(
           link: _layerLink,
           showWhenUnlinked: false,
-          offset: Offset(0, 50),
+          offset: const Offset(0, 50),
           child: Material(
             elevation: 8,
             borderRadius: BorderRadius.circular(8),
             child: Container(
-              constraints: BoxConstraints(maxHeight: 500),
+              constraints: const BoxConstraints(maxHeight: 500),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Color(0xFFE6E6E6)),
+                border: Border.all(color: const Color(0xFFE6E6E6)),
               ),
               child: BlocBuilder<SearchBloc, SearchState>(
                 bloc: _searchBloc,
                 builder: (context, state) {
                   if (state is SearchLoading) {
-                    return Container(
+                    return const SizedBox(
                       height: 100,
                       child: Center(child: CircularProgressIndicator()),
                     );
@@ -309,14 +303,14 @@ class _WebMainScreenState extends State<WebMainScreen> {
                     return _buildSearchResultsList(state.response);
                   } else if (state is SearchError) {
                     return Container(
-                      padding: EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(16),
                       child: Text(
                         state.message,
-                        style: TextStyle(color: Colors.red),
+                        style: const TextStyle(color: Colors.red),
                       ),
                     );
                   }
-                  return SizedBox.shrink();
+                  return const SizedBox.shrink();
                 },
               ),
             ),
@@ -334,13 +328,13 @@ class _WebMainScreenState extends State<WebMainScreen> {
 
     if (results.isEmpty) {
       return Container(
-        padding: EdgeInsets.all(24),
+        padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
-            SizedBox(height: 12),
-            Text(
+            const SizedBox(height: 12),
+            const Text(
               'No results found',
               style: TextStyle(
                 fontSize: 16,
@@ -348,8 +342,8 @@ class _WebMainScreenState extends State<WebMainScreen> {
                 color: Color(0xFF666666),
               ),
             ),
-            SizedBox(height: 8),
-            Text(
+            const SizedBox(height: 8),
+            const Text(
               'Try searching with different keywords',
               style: TextStyle(fontSize: 14, color: Color(0xFF999999)),
             ),
@@ -360,11 +354,11 @@ class _WebMainScreenState extends State<WebMainScreen> {
 
     return ListView(
       shrinkWrap: true,
-      padding: EdgeInsets.all(12),
+      padding: const EdgeInsets.all(12),
       children: [
         // Header
         Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -378,19 +372,19 @@ class _WebMainScreenState extends State<WebMainScreen> {
               ),
               TextButton(
                 onPressed: _clearSearch,
-                child: Text('Close', style: TextStyle(fontSize: 13)),
+                child: const Text('Close', style: TextStyle(fontSize: 13)),
               ),
             ],
           ),
         ),
-        Divider(height: 1),
+        const Divider(height: 1),
 
         // Companies section
         if (companies.isNotEmpty) ...[
-          Padding(
+          const Padding(
             padding: EdgeInsets.fromLTRB(8, 12, 8, 8),
             child: Text(
-              'Companies (${companies.length})',
+              'Companies',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -403,10 +397,10 @@ class _WebMainScreenState extends State<WebMainScreen> {
 
         // Compounds section
         if (compounds.isNotEmpty) ...[
-          Padding(
+          const Padding(
             padding: EdgeInsets.fromLTRB(8, 12, 8, 8),
             child: Text(
-              'Compounds (${compounds.length})',
+              'Compounds',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -419,10 +413,10 @@ class _WebMainScreenState extends State<WebMainScreen> {
 
         // Units section
         if (units.isNotEmpty) ...[
-          Padding(
+          const Padding(
             padding: EdgeInsets.fromLTRB(8, 12, 8, 8),
             child: Text(
-              'Units (${units.length})',
+              'Units',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -447,23 +441,27 @@ class _WebMainScreenState extends State<WebMainScreen> {
       ),
       title: Text(
         data.name,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
-        data.description ?? '',
+        '${data.numberOfCompounds} compounds • ${data.numberOfAvailableUnits} available units',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(fontSize: 12),
+        style: const TextStyle(fontSize: 12),
       ),
-      trailing: Icon(Icons.chevron_right, size: 18),
+      trailing: const Icon(Icons.chevron_right, size: 18),
       onTap: () {
         _clearSearch();
         final company = Company(
           id: data.id,
           name: data.name,
-          email: data.email,
           logo: data.logo,
-          description: data.description,
+          email: data.email,
+          numberOfCompounds: data.numberOfCompounds,
+          numberOfAvailableUnits: data.numberOfAvailableUnits,
+          createdAt: data.createdAt ?? '',
+          sales: const [],
+          compounds: const [],
         );
         Navigator.push(
           context,
@@ -486,15 +484,15 @@ class _WebMainScreenState extends State<WebMainScreen> {
       ),
       title: Text(
         data.name,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       ),
       subtitle: Text(
         data.location,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(fontSize: 12),
+        style: const TextStyle(fontSize: 12),
       ),
-      trailing: Icon(Icons.chevron_right, size: 18),
+      trailing: const Icon(Icons.chevron_right, size: 18),
       onTap: () {
         _clearSearch();
         final compound = Compound(
@@ -502,11 +500,20 @@ class _WebMainScreenState extends State<WebMainScreen> {
           companyId: data.company.id,
           project: data.name,
           location: data.location,
-          totalUnits: data.totalUnits.toString(),
-          availableUnits: data.availableUnits.toString(),
+          images: data.images,
+          builtUpArea: '0',
+          howManyFloors: '0',
+          club: '0',
+          isSold: '0',
           status: data.status,
+          totalUnits: data.unitsCount,
+          createdAt: data.createdAt,
+          updatedAt: data.createdAt,
           companyName: data.company.name,
-          images: data.images ?? [],
+          companyLogo: data.company.logo,
+          soldUnits: '0',
+          availableUnits: data.unitsCount,
+          sales: const [],
         );
         Navigator.push(
           context,
@@ -544,12 +551,12 @@ class _WebMainScreenState extends State<WebMainScreen> {
       title: Row(
         children: [
           Text(
-            data.unitNumber ?? data.unitType,
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            data.code.isNotEmpty ? data.code : data.unitType,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: 8),
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
               color: getStatusColor().withOpacity(0.1),
               borderRadius: BorderRadius.circular(4),
@@ -569,10 +576,10 @@ class _WebMainScreenState extends State<WebMainScreen> {
         '${data.unitType} • ${data.compound.name}',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(fontSize: 12),
+        style: const TextStyle(fontSize: 12),
       ),
       trailing: Text(
-        '${data.price.toInt()} EGP',
+        '${double.tryParse(data.totalPrice)?.toInt() ?? 0} EGP',
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
@@ -585,11 +592,16 @@ class _WebMainScreenState extends State<WebMainScreen> {
           id: data.id,
           compoundId: data.compound.id,
           unitType: data.unitType,
-          area: data.area.toString(),
-          price: data.price.toString(),
+          area: '0',
+          price: data.totalPrice,
+          bedrooms: data.numberOfBeds ?? '0',
+          bathrooms: '0',
+          floor: '0',
           status: data.status,
-          unitNumber: data.unitNumber,
-          numberOfBeds: data.numberOfBeds,
+          unitNumber: data.code,
+          createdAt: '',
+          updatedAt: '',
+          images: data.images,
         );
         Navigator.push(
           context,
