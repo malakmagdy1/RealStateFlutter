@@ -21,9 +21,9 @@ class _WebMainScreenState extends State<WebMainScreen> {
   final List<Widget> _screens = [
     WebHomeScreen(),
     const WebCompoundsScreen(),
-    const WebFavoritesScreen(),
+    WebFavoritesScreen(),
     WebHistoryScreen(),
-    const WebProfileScreen(),
+    WebProfileScreen(),
   ];
 
   @override
