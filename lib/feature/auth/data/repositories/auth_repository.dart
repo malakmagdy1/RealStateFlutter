@@ -10,6 +10,10 @@ import 'package:real/feature/auth/data/models/update_name_request.dart';
 import 'package:real/feature/auth/data/models/update_name_response.dart';
 import 'package:real/feature/auth/data/models/update_phone_request.dart';
 import 'package:real/feature/auth/data/models/update_phone_response.dart';
+import 'package:real/feature/auth/data/models/verify_email_request.dart';
+import 'package:real/feature/auth/data/models/verify_email_response.dart';
+import 'package:real/feature/auth/data/models/resend_verification_request.dart';
+import 'package:real/feature/auth/data/models/resend_verification_response.dart';
 
 class AuthRepository {
   final AuthWebServices _authWebServices;
@@ -42,6 +46,7 @@ class AuthRepository {
     required String email,
     required String name,
     String? photoUrl,
+    required String idToken,
   }) async {
     try {
       final response = await _authWebServices.googleLogin(
@@ -49,6 +54,7 @@ class AuthRepository {
         email: email,
         name: name,
         photoUrl: photoUrl,
+        idToken: idToken,
       );
       return response;
     } catch (e) {
@@ -57,12 +63,23 @@ class AuthRepository {
     }
   }
 
-  Future<Map<String, dynamic>> verifyEmail(String token) async {
+  Future<VerifyEmailResponse> verifyEmailCode(VerifyEmailRequest request) async {
     try {
-      final response = await _authWebServices.verifyEmail(token);
+      final response = await _authWebServices.verifyEmailCode(request);
       return response;
     } catch (e) {
       print('Repository Verify Email Error: ${e.toString()}');
+      rethrow;
+    }
+  }
+
+  Future<ResendVerificationResponse> resendVerificationCode(
+      ResendVerificationRequest request) async {
+    try {
+      final response = await _authWebServices.resendVerificationCode(request);
+      return response;
+    } catch (e) {
+      print('Repository Resend Verification Error: ${e.toString()}');
       rethrow;
     }
   }

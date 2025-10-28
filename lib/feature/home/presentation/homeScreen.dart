@@ -32,6 +32,7 @@ import 'package:real/feature/search/data/models/search_result_model.dart';
 import 'package:real/feature/search/presentation/widget/search_filter_bottom_sheet.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
+import 'package:real/feature/compound/presentation/widget/unit_card.dart';
 import 'package:real/feature/home/presentation/CompoundScreen.dart';
 import 'package:real/l10n/app_localizations.dart';
 
@@ -1184,233 +1185,77 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildUnitResultItem(SearchResult result, AppLocalizations l10n) {
     final data = result.data as UnitSearchData;
 
-    Color getStatusColor() {
-      switch (data.status.toLowerCase()) {
-        case 'available':
-          return Colors.green;
-        case 'reserved':
-          return Colors.orange;
-        case 'sold':
-          return Colors.red;
-        default:
-          return Colors.grey;
-      }
+    // Don't display sold units
+    if (data.status.toLowerCase() == 'sold') {
+      return SizedBox.shrink();
     }
 
-    return Card(
-      margin: EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () {
-          _clearSearch();
-          final unit = Unit(
-            id: data.id,
-            compoundId: data.compound.id,
-            unitType: data.unitType,
-            area: '0',
-            price: data.price ?? data.totalPrice,
-            bedrooms: data.numberOfBeds ?? '0',
-            bathrooms: '0',
-            floor: '0', // Floor info not available in search results
-            status: data.status,
-            unitNumber: data.code,
-            createdAt: '',
-            updatedAt: '',
-            images: data.images,
-            usageType: data.usageType,
-            companyName: data.compound.company.name,
-            companyLogo: data.compound.company.logo,
-          );
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => UnitDetailScreen(unit: unit),
-            ),
-          );
-        },
-        child: Padding(
-          padding: EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Image with favorite button
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: data.images.isNotEmpty
-                        ? Image.network(
-                            data.images.first,
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              width: 80,
-                              height: 80,
-                              color: Colors.grey.shade200,
-                              child: Icon(Icons.home, size: 30, color: AppColors.greyText),
-                            ),
-                          )
-                        : Container(
-                            width: 80,
-                            height: 80,
-                            color: Colors.grey.shade200,
-                            child: Icon(Icons.home, size: 30, color: AppColors.greyText),
-                          ),
-                  ),
-                  // Favorite Button
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: BlocBuilder<UnitFavoriteBloc, UnitFavoriteState>(
-                      builder: (context, state) {
-                        final bloc = context.read<UnitFavoriteBloc>();
-                        final unit = Unit(
-                          id: data.id,
-                          compoundId: data.compound.id,
-                          unitType: data.unitType,
-                          area: '0',
-                          price: data.price ?? data.totalPrice,
-                          bedrooms: data.numberOfBeds ?? '0',
-                          bathrooms: '0',
-                          floor: '0',
-                          status: data.status,
-                          unitNumber: data.code,
-                          createdAt: '',
-                          updatedAt: '',
-                          images: data.images,
-                          usageType: data.usageType,
-                          companyName: data.compound.company.name,
-                          companyLogo: data.compound.company.logo,
-                        );
-                        final isFavorite = bloc.isFavorite(unit);
+    // Use unit images, fallback to compound images if unit images are empty
+    final images = data.images.isNotEmpty ? data.images : data.compound.images;
 
-                        return GestureDetector(
-                          onTap: () => bloc.toggleFavorite(unit),
-                          child: Container(
-                            padding: EdgeInsets.all(4),
-                            decoration: BoxDecoration(
-                              color: AppColors.white.withOpacity(0.9),
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              isFavorite
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              color: Colors.red,
-                              size: 16,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(width: 12),
-              // Content
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Unit Name & Status
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            data.name,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: getStatusColor(),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            data.status.toUpperCase(),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 4),
-                    // Compound name
-                    Text(
-                      data.compound.name,
-                      style: TextStyle(fontSize: 12, color: AppColors.greyText),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 8),
-                    // Details Row 1
-                    Row(
-                      children: [
-                        if (data.usageType != null) ...[
-                          Icon(Icons.category, size: 14, color: AppColors.mainColor),
-                          SizedBox(width: 4),
-                          Text(
-                            data.usageType!,
-                            style: TextStyle(fontSize: 11, color: Colors.black87),
-                          ),
-                          SizedBox(width: 12),
-                        ],
-                        if (data.numberOfBeds != null) ...[
-                          Icon(Icons.bed, size: 14, color: AppColors.mainColor),
-                          SizedBox(width: 4),
-                          Text(
-                            '${data.numberOfBeds} ${l10n.beds}',
-                            style: TextStyle(fontSize: 11, color: Colors.black87),
-                          ),
-                        ],
-                      ],
-                    ),
-                    SizedBox(height: 6),
-                    // Details Row 2
-                    Row(
-                      children: [
-                        if (data.code.isNotEmpty) ...[
-                          Icon(Icons.tag, size: 14, color: AppColors.mainColor),
-                          SizedBox(width: 4),
-                          Text(
-                            'Unit #${data.code}',
-                            style: TextStyle(fontSize: 11, color: Colors.black87),
-                          ),
-                        ],
-                      ],
-                    ),
-                    SizedBox(height: 8),
-                    // Price
-                    Text(
-                      '${l10n.egp} ${data.price ?? data.totalPrice}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.mainColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(Icons.chevron_right, size: 20, color: AppColors.greyText),
-            ],
-          ),
-        ),
-      ),
+    // Use the proper price: discounted price if available, otherwise normal price, otherwise fall back
+    final unitPrice = data.discountedPrice?.isNotEmpty == true
+        ? data.discountedPrice!
+        : (data.normalPrice?.isNotEmpty == true
+            ? data.normalPrice!
+            : (data.totalPrice.isNotEmpty ? data.totalPrice : (data.price ?? '0')));
+
+    // Create Unit object from search data
+    final unit = Unit(
+      id: data.id,
+      compoundId: data.compound.id,
+      unitType: data.unitType,
+      area: data.area ?? '0',
+      price: unitPrice,
+      bedrooms: data.numberOfBeds ?? '0',
+      bathrooms: data.numberOfBaths ?? '0',
+      floor: data.floor ?? '0',
+      status: data.status,
+      unitNumber: data.unitName?.isNotEmpty == true
+          ? data.unitName!
+          : (data.name.isNotEmpty ? data.name : data.code),
+      deliveryDate: null,
+      view: null,
+      finishing: null,
+      createdAt: '',
+      updatedAt: '',
+      images: images,
+      usageType: data.usageType,
+      companyName: data.compound.company.name,
+      companyLogo: data.compound.company.logo,
+      compoundName: data.compound.name,
+      companyId: data.compound.company.id,
     );
+
+    // Use the full UnitCard widget for consistent UI
+    return UnitCard(unit: unit);
+  }
+
+  String _formatUnitPrice(String? price, String? totalPrice, AppLocalizations l10n) {
+    // Try price first, then totalPrice
+    final priceStr = price ?? totalPrice;
+
+    // If both are null or empty or "0", show Contact for Price
+    if (priceStr == null || priceStr.isEmpty || priceStr == '0' || priceStr == '0.0') {
+      return 'Contact for Price';
+    }
+
+    try {
+      final numPrice = double.parse(priceStr);
+      if (numPrice == 0) {
+        return 'Contact for Price';
+      }
+
+      // Format the price
+      if (numPrice >= 1000000) {
+        return '${l10n.egp} ${(numPrice / 1000000).toStringAsFixed(2)}M';
+      } else if (numPrice >= 1000) {
+        return '${l10n.egp} ${(numPrice / 1000).toStringAsFixed(0)}K';
+      }
+      return '${l10n.egp} ${numPrice.toStringAsFixed(0)}';
+    } catch (e) {
+      return 'Contact for Price';
+    }
   }
 
   Widget _buildFilterChip(String label, VoidCallback onRemove) {

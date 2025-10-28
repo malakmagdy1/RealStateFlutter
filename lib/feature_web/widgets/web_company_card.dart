@@ -45,7 +45,7 @@ class WebCompanyCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                         child: Container(
                           width: 50,
-                          height: 50,
+                          height: 550,
                           color: Color(0xFFF8F9FA),
                           padding: EdgeInsets.all(6),
                           child: RobustNetworkImage(

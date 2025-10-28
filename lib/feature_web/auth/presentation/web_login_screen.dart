@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:real/core/utils/web_utils.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/constant.dart';
-import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/utils/validators.dart';
 import 'package:real/feature/auth/data/models/login_request.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
@@ -15,10 +15,10 @@ import 'package:real/feature/auth/presentation/bloc/user_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/user_event.dart';
 import 'package:real/feature_web/auth/presentation/web_signup_screen.dart';
 import 'package:real/feature_web/navigation/web_main_screen.dart';
-
-import '../../../../core/widget/button/authButton.dart';
-import '../../../../feature/auth/presentation/widget/textFormField.dart';
-import '../../../../feature/auth/presentation/widget/authToggle.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_event.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_event.dart';
 
 class WebLoginScreen extends StatefulWidget {
   static String routeName = '/web-login';
@@ -35,57 +35,93 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   bool _obscurePassword = true;
 
   GoogleSignIn? _googleSignIn;
-  GoogleSignInAccount? _user;
 
   @override
   void initState() {
     super.initState();
-    // Only initialize Google Sign-In on mobile platforms
-    if (!kIsWeb) {
-      _googleSignIn = GoogleSignIn(
-        clientId: '641586807593-1drlkrodshb5toe1374l26m0lpmausor.apps.googleusercontent.com',
-      );
-    }
+    // Initialize Google Sign-In
+    // Web: Requires clientId explicitly
+    // Mobile: Uses google-services.json (Android) and GoogleService-Info.plist (iOS)
+    _googleSignIn = GoogleSignIn(
+      clientId: kIsWeb
+          ? '832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com' // Web Client ID
+          : null, // Mobile gets clientId from platform-specific config files
+      serverClientId: kIsWeb
+          ? null // serverClientId is NOT supported on web
+          : '832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com', // Required for Android to get ID tokens
+      scopes: ['email', 'profile', 'openid'],
+      // Force account selection on web for better UX
+      forceCodeForRefreshToken: true,
+    );
   }
 
   Future<void> _handleSignIn() async {
-    // Google Sign-In is not supported on web
-    if (kIsWeb) {
+    if (_googleSignIn == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Google Sign-In is not available on web. Please use email/password.'),
+          content: Text('Google Sign-In is not initialized. Please try again.'),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    if (_googleSignIn == null) return;
-
     try {
-      final account = await _googleSignIn!.signIn();
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('Starting Google Sign-In...');
+      print('Platform: ${kIsWeb ? "Web" : "Mobile"}');
+
+      GoogleSignInAccount? account;
+
+      if (kIsWeb) {
+        // For web: Use JavaScript to trigger Google Sign-In with account picker
+        print('Initiating web sign-in with account picker...');
+
+        // Inject Google Sign-In prompt parameter to force account selection
+        setGoogleSignInPrompt('select_account');
+
+        // Try silent sign-in first (will use cached credentials)
+        account = await _googleSignIn!.signInSilently(suppressErrors: true);
+
+        // If silent sign-in fails, use interactive sign-in
+        if (account == null) {
+          print('Silent sign-in failed, showing account picker...');
+          account = await _googleSignIn!.signIn();
+        }
+      } else {
+        // For mobile: Sign out first to force fresh login
+        await _googleSignIn!.signOut();
+        account = await _googleSignIn!.signIn();
+      }
 
       if (account != null) {
+        print('Sign-in successful, processing account...');
         await _processGoogleAccount(account);
+      } else {
+        print('Sign-in was cancelled or returned null');
       }
     } catch (error) {
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
       print('GOOGLE SIGN-IN ERROR: $error');
+      print('Error type: ${error.runtimeType}');
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
-      // Handle specific popup_closed error
-      if (error.toString().contains('popup_closed')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Sign-in cancelled. Please try again.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      } else {
+      // Only show error if it's not a user cancellation
+      if (!error.toString().contains('popup_closed') &&
+          !error.toString().contains('popup_closed_by_user') &&
+          !error.toString().contains('redirect_uri_mismatch')) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Sign-in error: $error'),
             backgroundColor: Colors.red,
+          ),
+        );
+      } else if (error.toString().contains('redirect_uri_mismatch')) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('OAuth configuration error. Please contact support.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 5),
           ),
         );
       }
@@ -93,8 +129,6 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   }
 
   Future<void> _processGoogleAccount(GoogleSignInAccount account) async {
-    setState(() => _user = account);
-
     print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
     print('GOOGLE SIGN-IN SUCCESS!');
     print('User: ${account.displayName}');
@@ -104,12 +138,33 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
     // Send Google account info to backend and get proper token
     try {
+      // Get the authentication object to extract the ID token or access token
+      final GoogleSignInAuthentication auth = await account.authentication;
+      final String? idToken = auth.idToken;
+      final String? accessToken = auth.accessToken;
+
+      print('ID Token obtained: ${idToken != null ? "YES" : "NO"}');
+      print('Access Token obtained: ${accessToken != null ? "YES" : "NO"}');
+
+      // On web, use access token if ID token is not available
+      final String? tokenToSend = idToken ?? accessToken;
+
+      if (tokenToSend != null) {
+        print('Token length: ${tokenToSend.length}');
+        print('Using ${idToken != null ? "ID Token" : "Access Token"}');
+      }
+
+      if (tokenToSend == null) {
+        throw Exception('Failed to get authentication token from Google');
+      }
+
       final repository = context.read<LoginBloc>().repository;
       final response = await repository.googleLogin(
         googleId: account.id,
         email: account.email,
         name: account.displayName ?? '',
         photoUrl: account.photoUrl,
+        idToken: tokenToSend,
       );
 
       // Save the BACKEND token (not Google ID)
@@ -117,6 +172,17 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
         key: "token",
         value: response.token ?? '',
       );
+
+      // Save user_id
+      if (response.user.id != null) {
+        await CasheNetwork.insertToCashe(
+          key: "user_id",
+          value: response.user.id.toString(),
+        );
+        // IMPORTANT: Update global userId variable
+        userId = response.user.id.toString();
+        print('User ID SAVED: ${response.user.id}');
+      }
 
       // IMPORTANT: Update global token variable
       token = response.token ?? '';
@@ -128,6 +194,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       // Refresh user data with new token
       context.read<UserBloc>().add(RefreshUserEvent());
 
+      // Reload favorites with the new token-specific key
+      context.read<CompoundFavoriteBloc>().add(LoadFavoriteCompounds());
+      context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
+
       // Navigate to home screen after successful Google sign-in
       Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
     } catch (backendError) {
@@ -135,10 +205,64 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       print('BACKEND ERROR: $backendError');
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
+      // Show prominent error dialog on screen
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.red, size: 28),
+              SizedBox(width: 12),
+              Text('Backend Authentication Failed'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Error Details:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red[200]!),
+                ),
+                child: SelectableText(
+                  '$backendError',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    color: Colors.red[900],
+                  ),
+                ),
+              ),
+              SizedBox(height: 16),
+              Text(
+                '📝 Note: The backend needs to be updated to accept access tokens from web.',
+                style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('OK', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
+      );
+
+      // Also show SnackBar for quick reference
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Backend authentication failed: $backendError'),
+          content: Text('Backend authentication failed - see error dialog'),
           backgroundColor: Colors.red,
+          duration: Duration(seconds: 5),
         ),
       );
     }
@@ -149,47 +273,6 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       await _googleSignIn!.signOut();
     }
     await CasheNetwork.deletecasheItem(key: "token");
-    setState(() => _user = null);
-  }
-
-  Widget _buildWebGoogleButton() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.shade200),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, color: Colors.blue.shade700, size: 24),
-          SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Google Sign-In Unavailable on Web',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade900,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Please use email and password to sign in on web. Google Sign-In is available on mobile apps.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.blue.shade700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -217,6 +300,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
             );
             // Refresh user data with new token
             context.read<UserBloc>().add(RefreshUserEvent());
+
+            // Reload favorites with the new token-specific key
+            context.read<CompoundFavoriteBloc>().add(LoadFavoriteCompounds());
+            context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
 
             // Navigate to home screen after successful login
             Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
@@ -512,32 +599,30 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                             ),
                             SizedBox(height: 24),
 
-                            // Google Sign In
-                            kIsWeb
-                              ? _buildWebGoogleButton()
-                              : OutlinedButton.icon(
-                                  onPressed: _handleSignIn,
-                                  style: OutlinedButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(vertical: 14),
-                                    side: BorderSide(color: Colors.grey[300]!),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                  icon: Image.asset(
-                                    'assets/images/google.png',
-                                    height: 20,
-                                    width: 20,
-                                  ),
-                                  label: Text(
-                                    'Continue with Google',
-                                    style: TextStyle(
-                                      color: Colors.black87,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
+                            // Google Sign In Button
+                            OutlinedButton.icon(
+                              onPressed: _handleSignIn,
+                              style: OutlinedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(vertical: 14),
+                                side: BorderSide(color: Colors.grey[300]!),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
+                              ),
+                              icon: Image.asset(
+                                'assets/images/google.png',
+                                height: 20,
+                                width: 20,
+                              ),
+                              label: Text(
+                                'Continue with Google',
+                                style: TextStyle(
+                                  color: Colors.black87,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
                             SizedBox(height: 32),
 
                             // Sign Up Link

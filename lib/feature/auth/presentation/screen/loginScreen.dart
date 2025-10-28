@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:real/core/utils/colors.dart';
@@ -16,6 +17,10 @@ import 'package:real/feature/auth/presentation/screen/SignupScreen.dart';
 import 'package:real/feature/auth/presentation/screen/forgetPasswordScreen.dart';
 import 'package:real/feature/home/presentation/CustomNav.dart';
 import 'package:real/feature/home/presentation/homeScreen.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_event.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_event.dart';
 
 import '../../../../core/widget/button/authButton.dart';
 import '../widget/textFormField.dart';
@@ -28,21 +33,33 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   bool _obscurePassword = true;
+  late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
 
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: '641586807593-1drlkrodshb5toe1374l26m0lpmausor.apps.googleusercontent.com',
+    clientId: kIsWeb
+        ? '832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com' // Web Client ID
+        : null, // Mobile gets clientId from google-services.json (Android) / GoogleService-Info.plist (iOS)
+    serverClientId: kIsWeb
+        ? null // serverClientId is NOT supported on web
+        : '832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com', // Required for Android to get ID tokens
+    scopes: ['email', 'profile', 'openid'],
   );
 
   GoogleSignInAccount? _user;
 
   Future<void> _handleSignIn() async {
     try {
+      // Sign out first to force account picker to show
+      await _googleSignIn.signOut();
+
       final account = await _googleSignIn.signIn();
       setState(() => _user = account);
 
@@ -56,12 +73,33 @@ class _LoginScreenState extends State<LoginScreen> {
 
         // Send Google account info to backend and get proper token
         try {
+          // Get the authentication object to extract the ID token or access token
+          final GoogleSignInAuthentication auth = await account.authentication;
+          final String? idToken = auth.idToken;
+          final String? accessToken = auth.accessToken;
+
+          print('ID Token obtained: ${idToken != null ? "YES" : "NO"}');
+          print('Access Token obtained: ${accessToken != null ? "YES" : "NO"}');
+
+          // On web, use access token if ID token is not available
+          final String? tokenToSend = idToken ?? accessToken;
+
+          if (tokenToSend != null) {
+            print('Token length: ${tokenToSend.length}');
+            print('Using ${idToken != null ? "ID Token" : "Access Token"}');
+          }
+
+          if (tokenToSend == null) {
+            throw Exception('Failed to get authentication token from Google');
+          }
+
           final repository = context.read<LoginBloc>().repository;
           final response = await repository.googleLogin(
             googleId: account.id,
             email: account.email,
             name: account.displayName ?? '',
             photoUrl: account.photoUrl,
+            idToken: tokenToSend,
           );
 
           // Save the BACKEND token (not Google ID)
@@ -69,6 +107,18 @@ class _LoginScreenState extends State<LoginScreen> {
             key: "token",
             value: response.token ?? '',
           );
+
+          // Save user_id
+          if (response.user.id != null) {
+            await CasheNetwork.insertToCashe(
+              key: "user_id",
+              value: response.user.id.toString(),
+            );
+            // IMPORTANT: Update global userId variable
+            userId = response.user.id.toString();
+            print('User ID SAVED: ${response.user.id}');
+            print('Global userId variable updated: $userId');
+          }
 
           // IMPORTANT: Update global token variable
           token = response.token ?? '';
@@ -87,10 +137,64 @@ class _LoginScreenState extends State<LoginScreen> {
           print('BACKEND ERROR: $backendError');
           print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
+          // Show prominent error dialog on screen
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red, size: 28),
+                  SizedBox(width: 12),
+                  Expanded(child: Text('Backend Authentication Failed')),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Error Details:',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red[200]!),
+                    ),
+                    child: SelectableText(
+                      '$backendError',
+                      style: TextStyle(
+                        fontFamily: 'monospace',
+                        fontSize: 13,
+                        color: Colors.red[900],
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    '📝 Note: The backend needs to be updated to accept ${kIsWeb ? "access tokens from web" : "ID tokens from mobile"}.',
+                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('OK', style: TextStyle(fontSize: 16)),
+                ),
+              ],
+            ),
+          );
+
+          // Also show SnackBar for quick reference
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Backend authentication failed: $backendError'),
+              content: Text('Backend authentication failed - see error dialog'),
               backgroundColor: Colors.red,
+              duration: Duration(seconds: 5),
             ),
           );
         }
@@ -140,7 +244,36 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _animationController,
+        curve: Interval(0.2, 0.8, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _animationController.forward();
+  }
+
+  @override
   void dispose() {
+    _animationController.dispose();
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
@@ -162,6 +295,10 @@ class _LoginScreenState extends State<LoginScreen> {
             // Refresh user data with new token
             context.read<UserBloc>().add(RefreshUserEvent());
 
+            // Reload favorites with the new token-specific key
+            context.read<CompoundFavoriteBloc>().add(LoadFavoriteCompounds());
+            context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
+
             // Navigate to home screen after successful login
             Navigator.pushReplacementNamed(context, CustomNav.routeName);
           } else if (state is LoginError) {
@@ -177,10 +314,14 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Padding(
             padding: EdgeInsets.all(10.0),
             child: Form(key: _formKey,
-              child: Column(
-                children: [
-              SizedBox(height: 40),
-              CustomText24("Welcome Back", color: AppColors.black, bold: true),
+              child: FadeTransition(
+                opacity: _fadeAnimation,
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: Column(
+                    children: [
+                  SizedBox(height: 40),
+                  CustomText24("Welcome Back", color: AppColors.black, bold: true),
               SizedBox(height: 20),
               AuthToggle(
                 isSignUp: false,
@@ -290,12 +431,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: Colors.red,
                 ),
               ),
-                ],
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
         ),
-      )
+      ),
     );
   }
 }

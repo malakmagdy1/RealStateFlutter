@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
+import 'package:real/feature/compound/data/web_services/favorites_web_services.dart';
 import 'package:real/core/utils/constant.dart';
 
 import 'unit_favorite_event.dart';
@@ -10,6 +11,7 @@ import 'unit_favorite_state.dart';
 
 class UnitFavoriteBloc extends Bloc<UnitFavoriteEvent, UnitFavoriteState> {
   final List<Unit> _favorites = [];
+  final FavoritesWebServices _favoritesApi = FavoritesWebServices();
   static String _baseFavoritesKey = 'favorite_units';
 
   // Get user-specific key based on token
@@ -36,27 +38,106 @@ class UnitFavoriteBloc extends Bloc<UnitFavoriteEvent, UnitFavoriteState> {
     Emitter<UnitFavoriteState> emit,
   ) async {
     try {
+      // Load from cache FIRST for instant UI (non-blocking)
       print('[UnitFavoriteBloc] Loading favorites from cache...');
-      final favoritesJson = await CasheNetwork.getCasheData(key: _favoritesKey);
+      final favoritesJson = await CasheNetwork.getCasheDataAsync(key: _favoritesKey);
 
-      if (favoritesJson != null && favoritesJson.isNotEmpty) {
-        print(
-          '[UnitFavoriteBloc] Found cached data: ${favoritesJson.substring(0, 100)}...',
-        );
+      if (favoritesJson.isNotEmpty) {
+        print('[UnitFavoriteBloc] Found cached data');
         final List<dynamic> decoded = json.decode(favoritesJson);
         _favorites.clear();
         _favorites.addAll(decoded.map((json) => Unit.fromJson(json)).toList());
-        print(
-          '[UnitFavoriteBloc] Loaded ${_favorites.length} favorites from cache',
-        );
+        print('[UnitFavoriteBloc] Loaded ${_favorites.length} favorites from cache');
+
+        // Emit state immediately with cached data
+        emit(UnitFavoriteUpdated(List.from(_favorites)));
       } else {
         print('[UnitFavoriteBloc] No cached favorites found');
+        emit(UnitFavoriteUpdated([]));
       }
 
-      emit(UnitFavoriteUpdated(List.from(_favorites)));
+      // Then load from API in the background (non-blocking)
+      print('[UnitFavoriteBloc] Syncing favorites from API in background...');
+      _syncFromAPI(emit);
     } catch (e) {
       print('[UnitFavoriteBloc] Error loading favorites: $e');
       emit(UnitFavoriteError('Failed to load favorites: $e'));
+    }
+  }
+
+  // Sync from API in the background without blocking the UI
+  Future<void> _syncFromAPI(Emitter<UnitFavoriteState> emit) async {
+    try {
+      // Only sync if user is authenticated
+      if (token == null || token!.isEmpty) {
+        print('[UnitFavoriteBloc] No token - skipping API sync, using cache only');
+        return;
+      }
+
+      final response = await _favoritesApi.getFavorites();
+      print('[UnitFavoriteBloc] API sync response received');
+      print('[UnitFavoriteBloc] Full API response: $response');
+      print('[UnitFavoriteBloc] Response keys: ${response.keys.toList()}');
+
+      List<Unit> apiUnits = [];
+
+      // Handle different response structures
+      if (response['success'] == true || response['status'] == true) {
+        List<dynamic>? favoritesData;
+
+        // Try different response structures
+        if (response['data'] != null) {
+          // Structure: {"success": true, "data": {"favorites": [...]}}
+          final data = response['data'] as Map<String, dynamic>;
+          favoritesData = data['favorites'] as List<dynamic>?;
+          print('[UnitFavoriteBloc] Found favorites in response[data][favorites]');
+        } else if (response['favorites'] != null) {
+          // Structure: {"success": true, "favorites": [...]}
+          favoritesData = response['favorites'] as List<dynamic>?;
+          print('[UnitFavoriteBloc] Found favorites in response[favorites]');
+        }
+
+        if (favoritesData != null) {
+          print('[UnitFavoriteBloc] Total favorites from API: ${favoritesData.length}');
+
+          // Extract units from the favorites response
+          for (var fav in favoritesData) {
+            if (fav is Map<String, dynamic>) {
+              // Check if this is a unit favorite (unit_id is not null)
+              if (fav['unit_id'] != null && fav['unit'] != null) {
+                print('[UnitFavoriteBloc] Found unit favorite: ${fav['unit_id']}');
+                // Structure: {id, user_id, unit_id, unit: {...}}
+                apiUnits.add(Unit.fromJson(fav['unit'] as Map<String, dynamic>));
+              } else if (fav['compound_id'] != null) {
+                print('[UnitFavoriteBloc] Skipping compound favorite: ${fav['compound_id']}');
+              }
+            }
+          }
+        }
+
+        print('[UnitFavoriteBloc] Parsed ${apiUnits.length} favorites from API');
+
+        // Only update if API returned data OR if cache was empty
+        // This prevents wiping local favorites if API returns empty
+        if (apiUnits.isNotEmpty || _favorites.isEmpty) {
+          _favorites.clear();
+          _favorites.addAll(apiUnits);
+
+          print('[UnitFavoriteBloc] Synced ${_favorites.length} favorites from API');
+
+          // Cache the favorites locally for offline access
+          await _saveFavoritesToCache();
+
+          // Emit updated state with new data from API
+          emit(UnitFavoriteUpdated(List.from(_favorites)));
+        } else {
+          print('[UnitFavoriteBloc] API returned 0 items but cache has ${_favorites.length} - keeping cache');
+        }
+      } else {
+        print('[UnitFavoriteBloc] API returned no data or error - keeping cached data');
+      }
+    } catch (apiError) {
+      print('[UnitFavoriteBloc] API sync error: $apiError - using cached data');
     }
   }
 
@@ -65,24 +146,52 @@ class UnitFavoriteBloc extends Bloc<UnitFavoriteEvent, UnitFavoriteState> {
     Emitter<UnitFavoriteState> emit,
   ) async {
     try {
-      print('[UnitFavoriteBloc] Adding favorite unit: ${event.unit.id}');
+      print('');
+      print('═══════════════════════════════════════════════════════');
+      print('🔵 [UnitFavoriteBloc] ADD FAVORITE REQUEST');
+      print('═══════════════════════════════════════════════════════');
+      print('Unit ID: ${event.unit.id}');
+      print('Unit Type: ${event.unit.unitType}');
+      print('Unit Number: ${event.unit.unitNumber ?? "N/A"}');
+      print('Token available: ${token != null && token!.isNotEmpty}');
+      if (token != null && token!.isNotEmpty) {
+        print('Token: ${token!.substring(0, 20)}...');
+      }
+      print('═══════════════════════════════════════════════════════');
 
       // Check if already exists
-      if (!_favorites.any((u) => u.id == event.unit.id)) {
+      if (_favorites.any((u) => u.id == event.unit.id)) {
+        print('[UnitFavoriteBloc] ⚠️ Unit already in favorites');
+        return;
+      }
+
+      // Add to API
+      try {
+        final unitId = int.parse(event.unit.id!);
+        print('[UnitFavoriteBloc] 📡 Calling API with unit_id: $unitId');
+        final response = await _favoritesApi.addToFavorites(unitId);
+        print('[UnitFavoriteBloc] 📥 API add response: $response');
+
+        if (response['success'] == true) {
+          // Add to local list
+          _favorites.add(event.unit);
+          print('[UnitFavoriteBloc] ✅ Unit added to API and local. Total favorites: ${_favorites.length}');
+
+          // Save to cache
+          await _saveFavoritesToCache();
+
+          emit(UnitFavoriteUpdated(List.from(_favorites)));
+          print('[UnitFavoriteBloc] State emitted with ${_favorites.length} favorites');
+        } else {
+          throw Exception(response['message'] ?? 'Failed to add favorite');
+        }
+      } catch (apiError) {
+        print('[UnitFavoriteBloc] API error: $apiError');
+        // If API fails, still add locally
         _favorites.add(event.unit);
-        print(
-          '[UnitFavoriteBloc] Unit added. Total favorites: ${_favorites.length}',
-        );
-
-        await _saveFavorites();
-        print('[UnitFavoriteBloc] Favorites saved to cache');
-
+        await _saveFavoritesToCache();
         emit(UnitFavoriteUpdated(List.from(_favorites)));
-        print(
-          '[UnitFavoriteBloc] State emitted with ${_favorites.length} favorites',
-        );
-      } else {
-        print('[UnitFavoriteBloc] Unit already in favorites');
+        throw apiError;
       }
     } catch (e) {
       print('[UnitFavoriteBloc] Error adding favorite: $e');
@@ -95,17 +204,43 @@ class UnitFavoriteBloc extends Bloc<UnitFavoriteEvent, UnitFavoriteState> {
     Emitter<UnitFavoriteState> emit,
   ) async {
     try {
-      _favorites.removeWhere((u) => u.id == event.unit.id);
-      await _saveFavorites();
-      emit(UnitFavoriteUpdated(List.from(_favorites)));
+      print('[UnitFavoriteBloc] Removing favorite unit: ${event.unit.id}');
+
+      // Remove from API
+      try {
+        final unitId = int.parse(event.unit.id!);
+        final response = await _favoritesApi.removeFromFavorites(unitId);
+        print('[UnitFavoriteBloc] API remove response: $response');
+
+        if (response['success'] == true) {
+          // Remove from local list
+          _favorites.removeWhere((u) => u.id == event.unit.id);
+          print('[UnitFavoriteBloc] ✅ Unit removed from API and local. Total favorites: ${_favorites.length}');
+
+          // Save to cache
+          await _saveFavoritesToCache();
+
+          emit(UnitFavoriteUpdated(List.from(_favorites)));
+        } else {
+          throw Exception(response['message'] ?? 'Failed to remove favorite');
+        }
+      } catch (apiError) {
+        print('[UnitFavoriteBloc] API error: $apiError');
+        // If API fails, still remove locally
+        _favorites.removeWhere((u) => u.id == event.unit.id);
+        await _saveFavoritesToCache();
+        emit(UnitFavoriteUpdated(List.from(_favorites)));
+        throw apiError;
+      }
     } catch (e) {
+      print('[UnitFavoriteBloc] Error removing favorite: $e');
       emit(UnitFavoriteError('Failed to remove favorite: $e'));
     }
   }
 
-  Future<void> _saveFavorites() async {
+  Future<void> _saveFavoritesToCache() async {
     try {
-      print('[UnitFavoriteBloc] Saving ${_favorites.length} favorites...');
+      print('[UnitFavoriteBloc] Saving ${_favorites.length} favorites to cache...');
       final favoritesJson = json.encode(
         _favorites.map((u) => u.toJson()).toList(),
       );
@@ -114,9 +249,9 @@ class UnitFavoriteBloc extends Bloc<UnitFavoriteEvent, UnitFavoriteState> {
         key: _favoritesKey,
         value: favoritesJson,
       );
-      print('[UnitFavoriteBloc] Save completed successfully');
+      print('[UnitFavoriteBloc] Cache save completed successfully');
     } catch (e) {
-      print('[UnitFavoriteBloc] Error saving favorites: $e');
+      print('[UnitFavoriteBloc] Error saving favorites to cache: $e');
     }
   }
 

@@ -425,6 +425,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
       usageType: data?['usage_type']?.toString(),
       companyName: data?['company_name']?.toString(),
       companyLogo: data?['company_logo']?.toString(),
+      compoundName: data?['compound_name']?.toString(),
     );
 
     // Navigate to unit detail screen

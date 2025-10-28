@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../data/models/unit_model.dart';
 import '../../data/web_services/compound_web_services.dart';
 import '../../../sale/data/models/sale_model.dart';
+import '../../../sale/data/services/sale_web_services.dart';
 import '../../../sale/presentation/widgets/sales_person_selector.dart';
 import '../../../share/presentation/widgets/share_bottom_sheet.dart';
 import '../../../company/data/web_services/company_web_services.dart';
@@ -35,9 +36,12 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   Timer? _autoSlideTimer;
   final CompoundWebServices _compoundWebServices = CompoundWebServices();
   final CompanyWebServices _companyWebServices = CompanyWebServices();
+  final SaleWebServices _saleWebServices = SaleWebServices();
   late TabController _tabController;
   List<CompanyUser> _salesPeople = [];
   bool _isLoadingSalesPeople = false;
+  Sale? _unitSale;
+  bool _isLoadingSale = false;
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -51,6 +55,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     _tabController = TabController(length: 4, vsync: this);
     _startAutoSlide();
     _fetchSalesPeople();
+    _fetchUnitSale();
   }
 
   @override
@@ -182,6 +187,47 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         setState(() {
           _isLoadingSalesPeople = false;
         });
+      }
+    }
+  }
+
+  Future<void> _fetchUnitSale() async {
+    if (_isLoadingSale) return;
+
+    setState(() => _isLoadingSale = true);
+
+    try {
+      final response = await _saleWebServices.getSalesByUnit(widget.unit.id);
+
+      print('[UNIT DETAIL] Sale response for unit ${widget.unit.id}: $response');
+
+      if (response['success'] == true && response['sales'] != null) {
+        final sales = (response['sales'] as List)
+            .map((s) => Sale.fromJson(s as Map<String, dynamic>))
+            .toList();
+
+        // Filter for only currently active sales
+        final activeSales = sales.where((sale) => sale.isCurrentlyActive).toList();
+
+        if (activeSales.isNotEmpty && mounted) {
+          setState(() {
+            _unitSale = activeSales.first; // Take the first currently active sale
+            _isLoadingSale = false;
+          });
+        } else {
+          if (mounted) {
+            setState(() => _isLoadingSale = false);
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() => _isLoadingSale = false);
+        }
+      }
+    } catch (e) {
+      print('[UNIT DETAIL] Error fetching unit sale: $e');
+      if (mounted) {
+        setState(() => _isLoadingSale = false);
       }
     }
   }
@@ -344,6 +390,12 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                   _buildStatsRow(l10n),
                   SizedBox(height: 24),
 
+                  // Sale Section (if unit is on sale)
+                  if (_unitSale != null) ...[
+                    _buildSaleSection(_unitSale!, l10n),
+                    SizedBox(height: 24),
+                  ],
+
                   // Tab Navigation
                   _buildTabBar(l10n),
                   SizedBox(height: 16),
@@ -478,11 +530,45 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
             color: AppColors.grey,
           ),
         SizedBox(height: 12),
-        CustomText32(
-          'EGP ${_formatPrice(widget.unit.price)}',
-          bold: true,
-          color: AppColors.mainColor,
-        ),
+        // Show sale price if available
+        if (_unitSale != null) ...[
+          Text(
+            'EGP ${_formatPrice(widget.unit.price)}',
+            style: TextStyle(
+              fontSize: 18,
+              color: AppColors.grey,
+              decoration: TextDecoration.lineThrough,
+            ),
+          ),
+          SizedBox(height: 4),
+          Row(
+            children: [
+              CustomText32(
+                'EGP ${_formatPrice(_unitSale!.newPrice.toString())}',
+                bold: true,
+                color: AppColors.mainColor,
+              ),
+              SizedBox(width: 12),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: CustomText12(
+                  '${_unitSale!.discountPercentage.toStringAsFixed(0)}% OFF',
+                  bold: true,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ] else
+          CustomText32(
+            'EGP ${_formatPrice(widget.unit.price)}',
+            bold: true,
+            color: AppColors.mainColor,
+          ),
         CustomText14(
           'EGP ${_calculatePricePerSqm()} ${l10n.perSqm}',
           color: AppColors.grey,
@@ -697,6 +783,161 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   // Sales People Section
+  Widget _buildSaleSection(Sale sale, AppLocalizations l10n) {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFFFF6B6B).withOpacity(0.15),
+            Color(0xFFFFE66D).withOpacity(0.15),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Color(0xFFFF6B6B), width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Color(0xFFFF6B6B),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.local_offer, size: 14, color: Colors.white),
+                    SizedBox(width: 6),
+                    CustomText12(
+                      'SALE',
+                      bold: true,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 12),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: CustomText12(
+                  '${sale.discountPercentage.toStringAsFixed(0)}% OFF',
+                  bold: true,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          CustomText20(
+            sale.saleName,
+            bold: true,
+            color: Color(0xFF333333),
+          ),
+          SizedBox(height: 8),
+          CustomText14(
+            sale.description,
+            color: Color(0xFF666666),
+          ),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              // Old Price
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomText12(
+                      'Original Price',
+                      color: Color(0xFF999999),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'EGP ${_formatPrice(sale.oldPrice.toString())}',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF999999),
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // New Price
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomText12(
+                      'Sale Price',
+                      color: AppColors.mainColor,
+                    ),
+                    SizedBox(height: 4),
+                    CustomText20(
+                      'EGP ${_formatPrice(sale.newPrice.toString())}',
+                      bold: true,
+                      color: AppColors.mainColor,
+                    ),
+                  ],
+                ),
+              ),
+              // Savings
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomText12(
+                      'You Save',
+                      color: Colors.green,
+                    ),
+                    SizedBox(height: 4),
+                    CustomText18(
+                      'EGP ${_formatPrice(sale.savings.toString())}',
+                      bold: true,
+                      color: Colors.green,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (sale.daysRemaining > 0) ...[
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.access_time, size: 16, color: Colors.orange),
+                  SizedBox(width: 8),
+                  CustomText14(
+                    '${sale.daysRemaining.toInt()} days remaining',
+                    bold: true,
+                    color: Colors.orange.shade800,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildSalesPeopleSection(AppLocalizations l10n) {
     if (_isLoadingSalesPeople) {
       return Container(

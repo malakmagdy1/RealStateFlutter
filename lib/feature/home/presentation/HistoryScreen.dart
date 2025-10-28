@@ -134,6 +134,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
+  String _formatPrice(String? price) {
+    if (price == null || price.isEmpty || price == '0') {
+      return 'Contact for Price';
+    }
+    try {
+      final numPrice = double.parse(price);
+      if (numPrice == 0) {
+        return 'Contact for Price';
+      }
+      if (numPrice >= 1000000) {
+        return '${(numPrice / 1000000).toStringAsFixed(2)}M EGP';
+      } else if (numPrice >= 1000) {
+        return '${(numPrice / 1000).toStringAsFixed(0)}K EGP';
+      }
+      return '${numPrice.toStringAsFixed(0)} EGP';
+    } catch (e) {
+      return 'Contact for Price';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -464,7 +484,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               top: 8,
               right: 8,
               child: GestureDetector(
-                onTap: () => _removeItem({'itemType': 'compound', 'id': compound.id}),
+                onTap: () => _removeItem({'itemType': 'compound', 'id': int.tryParse(compound.id.toString()) ?? 0}),
                 child: Container(
                   padding: EdgeInsets.all(4),
                   decoration: BoxDecoration(
@@ -669,7 +689,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         SizedBox(height: 4),
                         // Price
                         Text(
-                          'EGP ${unit.price}',
+                          _formatPrice(unit.price),
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -700,7 +720,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
               top: 8,
               right: 8,
               child: GestureDetector(
-                onTap: () => _removeItem({'itemType': 'unit', 'id': unit.id}),
+                onTap: () => _removeItem({'itemType': 'unit', 'id': int.tryParse(unit.id.toString()) ?? 0}),
                 child: Container(
                   padding: EdgeInsets.all(4),
                   decoration: BoxDecoration(

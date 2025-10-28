@@ -15,6 +15,10 @@ import '../models/update_name_response.dart';
 import '../models/update_phone_request.dart';
 import '../models/update_phone_response.dart';
 import '../models/user_model.dart';
+import '../models/verify_email_request.dart';
+import '../models/verify_email_response.dart';
+import '../models/resend_verification_request.dart';
+import '../models/resend_verification_response.dart';
 
 class AuthWebServices {
   late Dio dio;
@@ -156,6 +160,7 @@ class AuthWebServices {
     required String email,
     required String name,
     String? photoUrl,
+    required String idToken,
   }) async {
     try {
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
@@ -163,6 +168,7 @@ class AuthWebServices {
       print('Google ID: $googleId');
       print('Email: $email');
       print('Name: $name');
+      print('ID Token length: ${idToken.length}');
 
       // Use /login endpoint with login_method: google
       Response response = await dio.post('/login', data: {
@@ -172,6 +178,7 @@ class AuthWebServices {
         'google_id': googleId,
         'name': name,
         'photo_url': photoUrl,
+        'id_token': idToken, // Send ID token for backend verification
       });
 
       print('Google Login Response: ${response.data.toString()}');
@@ -205,17 +212,90 @@ class AuthWebServices {
     }
   }
 
-  Future<Map<String, dynamic>> verifyEmail(String token) async {
+  Future<VerifyEmailResponse> verifyEmailCode(VerifyEmailRequest request) async {
     try {
-      Response response = await dio.get('verify.php', queryParameters: {'token': token});
-      print('Verify Email Response: ${response.data.toString()}');
-      return response.data;
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('[API] Verifying email with code');
+      print('[API] Email: ${request.email}');
+      print('[API] Code: ${request.code}');
+
+      Response response = await dio.post('/verify-email', data: request.toJson());
+
+      print('[API] Verify Email Response Status: ${response.statusCode}');
+      print('[API] Verify Email Response: ${response.data.toString()}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      if (response.data is Map<String, dynamic>) {
+        return VerifyEmailResponse.fromJson(response.data);
+      } else {
+        throw Exception('Invalid response format');
+      }
     } on DioException catch (e) {
-      print('Verify Email DioException: ${e.toString()}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('[API] Verify Email DioException: ${e.toString()}');
+      print('[API] Status Code: ${e.response?.statusCode}');
+      print('[API] Response Data: ${e.response?.data}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      // Handle verification-specific errors
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+
+        // Return error response for handling in UI
+        return VerifyEmailResponse.fromJson(errorData);
+      }
       throw _handleError(e);
     } catch (e) {
-      print('Verify Email Error: ${e.toString()}');
-      throw Exception('Unexpected error occurred: $e');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('[API] Verify Email Error: ${e.toString()}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      throw Exception('Email verification failed: $e');
+    }
+  }
+
+  Future<ResendVerificationResponse> resendVerificationCode(
+      ResendVerificationRequest request) async {
+    try {
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('[API] Resending verification code');
+      print('[API] Email: ${request.email}');
+
+      Response response = await dio.post(
+        '/resend-verification-code',
+        data: request.toJson(),
+      );
+
+      print('[API] Resend Code Response Status: ${response.statusCode}');
+      print('[API] Resend Code Response: ${response.data.toString()}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      if (response.data is Map<String, dynamic>) {
+        return ResendVerificationResponse.fromJson(response.data);
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('[API] Resend Code DioException: ${e.toString()}');
+      print('[API] Status Code: ${e.response?.statusCode}');
+      print('[API] Response Data: ${e.response?.data}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('[API] Resend Code Error: ${e.toString()}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      throw Exception('Resend verification code failed: $e');
     }
   }
 

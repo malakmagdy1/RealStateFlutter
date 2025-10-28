@@ -85,7 +85,12 @@ class SearchRepository {
         '$baseUrl/search',
       ).replace(queryParameters: queryParams);
 
+      print('===========================================');
       print('[SEARCH] Fetching: $uri');
+      print('[SEARCH] Query: "$query"');
+      print('[SEARCH] Type: $type');
+      print('[SEARCH] Has Filter: ${filter != null}');
+      print('===========================================');
 
       // Make API request
       final response = await http

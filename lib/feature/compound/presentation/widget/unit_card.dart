@@ -10,10 +10,36 @@ import 'package:real/feature/compound/data/web_services/compound_web_services.da
 import 'package:real/feature/sale/data/models/sale_model.dart';
 import 'package:real/feature/sale/presentation/widgets/sales_person_selector.dart';
 
-class UnitCard extends StatelessWidget {
+class UnitCard extends StatefulWidget {
   final Unit unit;
 
   UnitCard({Key? key, required this.unit}) : super(key: key);
+
+  @override
+  State<UnitCard> createState() => _UnitCardState();
+}
+
+class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin {
+  late AnimationController _scaleController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleController = AnimationController(
+      duration: Duration(milliseconds: 200),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
 
   String _formatPrice(String? price) {
     if (price == null || price.isEmpty || price == '0') {
@@ -47,7 +73,7 @@ class UnitCard extends StatelessWidget {
   }
 
   Color _getStatusColor() {
-    final status = unit.status?.toLowerCase() ?? '';
+    final status = widget.unit.status?.toLowerCase() ?? '';
     switch (status) {
       case 'available':
         return Colors.green;
@@ -68,7 +94,7 @@ class UnitCard extends StatelessWidget {
 
     try {
       // Use compound ID as the search parameter since we don't have compound name in Unit model
-      final response = await compoundWebServices.getSalespeopleByCompound(unit.compoundId);
+      final response = await compoundWebServices.getSalespeopleByCompound(widget.unit.compoundId);
 
       if (response['success'] == true && response['salespeople'] != null) {
         final salespeople = (response['salespeople'] as List)
@@ -104,27 +130,48 @@ class UnitCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final hasImages = unit.images.isNotEmpty;
+    final hasImages = widget.unit.images.isNotEmpty;
 
     // Default values if data is missing - use reasonable defaults without hardcoded data
-    final companyName = unit.companyName?.isNotEmpty == true ? unit.companyName! : '';
-    final companyLogo = unit.companyLogo?.isNotEmpty == true ? unit.companyLogo! : '';
-    final unitType = (unit.usageType ?? unit.unitType ?? 'Unit').toUpperCase();
-    final unitNumber = unit.unitNumber ?? 'N/A';
-    final area = unit.area ?? '0';
-    final price = unit.price ?? '0';
-    final finishing = unit.finishing ?? 'N/A';
-    final status = unit.status ?? 'available';
-    final deliveryDate = unit.deliveryDate ?? '';
+    final compoundName = widget.unit.compoundName?.isNotEmpty == true ? widget.unit.compoundName! : (widget.unit.companyName?.isNotEmpty == true ? widget.unit.companyName! : '');
+    final companyLogo = widget.unit.companyLogo?.isNotEmpty == true ? widget.unit.companyLogo! : '';
+    final unitType = (widget.unit.usageType ?? widget.unit.unitType ?? 'Unit').toUpperCase();
+    final unitNumber = widget.unit.unitNumber ?? 'N/A';
+    final area = widget.unit.area ?? '0';
+    final price = widget.unit.price ?? '0';
+    final finishing = widget.unit.finishing ?? 'N/A';
+    final status = widget.unit.status ?? 'available';
+    final deliveryDate = widget.unit.deliveryDate ?? '';
 
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => UnitDetailScreen(unit: unit)),
-        );
-      },
-      child: Container(
+    // Hide sold units completely
+    if (status.toLowerCase() == 'sold') {
+      return SizedBox.shrink();
+    }
+
+    return ScaleTransition(
+      scale: _scaleAnimation,
+      child: InkWell(
+        onTap: () {
+          // Prevent navigation if unit is sold
+          if (status.toLowerCase() == 'sold') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('This unit is not available'),
+                backgroundColor: Colors.red,
+              ),
+            );
+            return;
+          }
+          _scaleController.forward().then((_) => _scaleController.reverse());
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => UnitDetailScreen(unit: widget.unit)),
+          );
+        },
+        onTapDown: (_) => _scaleController.forward(),
+        onTapUp: (_) => _scaleController.reverse(),
+        onTapCancel: () => _scaleController.reverse(),
+        child: Container(
         margin: EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
           color: AppColors.white,
@@ -148,7 +195,7 @@ class UnitCard extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                     child: RobustNetworkImage(
-                      imageUrl: unit.images.first,
+                      imageUrl: widget.unit.images.first,
                       width: double.infinity,
                       height: 200,
                       fit: BoxFit.cover,
@@ -180,30 +227,25 @@ class UnitCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _companyInfo(companyLogo, companyName, unitType, unitNumber),
+                  _companyInfo(companyLogo, compoundName, unitType, unitNumber),
                   SizedBox(height: 14),
                   Divider(thickness: 0.5, color: AppColors.greyText),
                   SizedBox(height: 12),
 
                   // ---------- INFO CHIPS ----------
-                  ConstrainedBox(
-                    constraints: BoxConstraints(maxHeight: 150),
-                    child: SingleChildScrollView(
-                      child: Wrap(
-                        spacing: 10,
-                        runSpacing: 10,
-                        children: [
-                          if (area != '0' && area.isNotEmpty)
-                            _infoChip(Icons.square_foot, '$area ${l10n.sqm}'),
-                          if ((unit.bedrooms ?? '0') != '0' && (unit.bedrooms ?? '').isNotEmpty)
-                            _infoChip(Icons.bed, '${unit.bedrooms} ${l10n.beds}'),
-                          if ((unit.bathrooms ?? '0') != '0' && (unit.bathrooms ?? '').isNotEmpty)
-                            _infoChip(Icons.bathtub_outlined, '${unit.bathrooms} ${l10n.baths}'),
-                          if ((unit.view ?? '').isNotEmpty)
-                            _infoChip(Icons.landscape, unit.view!),
-                        ],
-                      ),
-                    ),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      if (area != '0' && area.isNotEmpty)
+                        _infoChip(Icons.square_foot, '$area ${l10n.sqm}'),
+                      if ((widget.unit.bedrooms ?? '0') != '0' && (widget.unit.bedrooms ?? '').isNotEmpty)
+                        _infoChip(Icons.bed, '${widget.unit.bedrooms} ${l10n.beds}'),
+                      if ((widget.unit.bathrooms ?? '0') != '0' && (widget.unit.bathrooms ?? '').isNotEmpty)
+                        _infoChip(Icons.bathtub_outlined, '${widget.unit.bathrooms} ${l10n.baths}'),
+                      if ((widget.unit.view ?? '').isNotEmpty && widget.unit.view!.length < 20)
+                        _infoChip(Icons.landscape, widget.unit.view!),
+                    ],
                   ),
 
                   SizedBox(height: 16),
@@ -247,6 +289,7 @@ class UnitCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
         ),
       ),
     );
@@ -406,7 +449,14 @@ class UnitCard extends StatelessWidget {
       children: [
         Icon(icon, size: 16, color: AppColors.mainColor),
         SizedBox(width: 6),
-        CustomText16(label, color: AppColors.black),
+        Flexible(
+          child: CustomText16(
+            label,
+            color: AppColors.black,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
       ],
     ),
   );
@@ -422,7 +472,7 @@ class UnitCard extends StatelessWidget {
           backgroundColor: Colors.transparent,
           builder: (context) => ShareBottomSheet(
             type: 'unit',
-            id: unit.id,
+            id: widget.unit.id,
           ),
         );
       },

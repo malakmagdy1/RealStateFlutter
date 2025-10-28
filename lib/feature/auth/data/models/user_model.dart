@@ -29,6 +29,7 @@ class UserModel {
   final String role;
   final String password;
   final bool isVerified;
+  final bool isBanned;
   final String? companyId;
   final UserStats? stats;
 
@@ -40,6 +41,7 @@ class UserModel {
     required this.role,
     required this.password,
     this.isVerified = false,
+    this.isBanned = false,
     this.companyId,
     this.stats,
   });
@@ -60,6 +62,11 @@ class UserModel {
           json['is_verified'] == 1 ||
           json['is_verified'] == '1' ||
           json['is_verified'] == 'true',
+      isBanned:
+          json['is_banned'] == true ||
+          json['is_banned'] == 1 ||
+          json['is_banned'] == '1' ||
+          json['is_banned'] == 'true',
       stats: json['stats'] != null ? UserStats.fromJson(json['stats']) : null,
     );
   }
@@ -73,6 +80,7 @@ class UserModel {
       'phone': phone,
       'role': role,
       'is_verified': isVerified,
+      'is_banned': isBanned,
       if (companyId != null) 'company_id': companyId,
       if (stats != null) 'stats': stats!.toJson(),
     };
@@ -80,6 +88,6 @@ class UserModel {
 
   @override
   String toString() {
-    return 'UserModel{id: $id, name: $name, email: $email, phone: $phone, role: $role, isVerified: $isVerified, companyId: $companyId}';
+    return 'UserModel{id: $id, name: $name, email: $email, phone: $phone, role: $role, isVerified: $isVerified, isBanned: $isBanned, companyId: $companyId}';
   }
 }

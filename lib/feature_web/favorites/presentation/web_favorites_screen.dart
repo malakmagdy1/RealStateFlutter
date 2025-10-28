@@ -3,7 +3,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_state.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_state.dart';
 import '../../../feature_web/widgets/web_compound_card.dart';
+import '../../../feature_web/widgets/web_unit_card.dart';
 
 class WebFavoritesScreen extends StatelessWidget {
   WebFavoritesScreen({Key? key}) : super(key: key);
@@ -50,37 +53,87 @@ class WebFavoritesScreen extends StatelessWidget {
                 SizedBox(height: 48),
                 Expanded(
                   child: BlocBuilder<CompoundFavoriteBloc, CompoundFavoriteState>(
-                    builder: (context, state) {
-                      if (state is CompoundFavoriteUpdated) {
-                        if (state.favorites.isEmpty) {
-                          return _buildEmptyState();
-                        }
-                        return GridView.builder(
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 4,
-                            childAspectRatio: 1.1,
-                            crossAxisSpacing: 20,
-                            mainAxisSpacing: 20,
-                          ),
-                          itemCount: state.favorites.length,
-                          itemBuilder: (context, index) {
-                            return WebCompoundCard(
-                              compound: state.favorites[index],
-                            );
-                          },
-                        );
-                      } else if (state is CompoundFavoriteError) {
-                        return Center(
-                          child: Text(
-                            state.message,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.red,
+                    builder: (context, compoundState) {
+                      return BlocBuilder<UnitFavoriteBloc, UnitFavoriteState>(
+                        builder: (context, unitState) {
+                          final compoundFavorites = compoundState is CompoundFavoriteUpdated
+                              ? compoundState.favorites
+                              : [];
+                          final unitFavorites = unitState is UnitFavoriteUpdated
+                              ? unitState.favorites
+                              : [];
+
+                          // Check if both are empty
+                          if (compoundFavorites.isEmpty && unitFavorites.isEmpty) {
+                            return _buildEmptyState();
+                          }
+
+                          return SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Display Unit Favorites
+                                if (unitFavorites.isNotEmpty) ...[
+                                  Text(
+                                    'Favorite Properties (${unitFavorites.length})',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF333333),
+                                    ),
+                                  ),
+                                  SizedBox(height: 20),
+                                  GridView.builder(
+                                    shrinkWrap: true,
+                                    physics: NeverScrollableScrollPhysics(),
+                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 4,
+                                      childAspectRatio: 0.75,
+                                      crossAxisSpacing: 20,
+                                      mainAxisSpacing: 20,
+                                    ),
+                                    itemCount: unitFavorites.length,
+                                    itemBuilder: (context, index) {
+                                      return WebUnitCard(
+                                        unit: unitFavorites[index],
+                                      );
+                                    },
+                                  ),
+                                  SizedBox(height: 40),
+                                ],
+                                // Display Compound Favorites
+                                if (compoundFavorites.isNotEmpty) ...[
+                                  Text(
+                                    'Favorite Compounds (${compoundFavorites.length})',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF333333),
+                                    ),
+                                  ),
+                                  SizedBox(height: 20),
+                                  GridView.builder(
+                                    shrinkWrap: true,
+                                    physics: NeverScrollableScrollPhysics(),
+                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 4,
+                                      childAspectRatio: 0.75,
+                                      crossAxisSpacing: 20,
+                                      mainAxisSpacing: 20,
+                                    ),
+                                    itemCount: compoundFavorites.length,
+                                    itemBuilder: (context, index) {
+                                      return WebCompoundCard(
+                                        compound: compoundFavorites[index],
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ],
                             ),
-                          ),
-                        );
-                      }
-                      return _buildEmptyState();
+                          );
+                        },
+                      );
                     },
                   ),
                 ),

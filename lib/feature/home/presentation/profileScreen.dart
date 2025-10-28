@@ -29,7 +29,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
-  bool _isPersonalInfoExpanded = true;
+  bool _isPersonalInfoExpanded = false;
   bool _isSecurityExpanded = false;
   bool _isPreferencesExpanded = false;
 
@@ -192,7 +192,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           title: Text(
             'Profile & Settings',
             style: TextStyle(
-              color: Colors.black,
+              color: AppColors.mainColor,
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
@@ -206,6 +206,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Profile Section
               Container(
                 padding: EdgeInsets.symmetric(vertical: screenHeight * 0.03),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppColors.mainColor.withOpacity(0.05),
+                      Colors.white,
+                    ],
+                  ),
+                ),
                 child: Center(
                   child: Column(
                     children: [
@@ -215,17 +225,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             width: screenWidth * 0.28,
                             height: screenWidth * 0.28,
                             decoration: BoxDecoration(
-                              color: Color(0xFFFFF4E6),
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.mainColor.withOpacity(0.2),
+                                  AppColors.mainColor.withOpacity(0.1),
+                                ],
+                              ),
                               borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppColors.mainColor.withOpacity(0.3),
+                                width: 2,
+                              ),
                             ),
                             child: _imageFile == null
                                 ? Icon(
-                                    Icons.description_outlined,
+                                    Icons.person,
                                     size: screenWidth * 0.12,
-                                    color: Color(0xFFFFB74D),
+                                    color: AppColors.mainColor,
                                   )
                                 : ClipRRect(
-                                    borderRadius: BorderRadius.circular(20),
+                                    borderRadius: BorderRadius.circular(18),
                                     child: Image.file(
                                       _imageFile!,
                                       fit: BoxFit.cover,
@@ -240,15 +259,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               child: Container(
                                 padding: EdgeInsets.all(8),
                                 decoration: BoxDecoration(
-                                  color: Colors.blue,
+                                  color: AppColors.mainColor,
                                   shape: BoxShape.circle,
                                   border: Border.all(
                                     color: Colors.white,
                                     width: 3,
                                   ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.mainColor.withOpacity(0.3),
+                                      blurRadius: 8,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
                                 ),
                                 child: Icon(
-                                  Icons.edit,
+                                  Icons.camera_alt,
                                   size: 16,
                                   color: Colors.white,
                                 ),
@@ -315,14 +341,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // Personal Information Section
               ExpansionTile(
+                leading: Icon(Icons.person_outline, color: AppColors.mainColor),
                 title: Text(
                   l10n.personalInformation,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                    color: AppColors.mainColor,
                   ),
                 ),
+                iconColor: AppColors.mainColor,
+                collapsedIconColor: AppColors.mainColor,
                 initiallyExpanded: _isPersonalInfoExpanded,
                 onExpansionChanged: (expanded) {
                   setState(() {
@@ -331,17 +360,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
                 children: [
                   ListTile(
-                    leading: Icon(Icons.person_outline, color: Colors.black87),
+                    leading: Icon(Icons.person_outline, color: AppColors.mainColor.withOpacity(0.7)),
                     title: Text(l10n.editName),
-                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mainColor),
                     onTap: () {
                       Navigator.pushNamed(context, EditNameScreen.routeName);
                     },
                   ),
                   ListTile(
-                    leading: Icon(Icons.phone_outlined, color: Colors.black87),
+                    leading: Icon(Icons.phone_outlined, color: AppColors.mainColor.withOpacity(0.7)),
                     title: Text('Edit Phone Number'),
-                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mainColor),
                     onTap: () {
                       Navigator.pushNamed(context, EditPhoneScreen.routeName);
                     },
@@ -353,14 +382,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // Security Section
               ExpansionTile(
+                leading: Icon(Icons.security_outlined, color: AppColors.mainColor),
                 title: Text(
                   l10n.security,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                    color: AppColors.mainColor,
                   ),
                 ),
+                iconColor: AppColors.mainColor,
+                collapsedIconColor: AppColors.mainColor,
                 initiallyExpanded: _isSecurityExpanded,
                 onExpansionChanged: (expanded) {
                   setState(() {
@@ -369,9 +401,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
                 children: [
                   ListTile(
-                    leading: Icon(Icons.lock_outline, color: Colors.black87),
+                    leading: Icon(Icons.lock_outline, color: AppColors.mainColor.withOpacity(0.7)),
                     title: Text(l10n.changePassword),
-                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mainColor),
                     onTap: () {
                       Navigator.pushNamed(
                         context,
@@ -386,14 +418,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               // Preferences Section
               ExpansionTile(
+                leading: Icon(Icons.settings_outlined, color: AppColors.mainColor),
                 title: Text(
                   l10n.preferences,
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black,
+                    color: AppColors.mainColor,
                   ),
                 ),
+                iconColor: AppColors.mainColor,
+                collapsedIconColor: AppColors.mainColor,
                 initiallyExpanded: _isPreferencesExpanded,
                 onExpansionChanged: (expanded) {
                   setState(() {
@@ -402,10 +437,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
                 children: [
                   ListTile(
-                    leading: Icon(Icons.brightness_6_outlined, color: Colors.black87),
+                    leading: Icon(Icons.brightness_6_outlined, color: AppColors.mainColor.withOpacity(0.7)),
                     title: Text(l10n.theme),
                     subtitle: Text(l10n.light),
-                    trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                    trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mainColor),
                     onTap: () {
                       // TODO: Navigate to theme settings
                     },
@@ -413,10 +448,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   BlocBuilder<LocaleCubit, Locale>(
                     builder: (context, locale) {
                       return ListTile(
-                        leading: Icon(Icons.language_outlined, color: Colors.black87),
+                        leading: Icon(Icons.language_outlined, color: AppColors.mainColor.withOpacity(0.7)),
                         title: Text(l10n.language),
                         subtitle: Text(locale.languageCode == 'en' ? 'English' : 'العربية'),
-                        trailing: Icon(Icons.arrow_forward_ios, size: 16),
+                        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mainColor),
                         onTap: () => _showLanguageDialog(context),
                       );
                     },

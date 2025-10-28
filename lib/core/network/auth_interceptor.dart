@@ -16,12 +16,14 @@ class AuthInterceptor extends Interceptor {
     if (err.response?.statusCode == 401) {
       print('[AuthInterceptor] 401 Unauthorized - Token expired or invalid');
 
-      // Clear the token from cache and global variable
+      // Clear the token and userId from cache and global variables
       await CasheNetwork.deletecasheItem(key: "token");
+      await CasheNetwork.deletecasheItem(key: "user_id");
       token = '';
+      userId = '';
 
       print(
-        '[AuthInterceptor] Token cleared - Notifying app to redirect to login',
+        '[AuthInterceptor] Token and User ID cleared - Notifying app to redirect to login',
       );
 
       // Notify the app about token expiration

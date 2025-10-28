@@ -259,8 +259,20 @@ class UnitSearchData extends Equatable {
   final bool isSold;
   final String status;
   final String? numberOfBeds;
+  final String? numberOfBaths;
+  final String? area;
+  final String? floor;
   final CompoundInfo compound;
   final List<String> images;
+  // New fields from updated API
+  final String? unitName;
+  final String? unitCode;
+  final String? originalPrice;
+  final String? normalPrice;
+  final String? discountedPrice;
+  final String? discountPercentage;
+  final bool hasActiveSale;
+  final dynamic sale;
 
   UnitSearchData({
     required this.id,
@@ -274,8 +286,19 @@ class UnitSearchData extends Equatable {
     required this.isSold,
     required this.status,
     this.numberOfBeds,
+    this.numberOfBaths,
+    this.area,
+    this.floor,
     required this.compound,
     required this.images,
+    this.unitName,
+    this.unitCode,
+    this.originalPrice,
+    this.normalPrice,
+    this.discountedPrice,
+    this.discountPercentage,
+    this.hasActiveSale = false,
+    this.sale,
   });
 
   factory UnitSearchData.fromJson(Map<String, dynamic> json) {
@@ -293,13 +316,24 @@ class UnitSearchData extends Equatable {
       unitType: json['unit_type']?.toString() ?? '',
       usageType: json['usage_type']?.toString() ?? '',
       price: json['price']?.toString(),
-      totalPrice: json['total_price']?.toString() ?? '0',
+      totalPrice: json['total_price']?.toString() ?? json['total_pricing']?.toString() ?? json['price']?.toString() ?? '0',
       available: json['available'] == true || json['available']?.toString() == '1',
       isSold: json['is_sold'] == true || json['is_sold']?.toString() == '1',
       status: json['status']?.toString() ?? '',
-      numberOfBeds: json['number_of_beds']?.toString(),
+      numberOfBeds: json['number_of_beds']?.toString() ?? json['bedrooms']?.toString(),
+      numberOfBaths: json['number_of_baths']?.toString() ?? json['bathrooms']?.toString(),
+      area: json['area']?.toString() ?? json['total_area']?.toString() ?? json['built_up_area']?.toString(),
+      floor: json['floor']?.toString() ?? json['floor_number']?.toString(),
       compound: CompoundInfo.fromJson(json['compound'] ?? {}),
       images: imagesList,
+      unitName: json['unit_name']?.toString(),
+      unitCode: json['unit_code']?.toString(),
+      originalPrice: json['original_price']?.toString(),
+      normalPrice: json['normal_price']?.toString(),
+      discountedPrice: json['discounted_price']?.toString(),
+      discountPercentage: json['discount_percentage']?.toString(),
+      hasActiveSale: json['has_active_sale'] == true || json['has_active_sale']?.toString() == '1' || json['has_active_sale']?.toString() == 'true',
+      sale: json['sale'],
     );
   }
 
@@ -344,8 +378,19 @@ class UnitSearchData extends Equatable {
         isSold,
         status,
         numberOfBeds,
+        numberOfBaths,
+        area,
+        floor,
         compound,
         images,
+        unitName,
+        unitCode,
+        originalPrice,
+        normalPrice,
+        discountedPrice,
+        discountPercentage,
+        hasActiveSale,
+        sale,
       ];
 }
 
@@ -410,23 +455,33 @@ class CompoundInfo extends Equatable {
   final String name;
   final String location;
   final CompanyInfo company;
+  final List<String> images;
 
   CompoundInfo({
     required this.id,
     required this.name,
     required this.location,
     required this.company,
+    this.images = const [],
   });
 
   factory CompoundInfo.fromJson(Map<String, dynamic> json) {
+    List<String> imagesList = [];
+    if (json['images'] != null && json['images'] is List) {
+      imagesList = (json['images'] as List)
+          .map((img) => CompoundSearchData._fixImageUrl(img.toString()))
+          .toList();
+    }
+
     return CompoundInfo(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       location: json['location']?.toString() ?? '',
       company: CompanyInfo.fromJson(json['company'] ?? {}),
+      images: imagesList,
     );
   }
 
   @override
-  List<Object?> get props => [id, name, location, company];
+  List<Object?> get props => [id, name, location, company, images];
 }

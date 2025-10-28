@@ -36,12 +36,14 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         );
       }
 
-      // IMPORTANT: Update global token variable
+      // IMPORTANT: Update global token and userId variables
       token = response.token ?? '';
+      userId = response.user.id?.toString() ?? '';
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-      print('[LoginBloc] Token saved to cache AND global variable');
+      print('[LoginBloc] Token and User ID saved to cache AND global variables');
       print('[LoginBloc] Token: $token');
       print('[LoginBloc] User ID: ${response.user.id}');
+      print('[LoginBloc] Global userId: $userId');
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
       // ⭐ SEND FCM TOKEN TO BACKEND AFTER SUCCESSFUL LOGIN
@@ -71,10 +73,11 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
       final response = await _repository.logout();
 
-      // Clear token and user_id from cache and global variable
+      // Clear token and user_id from cache and global variables
       await CasheNetwork.deletecasheItem(key: "token");
       await CasheNetwork.deletecasheItem(key: "user_id");
       token = '';
+      userId = '';
 
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
       print('[LoginBloc] Logout successful - Token, User ID, and FCM token cleared');
@@ -95,10 +98,11 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         // Clear FCM token even on error
         await FCMService().clearToken();
 
-        // Clear token and user_id from cache and global variable
+        // Clear token and user_id from cache and global variables
         await CasheNetwork.deletecasheItem(key: "token");
         await CasheNetwork.deletecasheItem(key: "user_id");
         token = '';
+        userId = '';
 
         print('[LoginBloc] Token was invalid/expired - Cleared local token, user ID, and FCM token');
         emit(LogoutSuccess('Logged out successfully'));
@@ -108,6 +112,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         await CasheNetwork.deletecasheItem(key: "token");
         await CasheNetwork.deletecasheItem(key: "user_id");
         token = '';
+        userId = '';
         emit(LogoutError(e.toString().replaceAll('Exception: ', '')));
       }
     }

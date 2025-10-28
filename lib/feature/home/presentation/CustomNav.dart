@@ -8,6 +8,7 @@ import 'package:real/feature/auth/presentation/bloc/login_state.dart';
 import 'package:real/feature/auth/presentation/bloc/user_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/user_state.dart';
 import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
+import 'package:real/feature/auth/presentation/screen/blocked_user_screen.dart';
 import 'package:real/feature/home/presentation/profileScreen.dart';
 
 import '../../../core/utils/text_style.dart';
@@ -69,24 +70,64 @@ class _CustomNavState extends State<CustomNav> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    return BlocListener<LoginBloc, LoginState>(
-      listener: (context, state) {
-        if (state is LogoutSuccess) {
-          Navigator.of(
-            context,
-          ).pushNamedAndRemoveUntil(LoginScreen.routeName, (route) => false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.green,
-            ),
-          );
-        } else if (state is LogoutError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
-        }
-      },
+    return MultiBlocListener(
+      listeners: [
+        // Listen to logout events
+        BlocListener<LoginBloc, LoginState>(
+          listener: (context, state) {
+            if (state is LogoutSuccess) {
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil(LoginScreen.routeName, (route) => false);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(state.message),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            } else if (state is LogoutError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.message), backgroundColor: Colors.red),
+              );
+            }
+          },
+        ),
+        // Listen to user status changes to check if banned or not verified
+        BlocListener<UserBloc, UserState>(
+          listener: (context, state) {
+            if (state is UserSuccess) {
+              // Check if user is banned
+              if (state.user.isBanned) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => BlockedUserScreen(
+                      reason: 'Account Banned',
+                      message: 'Your account has been banned. Please contact support for more information.',
+                      icon: Icons.block,
+                      iconColor: Colors.red,
+                    ),
+                  ),
+                  (route) => false,
+                );
+              }
+              // Check if user is not verified
+              else if (!state.user.isVerified) {
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => BlockedUserScreen(
+                      reason: 'Account Not Verified',
+                      message: 'Your account is not verified yet. Please check your email or contact support to verify your account.',
+                      icon: Icons.email_outlined,
+                      iconColor: Colors.orange,
+                    ),
+                  ),
+                  (route) => false,
+                );
+              }
+            }
+          },
+        ),
+      ],
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.white,
@@ -178,7 +219,12 @@ class _CustomNavState extends State<CustomNav> {
                     CustomText16("home", color: AppColors.mainColor),
                   ],
                 ),
-                onTap: () {},
+                onTap: () {
+                  Navigator.of(context).pop(); // Close drawer
+                  setState(() {
+                    _selectedIndex = 0;
+                  });
+                },
               ),
               ListTile(
                 title: Row(
@@ -192,7 +238,12 @@ class _CustomNavState extends State<CustomNav> {
                     CustomText16("profile", color: AppColors.mainColor),
                   ],
                 ),
-                onTap: () {},
+                onTap: () {
+                  Navigator.of(context).pop(); // Close drawer
+                  setState(() {
+                    _selectedIndex = 3;
+                  });
+                },
               ),
               ListTile(
                 title: Row(
@@ -206,7 +257,12 @@ class _CustomNavState extends State<CustomNav> {
                     CustomText16("favorite", color: AppColors.mainColor),
                   ],
                 ),
-                onTap: () {},
+                onTap: () {
+                  Navigator.of(context).pop(); // Close drawer
+                  setState(() {
+                    _selectedIndex = 1;
+                  });
+                },
               ),
               Divider(),
               BlocBuilder<LoginBloc, LoginState>(

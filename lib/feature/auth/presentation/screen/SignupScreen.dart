@@ -3,11 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/utils/validators.dart';
+import 'package:real/core/utils/constant.dart';
 import 'package:real/feature/auth/data/models/register_request.dart';
+import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/feature/auth/presentation/bloc/register_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/register_event.dart';
 import 'package:real/feature/auth/presentation/bloc/register_state.dart';
 import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
+import 'package:real/feature/auth/presentation/screen/email_verification_screen.dart';
 
 import '../../../../core/widget/button/authButton.dart';
 import '../widget/authToggle.dart';
@@ -47,16 +50,50 @@ class _SignUpScreenState extends State<SignUpScreen> {
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: BlocListener<RegisterBloc, RegisterState>(
-        listener: (context, state) {
+        listener: (context, state) async {
           if (state is RegisterSuccess) {
+            // Save token and user data from registration
+            if (state.response.token != null) {
+              await CasheNetwork.insertToCashe(
+                key: "token",
+                value: state.response.token!
+              );
+
+              // Update global token variable
+              token = state.response.token!;
+
+              // Save user ID if available
+              if (state.response.user?.id != null) {
+                await CasheNetwork.insertToCashe(
+                  key: "user_id",
+                  value: state.response.user!.id.toString()
+                );
+                userId = state.response.user!.id.toString();
+              }
+
+              print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+              print('[SignupScreen] Token saved after registration');
+              print('[SignupScreen] Token: ${state.response.token}');
+              print('[SignupScreen] User ID: ${state.response.user?.id}');
+              print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+            }
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.response.message),
                 backgroundColor: Colors.green,
               ),
             );
-            // Navigate to login screen after successful registration
-            // Navigator.pushReplacementNamed(context, LoginScreen.routeName);
+
+            // Navigate to email verification screen after successful registration
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EmailVerificationScreen(
+                  email: emailController.text,
+                ),
+              ),
+            );
           } else if (state is RegisterError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

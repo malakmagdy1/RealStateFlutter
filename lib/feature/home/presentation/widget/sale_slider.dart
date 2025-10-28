@@ -98,13 +98,14 @@ class _SaleSliderState extends State<SaleSlider> {
                       bathrooms: '0', // Not available in sale data
                       floor: '0', // Not available in sale data
                       status: 'available', // Assuming available if on sale
-                      unitNumber: '', // Not available in sale data
+                      unitNumber: sale.itemName, // Use item name as unit number
                       createdAt: sale.createdAt,
                       updatedAt: sale.updatedAt,
                       images: sale.images,
                       usageType: sale.saleType,
                       companyName: sale.companyName,
                       companyLogo: sale.companyLogo,
+                      compoundName: sale.compoundName,
                     );
 
                     // Navigate to Unit Detail Screen

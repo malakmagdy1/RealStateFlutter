@@ -281,7 +281,7 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
             flex: 2,
             child: CustomText16(label, bold: true, color: AppColors.black),
           ),
-          Expanded(flex: 3, child: CustomText16(value, color: AppColors.grey)),
+          Expanded(flex: 3, child: CustomText16(value, color: AppColors.greyText)),
         ],
       ),
     );
@@ -323,7 +323,7 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
             overflow: _showFullDescription ? TextOverflow.visible : TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.grey,
+              color: AppColors.greyText,
               height: 1.5,
             ),
           ),

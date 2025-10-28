@@ -3,10 +3,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/utils/validators.dart';
+import 'package:real/core/utils/constant.dart';
 import 'package:real/feature/auth/data/models/register_request.dart';
+import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/feature/auth/presentation/bloc/register_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/register_event.dart';
 import 'package:real/feature/auth/presentation/bloc/register_state.dart';
+import 'package:real/feature/auth/presentation/screen/email_verification_screen.dart';
 import 'package:real/feature_web/auth/presentation/web_login_screen.dart';
 
 import '../../../../core/widget/button/authButton.dart';
@@ -81,16 +84,50 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
     return Scaffold(
       backgroundColor: Color(0xFFF8F9FA),
       body: BlocListener<RegisterBloc, RegisterState>(
-        listener: (context, state) {
+        listener: (context, state) async {
           if (state is RegisterSuccess) {
+            // Save token and user data from registration
+            if (state.response.token != null) {
+              await CasheNetwork.insertToCashe(
+                key: "token",
+                value: state.response.token!
+              );
+
+              // Update global token variable
+              token = state.response.token!;
+
+              // Save user ID if available
+              if (state.response.user?.id != null) {
+                await CasheNetwork.insertToCashe(
+                  key: "user_id",
+                  value: state.response.user!.id.toString()
+                );
+                userId = state.response.user!.id.toString();
+              }
+
+              print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+              print('[WebSignupScreen] Token saved after registration');
+              print('[WebSignupScreen] Token: ${state.response.token}');
+              print('[WebSignupScreen] User ID: ${state.response.user?.id}');
+              print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+            }
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.response.message),
                 backgroundColor: Colors.green,
               ),
             );
-            // Navigate to login screen after successful registration
-            Navigator.pushReplacementNamed(context, WebLoginScreen.routeName);
+
+            // Navigate to email verification screen after successful registration
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EmailVerificationScreen(
+                  email: emailController.text,
+                ),
+              ),
+            );
           } else if (state is RegisterError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -252,7 +289,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
-                            'Step 1 of 3: Account Details',
+                            'Step 1 of 2: Create Your Account',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -414,6 +451,99 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                             ],
                           ),
                         ],
+                        SizedBox(height: 20),
+
+                        // Confirm Password
+                        Text(
+                          'Confirm Password',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        TextFormField(
+                          controller: confirmPasswordController,
+                          obscureText: _obscureConfirmPassword,
+                          validator: (value) => Validators.validateConfirmPassword(
+                            value,
+                            passwordController.text,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: 'Confirm your password',
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: AppColors.mainColor, width: 2),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.red, width: 1),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                                color: Colors.grey[600],
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscureConfirmPassword = !_obscureConfirmPassword;
+                                });
+                              },
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 20),
+
+                        // Phone Number
+                        Text(
+                          'Phone Number',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        TextFormField(
+                          controller: phoneController,
+                          keyboardType: TextInputType.phone,
+                          validator: Validators.validatePhone,
+                          decoration: InputDecoration(
+                            hintText: '+20 123 456 7890',
+                            filled: true,
+                            fillColor: Colors.grey[50],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.grey[300]!),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: AppColors.mainColor, width: 2),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(color: Colors.red, width: 1),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            prefixIcon: Icon(Icons.phone, color: Colors.grey[600]),
+                          ),
+                        ),
                         SizedBox(height: 24),
 
                         // Terms and Conditions Checkbox
@@ -472,8 +602,8 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                                     name: nameController.text,
                                     email: emailController.text,
                                     password: passwordController.text,
-                                    passwordConfirmation: passwordController.text,
-                                    phone: '',
+                                    passwordConfirmation: confirmPasswordController.text,
+                                    phone: phoneController.text,
                                     role: 'buyer',
                                   );
                                   context.read<RegisterBloc>().add(

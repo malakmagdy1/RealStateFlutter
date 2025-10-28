@@ -16,6 +16,7 @@ import 'package:real/feature/auth/presentation/bloc/update_name_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/update_phone_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/user_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/user_event.dart';
+import 'package:real/feature/auth/presentation/bloc/verification_bloc.dart';
 import 'package:real/feature/company/presentation/bloc/company_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
@@ -62,7 +63,8 @@ void main() async {
 
   // Initialize cache
   await CasheNetwork.casheInitialization();
-  token = await CasheNetwork.getCasheData(key: 'token');
+  token = await CasheNetwork.getCasheDataAsync(key: 'token');
+  userId = await CasheNetwork.getCasheDataAsync(key: 'user_id');
 
   // Initialize LanguageService
   await LanguageService.initialize();
@@ -167,6 +169,10 @@ class _MyAppState extends State<MyApp> {
         BlocProvider(
           create: (context) =>
               UpdatePhoneBloc(repository: apiService.authRepository),
+        ),
+        BlocProvider(
+          create: (context) =>
+              VerificationBloc(repository: apiService.authRepository),
         ),
         BlocProvider(
           create: (context) =>

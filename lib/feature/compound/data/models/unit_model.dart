@@ -27,6 +27,7 @@ class Unit extends Equatable {
   final String? companyLogo;
   final String? companyName;
   final String? companyId;
+  final String? compoundName;
 
   Unit({
     required this.id,
@@ -54,6 +55,7 @@ class Unit extends Equatable {
     this.companyLogo,
     this.companyName,
     this.companyId,
+    this.compoundName,
   });
 
   factory Unit.fromJson(Map<String, dynamic> json) {
@@ -136,6 +138,9 @@ class Unit extends Equatable {
       companyLogo: json['company_logo']?.toString(),
       companyName: json['company_name']?.toString(),
       companyId: json['company_id']?.toString(),
+      // Extract compound name from either direct field or nested compound object
+      compoundName: json['compound_name']?.toString() ??
+                    (json['compound'] != null ? json['compound']['name']?.toString() : null),
     );
   }
 
@@ -165,6 +170,7 @@ class Unit extends Equatable {
       'company_logo': companyLogo,
       'company_name': companyName,
       'company_id': companyId,
+      'compound_name': compoundName,
     };
   }
 
@@ -194,6 +200,7 @@ class Unit extends Equatable {
     companyLogo,
     companyName,
     companyId,
+    compoundName,
   ];
 
   @override

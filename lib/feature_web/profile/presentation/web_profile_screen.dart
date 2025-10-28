@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:real/core/utils/colors.dart';
@@ -13,11 +14,12 @@ import 'package:real/feature/auth/presentation/bloc/user_state.dart';
 import 'package:real/feature/auth/presentation/screen/changePasswordScreen.dart';
 import 'package:real/feature/auth/presentation/screen/editNameScreen.dart';
 import 'package:real/feature/auth/presentation/screen/editPhoneScreen.dart';
-import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
+import 'package:real/feature_web/auth/presentation/web_login_screen.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_state.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_state.dart';
+import 'package:real/feature/auth/data/network/local_netwrok.dart';
 
 class WebProfileScreen extends StatefulWidget {
   WebProfileScreen({Key? key}) : super(key: key);
@@ -135,6 +137,32 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
     );
   }
 
+  Future<void> _copyToken() async {
+    final token = await CasheNetwork.getCasheDataAsync(key: 'token');
+    if (token.isNotEmpty) {
+      await Clipboard.setData(ClipboardData(text: token));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Token copied to clipboard!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('No token found. Please log in first.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   Widget _languageOption(
     BuildContext context,
     LocaleCubit localeCubit,
@@ -194,7 +222,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
       listener: (context, state) {
         if (state is LogoutSuccess) {
           Navigator.of(context).pushNamedAndRemoveUntil(
-            LoginScreen.routeName,
+            WebLoginScreen.routeName,
             (route) => false,
           );
           ScaffoldMessenger.of(context).showSnackBar(
@@ -252,6 +280,9 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                             ),
                           ],
                         ),
+                        SizedBox(height: 24),
+                        // Developer Section (Full Width)
+                        _buildDeveloperSection(),
                       ],
                     ),
                   ),
@@ -697,6 +728,159 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                 color: Color(0xFF999999),
               ),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeveloperSection() {
+    return Container(
+      padding: EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.orange.withOpacity(0.3), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.orange.withOpacity(0.1),
+            blurRadius: 15,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.code, color: Colors.orange, size: 24),
+              SizedBox(width: 12),
+              Text(
+                'Developer Tools',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF333333),
+                ),
+              ),
+              SizedBox(width: 8),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'DEV',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Use this token to test API endpoints in Postman or other API clients.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Color(0xFF666666),
+            ),
+          ),
+          SizedBox(height: 20),
+          FutureBuilder<String>(
+            future: CasheNetwork.getCasheDataAsync(key: 'token'),
+            builder: (context, snapshot) {
+              final token = snapshot.data ?? '';
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Authentication Token:',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF333333),
+                        ),
+                      ),
+                      Spacer(),
+                      ElevatedButton.icon(
+                        onPressed: token.isEmpty ? null : _copyToken,
+                        icon: Icon(Icons.copy, size: 18),
+                        label: Text('Copy Token'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Color(0xFFF8F9FA),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Color(0xFFE6E6E6)),
+                    ),
+                    child: token.isEmpty
+                        ? Text(
+                            'No token found. Please log in first.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          )
+                        : SelectableText(
+                            token,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontFamily: 'monospace',
+                              color: Color(0xFF333333),
+                            ),
+                          ),
+                  ),
+                  if (token.isNotEmpty) ...[
+                    SizedBox(height: 16),
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.blue, size: 20),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Add this token as a Bearer token in your API requests:\nAuthorization: Bearer <token>',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.blue[900],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ],
       ),
