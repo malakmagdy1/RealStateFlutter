@@ -10,6 +10,12 @@ import '../models/login_request.dart';
 import '../models/login_response.dart';
 import '../models/forgot_password_request.dart';
 import '../models/forgot_password_response.dart';
+import '../models/forgot_password_step1_request.dart';
+import '../models/forgot_password_step1_response.dart';
+import '../models/verify_reset_code_request.dart';
+import '../models/verify_reset_code_response.dart';
+import '../models/reset_password_request.dart';
+import '../models/reset_password_response.dart';
 import '../models/update_name_request.dart';
 import '../models/update_name_response.dart';
 import '../models/update_phone_request.dart';
@@ -299,6 +305,132 @@ class AuthWebServices {
     }
   }
 
+  // ============================================================
+  // FORGOT PASSWORD - 3 STEP FLOW
+  // ============================================================
+
+  // Step 1: Request Password Reset (Send 6-digit code to email)
+  Future<ForgotPasswordStep1Response> requestPasswordReset(ForgotPasswordStep1Request request) async {
+    try {
+      print('');
+      print('═══════════════════════════════════════════════════════');
+      print('📧 Step 1: Requesting password reset for ${request.email}');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.post(
+        '/forgot-password',
+        data: request.toJson(),
+      );
+      print('✅ Password reset code sent successfully');
+      print('Response: ${response.data.toString()}');
+      print('═══════════════════════════════════════════════════════');
+      print('');
+
+      if (response.data is Map<String, dynamic>) {
+        return ForgotPasswordStep1Response.fromJson(response.data);
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('❌ Request Password Reset DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Request Password Reset Error: ${e.toString()}');
+      throw Exception('Failed to request password reset: $e');
+    }
+  }
+
+  // Step 2: Verify 6-Digit Reset Code
+  Future<VerifyResetCodeResponse> verifyResetCode(VerifyResetCodeRequest request) async {
+    try {
+      print('');
+      print('═══════════════════════════════════════════════════════');
+      print('🔐 Step 2: Verifying reset code for ${request.email}');
+      print('Code: ${request.code}');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.post(
+        '/verify-reset-code',
+        data: request.toJson(),
+      );
+      print('✅ Reset code verified successfully');
+      print('Response: ${response.data.toString()}');
+      print('═══════════════════════════════════════════════════════');
+      print('');
+
+      if (response.data is Map<String, dynamic>) {
+        return VerifyResetCodeResponse.fromJson(response.data);
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('❌ Verify Reset Code DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Verify Reset Code Error: ${e.toString()}');
+      throw Exception('Failed to verify reset code: $e');
+    }
+  }
+
+  // Step 3: Reset Password with Token
+  Future<ResetPasswordResponse> resetPassword(ResetPasswordRequest request) async {
+    try {
+      print('');
+      print('═══════════════════════════════════════════════════════');
+      print('🔑 Step 3: Resetting password for ${request.email}');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.post(
+        '/reset-password',
+        data: request.toJson(),
+      );
+      print('✅ Password reset successfully');
+      print('Response: ${response.data.toString()}');
+      print('═══════════════════════════════════════════════════════');
+      print('');
+
+      if (response.data is Map<String, dynamic>) {
+        return ResetPasswordResponse.fromJson(response.data);
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('❌ Reset Password DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Reset Password Error: ${e.toString()}');
+      throw Exception('Failed to reset password: $e');
+    }
+  }
+
+  // Old forgot password method (kept for backward compatibility)
   Future<ForgotPasswordResponse> forgotPassword(ForgotPasswordRequest request) async {
     try {
       // Get token from storage
@@ -527,6 +659,82 @@ class AuthWebServices {
       print('[API] Logout Error: ${e.toString()}');
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
       throw Exception('Logout failed: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> uploadProfileImage(String filePath, {List<int>? fileBytes}) async {
+    try {
+      // Get token from storage
+      final authToken = token ?? '';
+
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('[API] Uploading profile image');
+      print('[API] File path: $filePath');
+      print('[API] Token: $authToken');
+
+      // Create FormData
+      FormData formData;
+
+      if (fileBytes != null) {
+        // For web platform - use bytes
+        formData = FormData.fromMap({
+          'image': MultipartFile.fromBytes(
+            fileBytes,
+            filename: 'profile_image.jpg',
+          ),
+        });
+      } else {
+        // For mobile platforms - use file path
+        formData = FormData.fromMap({
+          'image': await MultipartFile.fromFile(
+            filePath,
+            filename: 'profile_image.jpg',
+          ),
+        });
+      }
+
+      Response response = await dio.post(
+        '/upload-image',
+        data: formData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+            'Content-Type': 'multipart/form-data',
+          },
+        ),
+      );
+
+      print('[API] Upload Image Response Status: ${response.statusCode}');
+      print('[API] Upload Image Response: ${response.data.toString()}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        return {'success': true, 'message': 'Profile image uploaded successfully'};
+      }
+    } on DioException catch (e) {
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('[API] Upload Image DioException: ${e.toString()}');
+      print('[API] Status Code: ${e.response?.statusCode}');
+      print('[API] Response Data: ${e.response?.data}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('[API] Upload Image Error: ${e.toString()}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      throw Exception('Failed to upload profile image: $e');
     }
   }
 

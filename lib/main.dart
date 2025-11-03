@@ -24,7 +24,9 @@ import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_b
 import 'package:real/feature/compound/presentation/bloc/unit/unit_bloc.dart';
 import 'package:real/feature/sale/presentation/bloc/sale_bloc.dart';
 import 'package:real/feature/sale/presentation/bloc/sale_event.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
 import 'package:real/feature/auth/presentation/screen/forgetPasswordScreen.dart';
+import 'package:real/feature/auth/presentation/screen/forgot_password_flow_screen.dart';
 import 'package:real/feature/auth/presentation/screen/changePasswordScreen.dart';
 import 'package:real/feature/auth/presentation/screen/editNameScreen.dart';
 import 'package:real/feature/auth/presentation/screen/editPhoneScreen.dart';
@@ -39,6 +41,8 @@ import 'package:real/l10n/app_localizations.dart';
 import 'package:real/feature_web/navigation/web_main_screen.dart';
 import 'package:real/feature_web/auth/presentation/web_login_screen.dart';
 import 'package:real/feature_web/auth/presentation/web_signup_screen.dart';
+import 'package:real/feature/subscription/presentation/screens/subscription_plans_screen.dart';
+import 'package:real/feature_web/subscription/presentation/web_subscription_plans_screen.dart';
 
 import 'feature/auth/presentation/screen/SignupScreen.dart';
 import 'feature/company/data/models/company_model.dart';
@@ -202,6 +206,10 @@ class _MyAppState extends State<MyApp> {
               SaleBloc(repository: apiService.saleRepository)
                 ..add(FetchSalesEvent()),
         ),
+        BlocProvider(
+          create: (context) =>
+              SubscriptionBloc(repository: apiService.subscriptionRepository),
+        ),
       ],
       child: BlocBuilder<LocaleCubit, Locale>(
         builder: (context, locale) {
@@ -240,18 +248,21 @@ class _MyAppState extends State<MyApp> {
               WebMainScreen.routeName: (context) => WebMainScreen(),
               WebLoginScreen.routeName: (context) => WebLoginScreen(),
               WebSignUpScreen.routeName: (context) => WebSignUpScreen(),
+              WebSubscriptionPlansScreen.routeName: (context) => WebSubscriptionPlansScreen(),
               SplashScreen.routeName: (context) => SplashScreen(),
               CustomNav.routeName: (context) => CustomNav(),
               LoginScreen.routeName: (context) => LoginScreen(),
               OnboardingScreen.routeName: (context) => OnboardingScreen(),
               SignUpScreen.routeName: (context) => SignUpScreen(),
               ForgetPasswordScreen.routeName: (context) => ForgetPasswordScreen(),
+              ForgotPasswordFlowScreen.routeName: (context) => const ForgotPasswordFlowScreen(),
               ChangePasswordScreen.routeName: (context) => ChangePasswordScreen(),
               EditNameScreen.routeName: (context) => EditNameScreen(),
               EditPhoneScreen.routeName: (context) => EditPhoneScreen(),
               HomeScreen.routeName: (context) => HomeScreen(),
               FavoriteCompoundsScreen.routeName: (context) => FavoriteCompoundsScreen(),
               NotificationsScreen.routeName: (context) => NotificationsScreen(),
+              SubscriptionPlansScreen.routeName: (context) => SubscriptionPlansScreen(),
               CompanyDetailScreen.routeName: (context) {
                 final company = ModalRoute.of(context)!.settings.arguments as Company;
                 return CompanyDetailScreen(company: company);

@@ -15,12 +15,17 @@ import 'package:real/feature/auth/presentation/bloc/user_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/user_event.dart';
 import 'package:real/feature/auth/presentation/screen/SignupScreen.dart';
 import 'package:real/feature/auth/presentation/screen/forgetPasswordScreen.dart';
+import 'package:real/feature/auth/presentation/screen/forgot_password_flow_screen.dart';
 import 'package:real/feature/home/presentation/CustomNav.dart';
 import 'package:real/feature/home/presentation/homeScreen.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_event.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_event.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_event.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
+import 'package:real/feature/subscription/presentation/screens/subscription_plans_screen.dart';
 
 import '../../../../core/widget/button/authButton.dart';
 import '../widget/textFormField.dart';
@@ -127,11 +132,81 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           print('Global token variable updated: $token');
           print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
+          // SECURITY CHECKS: Only allow buyers who are verified and not banned
+          final user = response.user;
+
+          // Check 1: Only buyers allowed
+          if (user.role.toLowerCase() != 'buyer') {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Access denied. Only buyers can access this app.'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 5),
+              ),
+            );
+            await CasheNetwork.deletecasheItem(key: "token");
+            await CasheNetwork.deletecasheItem(key: "user_id");
+            token = null;
+            userId = null;
+            return;
+          }
+
+          // Check 2: User must be verified
+          if (!user.isVerified) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Please verify your email address to continue.'),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 5),
+              ),
+            );
+            await CasheNetwork.deletecasheItem(key: "token");
+            await CasheNetwork.deletecasheItem(key: "user_id");
+            token = null;
+            userId = null;
+            return;
+          }
+
+          // Check 3: User must not be banned
+          if (user.isBanned) {
+            showDialog(
+              context: context,
+              barrierDismissible: false,
+              builder: (context) => AlertDialog(
+                title: Row(
+                  children: [
+                    Icon(Icons.block, color: Colors.red, size: 28),
+                    SizedBox(width: 8),
+                    Text('Account Suspended'),
+                  ],
+                ),
+                content: Text(
+                  'Your account has been suspended. Please contact support for assistance.',
+                  style: TextStyle(fontSize: 15),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: Text('OK'),
+                  ),
+                ],
+              ),
+            );
+            await CasheNetwork.deletecasheItem(key: "token");
+            await CasheNetwork.deletecasheItem(key: "user_id");
+            token = null;
+            userId = null;
+            return;
+          }
+
+          // All checks passed - proceed with login
           // Refresh user data with new token
           context.read<UserBloc>().add(RefreshUserEvent());
 
-          // Navigate to home screen after successful Google sign-in
-          Navigator.pushReplacementNamed(context, CustomNav.routeName);
+          // Check subscription status after Google login
+          _checkSubscriptionStatus(context);
         } catch (backendError) {
           print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
           print('BACKEND ERROR: $backendError');
@@ -243,6 +318,155 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
   }
 
+  // Check subscription status after login
+  void _checkSubscriptionStatus(BuildContext context) {
+    context.read<SubscriptionBloc>().add(LoadSubscriptionStatusEvent());
+
+    // Show subscription dialog after a short delay
+    Future.delayed(Duration(milliseconds: 500), () {
+      _showSubscriptionDialog(context);
+    });
+  }
+
+  void _showSubscriptionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => BlocBuilder<SubscriptionBloc, SubscriptionState>(
+        builder: (context, state) {
+          if (state is SubscriptionLoading) {
+            return AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 20),
+                  Text('Checking subscription...'),
+                ],
+              ),
+            );
+          }
+
+          if (state is SubscriptionStatusLoaded) {
+            final status = state.status;
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: [
+                  Icon(
+                    status.hasActiveSubscription ? Icons.check_circle : Icons.info_outline,
+                    color: status.hasActiveSubscription ? Colors.green : AppColors.mainColor,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      status.hasActiveSubscription ? 'Active Subscription' : 'Choose Your Plan',
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (status.hasActiveSubscription) ...[
+                    Text(
+                      'Plan: ${status.planName ?? "N/A"}',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    SizedBox(height: 8),
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.search, color: AppColors.mainColor),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              status.isUnlimited
+                                  ? 'Unlimited searches'
+                                  : 'Searches: ${status.searchesUsed}/${status.searchesAllowed}',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    Text(
+                      'You don\'t have an active subscription yet. Choose a plan to unlock unlimited searches and premium features!',
+                      style: TextStyle(fontSize: 15, height: 1.4),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    Navigator.pushReplacementNamed(context, CustomNav.routeName);
+                  },
+                  child: Text(status.hasActiveSubscription ? 'Continue' : 'Maybe Later'),
+                ),
+                if (!status.hasActiveSubscription)
+                  ElevatedButton(
+                    onPressed: () async {
+                      Navigator.of(dialogContext).pop();
+                      final result = await Navigator.pushNamed(
+                        context,
+                        SubscriptionPlansScreen.routeName,
+                      );
+                      // Navigate to home after subscription selection
+                      Navigator.pushReplacementNamed(context, CustomNav.routeName);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.mainColor,
+                    ),
+                    child: Text('View Plans'),
+                  )
+                else
+                  ElevatedButton(
+                    onPressed: () async {
+                      Navigator.of(dialogContext).pop();
+                      await Navigator.pushNamed(
+                        context,
+                        SubscriptionPlansScreen.routeName,
+                      );
+                      Navigator.pushReplacementNamed(context, CustomNav.routeName);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.mainColor,
+                    ),
+                    child: Text('Upgrade Plan'),
+                  ),
+              ],
+            );
+          }
+
+          // Error or other states - just navigate to home
+          return AlertDialog(
+            content: Text('Unable to load subscription info'),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  Navigator.pushReplacementNamed(context, CustomNav.routeName);
+                },
+                child: Text('Continue'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -286,6 +510,79 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       body: BlocListener<LoginBloc, LoginState>(
         listener: (context, state) {
           if (state is LoginSuccess) {
+            // SECURITY CHECKS: Only allow buyers who are verified and not banned
+            final user = state.response.user;
+
+            // Check 1: Only buyers allowed
+            if (user.role.toLowerCase() != 'buyer') {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Access denied. Only buyers can access this app.'),
+                  backgroundColor: Colors.red,
+                  duration: Duration(seconds: 5),
+                ),
+              );
+              // Clear token and logout
+              CasheNetwork.deletecasheItem(key: "token");
+              CasheNetwork.deletecasheItem(key: "user_id");
+              token = null;
+              userId = null;
+              return;
+            }
+
+            // Check 2: User must be verified
+            if (!user.isVerified) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Please verify your email address to continue.'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 5),
+                ),
+              );
+              // Clear token and logout
+              CasheNetwork.deletecasheItem(key: "token");
+              CasheNetwork.deletecasheItem(key: "user_id");
+              token = null;
+              userId = null;
+              return;
+            }
+
+            // Check 3: User must not be banned
+            if (user.isBanned) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => AlertDialog(
+                  title: Row(
+                    children: [
+                      Icon(Icons.block, color: Colors.red, size: 28),
+                      SizedBox(width: 8),
+                      Text('Account Suspended'),
+                    ],
+                  ),
+                  content: Text(
+                    'Your account has been suspended. Please contact support for assistance.',
+                    style: TextStyle(fontSize: 15),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      child: Text('OK'),
+                    ),
+                  ],
+                ),
+              );
+              // Clear token and logout
+              CasheNetwork.deletecasheItem(key: "token");
+              CasheNetwork.deletecasheItem(key: "user_id");
+              token = null;
+              userId = null;
+              return;
+            }
+
+            // All checks passed - proceed with login
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.response.message),
@@ -299,8 +596,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             context.read<CompoundFavoriteBloc>().add(LoadFavoriteCompounds());
             context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
 
-            // Navigate to home screen after successful login
-            Navigator.pushReplacementNamed(context, CustomNav.routeName);
+            // Check subscription status after login
+            _checkSubscriptionStatus(context);
           } else if (state is LoginError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -361,7 +658,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 alignment: Alignment.centerRight,
                 child: TextButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, ForgetPasswordScreen.routeName);
+                    Navigator.pushNamed(context, ForgotPasswordFlowScreen.routeName);
                   },
                   child: CustomText16(
                     'Forget Password?',
