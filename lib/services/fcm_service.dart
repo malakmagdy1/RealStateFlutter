@@ -8,6 +8,7 @@ import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/core/utils/constant.dart';
 import 'package:real/feature/notifications/data/services/notification_cache_service.dart';
 import 'package:real/feature/notifications/data/models/notification_model.dart';
+import 'package:real/core/utils/web_utils_stub.dart' if (dart.library.html) 'package:real/core/utils/web_utils_web.dart';
 
 // ============================================================
 // BACKGROUND MESSAGE HANDLER (Top-level function required)
@@ -17,22 +18,20 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   print('📬 Background Message: ${message.notification?.title}');
 
-  // Save notification to cache
-  if (message.notification != null) {
-    final notificationModel = NotificationModel(
-      id: message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      title: message.notification!.title ?? 'Notification',
-      message: message.notification!.body ?? '',
-      type: message.data['type'] ?? 'general',
-      timestamp: DateTime.now(),
-      isRead: false,
-      imageUrl: message.data['image_url'],
-      data: message.data,
-    );
+  // Save notification to cache (works on mobile, not on web service worker)
+  final notificationModel = NotificationModel(
+    id: message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+    title: message.notification?.title ?? message.data['title'] ?? 'Notification',
+    message: message.notification?.body ?? message.data['body'] ?? '',
+    type: message.data['type'] ?? 'general',
+    timestamp: DateTime.now(),
+    isRead: false,
+    imageUrl: message.data['image_url'],
+    data: message.data,
+  );
 
-    await NotificationCacheService().saveNotification(notificationModel);
-    print('💾 Background notification saved to cache');
-  }
+  await NotificationCacheService().saveNotification(notificationModel);
+  print('💾 Background notification saved to cache');
 }
 
 // ============================================================
@@ -52,29 +51,25 @@ class FCMService {
   String? _fcmToken;
   String? get fcmToken => _fcmToken;
 
+  // Track shown notification IDs to prevent duplicates
+  final Set<String> _shownNotificationIds = <String>{};
+
   // ⚠️ IMPORTANT: Use correct URL for your platform
   // Android Emulator: https://aqar.bdcbiz.com
   // iOS Simulator: https://aqar.bdcbiz.com
   // Physical Device: http://YOUR_COMPUTER_IP:8001
   static String API_BASE = 'https://aqar.bdcbiz.com';
 
+  // Web Push VAPID key for web notifications
+  static const String VAPID_KEY = 'BKNUQN5DnmFPV9XbrqwGvuVHHSlDwq2a9PjzmcbSbrMDVJEaGk-w_5MLdkV2dOWn6RUPwPQBK_0lrz0aZemHDVI';
+
   // ============================================================
   // INITIALIZATION - Call this in main.dart
   // ============================================================
   Future<void> initialize() async {
-    // Skip FCM initialization on web platform
-    if (kIsWeb) {
-      print('');
-      print('═══════════════════════════════════════════════════════');
-      print('ℹ️  FCM Service skipped (Web platform)');
-      print('═══════════════════════════════════════════════════════');
-      print('');
-      return;
-    }
-
     print('');
     print('═══════════════════════════════════════════════════════');
-    print('🔔 Initializing FCM Service...');
+    print('🔔 Initializing FCM Service... (${kIsWeb ? 'Web' : 'Mobile'})');
     print('═══════════════════════════════════════════════════════');
 
     // Request notification permissions
@@ -92,11 +87,15 @@ class FCMService {
       return;
     }
 
-    // Initialize local notifications for foreground
-    await _initializeLocalNotifications();
+    // Initialize local notifications for foreground (skip on web)
+    if (!kIsWeb) {
+      await _initializeLocalNotifications();
+    }
 
-    // Get FCM token
-    _fcmToken = await _firebaseMessaging.getToken();
+    // Get FCM token (with VAPID key for web)
+    _fcmToken = kIsWeb
+        ? await _firebaseMessaging.getToken(vapidKey: VAPID_KEY)
+        : await _firebaseMessaging.getToken();
     if (_fcmToken != null) {
       print('');
       print('╔════════════════════════════════════════════════════════════╗');
@@ -105,9 +104,17 @@ class FCMService {
       print('║                                                            ║');
       print('║ Token: ${_fcmToken!.substring(0, 50).padRight(50)}... ║');
       print('║                                                            ║');
-      print('║ ✅ Token will be sent to backend after login              ║');
       print('╚════════════════════════════════════════════════════════════╝');
       print('');
+
+      // Check if user is already logged in and send token immediately
+      final authToken = CasheNetwork.getCasheData(key: 'token');
+      if (authToken.isNotEmpty) {
+        print('✅ User already logged in - sending FCM token to backend...');
+        await sendTokenToBackend(_fcmToken!);
+      } else {
+        print('ℹ️  User not logged in - FCM token will be sent after login');
+      }
     }
 
     // Listen for token refresh (e.g., after reinstall)
@@ -117,13 +124,59 @@ class FCMService {
       sendTokenToBackend(newToken);
     });
 
-    // Subscribe to "all" topic for broadcast messages
-    await _firebaseMessaging.subscribeToTopic('all');
-    print('✅ Subscribed to "all" topic for broadcast notifications');
+    // Subscribe to "all" topic for broadcast messages (not supported on web)
+    if (!kIsWeb) {
+      await _firebaseMessaging.subscribeToTopic('all');
+      print('✅ Subscribed to "all" topic for broadcast notifications');
+    } else {
+      print('ℹ️  Topic subscriptions not supported on web - use web push instead');
+    }
+
+    // On web, check for notifications saved by service worker in localStorage
+    if (kIsWeb) {
+      await _migrateWebNotificationsFromLocalStorage();
+    }
 
     print('✅ FCM Service initialized successfully');
     print('═══════════════════════════════════════════════════════');
     print('');
+  }
+
+  // ============================================================
+  // MIGRATE WEB NOTIFICATIONS FROM LOCALSTORAGE
+  // ============================================================
+  Future<void> _migrateWebNotificationsFromLocalStorage() async {
+    try {
+      print('🔄 Checking for pending web notifications in localStorage...');
+
+      // Read from localStorage (only available on web)
+      final pendingNotificationsJson = getLocalStorageItem('pending_web_notifications');
+
+      if (pendingNotificationsJson != null && pendingNotificationsJson.isNotEmpty) {
+        final List<dynamic> pendingNotifications = jsonDecode(pendingNotificationsJson);
+
+        print('📦 Found ${pendingNotifications.length} pending notifications');
+
+        // Migrate each notification to SharedPreferences
+        for (var notifJson in pendingNotifications) {
+          try {
+            final notification = NotificationModel.fromJson(notifJson);
+            await NotificationCacheService().saveNotification(notification);
+            print('✅ Migrated notification: ${notification.title}');
+          } catch (e) {
+            print('⚠️ Error migrating notification: $e');
+          }
+        }
+
+        // Clear localStorage after migration
+        removeLocalStorageItem('pending_web_notifications');
+        print('🗑️ Cleared pending notifications from localStorage');
+      } else {
+        print('ℹ️ No pending notifications found in localStorage');
+      }
+    } catch (e) {
+      print('❌ Error migrating notifications from localStorage: $e');
+    }
   }
 
   // ============================================================
@@ -173,9 +226,9 @@ class FCMService {
   Future<bool> sendTokenToBackend(String token) async {
     try {
       // Get the user's auth token from cache
-      final authToken = await CasheNetwork.getCasheData(key: 'token');
+      final authToken = CasheNetwork.getCasheData(key: 'token');
 
-      if (authToken == null || authToken.isEmpty) {
+      if (authToken.isEmpty) {
         print('⚠️ No auth token found. User not logged in.');
         print('📝 FCM token will be sent when user logs in');
         return false;
@@ -237,38 +290,41 @@ class FCMService {
     print('═══════════════════════════════════════════════════════');
     print('📨 FOREGROUND MESSAGE RECEIVED');
     print('═══════════════════════════════════════════════════════');
+    print('MessageID: ${message.messageId}');
     print('Title: ${message.notification?.title}');
     print('Body: ${message.notification?.body}');
     print('Data: ${message.data}');
     print('═══════════════════════════════════════════════════════');
     print('');
 
-    RemoteNotification? notification = message.notification;
-    AndroidNotification? android = message.notification?.android;
+    // Check for duplicate notifications
+    final notificationId = message.messageId ??
+                          message.data['notification_id'] ??
+                          DateTime.now().millisecondsSinceEpoch.toString();
 
-    // Save notification to cache
-    if (notification != null) {
-      final notificationModel = NotificationModel(
-        id: message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
-        title: notification.title ?? 'Notification',
-        message: notification.body ?? '',
-        type: message.data['type'] ?? 'general',
-        timestamp: DateTime.now(),
-        isRead: false,
-        imageUrl: message.data['image_url'],
-        data: message.data,
-      );
-
-      await NotificationCacheService().saveNotification(notificationModel);
-      print('💾 Notification saved to cache');
+    if (_shownNotificationIds.contains(notificationId)) {
+      print('⚠️ Duplicate notification detected (foreground), skipping: $notificationId');
+      return;
     }
 
-    // Show local notification when app is in foreground
-    if (notification != null) {
+    // Add to shown set
+    _shownNotificationIds.add(notificationId);
+
+    // Keep only last 100 IDs to prevent memory issues
+    if (_shownNotificationIds.length > 100) {
+      final idsToKeep = _shownNotificationIds.toList().sublist(_shownNotificationIds.length - 50);
+      _shownNotificationIds.clear();
+      _shownNotificationIds.addAll(idsToKeep);
+    }
+
+    await _saveNotificationToCache(message);
+
+    // Show local notification when app is in foreground (skip on web)
+    if (message.notification != null && !kIsWeb) {
       _localNotifications.show(
-        notification.hashCode,
-        notification.title,
-        notification.body,
+        message.notification.hashCode,
+        message.notification!.title,
+        message.notification!.body,
         NotificationDetails(
           android: AndroidNotificationDetails(
             'high_importance_channel',
@@ -292,9 +348,40 @@ class FCMService {
   }
 
   // ============================================================
+  // SAVE NOTIFICATION TO CACHE (Helper method)
+  // ============================================================
+  Future<void> _saveNotificationToCache(RemoteMessage message) async {
+    RemoteNotification? notification = message.notification;
+
+    // Always save notification to cache, even if notification is null
+    final notificationModel = NotificationModel(
+      id: message.messageId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      title: notification?.title ?? message.data['title'] ?? 'Notification',
+      message: notification?.body ?? message.data['body'] ?? '',
+      type: message.data['type'] ?? 'general',
+      timestamp: DateTime.now(),
+      isRead: false,
+      imageUrl: message.data['image_url'],
+      data: message.data,
+    );
+
+    print('💾 Saving notification to cache...');
+    print('   ID: ${notificationModel.id}');
+    print('   Title: ${notificationModel.title}');
+    print('   Type: ${notificationModel.type}');
+
+    await NotificationCacheService().saveNotification(notificationModel);
+
+    // Verify it was saved
+    final allNotifications = await NotificationCacheService().getAllNotifications();
+    print('✅ Notification saved! Total notifications in cache: ${allNotifications.length}');
+    print('');
+  }
+
+  // ============================================================
   // HANDLE NOTIFICATION TAP (User clicked notification)
   // ============================================================
-  void handleNotificationTap(RemoteMessage message) {
+  void handleNotificationTap(RemoteMessage message) async {
     print('');
     print('═══════════════════════════════════════════════════════');
     print('👆 NOTIFICATION TAPPED!');
@@ -302,6 +389,9 @@ class FCMService {
     print('Data: ${message.data}');
     print('═══════════════════════════════════════════════════════');
     print('');
+
+    // Save to cache in case it wasn't saved before (e.g., background notification on web)
+    await _saveNotificationToCache(message);
 
     // Navigate based on notification type
     if (message.data.containsKey('type')) {
@@ -337,9 +427,9 @@ class FCMService {
       print('🗑️ Clearing FCM token...');
       print('═══════════════════════════════════════════════════════');
 
-      final authToken = await CasheNetwork.getCasheData(key: 'token');
+      final authToken = CasheNetwork.getCasheData(key: 'token');
 
-      if (authToken != null && authToken.isNotEmpty) {
+      if (authToken.isNotEmpty) {
         // Remove token from backend
         final response = await http.delete(
           Uri.parse('$API_BASE/api/fcm-token'),

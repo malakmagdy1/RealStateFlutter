@@ -231,6 +231,228 @@ class CompoundWebServices {
     }
   }
 
+  Future<Map<String, dynamic>> getUnitsForCompound(String compoundName) async {
+    try {
+      // Get token from storage
+      final authToken = token ?? '';
+      final currentLang = LanguageService.currentLanguage;
+
+      Response response = await dio.get(
+        '/units',
+        queryParameters: {
+          'project': compoundName,
+          'lang': currentLang,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $authToken'}),
+      );
+      print('Get Units for Compound Response: ${response.data.toString()}');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('Get Units for Compound DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('Get Units for Compound Error: ${e.toString()}');
+      throw Exception('Failed to fetch units for compound: $e');
+    }
+  }
+
+  // Get newly added units (marked as updated)
+  Future<Map<String, dynamic>> getNewArrivals({int limit = 10}) async {
+    try {
+      final authToken = token ?? '';
+      final currentLang = LanguageService.currentLanguage;
+
+      Response response = await dio.get(
+        '/units/marked-updated',
+        queryParameters: {
+          'limit': limit,
+          'lang': currentLang,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $authToken'}),
+      );
+      print('Get New Arrivals Response: ${response.data.toString()}');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('Get New Arrivals DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('Get New Arrivals Error: ${e.toString()}');
+      throw Exception('Failed to fetch new arrivals: $e');
+    }
+  }
+
+  // Get recently updated units
+  Future<Map<String, dynamic>> getRecentlyUpdated({int limit = 10}) async {
+    try {
+      final authToken = token ?? '';
+      final currentLang = LanguageService.currentLanguage;
+
+      Response response = await dio.get(
+        '/units/marked-updated',
+        queryParameters: {
+          'limit': limit,
+          'lang': currentLang,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $authToken'}),
+      );
+      print('Get Recently Updated Response: ${response.data.toString()}');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('Get Recently Updated DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('Get Recently Updated Error: ${e.toString()}');
+      throw Exception('Failed to fetch recently updated units: $e');
+    }
+  }
+
+  // Get units added in last 24 hours
+  Future<Map<String, dynamic>> getNewUnitsLast24Hours({int limit = 10}) async {
+    try {
+      final authToken = token ?? '';
+      final currentLang = LanguageService.currentLanguage;
+
+      Response response = await dio.get(
+        '/units/new',
+        queryParameters: {
+          'houre': 24,
+          'limit': limit,
+          'lang': currentLang,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $authToken'}),
+      );
+      print('Get New Units (24h) Response: ${response.data.toString()}');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('Get New Units (24h) DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('Get New Units (24h) Error: ${e.toString()}');
+      throw Exception('Failed to fetch new units: $e');
+    }
+  }
+
+  // Get units updated in last 24 hours
+  Future<Map<String, dynamic>> getUpdatedUnitsLast24Hours({int limit = 10}) async {
+    try {
+      final authToken = token ?? '';
+      final currentLang = LanguageService.currentLanguage;
+
+      Response response = await dio.get(
+        '/units/updated',
+        queryParameters: {
+          'hours': 24,
+          'limit': limit,
+          'lang': currentLang,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $authToken'}),
+      );
+      print('Get Updated Units (24h) Response: ${response.data.toString()}');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('Get Updated Units (24h) DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('Get Updated Units (24h) Error: ${e.toString()}');
+      throw Exception('Failed to fetch updated units: $e');
+    }
+  }
+
+  // Mark unit as seen
+  Future<Map<String, dynamic>> markUnitAsSeen(String unitId) async {
+    try {
+      final authToken = token ?? '';
+
+      Response response = await dio.post(
+        '/units/$unitId/mark-seen',
+        options: Options(headers: {'Authorization': 'Bearer $authToken'}),
+      );
+      print('Mark Unit as Seen Response: ${response.data.toString()}');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('Mark Unit as Seen DioException: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('Mark Unit as Seen Error: ${e.toString()}');
+      throw Exception('Failed to mark unit as seen: $e');
+    }
+  }
+
   String _handleError(DioException error) {
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
