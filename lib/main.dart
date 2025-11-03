@@ -41,6 +41,7 @@ import 'package:real/l10n/app_localizations.dart';
 import 'package:real/feature_web/navigation/web_main_screen.dart';
 import 'package:real/feature_web/auth/presentation/web_login_screen.dart';
 import 'package:real/feature_web/auth/presentation/web_signup_screen.dart';
+import 'package:real/feature_web/auth/presentation/web_forgot_password_screen.dart';
 import 'package:real/feature/subscription/presentation/screens/subscription_plans_screen.dart';
 import 'package:real/feature_web/subscription/presentation/web_subscription_plans_screen.dart';
 
@@ -248,6 +249,7 @@ class _MyAppState extends State<MyApp> {
               WebMainScreen.routeName: (context) => WebMainScreen(),
               WebLoginScreen.routeName: (context) => WebLoginScreen(),
               WebSignUpScreen.routeName: (context) => WebSignUpScreen(),
+              WebForgotPasswordScreen.routeName: (context) => const WebForgotPasswordScreen(),
               WebSubscriptionPlansScreen.routeName: (context) => WebSubscriptionPlansScreen(),
               SplashScreen.routeName: (context) => SplashScreen(),
               CustomNav.routeName: (context) => CustomNav(),

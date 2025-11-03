@@ -19,6 +19,13 @@ import 'package:real/feature/compound/presentation/bloc/favorite/compound_favori
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_event.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_event.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_event.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
+import 'package:real/feature_web/subscription/presentation/web_subscription_plans_screen.dart';
+import 'package:real/feature_web/auth/presentation/web_forgot_password_screen.dart';
+
+import '../../../feature/auth/presentation/screen/forgetPasswordScreen.dart';
 
 class WebLoginScreen extends StatefulWidget {
   static String routeName = '/web-login';
@@ -191,6 +198,156 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       print('Global token variable updated: $token');
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
+      // SECURITY CHECKS: Only allow buyers who are verified and not banned
+      final user = response.user;
+
+      // Check 1: Only buyers allowed
+      if (user.role.toLowerCase() != 'buyer') {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Icon(Icons.block, color: Colors.red, size: 28),
+                SizedBox(width: 12),
+                Text('Access Denied', style: TextStyle(fontSize: 22)),
+              ],
+            ),
+            content: Container(
+              width: 400,
+              child: Text(
+                'Only buyers can access this application. Your account type is: ${user.role}',
+                style: TextStyle(fontSize: 16, height: 1.5),
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                ),
+                child: Text('OK', style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          ),
+        );
+        await CasheNetwork.deletecasheItem(key: "token");
+        await CasheNetwork.deletecasheItem(key: "user_id");
+        token = null;
+        userId = null;
+        return;
+      }
+
+      // Check 2: User must be verified
+      if (!user.isVerified) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Icon(Icons.email_outlined, color: Colors.orange, size: 28),
+                SizedBox(width: 12),
+                Text('Email Verification Required', style: TextStyle(fontSize: 22)),
+              ],
+            ),
+            content: Container(
+              width: 400,
+              child: Text(
+                'Please verify your email address to continue. Check your inbox for the verification link.',
+                style: TextStyle(fontSize: 16, height: 1.5),
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                ),
+                child: Text('OK', style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          ),
+        );
+        await CasheNetwork.deletecasheItem(key: "token");
+        await CasheNetwork.deletecasheItem(key: "user_id");
+        token = null;
+        userId = null;
+        return;
+      }
+
+      // Check 3: User must not be banned
+      if (user.isBanned) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Row(
+              children: [
+                Icon(Icons.block, color: Colors.red, size: 28),
+                SizedBox(width: 12),
+                Text('Account Suspended', style: TextStyle(fontSize: 22)),
+              ],
+            ),
+            content: Container(
+              width: 400,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Your account has been suspended and you cannot access the application.',
+                    style: TextStyle(fontSize: 16, height: 1.5),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Please contact support for assistance:',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                  SizedBox(height: 8),
+                  SelectableText(
+                    'support@aqar.bdcbiz.com',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: AppColors.mainColor,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                ),
+                child: Text('OK', style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          ),
+        );
+        await CasheNetwork.deletecasheItem(key: "token");
+        await CasheNetwork.deletecasheItem(key: "user_id");
+        token = null;
+        userId = null;
+        return;
+      }
+
+      // All checks passed - proceed with login
       // Refresh user data with new token
       context.read<UserBloc>().add(RefreshUserEvent());
 
@@ -198,8 +355,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       context.read<CompoundFavoriteBloc>().add(LoadFavoriteCompounds());
       context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
 
-      // Navigate to home screen after successful Google sign-in
-      Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
+      // Check subscription status after Google login
+      _checkSubscriptionStatus(context);
     } catch (backendError) {
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
       print('BACKEND ERROR: $backendError');
@@ -275,6 +432,221 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     await CasheNetwork.deletecasheItem(key: "token");
   }
 
+  // Check subscription status after login
+  void _checkSubscriptionStatus(BuildContext context) {
+    context.read<SubscriptionBloc>().add(LoadSubscriptionStatusEvent());
+
+    // Show subscription dialog after a short delay
+    Future.delayed(Duration(milliseconds: 500), () {
+      _showSubscriptionDialog(context);
+    });
+  }
+
+  void _showSubscriptionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => BlocBuilder<SubscriptionBloc, SubscriptionState>(
+        builder: (context, state) {
+          if (state is SubscriptionLoading) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              content: Padding(
+                padding: EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(width: 24),
+                    Text(
+                      'Checking subscription...',
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          if (state is SubscriptionStatusLoaded) {
+            final status = state.status;
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Row(
+                children: [
+                  Icon(
+                    status.hasActiveSubscription
+                        ? Icons.check_circle
+                        : Icons.card_membership,
+                    color: status.hasActiveSubscription
+                        ? Colors.green
+                        : AppColors.mainColor,
+                    size: 28,
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      status.hasActiveSubscription
+                          ? 'Active Subscription'
+                          : 'Unlock Premium Features',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              content: Container(
+                width: 500,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (status.hasActiveSubscription) ...[
+                      Text(
+                        'You are subscribed to:',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        status.planName ?? 'N/A',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.mainColor,
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      Container(
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.blue[50],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.search, color: AppColors.mainColor, size: 24),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                status.isUnlimited
+                                    ? 'You have unlimited searches'
+                                    : 'Searches used: ${status.searchesUsed}/${status.searchesAllowed}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ] else ...[
+                      Text(
+                        'Choose a subscription plan to access:',
+                        style: TextStyle(
+                          fontSize: 16,
+                          height: 1.5,
+                          color: Colors.grey[700],
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      ...[
+                        'Unlimited property searches',
+                        'Advanced filtering options',
+                        'Priority support',
+                        'Exclusive property listings',
+                      ].map((benefit) => Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: Row(
+                              children: [
+                                Icon(Icons.check_circle,
+                                    color: Colors.green, size: 22),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    benefit,
+                                    style: TextStyle(fontSize: 15, height: 1.4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
+                  },
+                  child: Text(
+                    status.hasActiveSubscription ? 'Continue' : 'Maybe Later',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+                SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: () async {
+                    Navigator.of(dialogContext).pop();
+                    await Navigator.pushNamed(
+                      context,
+                      WebSubscriptionPlansScreen.routeName,
+                    );
+                    Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mainColor,
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: Text(
+                    status.hasActiveSubscription ? 'Upgrade Plan' : 'View Plans',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            );
+          }
+
+          // Error or other states - just navigate to home
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            content: Padding(
+              padding: EdgeInsets.all(12),
+              child: Text(
+                'Unable to load subscription info',
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+            actions: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.mainColor,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                ),
+                child: Text('Continue', style: TextStyle(fontSize: 16)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   @override
   void dispose() {
     emailController.dispose();
@@ -292,6 +664,159 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       body: BlocListener<LoginBloc, LoginState>(
         listener: (context, state) {
           if (state is LoginSuccess) {
+            // SECURITY CHECKS: Only allow buyers who are verified and not banned
+            final user = state.response.user;
+
+            // Check 1: Only buyers allowed
+            if (user.role.toLowerCase() != 'buyer') {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: Row(
+                    children: [
+                      Icon(Icons.block, color: Colors.red, size: 28),
+                      SizedBox(width: 12),
+                      Text('Access Denied', style: TextStyle(fontSize: 22)),
+                    ],
+                  ),
+                  content: Container(
+                    width: 400,
+                    child: Text(
+                      'Only buyers can access this application. Your account type is: ${user.role}',
+                      style: TextStyle(fontSize: 16, height: 1.5),
+                    ),
+                  ),
+                  actions: [
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      ),
+                      child: Text('OK', style: TextStyle(fontSize: 16)),
+                    ),
+                  ],
+                ),
+              );
+              // Clear token and logout
+              CasheNetwork.deletecasheItem(key: "token");
+              CasheNetwork.deletecasheItem(key: "user_id");
+              token = null;
+              userId = null;
+              return;
+            }
+
+            // Check 2: User must be verified
+            if (!user.isVerified) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: Row(
+                    children: [
+                      Icon(Icons.email_outlined, color: Colors.orange, size: 28),
+                      SizedBox(width: 12),
+                      Text('Email Verification Required', style: TextStyle(fontSize: 22)),
+                    ],
+                  ),
+                  content: Container(
+                    width: 400,
+                    child: Text(
+                      'Please verify your email address to continue. Check your inbox for the verification link.',
+                      style: TextStyle(fontSize: 16, height: 1.5),
+                    ),
+                  ),
+                  actions: [
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange,
+                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      ),
+                      child: Text('OK', style: TextStyle(fontSize: 16)),
+                    ),
+                  ],
+                ),
+              );
+              // Clear token and logout
+              CasheNetwork.deletecasheItem(key: "token");
+              CasheNetwork.deletecasheItem(key: "user_id");
+              token = null;
+              userId = null;
+              return;
+            }
+
+            // Check 3: User must not be banned
+            if (user.isBanned) {
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => AlertDialog(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  title: Row(
+                    children: [
+                      Icon(Icons.block, color: Colors.red, size: 28),
+                      SizedBox(width: 12),
+                      Text('Account Suspended', style: TextStyle(fontSize: 22)),
+                    ],
+                  ),
+                  content: Container(
+                    width: 400,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Your account has been suspended and you cannot access the application.',
+                          style: TextStyle(fontSize: 16, height: 1.5),
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Please contact support for assistance:',
+                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        ),
+                        SizedBox(height: 8),
+                        SelectableText(
+                          'support@aqar.bdcbiz.com',
+                          style: TextStyle(
+                            fontSize: 15,
+                            color: AppColors.mainColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  actions: [
+                    ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                      ),
+                      child: Text('OK', style: TextStyle(fontSize: 16)),
+                    ),
+                  ],
+                ),
+              );
+              // Clear token and logout
+              CasheNetwork.deletecasheItem(key: "token");
+              CasheNetwork.deletecasheItem(key: "user_id");
+              token = null;
+              userId = null;
+              return;
+            }
+
+            // All checks passed - proceed with login
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.response.message),
@@ -305,8 +830,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
             context.read<CompoundFavoriteBloc>().add(LoadFavoriteCompounds());
             context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
 
-            // Navigate to home screen after successful login
-            Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
+            // Check subscription status after login
+            _checkSubscriptionStatus(context);
           } else if (state is LoginError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -520,7 +1045,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                               alignment: Alignment.centerRight,
                               child: TextButton(
                                 onPressed: () {
-                                  // Navigator.pushNamed(context, ForgetPasswordScreen.routeName);
+                                  Navigator.pushNamed(context, WebForgotPasswordScreen.routeName);
                                 },
                                 child: Text(
                                   'Forgot Password?',
