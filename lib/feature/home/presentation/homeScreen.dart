@@ -1474,6 +1474,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Build New Arrivals Section
   Widget _buildNewArrivalsSection(AppLocalizations l10n) {
+    // Get screen width to determine if web or mobile
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 600;
+
+    // Calculate appropriate height based on platform
+    // Web: smaller cards, Mobile: larger cards
+    final crossAxisCount = 2;
+    final cardHeight = isWeb ? 200.0 : 280.0; // Web smaller, Mobile larger
+    final cardWidth = (screenWidth - 32 - 12) / crossAxisCount; // Account for padding and spacing
+    final aspectRatio = cardWidth / cardHeight;
+
+    // Calculate grid height to prevent overflow
+    final rows = (_newArrivals.length / crossAxisCount).ceil();
+    final gridHeight = (rows * cardHeight) + ((rows - 1) * 12); // Include spacing between rows
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1535,24 +1550,26 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   )
-                : GridView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.75,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
+                : SizedBox(
+                    height: gridHeight,
+                    child: GridView.builder(
+                      physics: NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.zero,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        childAspectRatio: aspectRatio,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: _newArrivals.length,
+                      itemBuilder: (context, index) {
+                        return AnimatedListItem(
+                          index: index,
+                          delay: Duration(milliseconds: 100),
+                          child: UnitCard(unit: _newArrivals[index]),
+                        );
+                      },
                     ),
-                    itemCount: _newArrivals.length,
-                    itemBuilder: (context, index) {
-                      return AnimatedListItem(
-                        index: index,
-                        delay: Duration(milliseconds: 100),
-                        child: UnitCard(unit: _newArrivals[index]),
-                      );
-                    },
                   ),
       ],
     );
@@ -1736,6 +1753,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Build Updated Units (24h) Section
   Widget _buildUpdated24HoursSection(AppLocalizations l10n) {
+    // Get screen width to determine if web or mobile
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWeb = screenWidth > 600;
+
+    // Calculate appropriate height based on platform
+    // Web: smaller cards, Mobile: larger cards
+    final crossAxisCount = 2;
+    final cardHeight = isWeb ? 200.0 : 280.0; // Web smaller, Mobile larger
+    final cardWidth = (screenWidth - 32 - 12) / crossAxisCount; // Account for padding and spacing
+    final aspectRatio = cardWidth / cardHeight;
+
+    // Calculate grid height to prevent overflow
+    final rows = (_updated24Hours.length / crossAxisCount).ceil();
+    final gridHeight = (rows * cardHeight) + ((rows - 1) * 12); // Include spacing between rows
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1797,24 +1829,26 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   )
-                : GridView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    padding: EdgeInsets.zero,
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.75,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
+                : SizedBox(
+                    height: gridHeight,
+                    child: GridView.builder(
+                      physics: NeverScrollableScrollPhysics(),
+                      padding: EdgeInsets.zero,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        childAspectRatio: aspectRatio,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: _updated24Hours.length,
+                      itemBuilder: (context, index) {
+                        return AnimatedListItem(
+                          index: index,
+                          delay: Duration(milliseconds: 100),
+                          child: UnitCard(unit: _updated24Hours[index]),
+                        );
+                      },
                     ),
-                    itemCount: _updated24Hours.length,
-                    itemBuilder: (context, index) {
-                      return AnimatedListItem(
-                        index: index,
-                        delay: Duration(milliseconds: 100),
-                        child: UnitCard(unit: _updated24Hours[index]),
-                      );
-                    },
                   ),
       ],
     );
