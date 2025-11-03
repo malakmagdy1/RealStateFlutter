@@ -16,6 +16,7 @@ import 'FavoriteScreen.dart';
 import 'HistoryScreen.dart';
 import 'homeScreen.dart';
 import '../../notifications/presentation/screens/notifications_screen.dart';
+import '../../compound/presentation/screen/compounds_screen.dart';
 
 class CustomNav extends StatefulWidget {
   static String routeName = '/nav';
@@ -29,6 +30,7 @@ class _CustomNavState extends State<CustomNav> {
 
   final List<Widget> widgetOptions = [
     HomeScreen(),
+    CompoundsScreen(),
     FavoriteScreen(),
     HistoryScreen(),
     ProfileScreen(),
@@ -241,7 +243,26 @@ class _CustomNavState extends State<CustomNav> {
                 onTap: () {
                   Navigator.of(context).pop(); // Close drawer
                   setState(() {
-                    _selectedIndex = 3;
+                    _selectedIndex = 4;
+                  });
+                },
+              ),
+              ListTile(
+                title: Row(
+                  children: [
+                    Icon(
+                      Icons.business,
+                      color: AppColors.mainColor,
+                      size: screenWidth * 0.06,
+                    ),
+                    SizedBox(width: screenWidth * 0.02),
+                    CustomText16("Compounds", color: AppColors.mainColor),
+                  ],
+                ),
+                onTap: () {
+                  Navigator.of(context).pop(); // Close drawer
+                  setState(() {
+                    _selectedIndex = 1;
                   });
                 },
               ),
@@ -260,7 +281,7 @@ class _CustomNavState extends State<CustomNav> {
                 onTap: () {
                   Navigator.of(context).pop(); // Close drawer
                   setState(() {
-                    _selectedIndex = 1;
+                    _selectedIndex = 2;
                   });
                 },
               ),
@@ -304,19 +325,22 @@ class _CustomNavState extends State<CustomNav> {
           child: SafeArea(
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: screenWidth * 0.05,
+                horizontal: screenWidth * 0.02,
                 vertical: screenHeight * 0.01,
               ),
               child: GNav(
                 rippleColor: Colors.grey[300]!,
                 hoverColor: Colors.grey[100]!,
-                gap: 8,
+                gap: screenWidth * 0.01,
                 color: AppColors.mainColor,
                 // inactive icon color
                 activeColor: Colors.white,
                 // active icon color
-                iconSize: screenWidth * 0.07,
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                iconSize: screenWidth * 0.06,
+                padding: EdgeInsets.symmetric(
+                  horizontal: screenWidth * 0.03,
+                  vertical: screenHeight * 0.012,
+                ),
                 duration: Duration(milliseconds: 400),
                 tabBackgroundColor: AppColors.mainColor.withOpacity(0.9),
                 // highlight color (main color)
@@ -324,9 +348,10 @@ class _CustomNavState extends State<CustomNav> {
                 // decrease radius of background bubble
                 tabs: [
                   GButton(icon: Icons.home_outlined, text: 'Home'),
+                  GButton(icon: Icons.business, text: 'Units'),
                   GButton(
                     icon: Icons.favorite_border_outlined,
-                    text: 'Favorite',
+                    text: 'Fav',
                   ),
                   GButton(icon: Icons.history, text: 'History'),
                   GButton(icon: Icons.person_2_outlined, text: 'Profile'),
