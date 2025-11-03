@@ -356,7 +356,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
         Navigator.push(
           context,
           FadePageRoute(
-            page: CompoundScreen(
+            builder: (context) => CompoundScreen(
               compound: compound,
             ),
           ),

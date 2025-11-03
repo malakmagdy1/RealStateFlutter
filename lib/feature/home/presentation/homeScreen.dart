@@ -11,6 +11,7 @@ import 'package:real/feature/company/presentation/bloc/company_bloc.dart';
 import 'package:real/feature/company/presentation/bloc/company_event.dart';
 import 'package:real/feature/company/presentation/bloc/company_state.dart';
 import 'package:real/feature/company/presentation/screen/company_detail_screen.dart';
+import 'package:real/feature/company/presentation/screen/companies_screen.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
@@ -33,8 +34,13 @@ import 'package:real/feature/search/presentation/widget/search_filter_bottom_she
 import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
 import 'package:real/feature/compound/presentation/widget/unit_card.dart';
+import 'package:real/feature/compound/data/web_services/compound_web_services.dart';
 import 'package:real/feature/home/presentation/CompoundScreen.dart';
 import 'package:real/l10n/app_localizations.dart';
+import 'package:real/core/services/tutorial_service.dart';
+import 'package:real/core/services/tutorial_coach_service.dart';
+import 'package:real/core/animations/animated_list_item.dart';
+import 'package:real/core/animations/page_transitions.dart';
 
 class HomeScreen extends StatefulWidget {
   static String routeName = '/home';
@@ -64,6 +70,23 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showAllCompounds = false;
   bool _showAllUnits = false;
 
+  // Tutorial keys
+  final GlobalKey _searchKey = GlobalKey();
+  final GlobalKey _filterKey = GlobalKey();
+  final GlobalKey _companyKey = GlobalKey();
+  final GlobalKey _compoundKey = GlobalKey();
+
+  // New Arrivals & Recently Updated & Recommended (24h) & Recently Updated (24h)
+  List<Unit> _newArrivals = [];
+  List<Unit> _recentlyUpdated = [];
+  List<Unit> _recommendedUnits = [];
+  List<Unit> _updated24Hours = [];
+  bool _isLoadingNewArrivals = false;
+  bool _isLoadingRecentlyUpdated = false;
+  bool _isLoadingRecommendedUnits = false;
+  bool _isLoadingUpdated24Hours = false;
+  final CompoundWebServices _webServices = CompoundWebServices();
+
   @override
   void initState() {
     super.initState();
@@ -82,6 +105,32 @@ class _HomeScreenState extends State<HomeScreen> {
     // Fetch companies and compounds when screen loads
     context.read<CompanyBloc>().add(FetchCompaniesEvent());
     context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: 50));
+
+    // Fetch new arrivals and updated 24h
+    _fetchNewArrivals();
+    _fetchUpdated24Hours();
+
+    // Show tutorial on first launch
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showTutorialIfNeeded();
+    });
+  }
+
+  Future<void> _showTutorialIfNeeded() async {
+    final tutorialService = TutorialCoachService();
+
+    // Wait a bit for the UI to be fully built
+    await Future.delayed(Duration(milliseconds: 500));
+
+    if (mounted) {
+      await tutorialService.showHomeTutorial(
+        context: context,
+        searchKey: _searchKey,
+        filterKey: _filterKey,
+        companyKey: _companyKey,
+        compoundKey: _compoundKey,
+      );
+    }
   }
 
   Future<void> _loadSearchHistory() async {
@@ -117,7 +166,6 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _showSearchResults = true;
       _showSearchHistory = false;
-      // Reset expanded states for new search
       _showAllCompanies = false;
       _showAllCompounds = false;
       _showAllUnits = false;
@@ -238,9 +286,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        controller: _searchController,
-                        focusNode: _searchFocusNode,
+                      child: Container(
+                        key: _searchKey,
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
                         onChanged: (value) {
                           setState(() {
                             _performSearch(value);
@@ -267,11 +317,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderSide: BorderSide.none,
                           ),
                         ),
+                        ),
                       ),
                     ),
                     SizedBox(width: 8),
                     // Filter button with badge
                     Stack(
+                      key: _filterKey,
                       children: [
                         Container(
                           decoration: BoxDecoration(
@@ -508,7 +560,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 SizedBox(height: 24),
 
                 // 🏢 Companies section
-                CustomText20(l10n.companiesName),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    CustomText20(l10n.companiesName),
+                    TextButton(
+                      onPressed: () {
+                        context.pushSlideFade(CompaniesScreen());
+                      },
+                      child: Row(
+                        children: [
+                          CustomText14('View All', color: AppColors.mainColor),
+                          SizedBox(width: 4),
+                          Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.mainColor),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 SizedBox(height: 8),
 
                 BlocBuilder<CompanyBloc, CompanyState>(
@@ -530,6 +599,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       }
                       return SizedBox(
+                        key: _companyKey,
                         height: 100,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
@@ -539,11 +609,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             return CompanyName(
                               company: company,
                               onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => CompanyDetailScreen(company: company),
-                                  ),
+                                context.pushSlideFade(
+                                  CompanyDetailScreen(company: company),
                                 ).then((_) {
                                   context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: 50));
                                 });
@@ -678,51 +745,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: 24),
 
-                // 🏘️ Compounds section
-                BlocBuilder<CompoundBloc, CompoundState>(
-                  builder: (context, state) {
-                    final compounds = (state is CompoundSuccess) ? state.response.data : [];
-                    final hasMultipleCompounds = compounds.length > 3;
+                // 🆕 New Arrivals Section
+                _buildNewArrivalsSection(l10n),
+                SizedBox(height: 24),
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Title with Show All Button
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            CustomText20(l10n.availableCompounds),
-                            if (hasMultipleCompounds && state is CompoundSuccess)
-                              TextButton.icon(
-                                onPressed: () {
-                                  setState(() {
-                                    _showAllAvailableCompounds = !_showAllAvailableCompounds;
-                                  });
-                                },
-                                icon: Icon(
-                                  _showAllAvailableCompounds ? Icons.expand_less : Icons.expand_more,
-                                  size: 18,
-                                  color: AppColors.mainColor,
-                                ),
-                                label: Text(
-                                  _showAllAvailableCompounds ? l10n.showLess : l10n.showAll,
-                                  style: TextStyle(
-                                    color: AppColors.mainColor,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                style: TextButton.styleFrom(
-                                  padding: EdgeInsets.symmetric(horizontal: 8),
-                                ),
-                              ),
-                          ],
-                        ),
-                        SizedBox(height: 8),
-                      ],
-                    );
-                  },
-                ),
-
+                // 🔄 Updated Units (24h)
+                _buildUpdated24HoursSection(l10n),
+                SizedBox(height: 24),
                 BlocBuilder<CompoundBloc, CompoundState>(
                   builder: (context, state) {
                     if (state is CompoundLoading) {
@@ -749,6 +778,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                       // Horizontal scroll view
                       return SizedBox(
+                        key: _compoundKey,
                         height: 220,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
@@ -1172,11 +1202,8 @@ class _HomeScreenState extends State<HomeScreen> {
           soldUnits: '0',
           availableUnits: data.unitsCount, sales: [],
         );
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => CompoundScreen(compound: compound),
-          ),
+        context.pushSlideFade(
+          CompoundScreen(compound: compound),
         );
       },
     );
@@ -1272,6 +1299,524 @@ class _HomeScreenState extends State<HomeScreen> {
           fontWeight: FontWeight.w500,
         ),
       ),
+    );
+  }
+
+  // Fetch new arrivals
+  Future<void> _fetchNewArrivals() async {
+    if (_isLoadingNewArrivals) return;
+
+    setState(() {
+      _isLoadingNewArrivals = true;
+    });
+
+    try {
+      final response = await _webServices.getNewArrivals(limit: 10);
+
+      if (response['success'] == true && response['data'] != null) {
+        final data = response['data'];
+        List<Unit> units = [];
+
+        // Check if data has nested 'data' property (pagination structure)
+        if (data is Map && data['data'] != null) {
+          units = (data['data'] as List)
+              .map((unit) => Unit.fromJson(unit as Map<String, dynamic>))
+              .toList();
+        } else if (data is List) {
+          // Fallback: if data is directly a list
+          units = data
+              .map((unit) => Unit.fromJson(unit as Map<String, dynamic>))
+              .toList();
+        }
+
+        if (mounted) {
+          setState(() {
+            _newArrivals = units;
+            _isLoadingNewArrivals = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('[HomeScreen] Error fetching new arrivals: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingNewArrivals = false;
+        });
+      }
+    }
+  }
+
+  // Fetch recently updated
+  Future<void> _fetchRecentlyUpdated() async {
+    if (_isLoadingRecentlyUpdated) return;
+
+    setState(() {
+      _isLoadingRecentlyUpdated = true;
+    });
+
+    try {
+      final response = await _webServices.getRecentlyUpdated(limit: 10);
+
+      if (response['success'] == true && response['data'] != null) {
+        final data = response['data'];
+        List<Unit> units = [];
+
+        // Check if data has nested 'data' property (pagination structure)
+        if (data is Map && data['data'] != null) {
+          units = (data['data'] as List)
+              .map((unit) => Unit.fromJson(unit as Map<String, dynamic>))
+              .toList();
+        } else if (data is List) {
+          // Fallback: if data is directly a list
+          units = data
+              .map((unit) => Unit.fromJson(unit as Map<String, dynamic>))
+              .toList();
+        }
+
+        if (mounted) {
+          setState(() {
+            _recentlyUpdated = units;
+            _isLoadingRecentlyUpdated = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('[HomeScreen] Error fetching recently updated: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingRecentlyUpdated = false;
+        });
+      }
+    }
+  }
+
+  // Fetch recommended units (last 24 hours)
+  Future<void> _fetchRecommendedUnits() async {
+    if (_isLoadingRecommendedUnits) return;
+
+    setState(() {
+      _isLoadingRecommendedUnits = true;
+    });
+
+    try {
+      final response = await _webServices.getNewUnitsLast24Hours(limit: 10);
+
+      if (response['success'] == true && response['data'] != null) {
+        final units = (response['data'] as List)
+            .map((unit) => Unit.fromJson(unit as Map<String, dynamic>))
+            .toList();
+
+        if (mounted) {
+          setState(() {
+            _recommendedUnits = units;
+            _isLoadingRecommendedUnits = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('[HomeScreen] Error fetching recommended units: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingRecommendedUnits = false;
+        });
+      }
+    }
+  }
+
+  // Fetch updated units (last 24 hours)
+  Future<void> _fetchUpdated24Hours() async {
+    if (_isLoadingUpdated24Hours) return;
+
+    setState(() {
+      _isLoadingUpdated24Hours = true;
+    });
+
+    try {
+      final response = await _webServices.getUpdatedUnitsLast24Hours(limit: 10);
+
+      if (response['success'] == true && response['data'] != null) {
+        // The data is nested in activities object
+        final data = response['data'];
+        List<Unit> units = [];
+
+        if (data is Map && data['activities'] != null) {
+          final activities = data['activities'];
+          if (activities is Map && activities['data'] != null) {
+            units = (activities['data'] as List)
+                .map((activity) {
+                  // Extract unit from activity
+                  if (activity['unit'] != null) {
+                    return Unit.fromJson(activity['unit'] as Map<String, dynamic>);
+                  }
+                  return null;
+                })
+                .whereType<Unit>() // Filter out nulls
+                .toList();
+          }
+        }
+
+        if (mounted) {
+          setState(() {
+            _updated24Hours = units;
+            _isLoadingUpdated24Hours = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('[HomeScreen] Error fetching updated units (24h): $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingUpdated24Hours = false;
+        });
+      }
+    }
+  }
+
+  // Build New Arrivals Section
+  Widget _buildNewArrivalsSection(AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.fiber_new, color: AppColors.mainColor, size: 24),
+            SizedBox(width: 8),
+            CustomText20(
+              'New Arrivals',
+              bold: true,
+              color: AppColors.black,
+            ),
+            Spacer(),
+            if (_newArrivals.isNotEmpty)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFFF3B30), Color(0xFFFF6B6B)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${_newArrivals.length}',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: 12),
+        _isLoadingNewArrivals
+            ? Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(color: AppColors.mainColor),
+                ),
+              )
+            : _newArrivals.isEmpty
+                ? Container(
+                    padding: EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.inbox, size: 48, color: AppColors.grey),
+                          SizedBox(height: 8),
+                          Text(
+                            'No new arrivals yet',
+                            style: TextStyle(color: AppColors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.75,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemCount: _newArrivals.length,
+                    itemBuilder: (context, index) {
+                      return AnimatedListItem(
+                        index: index,
+                        delay: Duration(milliseconds: 100),
+                        child: UnitCard(unit: _newArrivals[index]),
+                      );
+                    },
+                  ),
+      ],
+    );
+  }
+
+  // Build Recently Updated Section
+  Widget _buildRecentlyUpdatedSection(AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.update, color: Colors.orange, size: 24),
+            SizedBox(width: 8),
+            CustomText20(
+              'Recently Updated',
+              bold: true,
+              color: AppColors.black,
+            ),
+            Spacer(),
+            if (_recentlyUpdated.isNotEmpty)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.orange, Colors.deepOrange],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${_recentlyUpdated.length}',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: 12),
+        _isLoadingRecentlyUpdated
+            ? Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(color: Colors.orange),
+                ),
+              )
+            : _recentlyUpdated.isEmpty
+                ? Container(
+                    padding: EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.inbox, size: 48, color: AppColors.grey),
+                          SizedBox(height: 8),
+                          Text(
+                            'No recent updates',
+                            style: TextStyle(color: AppColors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : SizedBox(
+                    height: 280,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      physics: BouncingScrollPhysics(),
+                      itemCount: _recentlyUpdated.length,
+                      itemBuilder: (context, index) {
+                        return Container(
+                          width: 200,
+                          margin: EdgeInsets.only(
+                            right: index < _recentlyUpdated.length - 1 ? 12 : 0,
+                          ),
+                          child: AnimatedListItem(
+                            index: index,
+                            delay: Duration(milliseconds: 100),
+                            child: UnitCard(unit: _recentlyUpdated[index]),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+      ],
+    );
+  }
+
+  // Build Recommended Section (24h new units)
+  Widget _buildRecommendedSection(AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.recommend, color: Colors.purple, size: 24),
+            SizedBox(width: 8),
+            CustomText20(
+              'Recommended for You',
+              bold: true,
+              color: AppColors.black,
+            ),
+            Spacer(),
+            if (_recommendedUnits.isNotEmpty)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.purple, Colors.purpleAccent],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${_recommendedUnits.length}',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: 12),
+        _isLoadingRecommendedUnits
+            ? Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(color: Colors.purple),
+                ),
+              )
+            : _recommendedUnits.isEmpty
+                ? Container(
+                    padding: EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.inbox, size: 48, color: AppColors.grey),
+                          SizedBox(height: 8),
+                          Text(
+                            'No new units in the last 24 hours',
+                            style: TextStyle(color: AppColors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : SizedBox(
+                    height: 280,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      physics: BouncingScrollPhysics(),
+                      itemCount: _recommendedUnits.length,
+                      itemBuilder: (context, index) {
+                        return Container(
+                          width: 200,
+                          margin: EdgeInsets.only(
+                            right: index < _recommendedUnits.length - 1 ? 12 : 0,
+                          ),
+                          child: AnimatedListItem(
+                            index: index,
+                            delay: Duration(milliseconds: 100),
+                            child: UnitCard(unit: _recommendedUnits[index]),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+      ],
+    );
+  }
+
+  // Build Updated Units (24h) Section
+  Widget _buildUpdated24HoursSection(AppLocalizations l10n) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.history_toggle_off, color: Colors.teal, size: 24),
+            SizedBox(width: 8),
+            CustomText20(
+              'Updated in Last 24 Hours',
+              bold: true,
+              color: AppColors.black,
+            ),
+            Spacer(),
+            if (_updated24Hours.isNotEmpty)
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.teal, Colors.tealAccent],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${_updated24Hours.length}',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: 12),
+        _isLoadingUpdated24Hours
+            ? Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: CircularProgressIndicator(color: Colors.teal),
+                ),
+              )
+            : _updated24Hours.isEmpty
+                ? Container(
+                    padding: EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(Icons.inbox, size: 48, color: AppColors.grey),
+                          SizedBox(height: 8),
+                          Text(
+                            'No units updated in the last 24 hours',
+                            style: TextStyle(color: AppColors.grey),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    padding: EdgeInsets.zero,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.75,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                    ),
+                    itemCount: _updated24Hours.length,
+                    itemBuilder: (context, index) {
+                      return AnimatedListItem(
+                        index: index,
+                        delay: Duration(milliseconds: 100),
+                        child: UnitCard(unit: _updated24Hours[index]),
+                      );
+                    },
+                  ),
+      ],
     );
   }
 }
