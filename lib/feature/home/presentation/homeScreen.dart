@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/feature/home/presentation/widget/sale_slider.dart';
@@ -41,6 +42,9 @@ import 'package:real/core/services/tutorial_service.dart';
 import 'package:real/core/services/tutorial_coach_service.dart';
 import 'package:real/core/animations/animated_list_item.dart';
 import 'package:real/core/animations/page_transitions.dart';
+// AI chat imports
+import 'package:real/feature/ai_chat/presentation/screen/ai_chat_screen.dart';
+import 'package:real/feature/ai_chat/presentation/bloc/chat_bloc.dart';
 
 class HomeScreen extends StatefulWidget {
   static String routeName = '/home';
@@ -65,10 +69,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<String> _searchHistory = [];
   SearchFilter _currentFilter = SearchFilter.empty();
 
-  // Track expanded state for search results
-  bool _showAllCompanies = false;
-  bool _showAllCompounds = false;
-  bool _showAllUnits = false;
+  // All search results shown by default (no "show more" buttons)
 
   // Tutorial keys
   final GlobalKey _searchKey = GlobalKey();
@@ -166,9 +167,6 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _showSearchResults = true;
       _showSearchHistory = false;
-      _showAllCompanies = false;
-      _showAllCompounds = false;
-      _showAllUnits = false;
     });
 
     // Wait 500ms before performing search
@@ -240,10 +238,6 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _showSearchHistory = false;
       _showSearchResults = true;
-      // Reset expanded states for new search
-      _showAllCompanies = false;
-      _showAllCompounds = false;
-      _showAllUnits = false;
     });
     _searchBloc.add(SearchQueryEvent(
       query: query,
@@ -275,103 +269,44 @@ class _HomeScreenState extends State<HomeScreen> {
                 BlocBuilder<UserBloc, UserState>(
                   builder: (context, state) {
                     if (state is UserSuccess) {
-                      return CustomText20("${l10n.welcome} ${state.user.name}");
+                      return ShaderMask(
+                        shaderCallback: (bounds) => LinearGradient(
+                          colors: [Color(0xFF1B5E20), Color(0xFF4CAF50)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ).createShader(bounds),
+                        child: Text(
+                          "${l10n.welcome} ${state.user.name}",
+                          style: GoogleFonts.playfairDisplay(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w700,
+                            fontStyle: FontStyle.italic,
+                            color: Colors.white,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      );
                     }
-                    return CustomText20(l10n.welcome);
+                    return ShaderMask(
+                      shaderCallback: (bounds) => LinearGradient(
+                        colors: [Color(0xFF1B5E20), Color(0xFF4CAF50)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ).createShader(bounds),
+                      child: Text(
+                        l10n.welcome,
+                        style: GoogleFonts.playfairDisplay(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          fontStyle: FontStyle.italic,
+                          color: Colors.white,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    );
                   },
                 ),
                 SizedBox(height: 16),
-
-                // 🔍 Search bar with filter button
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        key: _searchKey,
-                        child: TextField(
-                          controller: _searchController,
-                          focusNode: _searchFocusNode,
-                        onChanged: (value) {
-                          setState(() {
-                            _performSearch(value);
-                          });
-                        },
-                        decoration: InputDecoration(
-                          hintText: l10n.searchFor,
-                          hintStyle: TextStyle(color: AppColors.greyText),
-                          prefixIcon: Icon(Icons.search, color: AppColors.greyText),
-                          suffixIcon: _searchController.text.isNotEmpty
-                              ? IconButton(
-                                  icon: Icon(Icons.clear, color: AppColors.greyText),
-                                  onPressed: _clearSearch,
-                                )
-                              : null,
-                          filled: true,
-                          fillColor: Colors.grey.shade200,
-                          contentPadding: EdgeInsets.symmetric(
-                            vertical: 0,
-                            horizontal: 16,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 8),
-                    // Filter button with badge
-                    Stack(
-                      key: _filterKey,
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: _currentFilter.isEmpty
-                                ? Colors.grey.shade200
-                                : AppColors.mainColor.withOpacity(0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.filter_list,
-                              color: _currentFilter.isEmpty
-                                  ? Colors.grey
-                                  : AppColors.mainColor,
-                            ),
-                            onPressed: _openFilterBottomSheet,
-                          ),
-                        ),
-                        if (_currentFilter.activeFiltersCount > 0)
-                          Positioned(
-                            right: 6,
-                            top: 6,
-                            child: Container(
-                              padding: EdgeInsets.all(4),
-                              decoration: BoxDecoration(
-                                color: AppColors.mainColor,
-                                shape: BoxShape.circle,
-                              ),
-                              constraints: BoxConstraints(
-                                minWidth: 18,
-                                minHeight: 18,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '${_currentFilter.activeFiltersCount}',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ),
 
                 // Active filters chips
                 if (_currentFilter.activeFiltersCount > 0) ...[
@@ -752,81 +687,42 @@ class _HomeScreenState extends State<HomeScreen> {
                 // 🔄 Updated Units (24h)
                 _buildUpdated24HoursSection(l10n),
                 SizedBox(height: 24),
-                BlocBuilder<CompoundBloc, CompoundState>(
-                  builder: (context, state) {
-                    if (state is CompoundLoading) {
-                      return SizedBox(
-                        height: 200,
-                        child: Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    } else if (state is CompoundSuccess) {
-                      if (state.response.data.isEmpty) {
-                        return SizedBox(
-                          height: 200,
-                          child: Center(
-                            child: CustomText16(l10n.noCompounds, color: AppColors.grey),
-                          ),
-                        );
-                      }
-
-                      final compounds = [...state.response.data];
-                      final displayCount = _showAllAvailableCompounds
-                          ? compounds.length
-                          : (compounds.length > 3 ? 3 : compounds.length);
-
-                      // Horizontal scroll view
-                      return SizedBox(
-                        key: _compoundKey,
-                        height: 220,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: displayCount,
-                          itemBuilder: (context, index) {
-                            final compound = compounds[index];
-                            return Container(
-                              width: 160,
-                              margin: EdgeInsets.only(right: 10),
-                              child: CompoundsName(compound: compound),
-                            );
-                          },
-                        ),
-                      );
-                    } else if (state is CompoundError) {
-                      return SizedBox(
-                        height: 200,
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CustomText16(
-                                'Error: ${state.message}',
-                                color: Colors.red,
-                                align: TextAlign.center,
-                              ),
-                              SizedBox(height: 8),
-                              ElevatedButton(
-                                onPressed: () {
-                                  context.read<CompoundBloc>().add(
-                                        FetchCompoundsEvent(),
-                                      );
-                                },
-                                child: CustomText16(l10n.retry, color: AppColors.white),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                    return SizedBox(height: 200);
-                  },
-                ),
 
                 // Recommended Compounds Section
                 BlocBuilder<CompoundBloc, CompoundState>(
                   builder: (context, state) {
-                    if (state is CompoundSuccess) {
+                    if (state is CompoundLoading) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CustomText20(l10n.recommendedCompounds),
+                          SizedBox(height: 12),
+                          SizedBox(
+                            height: 280,
+                            child: Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          ),
+                        ],
+                      );
+                    } else if (state is CompoundSuccess) {
+                      if (state.response.data.isEmpty) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CustomText20(l10n.recommendedCompounds),
+                            SizedBox(height: 12),
+                            SizedBox(
+                              height: 280,
+                              child: Center(
+                                child: CustomText16(l10n.noCompoundsAvailable, color: AppColors.grey),
+                              ),
+                            ),
+                          ],
+                        );
+                      }
+
+                      // Show compounds with images as recommended, or all if none have images
                       final compoundsWithImages = state.response.data
                           .where((compound) => compound.images.isNotEmpty)
                           .toList();
@@ -836,6 +732,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           : state.response.data;
 
                       final hasMultipleRecommended = recommendedCompounds.length > 3;
+                      final displayCount = _showAllRecommendedCompounds
+                          ? recommendedCompounds.length
+                          : (recommendedCompounds.length > 6 ? 6 : recommendedCompounds.length);
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -870,7 +769,59 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                             ],
                           ),
-                          SizedBox(height: 8),
+                          SizedBox(height: 12),
+                          // Horizontal scroll view
+                          SizedBox(
+                            height: 280,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              physics: BouncingScrollPhysics(),
+                              padding: EdgeInsets.symmetric(horizontal: 8),
+                              itemCount: displayCount,
+                              itemBuilder: (context, index) {
+                                final compound = recommendedCompounds[index];
+                                return Container(
+                                  width: 200,
+                                  margin: EdgeInsets.only(
+                                    right: index < displayCount - 1 ? 12 : 0,
+                                  ),
+                                  child: CompoundsName(compound: compound),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                      );
+                    } else if (state is CompoundError) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CustomText20(l10n.recommendedCompounds),
+                          SizedBox(height: 12),
+                          SizedBox(
+                            height: 280,
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CustomText16(
+                                    'Error: ${state.message}',
+                                    color: Colors.red,
+                                    align: TextAlign.center,
+                                  ),
+                                  SizedBox(height: 8),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      context.read<CompoundBloc>().add(
+                                            FetchCompoundsEvent(),
+                                          );
+                                    },
+                                    child: CustomText16(l10n.retry, color: AppColors.white),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       );
                     }
@@ -878,91 +829,46 @@ class _HomeScreenState extends State<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         CustomText20(l10n.recommendedCompounds),
-                        SizedBox(height: 8),
+                        SizedBox(height: 280),
                       ],
                     );
                   },
                 ),
-
-                BlocBuilder<CompoundBloc, CompoundState>(
-                  builder: (context, state) {
-                    if (state is CompoundLoading) {
-                      return SizedBox(
-                        height: 200,
-                        child: Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    } else if (state is CompoundSuccess) {
-                      if (state.response.data.isEmpty) {
-                        return SizedBox(
-                          height: 200,
-                          child: Center(
-                            child: CustomText16(l10n.noCompoundsAvailable, color: AppColors.grey),
-                          ),
-                        );
-                      }
-
-                      // Show compounds with images as recommended, or all if none have images
-                      final compoundsWithImages = state.response.data
-                          .where((compound) => compound.images.isNotEmpty)
-                          .toList();
-
-                      final recommendedCompounds = compoundsWithImages.isNotEmpty
-                          ? compoundsWithImages
-                          : state.response.data;
-
-                      final displayCount = _showAllRecommendedCompounds
-                          ? recommendedCompounds.length
-                          : (recommendedCompounds.length > 6 ? 6 : recommendedCompounds.length);
-
-                      // Horizontal scroll view
-                      return SizedBox(
-                        height: 220,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: displayCount,
-                          itemBuilder: (context, index) {
-                            final compound = recommendedCompounds[index];
-                            return Container(
-                              width: 160,
-                              margin: EdgeInsets.only(right: 10),
-                              child: CompoundsName(compound: compound),
-                            );
-                          },
-                        ),
-                      );
-                    } else if (state is CompoundError) {
-                      return SizedBox(
-                        height: 200,
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              CustomText16(
-                                'Error: ${state.message}',
-                                color: Colors.red,
-                                align: TextAlign.center,
-                              ),
-                              SizedBox(height: 8),
-                              ElevatedButton(
-                                onPressed: () {
-                                  context.read<CompoundBloc>().add(
-                                        FetchCompoundsEvent(),
-                                      );
-                                },
-                                child: CustomText16(l10n.retry, color: AppColors.white),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                    return SizedBox(height: 200);
-                  },
-                ),
               ],
             ),
+          ),
+        ),
+      ),
+      // AI Chat - Property Assistant
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MultiBlocProvider(
+                providers: [
+                  BlocProvider(
+                    create: (context) => ChatBloc(),
+                  ),
+                  BlocProvider.value(
+                    value: context.read<UnitFavoriteBloc>(),
+                  ),
+                  BlocProvider.value(
+                    value: context.read<CompoundFavoriteBloc>(),
+                  ),
+                ],
+                child: const AiChatScreen(),
+              ),
+            ),
+          );
+        },
+        backgroundColor: AppColors.mainColor,
+        icon: const Icon(Icons.smart_toy, color: Colors.white),
+        label: const Text(
+          'AI Assistant',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
           ),
         ),
       ),
@@ -1005,28 +911,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.blue,
               ),
               SizedBox(height: 8),
-              ...(_showAllCompanies ? companies : companies.take(3))
-                  .map((result) => _buildCompanyResultItem(result, l10n)),
-              if (companies.length > 3)
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllCompanies = !_showAllCompanies;
-                    });
-                  },
-                  icon: Icon(
-                    _showAllCompanies ? Icons.expand_less : Icons.expand_more,
-                    size: 18,
-                  ),
-                  label: Text(
-                    _showAllCompanies
-                        ? l10n.showLess
-                        : '+ ${companies.length - 3} more',
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey[600],
-                  ),
-                ),
+              ...companies.map((result) => _buildCompanyResultItem(result, l10n)),
             ],
 
             // Compounds
@@ -1038,28 +923,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.green,
               ),
               SizedBox(height: 8),
-              ...(_showAllCompounds ? compounds : compounds.take(3))
-                  .map((result) => _buildCompoundResultItem(result, l10n)),
-              if (compounds.length > 3)
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllCompounds = !_showAllCompounds;
-                    });
-                  },
-                  icon: Icon(
-                    _showAllCompounds ? Icons.expand_less : Icons.expand_more,
-                    size: 18,
-                  ),
-                  label: Text(
-                    _showAllCompounds
-                        ? l10n.showLess
-                        : '+ ${compounds.length - 3} more',
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey[600],
-                  ),
-                ),
+              ...compounds.map((result) => _buildCompoundResultItem(result, l10n)),
             ],
 
             // Units
@@ -1071,28 +935,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 color: Colors.orange,
               ),
               SizedBox(height: 8),
-              ...(_showAllUnits ? units : units.take(3))
-                  .map((result) => _buildUnitResultItem(result, l10n)),
-              if (units.length > 3)
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllUnits = !_showAllUnits;
-                    });
-                  },
-                  icon: Icon(
-                    _showAllUnits ? Icons.expand_less : Icons.expand_more,
-                    size: 18,
-                  ),
-                  label: Text(
-                    _showAllUnits
-                        ? l10n.showLess
-                        : '+ ${units.length - 3} more',
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey[600],
-                  ),
-                ),
+              ...units.map((result) => _buildUnitResultItem(result, l10n)),
             ],
           ],
         ),
@@ -1474,21 +1317,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Build New Arrivals Section
   Widget _buildNewArrivalsSection(AppLocalizations l10n) {
-    // Get screen width to determine if web or mobile
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWeb = screenWidth > 600;
-
-    // Calculate appropriate height based on platform
-    // Web: smaller cards, Mobile: larger cards
-    final crossAxisCount = 2;
-    final cardHeight = isWeb ? 200.0 : 280.0; // Web smaller, Mobile larger
-    final cardWidth = (screenWidth - 32 - 12) / crossAxisCount; // Account for padding and spacing
-    final aspectRatio = cardWidth / cardHeight;
-
-    // Calculate grid height to prevent overflow
-    final rows = (_newArrivals.length / crossAxisCount).ceil();
-    final gridHeight = (rows * cardHeight) + ((rows - 1) * 12); // Include spacing between rows
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1551,22 +1379,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 : SizedBox(
-                    height: gridHeight,
-                    child: GridView.builder(
-                      physics: NeverScrollableScrollPhysics(),
-                      padding: EdgeInsets.zero,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        childAspectRatio: aspectRatio,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                      ),
+                    height: 280,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      physics: BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(horizontal: 8),
                       itemCount: _newArrivals.length,
                       itemBuilder: (context, index) {
-                        return AnimatedListItem(
-                          index: index,
-                          delay: Duration(milliseconds: 100),
-                          child: UnitCard(unit: _newArrivals[index]),
+                        return Container(
+                          width: 200,
+                          margin: EdgeInsets.only(
+                            right: index < _newArrivals.length - 1 ? 12 : 0,
+                          ),
+                          child: AnimatedListItem(
+                            index: index,
+                            delay: Duration(milliseconds: 100),
+                            child: UnitCard(unit: _newArrivals[index]),
+                          ),
                         );
                       },
                     ),
@@ -1731,6 +1560,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       physics: BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(horizontal: 8),
                       itemCount: _recommendedUnits.length,
                       itemBuilder: (context, index) {
                         return Container(
@@ -1753,21 +1583,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Build Updated Units (24h) Section
   Widget _buildUpdated24HoursSection(AppLocalizations l10n) {
-    // Get screen width to determine if web or mobile
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isWeb = screenWidth > 600;
-
-    // Calculate appropriate height based on platform
-    // Web: smaller cards, Mobile: larger cards
-    final crossAxisCount = 2;
-    final cardHeight = isWeb ? 200.0 : 280.0; // Web smaller, Mobile larger
-    final cardWidth = (screenWidth - 32 - 12) / crossAxisCount; // Account for padding and spacing
-    final aspectRatio = cardWidth / cardHeight;
-
-    // Calculate grid height to prevent overflow
-    final rows = (_updated24Hours.length / crossAxisCount).ceil();
-    final gridHeight = (rows * cardHeight) + ((rows - 1) * 12); // Include spacing between rows
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1830,22 +1645,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   )
                 : SizedBox(
-                    height: gridHeight,
-                    child: GridView.builder(
-                      physics: NeverScrollableScrollPhysics(),
-                      padding: EdgeInsets.zero,
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossAxisCount,
-                        childAspectRatio: aspectRatio,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                      ),
+                    height: 280,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      physics: BouncingScrollPhysics(),
+                      padding: EdgeInsets.symmetric(horizontal: 8),
                       itemCount: _updated24Hours.length,
                       itemBuilder: (context, index) {
-                        return AnimatedListItem(
-                          index: index,
-                          delay: Duration(milliseconds: 100),
-                          child: UnitCard(unit: _updated24Hours[index]),
+                        return Container(
+                          width: 200,
+                          margin: EdgeInsets.only(
+                            right: index < _updated24Hours.length - 1 ? 12 : 0,
+                          ),
+                          child: AnimatedListItem(
+                            index: index,
+                            delay: Duration(milliseconds: 100),
+                            child: UnitCard(unit: _updated24Hours[index]),
+                          ),
                         );
                       },
                     ),

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/real_estate_product.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/compound/presentation/widget/unit_card.dart';
 import 'package:real/feature/home/presentation/widget/compunds_name.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 
 /// Widget that displays a property card in the chat using existing app cards
 class PropertyCardWidget extends StatelessWidget {
@@ -76,16 +79,22 @@ class PropertyCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use existing app cards based on type
+    // Wrap cards with necessary BLoC providers for icons to work
     if (product.type == 'compound') {
-      return CompoundsName(
-        compound: _toCompoundModel(),
-        showRecommendedBadge: true,
+      return BlocProvider.value(
+        value: context.read<CompoundFavoriteBloc>(),
+        child: CompoundsName(
+          compound: _toCompoundModel(),
+          showRecommendedBadge: true,
+        ),
       );
     } else {
       // Default to unit card
-      return UnitCard(
-        unit: _toUnitModel(),
+      return BlocProvider.value(
+        value: context.read<UnitFavoriteBloc>(),
+        child: UnitCard(
+          unit: _toUnitModel(),
+        ),
       );
     }
   }
