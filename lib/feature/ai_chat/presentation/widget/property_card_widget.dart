@@ -79,23 +79,46 @@ class PropertyCardWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Wrap cards with necessary BLoC providers for icons to work
-    if (product.type == 'compound') {
-      return BlocProvider.value(
-        value: context.read<CompoundFavoriteBloc>(),
-        child: CompoundsName(
+    print('🏠 PropertyCardWidget building for type: ${product.type}');
+
+    try {
+      // Wrap cards with necessary BLoC providers for icons to work
+      if (product.type == 'compound') {
+        final compoundBloc = context.read<CompoundFavoriteBloc>();
+        print('✅ CompoundFavoriteBloc found in context');
+
+        return BlocProvider.value(
+          value: compoundBloc,
+          child: CompoundsName(
+            compound: _toCompoundModel(),
+            showRecommendedBadge: true,
+          ),
+        );
+      } else {
+        // Default to unit card
+        final unitBloc = context.read<UnitFavoriteBloc>();
+        print('✅ UnitFavoriteBloc found in context');
+
+        return BlocProvider.value(
+          value: unitBloc,
+          child: UnitCard(
+            unit: _toUnitModel(),
+          ),
+        );
+      }
+    } catch (e) {
+      print('❌ Error accessing BLoC in PropertyCardWidget: $e');
+      // Return card without favorite functionality if BLoC not available
+      if (product.type == 'compound') {
+        return CompoundsName(
           compound: _toCompoundModel(),
           showRecommendedBadge: true,
-        ),
-      );
-    } else {
-      // Default to unit card
-      return BlocProvider.value(
-        value: context.read<UnitFavoriteBloc>(),
-        child: UnitCard(
+        );
+      } else {
+        return UnitCard(
           unit: _toUnitModel(),
-        ),
-      );
+        );
+      }
     }
   }
 

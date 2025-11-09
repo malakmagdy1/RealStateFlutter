@@ -46,6 +46,8 @@ import 'package:real/core/animations/page_transitions.dart';
 import 'package:real/feature/ai_chat/presentation/screen/ai_chat_screen.dart';
 import 'package:real/feature/ai_chat/presentation/bloc/chat_bloc.dart';
 
+import '../../compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
+
 class HomeScreen extends StatefulWidget {
   static String routeName = '/home';
 
@@ -842,6 +844,10 @@ class _HomeScreenState extends State<HomeScreen> {
       // AI Chat - Property Assistant
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () async {
+          // Capture BLoCs from current context before navigation
+          final unitFavoriteBloc = context.read<UnitFavoriteBloc>();
+          final compoundFavoriteBloc = context.read<CompoundFavoriteBloc>();
+
           await Navigator.push(
             context,
             MaterialPageRoute(
@@ -851,10 +857,10 @@ class _HomeScreenState extends State<HomeScreen> {
                     create: (context) => ChatBloc(),
                   ),
                   BlocProvider.value(
-                    value: context.read<UnitFavoriteBloc>(),
+                    value: unitFavoriteBloc,
                   ),
                   BlocProvider.value(
-                    value: context.read<CompoundFavoriteBloc>(),
+                    value: compoundFavoriteBloc,
                   ),
                 ],
                 child: const AiChatScreen(),
