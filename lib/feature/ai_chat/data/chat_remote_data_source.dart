@@ -386,22 +386,35 @@ Return only the properties from this list that match the user's needs, preservin
           final propertiesList = (jsonData['properties'] as List)
               .map((p) {
                 final productJson = p as Map<String, dynamic>;
-                // Try to match with real unit by ID
+                // Try to match with real unit by ID or index
                 Unit? matchedUnit;
-                if (productJson['id'] != null && realUnits.isNotEmpty) {
-                  final productId = productJson['id'].toString();
-                  matchedUnit = realUnits.firstWhere(
-                    (unit) => unit.id == productId,
-                    orElse: () => realUnits.first,
-                  );
-                  if (matchedUnit != null) {
-                    print('[AI CHAT] ✓ Matched database unit ID: ${matchedUnit.id}');
+                if (realUnits.isNotEmpty) {
+                  if (productJson['id'] != null) {
+                    // Try to match by ID
+                    final productId = productJson['id'].toString();
+                    try {
+                      matchedUnit = realUnits.firstWhere(
+                        (unit) => unit.id == productId,
+                      );
+                      print('[AI CHAT] ✓ Matched database unit by ID: ${matchedUnit.id}');
+                    } catch (e) {
+                      // ID not found, use first available unit
+                      print('[AI CHAT] ! ID not found ($productId), using first available unit');
+                      matchedUnit = realUnits.first;
+                    }
+                  } else {
+                    // No ID provided, use first available unit
+                    print('[AI CHAT] ! No ID in response, using database unit: ${realUnits.first.id}');
+                    matchedUnit = realUnits.first;
                   }
                 }
-                // Convert matched unit or use JSON data
-                return matchedUnit != null
-                    ? _convertUnitToProduct(matchedUnit)
-                    : RealEstateProduct.fromJson(productJson);
+                // Always prefer database units over generated data
+                if (matchedUnit != null) {
+                  return _convertUnitToProduct(matchedUnit);
+                } else {
+                  print('[AI CHAT] ⚠ No database units available, using AI-generated data');
+                  return RealEstateProduct.fromJson(productJson);
+                }
               })
               .toList();
           print('[AI CHAT] Converted ${propertiesList.length} properties');
@@ -418,20 +431,34 @@ Return only the properties from this list that match the user's needs, preservin
           // Single property
           print('[AI CHAT] Processing single property from response');
           Unit? matchedUnit;
-          if (jsonData['id'] != null && realUnits.isNotEmpty) {
-            final productId = jsonData['id'].toString();
-            matchedUnit = realUnits.firstWhere(
-              (unit) => unit.id == productId,
-              orElse: () => realUnits.first,
-            );
-            if (matchedUnit != null) {
-              print('[AI CHAT] ✓ Matched database unit ID: ${matchedUnit.id}');
+          if (realUnits.isNotEmpty) {
+            if (jsonData['id'] != null) {
+              // Try to match by ID
+              final productId = jsonData['id'].toString();
+              try {
+                matchedUnit = realUnits.firstWhere(
+                  (unit) => unit.id == productId,
+                );
+                print('[AI CHAT] ✓ Matched database unit by ID: ${matchedUnit.id}');
+              } catch (e) {
+                // ID not found, use first available unit
+                print('[AI CHAT] ! ID not found ($productId), using first available unit');
+                matchedUnit = realUnits.first;
+              }
+            } else {
+              // No ID provided, use first available unit
+              print('[AI CHAT] ! No ID in response, using database unit: ${realUnits.first.id}');
+              matchedUnit = realUnits.first;
             }
           }
 
+          // Always prefer database units over generated data
           final product = matchedUnit != null
               ? _convertUnitToProduct(matchedUnit)
               : RealEstateProduct.fromJson(jsonData);
+          if (matchedUnit == null) {
+            print('[AI CHAT] ⚠ No database units available, using AI-generated data');
+          }
 
           return ChatMessage(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
