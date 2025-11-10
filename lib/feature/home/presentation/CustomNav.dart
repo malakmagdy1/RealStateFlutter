@@ -11,6 +11,8 @@ import 'package:real/feature/auth/presentation/bloc/user_state.dart';
 import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
 import 'package:real/feature/auth/presentation/screen/blocked_user_screen.dart';
 import 'package:real/feature/home/presentation/profileScreen.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
 
 import '../../../core/utils/text_style.dart';
 import 'FavoriteScreen.dart';
@@ -183,6 +185,44 @@ class _CustomNavState extends State<CustomNav> {
                                     fontSize: 12,
                                   ),
                                   overflow: TextOverflow.ellipsis,
+                                ),
+                                SizedBox(height: 6),
+                                // Subscription Plan Badge
+                                BlocBuilder<SubscriptionBloc, SubscriptionState>(
+                                  builder: (context, subState) {
+                                    if (subState is SubscriptionStatusLoaded) {
+                                      final planName = subState.status.planNameEn;
+                                      return Container(
+                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: subState.status.hasActiveSubscription
+                                              ? Colors.amber[600]
+                                              : Colors.white.withOpacity(0.3),
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.workspace_premium,
+                                              color: Colors.white,
+                                              size: 12,
+                                            ),
+                                            SizedBox(width: 4),
+                                            Text(
+                                              planName,
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                    return SizedBox.shrink();
+                                  },
                                 ),
                               ],
                             ),
