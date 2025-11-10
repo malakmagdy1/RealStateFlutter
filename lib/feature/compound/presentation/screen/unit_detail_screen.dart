@@ -47,7 +47,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   bool _isLoadingSalesPeople = false;
   Sale? _unitSale;
   bool _isLoadingSale = false;
-  String? _currentNote;
+  List<Map<String, dynamic>> _notes = [];
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -59,7 +59,6 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     ViewHistoryService().addViewedUnit(widget.unit);
     _imagePageController = PageController();
     _tabController = TabController(length: 6, vsync: this);
-    _currentNote = widget.unit.notes;
     print('[UNIT DETAIL] Initial note from widget.unit.notes: $_currentNote');
     print('[UNIT DETAIL] Unit ID: ${widget.unit.id}');
     print('[UNIT DETAIL] Note ID: ${widget.unit.noteId}');
@@ -267,7 +266,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
 
   Future<void> _fetchUnitNote() async {
     try {
-      print('[UNIT DETAIL] Fetching note for unit ${widget.unit.id}');
+      print('[UNIT DETAIL] Fetching notes for unit ${widget.unit.id}');
       final response = await _favoritesWebServices.getNotes(
         unitId: int.parse(widget.unit.id),
       );
@@ -280,29 +279,28 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         if (data['notes'] != null) {
           final notes = data['notes'] as List;
           print('[UNIT DETAIL] Found ${notes.length} notes');
-          if (notes.isNotEmpty) {
-            final note = notes.first as Map<String, dynamic>;
-            final noteContent = note['content'] as String?;
-            final noteId = note['id'] as int?;
-            print('[UNIT DETAIL] Note ID: $noteId');
-            print('[UNIT DETAIL] Note content from API: $noteContent');
-            if (mounted) {
-              setState(() {
-                _currentNote = noteContent;
-                // Note: noteId is stored in widget.unit.noteId (immutable)
-                // and will be refreshed when favorites reload
-              });
-            }
-            print('[UNIT DETAIL] Updated _currentNote: $_currentNote');
-          } else {
-            print('[UNIT DETAIL] Notes array is empty');
+          if (mounted) {
+            setState(() {
+              _notes = notes.map((note) {
+                return {
+                  'id': note['id'],
+                  'content': note['content'],
+                  'title': note['title'] ?? 'Note',
+                  'created_at': note['created_at'],
+                  'updated_at': note['updated_at'],
+                };
+              }).toList();
+            });
           }
+          print('[UNIT DETAIL] Loaded ${_notes.length} notes');
+        } else {
+          print('[UNIT DETAIL] Notes field is null');
         }
       } else {
         print('[UNIT DETAIL] No notes in response or success=false');
       }
     } catch (e) {
-      print('[UNIT DETAIL] Error fetching unit note: $e');
+      print('[UNIT DETAIL] Error fetching unit notes: $e');
       print('[UNIT DETAIL] Error stack: ${StackTrace.current}');
     }
   }
