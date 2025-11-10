@@ -63,7 +63,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _initializeUnit();
   }
 
@@ -380,6 +380,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                             tabs: [
                               Tab(text: l10n.details),
                               Tab(text: l10n.gallery),
+                              Tab(text: l10n.floorPlan),
                               Tab(text: 'Notes'),
                             ],
                           ),
@@ -404,6 +405,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                             children: [
                               _buildDetailsTab(l10n),
                               _buildGalleryTab(),
+                              _buildFloorPlanTab(l10n),
                               _buildNotesTab(),
                             ],
                           ),
@@ -1368,6 +1370,22 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
           ),
         );
       },
+    );
+  }
+
+  Widget _buildFloorPlanTab(AppLocalizations l10n) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.architecture, size: 60, color: Colors.grey),
+          SizedBox(height: 16),
+          Text(
+            l10n.floorPlanNotAvailable,
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+        ],
+      ),
     );
   }
 
