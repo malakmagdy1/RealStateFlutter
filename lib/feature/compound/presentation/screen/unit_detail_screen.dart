@@ -274,20 +274,31 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
 
       print('[UNIT DETAIL] getNotes response: $response');
 
-      if (response['success'] == true && response['notes'] != null) {
-        final notes = response['notes'] as List;
-        print('[UNIT DETAIL] Found ${notes.length} notes');
-        if (notes.isNotEmpty) {
-          final noteContent = notes.first['content'] as String?;
-          print('[UNIT DETAIL] Note content from API: $noteContent');
-          if (mounted) {
-            setState(() {
-              _currentNote = noteContent;
-            });
+      // New API structure: response['data']['notes']
+      if (response['success'] == true && response['data'] != null) {
+        final data = response['data'] as Map<String, dynamic>;
+        if (data['notes'] != null) {
+          final notes = data['notes'] as List;
+          print('[UNIT DETAIL] Found ${notes.length} notes');
+          if (notes.isNotEmpty) {
+            final note = notes.first as Map<String, dynamic>;
+            final noteContent = note['content'] as String?;
+            final noteId = note['id'] as int?;
+            print('[UNIT DETAIL] Note ID: $noteId');
+            print('[UNIT DETAIL] Note content from API: $noteContent');
+            if (mounted) {
+              setState(() {
+                _currentNote = noteContent;
+                // Update the unit's noteId if we have it
+                if (noteId != null) {
+                  widget.unit.noteId = noteId;
+                }
+              });
+            }
+            print('[UNIT DETAIL] Updated _currentNote: $_currentNote');
+          } else {
+            print('[UNIT DETAIL] Notes array is empty');
           }
-          print('[UNIT DETAIL] Updated _currentNote: $_currentNote');
-        } else {
-          print('[UNIT DETAIL] Notes array is empty');
         }
       } else {
         print('[UNIT DETAIL] No notes in response or success=false');
@@ -1429,26 +1440,45 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
 
     if (result != null && mounted) {
       try {
+        Map<String, dynamic> response;
+
         if (widget.unit.noteId != null) {
           // Update existing note
-          await _favoritesWebServices.updateNote(
+          print('[UNIT DETAIL] Updating note ${widget.unit.noteId}');
+          response = await _favoritesWebServices.updateNote(
             noteId: widget.unit.noteId!,
             content: result,
             title: 'Unit Note',
           );
         } else {
           // Create new note
-          await _favoritesWebServices.createNote(
+          print('[UNIT DETAIL] Creating new note for unit ${widget.unit.id}');
+          response = await _favoritesWebServices.createNote(
             content: result,
             title: 'Unit Note',
             unitId: int.tryParse(widget.unit.id),
           );
         }
 
-        // Update local state
-        setState(() {
-          _currentNote = result;
-        });
+        print('[UNIT DETAIL] Note save response: $response');
+
+        // Extract note ID from response: response['data']['note']['id']
+        if (response['success'] == true && response['data'] != null) {
+          final data = response['data'] as Map<String, dynamic>;
+          if (data['note'] != null) {
+            final note = data['note'] as Map<String, dynamic>;
+            final noteId = note['id'] as int?;
+            print('[UNIT DETAIL] Note saved with ID: $noteId');
+
+            // Update local state with note ID
+            setState(() {
+              _currentNote = result;
+              if (noteId != null) {
+                widget.unit.noteId = noteId;
+              }
+            });
+          }
+        }
 
         if (mounted) {
           _showCenteredMessage(
