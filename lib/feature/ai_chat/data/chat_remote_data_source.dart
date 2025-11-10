@@ -261,13 +261,14 @@ IMPORTANT:
     }
 
     final buffer = StringBuffer();
-    buffer.writeln('I found ${properties.length} ${properties.length == 1 ? 'property' : 'properties'} for you!');
+    buffer.writeln('I found ${properties.length} ${properties.length == 1 ? 'property' : 'properties'} for you:');
     buffer.writeln();
 
     for (int i = 0; i < properties.length; i++) {
       final product = properties[i];
-      buffer.writeln('${i + 1}. ${product.name}');
-      buffer.writeln('   📍 ${product.location} • 💰 ${product.price} EGP');
+      buffer.writeln('${i + 1}');
+      buffer.writeln('${product.name}');
+      buffer.writeln('📍 ${product.location} • 💰 ${product.price} EGP');
       if (i < properties.length - 1) buffer.writeln();
     }
 

@@ -723,12 +723,12 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       builder: (context, constraints) {
         // Calculate max width based on screen width
         final screenWidth = MediaQuery.of(context).size.width;
-        final maxTabBarWidth = screenWidth - 32; // 16px margin on each side
+        final maxTabBarWidth = screenWidth - 16; // 8px margin on each side
 
         return AnimatedContainer(
           duration: Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          margin: EdgeInsets.only(right: 16, bottom: 16, left: 16),
+          margin: EdgeInsets.only(right: 8, bottom: 16, left: 8),
           constraints: BoxConstraints(
             maxWidth: maxTabBarWidth,
           ),
@@ -842,7 +842,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
 
   Widget _buildTabContent(AppLocalizations l10n) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
+      margin: EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),

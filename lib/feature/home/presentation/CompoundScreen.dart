@@ -1317,12 +1317,12 @@ class _CompoundScreenState extends State<CompoundScreen>
       builder: (context, constraints) {
         // Calculate max width based on screen width
         final screenWidth = MediaQuery.of(context).size.width;
-        final maxTabBarWidth = screenWidth - 32; // 16px margin on each side
+        final maxTabBarWidth = screenWidth - 16; // 8px margin on each side
 
         return AnimatedContainer(
           duration: Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          margin: EdgeInsets.only(right: 16, bottom: 16, left: 16),
+          margin: EdgeInsets.only(right: 8, bottom: 16, left: 8),
           constraints: BoxConstraints(
             maxWidth: maxTabBarWidth,
           ),

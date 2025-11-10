@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:real/core/utils/colors.dart';
 import '../bloc/chat_bloc.dart';
 import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
@@ -98,7 +99,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('AI Property Assistant'),
-        backgroundColor: Colors.blue.shade600,
+        backgroundColor: AppColors.mainColor,
         foregroundColor: Colors.white,
         elevation: 2,
         actions: [
@@ -136,7 +137,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           CircularProgressIndicator(
-                            color: Colors.blue.shade600,
+                            color: AppColors.mainColor,
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -178,7 +179,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.blue.shade600,
+                          color: AppColors.mainColor,
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -211,7 +212,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blue.shade400, Colors.blue.shade600],
+          colors: [AppColors.mainColor.withOpacity(0.8), AppColors.mainColor],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -301,8 +302,8 @@ class _AiChatScreenState extends State<AiChatScreen> {
               fontSize: 13,
             ),
           ),
-          backgroundColor: Colors.blue.shade50,
-          side: BorderSide(color: Colors.blue.shade200),
+          backgroundColor: AppColors.mainColor.withOpacity(0.1),
+          side: BorderSide(color: AppColors.mainColor.withOpacity(0.3)),
           onPressed: () {
             _messageController.text = suggestion;
             _sendMessage();
@@ -400,7 +401,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.blue.shade600,
+          color: AppColors.mainColor,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -455,13 +456,13 @@ class _AiChatScreenState extends State<AiChatScreen> {
                 Icon(
                   Icons.smart_toy,
                   size: 16,
-                  color: isError ? Colors.red.shade700 : Colors.blue.shade700,
+                  color: isError ? Colors.red.shade700 : AppColors.mainColor,
                 ),
                 const SizedBox(width: 6),
                 Text(
                   'AI Assistant',
                   style: TextStyle(
-                    color: isError ? Colors.red.shade700 : Colors.blue.shade700,
+                    color: isError ? Colors.red.shade700 : AppColors.mainColor,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -530,7 +531,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
             ),
             const SizedBox(width: 8),
             CircleAvatar(
-              backgroundColor: Colors.blue.shade600,
+              backgroundColor: AppColors.mainColor,
               child: IconButton(
                 icon: const Icon(Icons.send, color: Colors.white, size: 20),
                 onPressed: _sendMessage,
