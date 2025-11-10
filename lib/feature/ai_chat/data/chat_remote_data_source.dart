@@ -57,18 +57,36 @@ For MULTIPLE properties (use when showing several options):
   "properties": [
     {
       "type": "unit",
-      "name": "Property 1",
-      "location": "Location 1",
-      ...
+      "name": "Spacious Villa in Palm Hills",
+      "location": "6th of October",
+      "propertyType": "Villa",
+      "price": "8,500,000",
+      "area": "400",
+      "bedrooms": "4",
+      "bathrooms": "3",
+      "features": ["Swimming Pool", "Garden", "Security 24/7"],
+      "description": "Luxury villa with modern amenities"
     },
     {
       "type": "unit",
-      "name": "Property 2",
-      "location": "Location 2",
-      ...
+      "name": "Modern 3BR Apartment",
+      "location": "New Cairo",
+      "propertyType": "Apartment",
+      "price": "2,800,000",
+      "area": "180",
+      "bedrooms": "3",
+      "bathrooms": "2",
+      "features": ["Gym", "Elevator", "Parking"],
+      "description": "Contemporary apartment in prime location"
     }
   ]
 }
+
+NAMING RULES:
+- Use descriptive, realistic property names
+- Include property type and key feature in the name
+- Examples: "Spacious Villa in Compound X", "Modern 3BR Apartment", "Luxury Penthouse"
+- NEVER use generic names like "Option 1", "Property 1", "Unit 1"
 
 PROPERTY TYPES you can suggest:
 - Villa
