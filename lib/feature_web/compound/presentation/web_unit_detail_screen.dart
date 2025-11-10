@@ -359,91 +359,28 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                         // Always show price card
                         _buildPriceCard(l10n),
                         SizedBox(height: 16),
-                        Container(
-                          margin: EdgeInsets.only(right: 8, bottom: 16, left: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: AppColors.mainColor.withOpacity(0.5),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.mainColor.withOpacity(0.2),
-                                blurRadius: 12,
-                                offset: Offset(0, 4),
-                              ),
-                            ],
+                        TabBar(
+                          controller: _tabController,
+                          labelColor: AppColors.mainColor,
+                          unselectedLabelColor: AppColors.grey,
+                          indicatorColor: AppColors.mainColor,
+                          indicatorWeight: 3,
+                          labelStyle: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: TabBar(
-                              controller: _tabController,
-                              isScrollable: true,
-                              labelColor: AppColors.white,
-                              unselectedLabelColor: AppColors.mainColor,
-                              indicator: BoxDecoration(
-                                color: AppColors.mainColor,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              indicatorSize: TabBarIndicatorSize.tab,
-                              dividerColor: Colors.transparent,
-                              labelPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              labelStyle: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              unselectedLabelStyle: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.normal,
-                              ),
-                              tabAlignment: TabAlignment.start,
-                              tabs: [
-                                Tab(
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.info_outline, size: 14),
-                                      SizedBox(width: 4),
-                                      Text(l10n.details),
-                                    ],
-                                  ),
-                                ),
-                                Tab(
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.photo_library, size: 14),
-                                      SizedBox(width: 4),
-                                      Text(l10n.gallery),
-                                    ],
-                                  ),
-                                ),
-                                Tab(
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.architecture, size: 14),
-                                      SizedBox(width: 4),
-                                      Text(l10n.floorPlan),
-                                    ],
-                                  ),
-                                ),
-                                Tab(
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.note, size: 14),
-                                      SizedBox(width: 4),
-                                      Text('Notes'),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
+                          unselectedLabelStyle: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.normal,
                           ),
+                          tabs: [
+                            Tab(text: l10n.details),
+                            Tab(text: l10n.gallery),
+                            Tab(text: l10n.floorPlan),
+                            Tab(text: 'Notes'),
+                          ],
                         ),
+                        SizedBox(height: 16),
                         // Tab Bar View
                         Container(
                           height: 600,

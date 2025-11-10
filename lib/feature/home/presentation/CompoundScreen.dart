@@ -1284,125 +1284,30 @@ class _CompoundScreenState extends State<CompoundScreen>
     }
   }
 
-  // Animated Corner Tab Bar
+  // Tab Bar
   Widget _buildCornerTabBar() {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Calculate max width based on screen width
-        final screenWidth = MediaQuery.of(context).size.width;
-        final maxTabBarWidth = screenWidth - 16; // 8px margin on each side
-
-        return AnimatedContainer(
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          margin: EdgeInsets.only(right: 8, bottom: 16, left: 8),
-          constraints: BoxConstraints(
-            maxWidth: maxTabBarWidth,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.mainColor.withOpacity(0.5),
-              width: 2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.mainColor.withOpacity(0.2),
-                blurRadius: 12,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              labelColor: AppColors.white,
-              unselectedLabelColor: AppColors.mainColor,
-              indicator: BoxDecoration(
-                color: AppColors.mainColor,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              dividerColor: Colors.transparent,
-              labelPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              labelStyle: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-              unselectedLabelStyle: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.normal,
-              ),
-              tabAlignment: TabAlignment.start,
-              tabs: [
-            Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.info_outline, size: 14),
-                  SizedBox(width: 4),
-                  Text('Details'),
-                ],
-              ),
-            ),
-            Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.photo_library, size: 14),
-                  SizedBox(width: 4),
-                  Text('Gallery'),
-                ],
-              ),
-            ),
-            Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.location_on, size: 14),
-                  SizedBox(width: 4),
-                  Text('Map'),
-                ],
-              ),
-            ),
-            Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.architecture, size: 14),
-                  SizedBox(width: 4),
-                  Text('Plan'),
-                ],
-              ),
-            ),
-            Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.home_work, size: 14),
-                  SizedBox(width: 4),
-                  Text('Units'),
-                ],
-              ),
-            ),
-            Tab(
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.note, size: 14),
-                  SizedBox(width: 4),
-                  Text('Notes'),
-                ],
-              ),
-            ),
-            ],
-          ),
-        ),
-        );
-      },
+    return TabBar(
+      controller: _tabController,
+      labelColor: AppColors.mainColor,
+      unselectedLabelColor: AppColors.grey,
+      indicatorColor: AppColors.mainColor,
+      indicatorWeight: 3,
+      labelStyle: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+      ),
+      unselectedLabelStyle: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.normal,
+      ),
+      tabs: [
+        Tab(text: 'Details'),
+        Tab(text: 'Gallery'),
+        Tab(text: 'View on Map'),
+        Tab(text: 'Master Plan'),
+        Tab(text: 'Units'),
+        Tab(text: 'Notes'),
+      ],
     );
   }
 

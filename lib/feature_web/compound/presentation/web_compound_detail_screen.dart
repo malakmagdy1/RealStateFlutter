@@ -692,100 +692,27 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                       SizedBox(height: 16),
 
                       /// ---- TAB BAR ----
-                      Container(
-                        margin: EdgeInsets.only(right: 8, bottom: 16, left: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.mainColor.withOpacity(0.5),
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.mainColor.withOpacity(0.2),
-                              blurRadius: 12,
-                              offset: Offset(0, 4),
-                            ),
-                          ],
+                      TabBar(
+                        controller: _tabController,
+                        labelColor: AppColors.mainColor,
+                        unselectedLabelColor: AppColors.grey,
+                        indicatorColor: AppColors.mainColor,
+                        indicatorWeight: 3,
+                        labelStyle: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: TabBar(
-                            controller: _tabController,
-                            isScrollable: true,
-                            labelColor: AppColors.white,
-                            unselectedLabelColor: AppColors.mainColor,
-                            indicator: BoxDecoration(
-                              color: AppColors.mainColor,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            indicatorSize: TabBarIndicatorSize.tab,
-                            dividerColor: Colors.transparent,
-                            labelPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            labelStyle: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            unselectedLabelStyle: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.normal,
-                            ),
-                            tabAlignment: TabAlignment.start,
-                            tabs: [
-                              Tab(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.photo_library, size: 14),
-                                    SizedBox(width: 4),
-                                    Text('Gallery'),
-                                  ],
-                                ),
-                              ),
-                              Tab(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.home_work, size: 14),
-                                    SizedBox(width: 4),
-                                    Text('Units'),
-                                  ],
-                                ),
-                              ),
-                              Tab(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.map, size: 14),
-                                    SizedBox(width: 4),
-                                    Text(l10n.masterPlan),
-                                  ],
-                                ),
-                              ),
-                              Tab(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.architecture, size: 14),
-                                    SizedBox(width: 4),
-                                    Text('Floor Plan'),
-                                  ],
-                                ),
-                              ),
-                              Tab(
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.note, size: 14),
-                                    SizedBox(width: 4),
-                                    Text('Notes'),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
+                        unselectedLabelStyle: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.normal,
                         ),
+                        tabs: [
+                          Tab(text: 'Gallery'),
+                          Tab(text: 'Units'),
+                          Tab(text: l10n.masterPlan),
+                          Tab(text: 'Floor Plan'),
+                          Tab(text: 'Notes'),
+                        ],
                       ),
                       SizedBox(height: 16),
 
