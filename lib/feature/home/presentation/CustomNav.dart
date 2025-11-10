@@ -18,7 +18,6 @@ import 'HistoryScreen.dart';
 import 'homeScreen.dart';
 import '../../notifications/presentation/screens/notifications_screen.dart';
 import '../../compound/presentation/screen/compounds_screen.dart';
-import '../../subscription/presentation/screens/subscription_plans_screen.dart';
 
 class CustomNav extends StatefulWidget {
   static String routeName = '/nav';
@@ -278,26 +277,6 @@ class _CustomNavState extends State<CustomNav> {
                   setState(() {
                     _selectedIndex = 2;
                   });
-                },
-              ),
-              ListTile(
-                title: Row(
-                  children: [
-                    Icon(
-                      Icons.workspace_premium,
-                      color: AppColors.mainColor,
-                      size: screenWidth * 0.06,
-                    ),
-                    SizedBox(width: screenWidth * 0.02),
-                    CustomText16("Subscription", color: AppColors.mainColor),
-                  ],
-                ),
-                onTap: () {
-                  Navigator.of(context).pop(); // Close drawer
-                  Navigator.pushNamed(
-                    context,
-                    SubscriptionPlansScreen.routeName,
-                  );
                 },
               ),
               Divider(),
