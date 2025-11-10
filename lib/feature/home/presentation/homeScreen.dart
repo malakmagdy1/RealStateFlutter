@@ -1184,12 +1184,28 @@ class _HomeScreenState extends State<HomeScreen> {
         // Check if data has nested 'data' property (pagination structure)
         if (data is Map && data['data'] != null) {
           units = (data['data'] as List)
-              .map((unit) => Unit.fromJson(unit as Map<String, dynamic>))
+              .map((unit) {
+                final unitJson = Map<String, dynamic>.from(unit as Map<String, dynamic>);
+                // Mark as 'new' if not already set by API (New Arrivals section)
+                if (unitJson['change_type'] == null) {
+                  unitJson['change_type'] = 'new';
+                  unitJson['is_updated'] = true;
+                }
+                return Unit.fromJson(unitJson);
+              })
               .toList();
         } else if (data is List) {
           // Fallback: if data is directly a list
           units = data
-              .map((unit) => Unit.fromJson(unit as Map<String, dynamic>))
+              .map((unit) {
+                final unitJson = Map<String, dynamic>.from(unit as Map<String, dynamic>);
+                // Mark as 'new' if not already set by API (New Arrivals section)
+                if (unitJson['change_type'] == null) {
+                  unitJson['change_type'] = 'new';
+                  unitJson['is_updated'] = true;
+                }
+                return Unit.fromJson(unitJson);
+              })
               .toList();
         }
 

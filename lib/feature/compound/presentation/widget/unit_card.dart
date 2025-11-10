@@ -286,12 +286,17 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                   ),
                                 ],
                               ),
-                              // Status Badge - REMOVED per user request
                             ],
                           ),
                         ),
 
-                        // Update Badge - REMOVED per user request (was rotated ribbon)
+                        // Update Badge (NEW/UPDATED)
+                        if (widget.unit.isUpdated == true && widget.unit.changeType != null)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: _updateBadge(widget.unit.changeType!, screenWidth),
+                          ),
                       ],
                     ),
                   ),
