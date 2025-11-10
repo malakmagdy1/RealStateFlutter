@@ -20,8 +20,6 @@ import '../../../feature/auth/presentation/bloc/user_state.dart';
 import '../../../feature/sale/presentation/bloc/sale_bloc.dart';
 import '../../../feature/sale/presentation/bloc/sale_state.dart';
 import '../../../l10n/app_localizations.dart';
-import 'package:real/core/services/tutorial_service.dart';
-import 'package:real/core/widgets/tutorial_dialog.dart';
 import 'package:real/core/animations/animated_list_item.dart';
 import 'package:real/core/animations/page_transitions.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
@@ -65,11 +63,10 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
     super.initState();
     _refreshData();
 
-    // Load favorites and show tutorial after frame is built
+    // Load favorites after frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<CompoundFavoriteBloc>().add(LoadFavoriteCompounds());
       context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
-      _showTutorialIfNeeded();
     });
   }
 
@@ -93,43 +90,6 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
     // Fetch unit sections
     _fetchNewArrivals();
     _fetchUpdated24Hours();
-  }
-
-  Future<void> _showTutorialIfNeeded() async {
-    final tutorialService = TutorialService();
-    final hasSeen = await tutorialService.hasSeenWebTutorial();
-
-    if (!hasSeen && mounted) {
-      await TutorialDialog.showMultiStep(
-        context: context,
-        title: 'Welcome to Real Estate Web',
-        steps: [
-          TutorialStep(
-            icon: Icons.desktop_windows,
-            title: 'Web Experience',
-            description: 'Enjoy a full-featured real estate browsing experience optimized for desktop and tablets.',
-          ),
-          TutorialStep(
-            icon: Icons.business,
-            title: 'Browse Companies',
-            description: 'Explore trusted real estate developers and their featured projects.',
-          ),
-          TutorialStep(
-            icon: Icons.apartment,
-            title: 'View Compounds',
-            description: 'Browse available compounds with detailed information, images, and pricing.',
-          ),
-          TutorialStep(
-            icon: Icons.filter_list,
-            title: 'Advanced Filtering',
-            description: 'Use the navigation menu to access search, favorites, notifications, and your profile.',
-          ),
-        ],
-        onFinish: () async {
-          await tutorialService.markWebTutorialAsSeen();
-        },
-      );
-    }
   }
 
   @override

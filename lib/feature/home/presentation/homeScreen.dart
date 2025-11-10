@@ -38,8 +38,6 @@ import 'package:real/feature/compound/presentation/widget/unit_card.dart';
 import 'package:real/feature/compound/data/web_services/compound_web_services.dart';
 import 'package:real/feature/home/presentation/CompoundScreen.dart';
 import 'package:real/l10n/app_localizations.dart';
-import 'package:real/core/services/tutorial_service.dart';
-import 'package:real/core/services/tutorial_coach_service.dart';
 import 'package:real/core/animations/animated_list_item.dart';
 import 'package:real/core/animations/page_transitions.dart';
 // AI chat imports
@@ -76,12 +74,6 @@ class _HomeScreenState extends State<HomeScreen> {
   SearchFilter _currentFilter = SearchFilter.empty();
 
   // All search results shown by default (no "show more" buttons)
-
-  // Tutorial keys
-  final GlobalKey _searchKey = GlobalKey();
-  final GlobalKey _filterKey = GlobalKey();
-  final GlobalKey _companyKey = GlobalKey();
-  final GlobalKey _compoundKey = GlobalKey();
 
   // New Arrivals & Recently Updated & Recommended (24h) & Recently Updated (24h)
   List<Unit> _newArrivals = [];
@@ -120,11 +112,6 @@ class _HomeScreenState extends State<HomeScreen> {
     // Add scroll listeners for pagination
     _recommendedScrollController.addListener(_onRecommendedScroll);
     _availableScrollController.addListener(_onAvailableScroll);
-
-    // Show tutorial on first launch
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showTutorialIfNeeded();
-    });
   }
 
   void _onRecommendedScroll() {
@@ -172,23 +159,6 @@ class _HomeScreenState extends State<HomeScreen> {
           });
         }
       });
-    }
-  }
-
-  Future<void> _showTutorialIfNeeded() async {
-    final tutorialService = TutorialCoachService();
-
-    // Wait a bit for the UI to be fully built
-    await Future.delayed(Duration(milliseconds: 500));
-
-    if (mounted) {
-      await tutorialService.showHomeTutorial(
-        context: context,
-        searchKey: _searchKey,
-        filterKey: _filterKey,
-        companyKey: _companyKey,
-        compoundKey: _compoundKey,
-      );
     }
   }
 

@@ -22,8 +22,6 @@ import '../../notifications/presentation/screens/notifications_screen.dart';
 import '../../company/data/web_services/company_web_services.dart';
 import '../../company/data/models/company_user_model.dart';
 import '../../search/data/services/view_history_service.dart';
-import 'package:real/core/services/tutorial_service.dart';
-import 'package:real/core/services/tutorial_coach_service.dart';
 import '../../../core/animations/animated_list_item.dart';
 import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sheet.dart';
 import 'package:real/core/utils/message_helper.dart';
@@ -65,11 +63,6 @@ class _CompoundScreenState extends State<CompoundScreen>
   bool _isLoadingSalesPeople = false;
   List<Map<String, dynamic>> _notes = [];
 
-  // Tutorial keys
-  final GlobalKey _galleryKey = GlobalKey();
-  final GlobalKey _tabsKey = GlobalKey();
-  final GlobalKey _unitsKey = GlobalKey();
-  final GlobalKey _contactKey = GlobalKey();
   @override
   void initState() {
     super.initState();
@@ -130,26 +123,6 @@ class _CompoundScreenState extends State<CompoundScreen>
           );
         }
       });
-    }
-
-    // Show tutorial on first compound view
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _showTutorialIfNeeded();
-    });
-  }
-
-  Future<void> _showTutorialIfNeeded() async {
-    final tutorialService = TutorialCoachService();
-    // Wait for UI to be fully built
-    await Future.delayed(Duration(milliseconds: 500));
-    if (mounted) {
-      await tutorialService.showCompoundTutorial(
-        context: context,
-        galleryKey: _galleryKey,
-        tabsKey: _tabsKey,
-        unitsKey: _unitsKey,
-        contactKey: _contactKey,
-      );
     }
   }
 
