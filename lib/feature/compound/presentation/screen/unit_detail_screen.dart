@@ -289,10 +289,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
             if (mounted) {
               setState(() {
                 _currentNote = noteContent;
-                // Update the unit's noteId if we have it
-                if (noteId != null) {
-                  widget.unit.noteId = noteId;
-                }
+                // Note: noteId is stored in widget.unit.noteId (immutable)
+                // and will be refreshed when favorites reload
               });
             }
             print('[UNIT DETAIL] Updated _currentNote: $_currentNote');
@@ -1470,12 +1468,10 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
             final noteId = note['id'] as int?;
             print('[UNIT DETAIL] Note saved with ID: $noteId');
 
-            // Update local state with note ID
+            // Update local state
             setState(() {
               _currentNote = result;
-              if (noteId != null) {
-                widget.unit.noteId = noteId;
-              }
+              // Note: noteId will be updated when favorites reload from bloc
             });
           }
         }

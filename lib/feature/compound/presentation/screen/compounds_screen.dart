@@ -9,6 +9,7 @@ import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
 import 'package:real/feature/compound/presentation/widget/unit_card.dart';
+import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
 import 'package:real/feature/home/presentation/CompoundScreen.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:real/core/animations/animated_list_item.dart';
