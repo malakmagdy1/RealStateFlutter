@@ -631,6 +631,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
                             child: GridView.builder(
                               controller: _scrollController,
                               scrollDirection: Axis.vertical,
+                              physics: ClampingScrollPhysics(), // Faster scrolling
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
@@ -651,10 +652,8 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
                                 }
 
                                 final compound = allCompounds[index];
-                                return AnimatedListItem(
-                                  index: index,
-                                  child: CompoundsName(compound: compound),
-                                );
+                                // Remove animation for better scroll performance
+                                return CompoundsName(compound: compound);
                               },
                             ),
                           ),

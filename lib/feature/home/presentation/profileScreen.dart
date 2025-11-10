@@ -395,13 +395,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               Divider(height: 1, thickness: 1),
 
-              // Subscription Section
+              // Subscription Section - Compact
               BlocBuilder<SubscriptionBloc, SubscriptionState>(
                 builder: (context, state) {
                   if (state is SubscriptionStatusLoaded) {
                     final status = state.status;
                     return Container(
-                      margin: EdgeInsets.all(16),
+                      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           begin: Alignment.topLeft,
@@ -416,325 +416,173 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   Colors.grey[600]!,
                                 ],
                         ),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
                             color: status.hasActiveSubscription
-                                ? AppColors.mainColor.withOpacity(0.3)
-                                : Colors.grey.withOpacity(0.3),
-                            blurRadius: 12,
-                            offset: Offset(0, 6),
+                                ? AppColors.mainColor.withOpacity(0.2)
+                                : Colors.grey.withOpacity(0.2),
+                            blurRadius: 8,
+                            offset: Offset(0, 3),
                           ),
                         ],
                       ),
-                      child: Stack(
-                        children: [
-                          // Background pattern
-                          Positioned(
-                            right: -20,
-                            top: -20,
-                            child: Icon(
-                              Icons.stars_rounded,
-                              size: 120,
-                              color: Colors.white.withOpacity(0.1),
-                            ),
-                          ),
-                          Positioned(
-                            left: -10,
-                            bottom: -10,
-                            child: Icon(
-                              Icons.workspace_premium_rounded,
-                              size: 80,
-                              color: Colors.white.withOpacity(0.1),
-                            ),
-                          ),
-
-                          // Content
-                          Padding(
-                            padding: EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header row - compact
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                // Header with status badge
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Row(
-                                      children: [
-                                        Container(
-                                          padding: EdgeInsets.all(10),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white.withOpacity(0.2),
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          child: Icon(
-                                            Icons.workspace_premium,
-                                            color: Colors.white,
-                                            size: 24,
-                                          ),
-                                        ),
-                                        SizedBox(width: 12),
-                                        Text(
-                                          'Your Plan',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.white.withOpacity(0.9),
-                                            letterSpacing: 0.5,
-                                          ),
-                                        ),
-                                      ],
+                                    Icon(
+                                      Icons.workspace_premium,
+                                      color: Colors.white,
+                                      size: 20,
                                     ),
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: status.hasActiveSubscription
-                                            ? Colors.green
-                                            : Colors.orange[700],
-                                        borderRadius: BorderRadius.circular(20),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(0.2),
-                                            blurRadius: 4,
-                                            offset: Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            status.hasActiveSubscription
-                                                ? Icons.check_circle
-                                                : Icons.info_outline,
-                                            color: Colors.white,
-                                            size: 14,
-                                          ),
-                                          SizedBox(width: 4),
-                                          Text(
-                                            status.hasActiveSubscription ? 'ACTIVE' : 'INACTIVE',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              letterSpacing: 0.8,
-                                            ),
-                                          ),
-                                        ],
+                                    SizedBox(width: 8),
+                                    Text(
+                                      status.planNameEn,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
                                       ),
                                     ),
                                   ],
                                 ),
-
-                                SizedBox(height: 20),
-
-                                // Plan name
-                                Text(
-                                  status.planNameEn,
-                                  style: TextStyle(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                    height: 1.2,
-                                  ),
-                                ),
-                                if (status.planName.isNotEmpty && status.planName != status.planNameEn) ...[
-                                  SizedBox(height: 4),
-                                  Text(
-                                    status.planName,
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.white.withOpacity(0.8),
-                                    ),
-                                  ),
-                                ],
-
-                                SizedBox(height: 24),
-
-                                // Search usage card
                                 Container(
-                                  padding: EdgeInsets.all(16),
+                                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.15),
+                                    color: status.hasActiveSubscription
+                                        ? Colors.green
+                                        : Colors.orange[700],
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.white.withOpacity(0.2),
-                                      width: 1,
-                                    ),
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.search_rounded,
-                                                color: Colors.white,
-                                                size: 20,
-                                              ),
-                                              SizedBox(width: 8),
-                                              Text(
-                                                'Search Usage',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.white.withOpacity(0.9),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          if (status.hasUnlimitedSearches)
-                                            Container(
-                                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: Colors.amber[600],
-                                                borderRadius: BorderRadius.circular(12),
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Icon(Icons.all_inclusive, color: Colors.white, size: 14),
-                                                  SizedBox(width: 4),
-                                                  Text(
-                                                    'Unlimited',
-                                                    style: TextStyle(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.bold,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                        ],
-                                      ),
-
-                                      if (!status.hasUnlimitedSearches) ...[
-                                        SizedBox(height: 12),
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Text(
-                                              '${status.searchesUsed} used',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                color: Colors.white.withOpacity(0.8),
-                                              ),
-                                            ),
-                                            Text(
-                                              '${status.remainingSearches} left',
-                                              style: TextStyle(
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        SizedBox(height: 8),
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(10),
-                                          child: LinearProgressIndicator(
-                                            value: status.searchLimit > 0
-                                                ? status.searchesUsed / status.searchLimit
-                                                : 0,
-                                            backgroundColor: Colors.white.withOpacity(0.2),
-                                            valueColor: AlwaysStoppedAnimation<Color>(
-                                              status.canSearch
-                                                  ? Colors.green[300]!
-                                                  : Colors.red[300]!,
-                                            ),
-                                            minHeight: 8,
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-
-                                // Expiry info
-                                if (status.expiresAt != null) ...[
-                                  SizedBox(height: 16),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.event_available,
-                                          color: Colors.white.withOpacity(0.8),
-                                          size: 16,
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          'Renews on ${status.expiresAt}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white.withOpacity(0.8),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-
-                                SizedBox(height: 20),
-
-                                // Action button
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        SubscriptionPlansScreen.routeName,
-                                      );
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.white,
-                                      foregroundColor: status.hasActiveSubscription
-                                          ? AppColors.mainColor
-                                          : Colors.grey[700],
-                                      padding: EdgeInsets.symmetric(vertical: 14),
-                                      elevation: 0,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          status.hasActiveSubscription
-                                              ? Icons.manage_accounts
-                                              : Icons.upgrade,
-                                          size: 20,
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          status.hasActiveSubscription
-                                              ? 'Manage Subscription'
-                                              : 'Upgrade Now',
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.bold,
-                                            letterSpacing: 0.3,
-                                          ),
-                                        ),
-                                      ],
+                                  child: Text(
+                                    status.hasActiveSubscription ? 'ACTIVE' : 'INACTIVE',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+
+                            SizedBox(height: 12),
+
+                            // Search usage - inline
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.search_rounded,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
+                                SizedBox(width: 6),
+                                if (status.hasUnlimitedSearches)
+                                  Text(
+                                    'Unlimited Searches',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white.withOpacity(0.9),
+                                    ),
+                                  )
+                                else
+                                  Text(
+                                    '${status.remainingSearches} / ${status.searchLimit} searches left',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white.withOpacity(0.9),
+                                    ),
+                                  ),
+                              ],
+                            ),
+
+                            if (!status.hasUnlimitedSearches) ...[
+                              SizedBox(height: 8),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: status.searchLimit > 0
+                                      ? status.searchesUsed / status.searchLimit
+                                      : 0,
+                                  backgroundColor: Colors.white.withOpacity(0.2),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    status.canSearch
+                                        ? Colors.green[300]!
+                                        : Colors.red[300]!,
+                                  ),
+                                  minHeight: 4,
+                                ),
+                              ),
+                            ],
+
+                            // Expiry and button row
+                            SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                if (status.expiresAt != null)
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.event_available,
+                                        color: Colors.white.withOpacity(0.7),
+                                        size: 14,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        status.expiresAt!,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.white.withOpacity(0.7),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                else
+                                  SizedBox(),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      SubscriptionPlansScreen.routeName,
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: status.hasActiveSubscription
+                                        ? AppColors.mainColor
+                                        : Colors.grey[700],
+                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    minimumSize: Size(0, 0),
+                                  ),
+                                  child: Text(
+                                    status.hasActiveSubscription
+                                        ? 'Manage'
+                                        : 'Upgrade',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     );
                   } else if (state is SubscriptionLoading) {
