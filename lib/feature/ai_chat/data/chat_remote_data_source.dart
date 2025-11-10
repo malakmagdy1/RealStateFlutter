@@ -3,11 +3,14 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import '../domain/chat_message.dart';
 import '../domain/config.dart';
 import '../domain/real_estate_product.dart';
+import '../../search/data/repositories/search_repository.dart';
+import '../../compound/data/models/unit_model.dart';
 
 /// Handles communication with Google's Gemini AI
 class ChatRemoteDataSource {
   late final GenerativeModel _model;
   late final ChatSession _chatSession;
+  final SearchRepository _searchRepository = SearchRepository();
 
   ChatRemoteDataSource() {
     _initializeModel();
@@ -29,14 +32,64 @@ class ChatRemoteDataSource {
     _chatSession = _model.startChat();
   }
 
+  /// Convert Unit model to RealEstateProduct
+  RealEstateProduct _convertUnitToProduct(Unit unit) {
+    return RealEstateProduct(
+      type: 'unit',
+      id: unit.id,
+      name: unit.unitNumber?.isNotEmpty == true ? unit.unitNumber! : unit.usageType ?? 'Unit',
+      location: unit.compoundName ?? 'Unknown Location',
+      propertyType: unit.usageType ?? unit.unitType ?? 'Unit',
+      price: _formatPrice(unit),
+      area: unit.area,
+      bedrooms: unit.bedrooms,
+      bathrooms: unit.bathrooms,
+      features: _extractFeatures(unit),
+      description: '${unit.usageType ?? 'Unit'} in ${unit.compoundName ?? 'compound'}',
+    );
+  }
+
+  String _formatPrice(Unit unit) {
+    final price = unit.discountedPrice ?? unit.totalPrice ?? unit.normalPrice ?? unit.price;
+    if (price == null || price.isEmpty || price == '0') return 'Contact for Price';
+    try {
+      final numPrice = double.parse(price);
+      if (numPrice >= 1000000) {
+        return '${(numPrice / 1000000).toStringAsFixed(2)}M EGP';
+      } else if (numPrice >= 1000) {
+        return '${(numPrice / 1000).toStringAsFixed(0)}K EGP';
+      }
+      return '${numPrice.toStringAsFixed(0)} EGP';
+    } catch (e) {
+      return price;
+    }
+  }
+
+  List<String> _extractFeatures(Unit unit) {
+    List<String> features = [];
+    if (unit.status != null && unit.status!.toLowerCase() == 'available') {
+      features.add('Available');
+    }
+    if (unit.deliveryDate != null && unit.deliveryDate!.isNotEmpty) {
+      features.add('Delivery: ${unit.deliveryDate}');
+    }
+    if (unit.companyName != null && unit.companyName!.isNotEmpty) {
+      features.add('By ${unit.companyName}');
+    }
+    return features;
+  }
+
   /// System prompt that defines the AI's behavior
   static const String _realEstateSystemPrompt = '''
 You are an AI assistant specialized in Egyptian real estate properties.
 
 IMPORTANT RULES:
-1. ONLY respond to questions about real estate, properties, housing, or related topics
-2. For ANY other topic, respond: "I can only help with real estate and property questions. Please ask me about properties, units, or compounds."
-3. When describing properties, ALWAYS respond with valid JSON in this EXACT format:
+1. You have access to REAL property data from the database
+2. ONLY respond to questions about real estate, properties, housing, or related topics
+3. For ANY other topic, respond: "I can only help with real estate and property questions. Please ask me about properties, units, or compounds."
+4. When user asks about properties, I will provide you with real property data from the database
+5. Analyze the real data and recommend the best matches based on user requirements
+6. When describing properties, ALWAYS respond with valid JSON in this EXACT format:
 
 For SINGLE property:
 {
@@ -189,9 +242,55 @@ IMPORTANT:
   /// Send a message to the AI and get a response
   Future<ChatMessage> sendMessage(String userMessage) async {
     try {
-      // Send message to Gemini
+      // Fetch real properties from database based on user query
+      List<Unit> realUnits = [];
+      try {
+        print('[AI CHAT] Fetching real properties from database...');
+        final searchResponse = await _searchRepository.search(
+          query: userMessage,
+          type: 'unit',
+          perPage: 20,
+        );
+        realUnits = searchResponse.units ?? [];
+        print('[AI CHAT] Found ${realUnits.length} units from database');
+      } catch (e) {
+        print('[AI CHAT] Error fetching units: $e');
+        // Continue without real data if search fails
+      }
+
+      // Prepare message with real data context
+      String enhancedMessage = userMessage;
+      if (realUnits.isNotEmpty) {
+        // Convert units to simple format for AI
+        final unitsData = realUnits.take(10).map((unit) {
+          return {
+            'id': unit.id,
+            'name': unit.unitNumber ?? unit.usageType ?? 'Unit',
+            'location': unit.compoundName,
+            'type': unit.usageType ?? unit.unitType,
+            'price': _formatPrice(unit),
+            'area': unit.area,
+            'bedrooms': unit.bedrooms,
+            'bathrooms': unit.bathrooms,
+            'status': unit.status,
+            'company': unit.companyName,
+          };
+        }).toList();
+
+        enhancedMessage = '''
+User Query: $userMessage
+
+Available Properties from Database:
+${jsonEncode(unitsData)}
+
+Please analyze these REAL properties and recommend the best matches for the user's requirements.
+Return only the properties from this list that match the user's needs.
+''';
+      }
+
+      // Send message to Gemini with real data context
       final response = await _chatSession.sendMessage(
-        Content.text(userMessage),
+        Content.text(enhancedMessage),
       );
 
       final responseText = response.text?.trim() ?? '';
@@ -213,7 +312,21 @@ IMPORTANT:
         // Check if it's a list of properties
         if (jsonData.containsKey('properties')) {
           final propertiesList = (jsonData['properties'] as List)
-              .map((p) => RealEstateProduct.fromJson(p as Map<String, dynamic>))
+              .map((p) {
+                final productJson = p as Map<String, dynamic>;
+                // Try to match with real unit by ID
+                Unit? matchedUnit;
+                if (productJson['id'] != null && realUnits.isNotEmpty) {
+                  matchedUnit = realUnits.firstWhere(
+                    (unit) => unit.id == productJson['id'],
+                    orElse: () => realUnits.first,
+                  );
+                }
+                // Convert matched unit or use JSON data
+                return matchedUnit != null
+                    ? _convertUnitToProduct(matchedUnit)
+                    : RealEstateProduct.fromJson(productJson);
+              })
               .toList();
 
           // Return message with first property but include full list for rendering
@@ -226,7 +339,17 @@ IMPORTANT:
           );
         } else {
           // Single property
-          final product = RealEstateProduct.fromJson(jsonData);
+          Unit? matchedUnit;
+          if (jsonData['id'] != null && realUnits.isNotEmpty) {
+            matchedUnit = realUnits.firstWhere(
+              (unit) => unit.id == jsonData['id'],
+              orElse: () => realUnits.first,
+            );
+          }
+
+          final product = matchedUnit != null
+              ? _convertUnitToProduct(matchedUnit)
+              : RealEstateProduct.fromJson(jsonData);
 
           return ChatMessage(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
