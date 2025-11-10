@@ -4,6 +4,7 @@ import '../domain/chat_message.dart';
 import '../domain/config.dart';
 import '../domain/real_estate_product.dart';
 import '../../search/data/repositories/search_repository.dart';
+import '../../search/data/models/search_result_model.dart';
 import '../../compound/data/models/unit_model.dart';
 
 /// Handles communication with Google's Gemini AI
@@ -78,6 +79,56 @@ class ChatRemoteDataSource {
       features.add('By ${unit.companyName}');
     }
     return features;
+  }
+
+  /// Convert UnitSearchData to Unit model
+  Unit _convertSearchDataToUnit(dynamic unitData) {
+    return Unit(
+      id: unitData.id,
+      compoundId: unitData.compound.id,
+      unitType: unitData.unitType,
+      area: unitData.area ?? '0',
+      price: unitData.price ?? unitData.totalPrice,
+      bedrooms: unitData.numberOfBeds ?? '0',
+      bathrooms: unitData.numberOfBaths ?? '0',
+      floor: unitData.floor ?? '0',
+      status: unitData.status,
+      unitNumber: unitData.unitName ?? unitData.name,
+      deliveryDate: null,
+      view: null,
+      finishing: null,
+      createdAt: DateTime.now().toIso8601String(),
+      updatedAt: DateTime.now().toIso8601String(),
+      images: unitData.images,
+      buildingName: null,
+      gardenArea: null,
+      roofArea: null,
+      usageType: unitData.usageType,
+      salesNumber: null,
+      companyLogo: unitData.compound.company.logo,
+      companyName: unitData.compound.company.name,
+      companyId: unitData.compound.company.id,
+      compoundName: unitData.compound.name,
+      code: unitData.unitCode ?? unitData.code,
+      originalPrice: unitData.originalPrice,
+      discountedPrice: unitData.discountedPrice,
+      discountPercentage: unitData.discountPercentage,
+      available: unitData.available,
+      isSold: unitData.isSold,
+      totalPrice: unitData.totalPrice,
+      normalPrice: unitData.normalPrice,
+      builtUpArea: unitData.area,
+      landArea: null,
+      favoriteId: null,
+      notes: null,
+      noteId: null,
+      isUpdated: null,
+      lastChangedAt: null,
+      changeType: null,
+      changedFields: null,
+      hasActiveSale: unitData.hasActiveSale,
+      sale: null, // Sale object needs separate conversion if needed
+    );
   }
 
   /// System prompt that defines the AI's behavior
@@ -252,7 +303,15 @@ IMPORTANT:
           type: 'unit',
           perPage: 20,
         );
-        realUnits = searchResponse.units ?? [];
+
+        // Convert search results to Unit models
+        for (var result in searchResponse.results) {
+          if (result.type == 'unit' && result.data is UnitSearchData) {
+            final unitData = result.data as UnitSearchData;
+            realUnits.add(_convertSearchDataToUnit(unitData));
+          }
+        }
+
         print('[AI CHAT] Found ${realUnits.length} units from database');
       } catch (e) {
         print('[AI CHAT] Error fetching units: $e');
