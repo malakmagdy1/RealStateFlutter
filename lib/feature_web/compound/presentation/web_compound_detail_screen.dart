@@ -923,8 +923,8 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
       builder: (context, state) {
         if (state is UnitLoading) {
           return Center(child: CircularProgressIndicator(color: AppColors.mainColor));
-        } else if (state is UnitsLoaded) {
-          final units = state.units;
+        } else if (state is UnitSuccess) {
+          final units = state.response.data;
           if (units.isEmpty) {
             return Center(
               child: Column(

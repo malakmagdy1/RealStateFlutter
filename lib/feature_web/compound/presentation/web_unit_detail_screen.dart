@@ -63,7 +63,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _initializeUnit();
   }
 
@@ -381,8 +381,6 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                               Tab(text: l10n.details),
                               Tab(text: l10n.gallery),
                               Tab(text: l10n.viewOnMap),
-                              Tab(text: l10n.masterPlan),
-                              Tab(text: 'Floor Plan'),
                               Tab(text: 'Notes'),
                             ],
                           ),
@@ -408,8 +406,6 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                               _buildDetailsTab(l10n),
                               _buildGalleryTab(),
                               _buildMapTab(l10n),
-                              _buildMasterPlanTab(l10n),
-                              _buildFloorPlanTab(l10n),
                               _buildNotesTab(),
                             ],
                           ),
@@ -1390,112 +1386,6 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildMasterPlanTab(AppLocalizations l10n) {
-    final masterPlan = _currentUnit?.compoundMasterPlan;
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(24),
-      child: (masterPlan == null || masterPlan.isEmpty)
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.map_outlined,
-                    size: 80,
-                    color: AppColors.mainColor.withOpacity(0.3),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'No master plan available',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF999999),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: RobustNetworkImage(
-                    imageUrl: masterPlan,
-                    width: double.infinity,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, url) => Container(
-                      height: 400,
-                      color: Color(0xFFF8F9FA),
-                      child: Center(
-                        child: Icon(
-                          Icons.map,
-                          size: 100,
-                          color: AppColors.mainColor.withOpacity(0.3),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildFloorPlanTab(AppLocalizations l10n) {
-    final floorPlan = _currentUnit?.compoundFloorPlan;
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(24),
-      child: (floorPlan == null || floorPlan.isEmpty)
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.architecture_outlined,
-                    size: 80,
-                    color: AppColors.mainColor.withOpacity(0.3),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'No floor plan available',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF999999),
-                    ),
-                  ),
-                ],
-              ),
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: RobustNetworkImage(
-                    imageUrl: floorPlan,
-                    width: double.infinity,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, url) => Container(
-                      height: 400,
-                      color: Color(0xFFF8F9FA),
-                      child: Center(
-                        child: Icon(
-                          Icons.architecture,
-                          size: 100,
-                          color: AppColors.mainColor.withOpacity(0.3),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
     );
   }
 
