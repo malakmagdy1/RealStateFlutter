@@ -10,6 +10,7 @@ import 'package:real/feature/home/presentation/widget/rete_review.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../compound/presentation/bloc/favorite/compound_favorite_event.dart';
+import '../../compound/presentation/bloc/favorite/compound_favorite_state.dart';
 import '../../compound/presentation/bloc/unit/unit_bloc.dart';
 import '../../compound/presentation/bloc/unit/unit_event.dart';
 import '../../compound/presentation/bloc/unit/unit_state.dart';
@@ -1538,6 +1539,49 @@ class _CompoundScreenState extends State<CompoundScreen>
                     ),
                   ),
                 ),
+                // Favorite Button
+                Positioned(
+                  top: 40,
+                  right: 72,
+                  child: BlocBuilder<CompoundFavoriteBloc, CompoundFavoriteState>(
+                    builder: (context, state) {
+                      bool isFavorite = false;
+                      if (state is CompoundFavoriteUpdated) {
+                        isFavorite = state.favorites.any((c) => c.id == widget.compound.id);
+                      }
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            color: isFavorite ? Colors.red : AppColors.mainColor,
+                          ),
+                          onPressed: () {
+                            if (isFavorite) {
+                              context.read<CompoundFavoriteBloc>().add(
+                                RemoveFavoriteCompound(widget.compound),
+                              );
+                            } else {
+                              context.read<CompoundFavoriteBloc>().add(
+                                AddFavoriteCompound(widget.compound),
+                              );
+                            }
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 // Share Button
                 Positioned(
                   top: 40,
@@ -1560,35 +1604,38 @@ class _CompoundScreenState extends State<CompoundScreen>
                     ),
                   ),
                 ),
-                // Dot Indicators (only show if multiple images) - positioned at top right
+                // Dot Indicators (only show if multiple images) - positioned at center bottom
                 if (hasImages && widget.compound.images.length > 1)
                   Positioned(
-                    top: 100,
-                    right: 16,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: List.generate(
-                          widget.compound.images.length,
-                              (index) {
-                            return AnimatedContainer(
-                              duration: Duration(milliseconds: 300),
-                              margin: EdgeInsets.symmetric(horizontal: 3),
-                              width: _currentImageIndex == index ? 20 : 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(3),
-                                color: _currentImageIndex == index
-                                    ? AppColors.mainColor
-                                    : Colors.white.withOpacity(0.6),
-                              ),
-                            );
-                          },
+                    bottom: 16,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: List.generate(
+                            widget.compound.images.length,
+                                (index) {
+                              return AnimatedContainer(
+                                duration: Duration(milliseconds: 300),
+                                margin: EdgeInsets.symmetric(horizontal: 3),
+                                width: _currentImageIndex == index ? 20 : 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(3),
+                                  color: _currentImageIndex == index
+                                      ? AppColors.mainColor
+                                      : Colors.white.withOpacity(0.6),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),

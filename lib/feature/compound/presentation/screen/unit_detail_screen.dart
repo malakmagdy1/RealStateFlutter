@@ -719,77 +719,161 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Widget _buildTabBar(AppLocalizations l10n) {
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 400),
-      switchInCurve: Curves.easeOutCubic,
-      switchOutCurve: Curves.easeInCubic,
-      transitionBuilder: (Widget child, Animation<double> animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: ScaleTransition(
-            scale: Tween<double>(begin: 0.95, end: 1.0).animate(
-              CurvedAnimation(
-                parent: animation,
-                curve: Curves.easeOutBack,
-              ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate max width based on screen width
+        final screenWidth = MediaQuery.of(context).size.width;
+        final maxTabBarWidth = screenWidth - 32; // 16px margin on each side
+
+        return AnimatedContainer(
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          margin: EdgeInsets.only(right: 16, bottom: 16, left: 16),
+          constraints: BoxConstraints(
+            maxWidth: maxTabBarWidth,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: Colors.green.withOpacity(0.5),
+              width: 2,
             ),
-            child: SlideTransition(
-              position: Tween<Offset>(
-                begin: const Offset(0.05, 0),
-                end: Offset.zero,
-              ).animate(
-                CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutCubic,
-                ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.green.withOpacity(0.2),
+                blurRadius: 12,
+                offset: Offset(0, 4),
               ),
-              child: child,
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              labelColor: AppColors.white,
+              unselectedLabelColor: Colors.green.shade700,
+              indicator: BoxDecoration(
+                color: Colors.green,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              labelPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              labelStyle: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
+              unselectedLabelStyle: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.normal,
+              ),
+              tabAlignment: TabAlignment.start,
+              tabs: [
+                Tab(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.info_outline, size: 14),
+                      SizedBox(width: 4),
+                      Text(l10n.details),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.photo_library, size: 14),
+                      SizedBox(width: 4),
+                      Text(l10n.gallery),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.note, size: 14),
+                      SizedBox(width: 4),
+                      Text('Notes'),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.payment, size: 14),
+                      SizedBox(width: 4),
+                      Text(l10n.paymentPlans),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.location_on, size: 14),
+                      SizedBox(width: 4),
+                      Text(l10n.viewOnMap),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.architecture, size: 14),
+                      SizedBox(width: 4),
+                      Text(l10n.floorPlan),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         );
       },
-      child: Container(
-        key: ValueKey<int>(_tabController.index), // 🔑 triggers animation when switching
-        decoration: BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-          ),
-        ),
-        child: TabBar(
-          controller: _tabController,
-          labelColor: AppColors.mainColor,
-          unselectedLabelColor: AppColors.grey,
-          indicatorColor: AppColors.mainColor,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
-          isScrollable: true,
-          tabs: [
-            Tab(text: l10n.details),
-            Tab(text: l10n.gallery),
-            const Tab(text: 'Notes'),
-            Tab(text: l10n.paymentPlans),
-            Tab(text: l10n.viewOnMap),
-            Tab(text: l10n.floorPlan),
-          ],
-        ),
-      ),
     );
   }
 
 
   Widget _buildTabContent(AppLocalizations l10n) {
     return Container(
-      height: 400,
-      child: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildDetailsTab(l10n),
-          _buildGalleryTab(),
-          _buildNotesTab(),
-          _buildPaymentPlansTab(l10n),
-          _buildMapTab(l10n),
-          _buildFloorPlanTab(l10n),
+      margin: EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.green.withOpacity(0.5),
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.green.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          height: 400,
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildDetailsTab(l10n),
+              _buildGalleryTab(),
+              _buildNotesTab(),
+              _buildPaymentPlansTab(l10n),
+              _buildMapTab(l10n),
+              _buildFloorPlanTab(l10n),
+            ],
+          ),
+        ),
       ),
     );
   }
