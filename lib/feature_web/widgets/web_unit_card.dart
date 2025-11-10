@@ -284,12 +284,15 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                         ),
                       ),
 
-                      // Update Badge for new/updated/deleted units
+                      // Update Badge for new/updated/deleted units (Rotated Ribbon Style)
                       if (widget.unit.isUpdated == true && widget.unit.changeType != null)
                         Positioned(
-                          top: 8,
-                          right: 8,
-                          child: _updateBadge(widget.unit.changeType!),
+                          top: 12,
+                          right: -5,
+                          child: Transform.rotate(
+                            angle: 0.785, // 45 degrees
+                            child: _updateBadge(widget.unit.changeType!),
+                          ),
                         ),
 
                       // Semi-transparent Info Area at bottom

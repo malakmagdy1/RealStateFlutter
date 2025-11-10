@@ -290,12 +290,15 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                           ),
                         ),
 
-                        // Update Badge (NEW/UPDATED)
+                        // Update Badge (NEW/UPDATED) - Rotated Ribbon Style
                         if (widget.unit.isUpdated == true && widget.unit.changeType != null)
                           Positioned(
-                            top: 8,
-                            right: 8,
-                            child: _updateBadge(widget.unit.changeType!, screenWidth),
+                            top: 12,
+                            right: -5,
+                            child: Transform.rotate(
+                              angle: 0.785, // 45 degrees
+                              child: _updateBadge(widget.unit.changeType!, screenWidth),
+                            ),
                           ),
                       ],
                     ),
