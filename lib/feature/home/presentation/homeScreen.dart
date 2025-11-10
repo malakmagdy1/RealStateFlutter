@@ -336,7 +336,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           end: Alignment.bottomRight,
                         ).createShader(bounds),
                         child: Text(
-                          "${l10n.welcome} ${state.user.name}",
+                          "${l10n.welcome} ${state.user.name.split(' ').first}",
                           style: GoogleFonts.playfairDisplay(
                             fontSize: 28,
                             fontWeight: FontWeight.w700,
@@ -345,6 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             letterSpacing: 0.5,
                           ),
                         ),
+
                       );
                     }
                     return ShaderMask(
@@ -1386,8 +1387,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFFFF3B30), Color(0xFFFF6B6B)],
-                  ),
+                    colors: [Colors.teal, Colors.tealAccent],                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(

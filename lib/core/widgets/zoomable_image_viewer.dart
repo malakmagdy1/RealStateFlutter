@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:real/core/utils/colors.dart';
+import 'package:real/core/widget/robust_network_image.dart';
 
 /// A full-screen zoomable image viewer with pinch-to-zoom and pan support
 class ZoomableImageViewer extends StatefulWidget {
@@ -315,22 +316,17 @@ class _ZoomableImageState extends State<_ZoomableImage> with SingleTickerProvide
               panEnabled: true,
               scaleEnabled: true,
               child: Center(
-                child: Image.network(
-                  widget.imageUrl,
+                child: RobustNetworkImage(
+                  imageUrl: widget.imageUrl,
                   fit: BoxFit.contain,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
+                  loadingBuilder: (context) {
                     return Center(
                       child: CircularProgressIndicator(
-                        value: loadingProgress.expectedTotalBytes != null
-                            ? loadingProgress.cumulativeBytesLoaded /
-                                loadingProgress.expectedTotalBytes!
-                            : null,
                         color: AppColors.mainColor,
                       ),
                     );
                   },
-                  errorBuilder: (context, error, stackTrace) {
+                  errorBuilder: (context, url) {
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -340,6 +336,11 @@ class _ZoomableImageState extends State<_ZoomableImage> with SingleTickerProvide
                           Text(
                             'Failed to load image',
                             style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Tap anywhere to close',
+                            style: TextStyle(color: Colors.white70, fontSize: 14),
                           ),
                         ],
                       ),

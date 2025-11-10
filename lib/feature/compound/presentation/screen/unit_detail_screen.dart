@@ -890,6 +890,46 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           _buildSpecRow(l10n.compound, widget.unit.compoundName ?? widget.unit.compoundId ?? 'N/A'),
           _buildSpecRow('Status', widget.unit.status ?? 'N/A'),
           _buildSpecRow('Available', widget.unit.available != null ? (widget.unit.available! ? 'Yes' : 'No') : 'N/A'),
+          // Update Notes - Show if unit was recently updated
+          if (widget.unit.notes != null && widget.unit.notes!.isNotEmpty)
+            Container(
+              margin: EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Color(0xFFFFF3CD),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Color(0xFFFFECAA), width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.update, color: Color(0xFFFF9800), size: 20),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Recent Update',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFFF9800),
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          widget.unit.notes!,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF856404),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           _buildSpecRow(l10n.saleType, 'Resale'),
           _buildSpecRow(l10n.finishing, widget.unit.finishing ?? 'N/A'),
           _buildSpecRow(l10n.deliveryDate, widget.unit.deliveryDate != null && widget.unit.deliveryDate!.isNotEmpty

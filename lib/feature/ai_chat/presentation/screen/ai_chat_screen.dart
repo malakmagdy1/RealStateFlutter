@@ -112,9 +112,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
       ),
       body: Column(
         children: [
-          // Welcome banner
-          _buildWelcomeBanner(),
-
           // Messages list
           Expanded(
             child: BlocConsumer<ChatBloc, ChatState>(
@@ -205,45 +202,6 @@ class _AiChatScreenState extends State<AiChatScreen> {
       ),
     );
   }
-
-  Widget _buildWelcomeBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.mainColor.withOpacity(0.8), AppColors.mainColor],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.smart_toy, color: Colors.white, size: 28),
-              SizedBox(width: 8),
-              Text(
-                'AI Assistant',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 4),
-          Text(
-            'Ask me about properties in Egypt',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildEmptyState() {
     return Center(
       child: Padding(

@@ -57,16 +57,13 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
   bool _isLoadingUpdated24Hours = false;
   final CompoundWebServices _webServices = CompoundWebServices();
 
+  // Track if initial load is done
+  bool _hasInitialized = false;
+
   @override
   void initState() {
     super.initState();
-    // Fetch companies and compounds when screen loads
-    context.read<CompanyBloc>().add(FetchCompaniesEvent());
-    context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: 100));
-
-    // Fetch unit sections
-    _fetchNewArrivals();
-    _fetchUpdated24Hours();
+    _refreshData();
 
     // Load favorites and show tutorial after frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -74,6 +71,28 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
       context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
       _showTutorialIfNeeded();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh data when returning to this screen (after initial load)
+    if (_hasInitialized) {
+      _refreshData();
+    } else {
+      _hasInitialized = true;
+    }
+  }
+
+  /// Refresh all data on the home screen
+  void _refreshData() {
+    // Fetch companies and compounds
+    context.read<CompanyBloc>().add(FetchCompaniesEvent());
+    context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: 100));
+
+    // Fetch unit sections
+    _fetchNewArrivals();
+    _fetchUpdated24Hours();
   }
 
   Future<void> _showTutorialIfNeeded() async {
@@ -155,7 +174,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                           end: Alignment.bottomRight,
                         ).createShader(bounds),
                         child: Text(
-                          "${l10n.welcome} ${state.user.name}",
+                          "${l10n.welcome} ${state.user.name.split(' ').first}",
                           style: GoogleFonts.playfairDisplay(
                             fontSize: 40,
                             fontWeight: FontWeight.w700,
