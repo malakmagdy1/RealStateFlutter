@@ -66,8 +66,12 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _showSearchResults = false;
   bool _showSearchHistory = false;
   Timer? _debounceTimer;
-  bool _showAllAvailableCompounds = false;
-  bool _showAllRecommendedCompounds = false;
+  int _recommendedDisplayCount = 10;
+  int _availableDisplayCount = 10;
+  final ScrollController _recommendedScrollController = ScrollController();
+  final ScrollController _availableScrollController = ScrollController();
+  bool _isLoadingMoreRecommended = false;
+  bool _isLoadingMoreAvailable = false;
   List<String> _searchHistory = [];
   SearchFilter _currentFilter = SearchFilter.empty();
 
@@ -113,10 +117,62 @@ class _HomeScreenState extends State<HomeScreen> {
     _fetchNewArrivals();
     _fetchUpdated24Hours();
 
+    // Add scroll listeners for pagination
+    _recommendedScrollController.addListener(_onRecommendedScroll);
+    _availableScrollController.addListener(_onAvailableScroll);
+
     // Show tutorial on first launch
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _showTutorialIfNeeded();
     });
+  }
+
+  void _onRecommendedScroll() {
+    if (_isLoadingMoreRecommended) return;
+
+    final maxScroll = _recommendedScrollController.position.maxScrollExtent;
+    final currentScroll = _recommendedScrollController.position.pixels;
+
+    // Load more when 80% scrolled
+    if (currentScroll >= maxScroll * 0.8) {
+      setState(() {
+        _isLoadingMoreRecommended = true;
+        _recommendedDisplayCount += 10;
+      });
+
+      // Small delay to show loading indicator
+      Future.delayed(Duration(milliseconds: 300), () {
+        if (mounted) {
+          setState(() {
+            _isLoadingMoreRecommended = false;
+          });
+        }
+      });
+    }
+  }
+
+  void _onAvailableScroll() {
+    if (_isLoadingMoreAvailable) return;
+
+    final maxScroll = _availableScrollController.position.maxScrollExtent;
+    final currentScroll = _availableScrollController.position.pixels;
+
+    // Load more when 80% scrolled
+    if (currentScroll >= maxScroll * 0.8) {
+      setState(() {
+        _isLoadingMoreAvailable = true;
+        _availableDisplayCount += 10;
+      });
+
+      // Small delay to show loading indicator
+      Future.delayed(Duration(milliseconds: 300), () {
+        if (mounted) {
+          setState(() {
+            _isLoadingMoreAvailable = false;
+          });
+        }
+      });
+    }
   }
 
   Future<void> _showTutorialIfNeeded() async {
@@ -149,6 +205,8 @@ class _HomeScreenState extends State<HomeScreen> {
     _searchFocusNode.dispose();
     _searchBloc.close();
     _debounceTimer?.cancel();
+    _recommendedScrollController.dispose();
+    _availableScrollController.dispose();
     super.dispose();
   }
 
@@ -733,54 +791,41 @@ class _HomeScreenState extends State<HomeScreen> {
                           ? compoundsWithImages
                           : state.response.data;
 
-                      final hasMultipleRecommended = recommendedCompounds.length > 3;
-                      final displayCount = _showAllRecommendedCompounds
-                          ? recommendedCompounds.length
-                          : (recommendedCompounds.length > 6 ? 6 : recommendedCompounds.length);
+                      // Use pagination - show up to _recommendedDisplayCount items
+                      final displayCount = recommendedCompounds.length > _recommendedDisplayCount
+                          ? _recommendedDisplayCount
+                          : recommendedCompounds.length;
 
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Title with Show All Button
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              CustomText20(l10n.recommendedCompounds),
-                              if (hasMultipleRecommended)
-                                TextButton.icon(
-                                  onPressed: () {
-                                    setState(() {
-                                      _showAllRecommendedCompounds = !_showAllRecommendedCompounds;
-                                    });
-                                  },
-                                  icon: Icon(
-                                    _showAllRecommendedCompounds ? Icons.expand_less : Icons.expand_more,
-                                    size: 18,
-                                    color: AppColors.mainColor,
-                                  ),
-                                  label: Text(
-                                    _showAllRecommendedCompounds ? l10n.showLess : l10n.showAll,
-                                    style: TextStyle(
-                                      color: AppColors.mainColor,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(horizontal: 8),
-                                  ),
-                                ),
-                            ],
-                          ),
+                          // Title
+                          CustomText20(l10n.recommendedCompounds),
                           SizedBox(height: 12),
-                          // Horizontal scroll view
+                          // Horizontal scroll view with pagination
                           SizedBox(
                             height: 280,
                             child: ListView.builder(
+                              controller: _recommendedScrollController,
                               scrollDirection: Axis.horizontal,
                               physics: BouncingScrollPhysics(),
                               padding: EdgeInsets.symmetric(horizontal: 8),
-                              itemCount: displayCount,
+                              itemCount: displayCount + (_isLoadingMoreRecommended && displayCount < recommendedCompounds.length ? 1 : 0),
                               itemBuilder: (context, index) {
+                                // Show loading indicator at end
+                                if (index == displayCount) {
+                                  return Container(
+                                    width: 60,
+                                    margin: EdgeInsets.only(right: 12),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.mainColor,
+                                      ),
+                                    ),
+                                  );
+                                }
+
                                 final compound = recommendedCompounds[index];
                                 return Container(
                                   width: 200,

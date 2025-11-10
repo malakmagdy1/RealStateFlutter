@@ -9,7 +9,6 @@ import 'package:real/feature/home/presentation/widget/location.dart';
 import 'package:real/feature/home/presentation/widget/rete_review.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../../core/widget/button/showAll.dart';
 import '../../compound/presentation/bloc/favorite/compound_favorite_event.dart';
 import '../../compound/presentation/bloc/unit/unit_bloc.dart';
 import '../../compound/presentation/bloc/unit/unit_event.dart';
@@ -46,7 +45,9 @@ class _CompoundScreenState extends State<CompoundScreen>
     with SingleTickerProviderStateMixin {
   int _currentImageIndex = 0;
   int _userRating = 0; // User's rating (0-5)
-  bool _showAllUnits = false;
+  int _unitsDisplayCount = 10;
+  final ScrollController _unitsScrollController = ScrollController();
+  bool _isLoadingMoreUnits = false;
   bool _showReviews = false; // Control reviews visibility
   bool _showFullDescription = false; // Control description expansion
   final TextEditingController _searchController = TextEditingController();
@@ -112,6 +113,9 @@ class _CompoundScreenState extends State<CompoundScreen>
     // Fetch compound notes
     _fetchCompoundNote();
 
+    // Add scroll listener for units pagination
+    _unitsScrollController.addListener(_onUnitsScroll);
+
     // Start auto-slider if there are multiple images
     if (widget.compound.images.length > 1) {
       _imageSliderTimer = Timer.periodic(Duration(seconds: 4), (timer) {
@@ -167,12 +171,37 @@ class _CompoundScreenState extends State<CompoundScreen>
     );
   }
 
+  void _onUnitsScroll() {
+    if (_isLoadingMoreUnits) return;
+
+    final maxScroll = _unitsScrollController.position.maxScrollExtent;
+    final currentScroll = _unitsScrollController.position.pixels;
+
+    // Load more when 80% scrolled (for GridView this works well)
+    if (currentScroll >= maxScroll * 0.8) {
+      setState(() {
+        _isLoadingMoreUnits = true;
+        _unitsDisplayCount += 10;
+      });
+
+      // Small delay to show loading indicator
+      Future.delayed(Duration(milliseconds: 300), () {
+        if (mounted) {
+          setState(() {
+            _isLoadingMoreUnits = false;
+          });
+        }
+      });
+    }
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
     _searchController.dispose();
     _imagePageController.dispose();
     _imageSliderTimer?.cancel();
+    _unitsScrollController.dispose();
     super.dispose();
   }
 
@@ -735,11 +764,13 @@ class _CompoundScreenState extends State<CompoundScreen>
             );
           }
 
-          final displayCount = _showAllUnits
-              ? units.length
-              : (units.length > 6 ? 6 : units.length);
+          // Use pagination - show up to _unitsDisplayCount items
+          final displayCount = units.length > _unitsDisplayCount
+              ? _unitsDisplayCount
+              : units.length;
 
           return SingleChildScrollView(
+            controller: _unitsScrollController,
             physics: BouncingScrollPhysics(),
             child: Column(
               children: [
@@ -762,15 +793,12 @@ class _CompoundScreenState extends State<CompoundScreen>
                     );
                   },
                 ),
-                if (units.length > 6) ...[
+                // Show loading indicator when loading more
+                if (_isLoadingMoreUnits && displayCount < units.length) ...[
                   SizedBox(height: 16),
-                  ShowAllButton(
-                    label: _showAllUnits ? l10n.showLess : l10n.showAllUnits,
-                    pressed: () {
-                      setState(() {
-                        _showAllUnits = !_showAllUnits;
-                      });
-                    },
+                  CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.mainColor,
                   ),
                   SizedBox(height: 16),
                 ],
