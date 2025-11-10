@@ -949,6 +949,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                 onPressed: () => _showNoteDialog(),
                 icon: Icon(Icons.add, size: 16),
                 label: Text('Add Note'),
+
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.mainColor,
                 ),
@@ -1388,103 +1389,6 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   // Notes Section
-  Widget _buildNotesSection() {
-    return Container(
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(
-                    _currentNote != null && _currentNote!.isNotEmpty
-                        ? Icons.note
-                        : Icons.note_add_outlined,
-                    color: AppColors.mainColor,
-                    size: 20,
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    'My Notes',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                ],
-              ),
-              TextButton.icon(
-                onPressed: _showNoteDialog,
-                icon: Icon(
-                  _currentNote != null && _currentNote!.isNotEmpty
-                      ? Icons.edit
-                      : Icons.add,
-                  size: 16,
-                ),
-                label: Text(
-                  _currentNote != null && _currentNote!.isNotEmpty
-                      ? 'Edit Note'
-                      : 'Add Note',
-                ),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.mainColor,
-                ),
-              ),
-            ],
-          ),
-          if (_currentNote != null && _currentNote!.isNotEmpty) ...[
-            SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.mainColor.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppColors.mainColor.withOpacity(0.2),
-                ),
-              ),
-              child: Text(
-                _currentNote!,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.black87,
-                  height: 1.5,
-                ),
-              ),
-            ),
-          ] else ...[
-            SizedBox(height: 8),
-            Text(
-              'Add your personal notes about this unit. Your notes are private and only visible to you.',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey.shade600,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
   Future<void> _showNoteDialog({
     int? noteId,
     String? initialContent,
@@ -1571,7 +1475,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     if (confirmed == true && mounted) {
       try {
         print('[UNIT DETAIL] Deleting note $noteId');
-        final response = await _favoritesWebServices.deleteNote(noteId: noteId);
+        final response = await _favoritesWebServices.deleteNote(noteId);
 
         print('[UNIT DETAIL] Delete note response: $response');
 
@@ -1784,15 +1688,6 @@ class UnitChangeNotes extends StatelessWidget {
         return Colors.red;
       default:
         return Colors.blue;
-    }
-  }
-
-  String _formatDate(String dateStr) {
-    try {
-      final date = DateTime.parse(dateStr);
-      return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return dateStr;
     }
   }
 }

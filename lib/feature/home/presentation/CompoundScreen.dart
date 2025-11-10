@@ -1278,7 +1278,7 @@ class _CompoundScreenState extends State<CompoundScreen>
     if (confirmed == true && mounted) {
       try {
         print('[COMPOUND SCREEN] Deleting note $noteId');
-        final response = await _favoritesWebServices.deleteNote(noteId: noteId);
+        final response = await _favoritesWebServices.deleteNote(noteId);
 
         print('[COMPOUND SCREEN] Delete note response: $response');
 
