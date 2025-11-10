@@ -16,6 +16,7 @@ import 'package:real/feature/compound/data/web_services/compound_web_services.da
 import 'package:real/feature/sale/data/models/sale_model.dart';
 import 'package:real/feature/sale/presentation/widgets/sales_person_selector.dart';
 import 'package:real/l10n/app_localizations.dart';
+import 'package:real/core/animations/pulse_animation.dart';
 
 class WebUnitCard extends StatefulWidget {
   final Unit unit;
@@ -32,6 +33,7 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
   late Animation<double> _scaleAnimation;
   late Animation<double> _elevationAnimation;
   String? _currentNote;
+  bool _animateFavorite = false;
 
   @override
   void initState() {
@@ -171,32 +173,47 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                                         if (state is UnitFavoriteUpdated) {
                                           isFavorite = state.favorites.any((u) => u.id == widget.unit.id);
                                         }
-                                        return MouseRegion(
-                                          cursor: SystemMouseCursors.click,
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              if (isFavorite) {
-                                                context.read<UnitFavoriteBloc>().add(
-                                                  RemoveFavoriteUnit(widget.unit),
-                                                );
-                                              } else {
-                                                context.read<UnitFavoriteBloc>().add(
-                                                  AddFavoriteUnit(widget.unit),
-                                                );
-                                              }
-                                            },
-                                            child: Container(
-                                              height: 32,
-                                              width: 32,
-                                              alignment: Alignment.center,
-                                              decoration: BoxDecoration(
-                                                color: Colors.black.withOpacity(0.35),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Icon(
-                                                isFavorite ? Icons.favorite : Icons.favorite_border,
-                                                size: 16,
-                                                color: isFavorite ? Colors.red : Colors.white,
+                                        return PulseAnimation(
+                                          animate: _animateFavorite,
+                                          child: MouseRegion(
+                                            cursor: SystemMouseCursors.click,
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                if (isFavorite) {
+                                                  context.read<UnitFavoriteBloc>().add(
+                                                    RemoveFavoriteUnit(widget.unit),
+                                                  );
+                                                } else {
+                                                  context.read<UnitFavoriteBloc>().add(
+                                                    AddFavoriteUnit(widget.unit),
+                                                  );
+                                                }
+
+                                                // Trigger pulse animation
+                                                setState(() {
+                                                  _animateFavorite = true;
+                                                });
+                                                Future.delayed(Duration(milliseconds: 600), () {
+                                                  if (mounted) {
+                                                    setState(() {
+                                                      _animateFavorite = false;
+                                                    });
+                                                  }
+                                                });
+                                              },
+                                              child: Container(
+                                                height: 32,
+                                                width: 32,
+                                                alignment: Alignment.center,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.black.withOpacity(0.35),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  isFavorite ? Icons.favorite : Icons.favorite_border,
+                                                  size: 16,
+                                                  color: isFavorite ? Colors.red : Colors.white,
+                                                ),
                                               ),
                                             ),
                                           ),

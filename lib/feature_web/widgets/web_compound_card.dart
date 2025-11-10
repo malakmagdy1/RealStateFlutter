@@ -17,6 +17,7 @@ import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature_web/compound/presentation/web_compound_detail_screen.dart';
 import 'package:real/core/widgets/note_dialog.dart';
 import 'package:real/feature/compound/data/web_services/favorites_web_services.dart';
+import 'package:real/core/animations/pulse_animation.dart';
 
 class WebCompoundCard extends StatefulWidget {
   final Compound compound;
@@ -34,6 +35,7 @@ class WebCompoundCard extends StatefulWidget {
 
 class _WebCompoundCardState extends State<WebCompoundCard> {
   String? _currentNote;
+  bool _animateFavorite = false;
 
   @override
   void initState() {
@@ -180,22 +182,39 @@ class _WebCompoundCardState extends State<WebCompoundCard> {
                                 final bloc = context.read<CompoundFavoriteBloc>();
                                 final isFavorite = bloc.isFavorite(compound);
 
-                                return MouseRegion(
-                                  cursor: SystemMouseCursors.click,
-                                  child: GestureDetector(
-                                    onTap: () => bloc.toggleFavorite(compound),
-                                    child: Container(
-                                      height: 32,
-                                      width: 32,
-                                      alignment: Alignment.center,
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.35),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                                        size: 16,
-                                        color: isFavorite ? Colors.red : Colors.white,
+                                return PulseAnimation(
+                                  animate: _animateFavorite,
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        bloc.toggleFavorite(compound);
+
+                                        // Trigger pulse animation
+                                        setState(() {
+                                          _animateFavorite = true;
+                                        });
+                                        Future.delayed(Duration(milliseconds: 600), () {
+                                          if (mounted) {
+                                            setState(() {
+                                              _animateFavorite = false;
+                                            });
+                                          }
+                                        });
+                                      },
+                                      child: Container(
+                                        height: 32,
+                                        width: 32,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.35),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                                          size: 16,
+                                          color: isFavorite ? Colors.red : Colors.white,
+                                        ),
                                       ),
                                     ),
                                   ),
