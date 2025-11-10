@@ -861,14 +861,24 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       ),
       itemCount: widget.unit.images.length,
       itemBuilder: (context, index) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: RobustNetworkImage(
-            imageUrl: widget.unit.images[index],
-            fit: BoxFit.cover,
-            errorBuilder: (context, url) => Container(
-              color: Colors.grey.shade200,
-              child: Icon(Icons.broken_image, color: Colors.grey),
+        return GestureDetector(
+          onTap: () {
+            // Open zoomable image viewer
+            ZoomableImageViewer.show(
+              context,
+              images: widget.unit.images,
+              initialIndex: index,
+            );
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: RobustNetworkImage(
+              imageUrl: widget.unit.images[index],
+              fit: BoxFit.cover,
+              errorBuilder: (context, url) => Container(
+                color: Colors.grey.shade200,
+                child: Icon(Icons.broken_image, color: Colors.grey),
+              ),
             ),
           ),
         );
