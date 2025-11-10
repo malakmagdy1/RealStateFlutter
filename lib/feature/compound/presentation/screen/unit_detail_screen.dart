@@ -10,7 +10,7 @@ import '../../data/web_services/compound_web_services.dart';
 import '../../../sale/data/models/sale_model.dart';
 import '../../../sale/data/services/sale_web_services.dart';
 import '../../../sale/presentation/widgets/sales_person_selector.dart';
-import '../../../share/presentation/widgets/share_bottom_sheet.dart';
+import '../../../share/presentation/widgets/advanced_share_bottom_sheet.dart';
 import '../../../company/data/web_services/company_web_services.dart';
 import '../../../company/data/models/company_user_model.dart';
 import '../../data/models/compound_model.dart';
@@ -19,6 +19,10 @@ import '../bloc/favorite/unit_favorite_state.dart';
 import '../bloc/favorite/unit_favorite_event.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../search/data/services/view_history_service.dart';
+import '../../../../core/widgets/sale_card.dart';
+import '../../../../core/widgets/note_dialog.dart';
+import '../../data/web_services/favorites_web_services.dart';
+import '../../../../core/widgets/zoomable_image_viewer.dart';
 
 class UnitDetailScreen extends StatefulWidget {
   static String routeName = '/unit-detail';
@@ -37,11 +41,13 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   final CompoundWebServices _compoundWebServices = CompoundWebServices();
   final CompanyWebServices _companyWebServices = CompanyWebServices();
   final SaleWebServices _saleWebServices = SaleWebServices();
+  final FavoritesWebServices _favoritesWebServices = FavoritesWebServices();
   late TabController _tabController;
   List<CompanyUser> _salesPeople = [];
   bool _isLoadingSalesPeople = false;
   Sale? _unitSale;
   bool _isLoadingSale = false;
+  String? _currentNote;
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
@@ -52,10 +58,18 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     // Track view history
     ViewHistoryService().addViewedUnit(widget.unit);
     _imagePageController = PageController();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
+    _currentNote = widget.unit.notes;
+    print('[UNIT DETAIL] Initial note from widget.unit.notes: $_currentNote');
+    print('[UNIT DETAIL] Unit ID: ${widget.unit.id}');
+    print('[UNIT DETAIL] Note ID: ${widget.unit.noteId}');
+    // Sale is now included in unit data, no need to fetch separately
+    if (widget.unit.sale != null) {
+      _unitSale = widget.unit.sale;
+    }
     _startAutoSlide();
     _fetchSalesPeople();
-    _fetchUnitSale();
+    _fetchUnitNote();
   }
 
   @override
@@ -206,8 +220,27 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
             .map((s) => Sale.fromJson(s as Map<String, dynamic>))
             .toList();
 
-        // Filter for only currently active sales
-        final activeSales = sales.where((sale) => sale.isCurrentlyActive).toList();
+        // Filter for only currently active sales that match this unit
+        final activeSales = sales.where((sale) {
+          // Must be currently active
+          if (!sale.isCurrentlyActive) return false;
+
+          // Check if sale applies to this specific unit or compound
+          if (sale.saleType.toLowerCase() == 'unit') {
+            // Unit-specific sale: must match exact unit ID
+            return sale.unitId == widget.unit.id;
+          } else if (sale.saleType.toLowerCase() == 'compound') {
+            // Compound-wide sale: must match compound ID
+            return sale.compoundId == widget.unit.compoundId;
+          }
+
+          return false;
+        }).toList();
+
+        print('[UNIT DETAIL] Found ${activeSales.length} matching sales for this unit');
+        if (activeSales.isNotEmpty) {
+          print('[UNIT DETAIL] First sale: ${activeSales.first.saleName} - Type: ${activeSales.first.saleType}');
+        }
 
         if (activeSales.isNotEmpty && mounted) {
           setState(() {
@@ -232,6 +265,39 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     }
   }
 
+  Future<void> _fetchUnitNote() async {
+    try {
+      print('[UNIT DETAIL] Fetching note for unit ${widget.unit.id}');
+      final response = await _favoritesWebServices.getNotes(
+        unitId: int.parse(widget.unit.id),
+      );
+
+      print('[UNIT DETAIL] getNotes response: $response');
+
+      if (response['success'] == true && response['notes'] != null) {
+        final notes = response['notes'] as List;
+        print('[UNIT DETAIL] Found ${notes.length} notes');
+        if (notes.isNotEmpty) {
+          final noteContent = notes.first['content'] as String?;
+          print('[UNIT DETAIL] Note content from API: $noteContent');
+          if (mounted) {
+            setState(() {
+              _currentNote = noteContent;
+            });
+          }
+          print('[UNIT DETAIL] Updated _currentNote: $_currentNote');
+        } else {
+          print('[UNIT DETAIL] Notes array is empty');
+        }
+      } else {
+        print('[UNIT DETAIL] No notes in response or success=false');
+      }
+    } catch (e) {
+      print('[UNIT DETAIL] Error fetching unit note: $e');
+      print('[UNIT DETAIL] Error stack: ${StackTrace.current}');
+    }
+  }
+
   Future<void> _showSalespeople() async {
     try {
       // Use compound ID as the search parameter since we don't have compound name in Unit model
@@ -248,21 +314,19 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
             salesPersons: salespeople,
           );
         } else if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context)!.noSalesPersonAvailable),
-              backgroundColor: AppColors.mainColor,
-            ),
+          _showCenteredMessage(
+            context: context,
+            message: AppLocalizations.of(context)!.noSalesPersonAvailable,
+            isSuccess: false,
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${AppLocalizations.of(context)!.error}: $e'),
-            backgroundColor: Colors.red,
-          ),
+        _showCenteredMessage(
+          context: context,
+          message: '${AppLocalizations.of(context)!.error}: $e',
+          isSuccess: false,
         );
       }
     }
@@ -273,7 +337,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ShareBottomSheet(
+      builder: (context) => AdvancedShareBottomSheet(
         type: 'unit',
         id: widget.unit.id,
       ),
@@ -301,19 +365,6 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       }
     } else {
       _showSalespeople();
-    }
-  }
-
-  void _requestInfo() {
-    if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Request submitted! We will contact you soon.'),
-          backgroundColor: AppColors.mainColor,
-        ),
-      );
-      _nameController.clear();
-      _phoneController.clear();
     }
   }
 
@@ -390,29 +441,25 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                   _buildStatsRow(l10n),
                   SizedBox(height: 24),
 
+                  // Unit Change Notes (if unit has updates)
+                  UnitChangeNotes(unit: widget.unit),
+
                   // Sale Section (if unit is on sale)
                   if (_unitSale != null) ...[
                     _buildSaleSection(_unitSale!, l10n),
                     SizedBox(height: 24),
                   ],
+                  SizedBox(height: 24),
 
+                  // Sales People Section
+                  _buildSalesPeopleSection(l10n),
                   // Tab Navigation
                   _buildTabBar(l10n),
                   SizedBox(height: 16),
 
                   // Tab Content
                   _buildTabContent(l10n),
-                  SizedBox(height: 24),
 
-                  // Sales People Section
-                  _buildSalesPeopleSection(l10n),
-
-                  // Payment Plans
-                  _buildPaymentPlans(l10n),
-                  SizedBox(height: 24),
-
-                  // Fill Form
-                  _buildFillForm(l10n),
                   SizedBox(height: 100), // Space for bottom buttons
                 ],
               ),
@@ -435,22 +482,31 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       );
     }
 
-    return Container(
-      height: 250,
-      child: Stack(
-        children: [
-          PageView.builder(
-            controller: _imagePageController,
-            itemCount: widget.unit.images.length,
-            onPageChanged: (index) {
-              setState(() {
-                _currentImageIndex = index;
-              });
+    return Column(
+      children: [
+        Container(
+          height: 250,
+          child: GestureDetector(
+            onTap: () {
+              // Open zoomable image viewer
+              ZoomableImageViewer.show(
+                context,
+                images: widget.unit.images,
+                initialIndex: _currentImageIndex,
+              );
             },
-            itemBuilder: (context, index) {
-              return RobustNetworkImage(
-                imageUrl: widget.unit.images[index],
-                fit: BoxFit.cover,
+            child: PageView.builder(
+              controller: _imagePageController,
+              itemCount: widget.unit.images.length,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentImageIndex = index;
+                });
+              },
+              itemBuilder: (context, index) {
+                return RobustNetworkImage(
+                  imageUrl: widget.unit.images[index],
+                  fit: BoxFit.cover,
                 loadingBuilder: (context) => Container(
                   color: Colors.grey.shade200,
                   child: Center(
@@ -463,36 +519,35 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                     child: Icon(Icons.broken_image, size: 60, color: Colors.grey),
                   ),
                 ),
-              );
-            },
+                );
+              },
+            ),
           ),
-          // Dot Indicators
-          if (widget.unit.images.length > 1)
-            Positioned(
-              bottom: 16,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  widget.unit.images.length,
-                  (index) => AnimatedContainer(
-                    duration: Duration(milliseconds: 300),
-                    margin: EdgeInsets.symmetric(horizontal: 4),
-                    width: _currentImageIndex == index ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(4),
-                      color: _currentImageIndex == index
-                          ? AppColors.mainColor
-                          : Colors.white.withOpacity(0.5),
-                    ),
+        ),
+        // Dot Indicators - Now under the image
+        if (widget.unit.images.length > 1)
+          Padding(
+            padding: EdgeInsets.only(top: 12, bottom: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(
+                widget.unit.images.length,
+                (index) => AnimatedContainer(
+                  duration: Duration(milliseconds: 300),
+                  margin: EdgeInsets.symmetric(horizontal: 4),
+                  width: _currentImageIndex == index ? 24 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(4),
+                    color: _currentImageIndex == index
+                        ? AppColors.mainColor
+                        : Colors.grey.withOpacity(0.5),
                   ),
                 ),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 
@@ -527,7 +582,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         if (widget.unit.companyName != null && widget.unit.companyName!.isNotEmpty)
           CustomText16(
             widget.unit.companyName!,
-            color: AppColors.grey,
+            color: Colors.grey.shade600,
           ),
         SizedBox(height: 12),
         // Show sale price if available
@@ -536,7 +591,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
             'EGP ${_formatPrice(widget.unit.price)}',
             style: TextStyle(
               fontSize: 18,
-              color: AppColors.grey,
+              color: Colors.grey.shade600,
               decoration: TextDecoration.lineThrough,
             ),
           ),
@@ -563,16 +618,29 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
               ),
             ],
           ),
-        ] else
-          CustomText32(
-            'EGP ${_formatPrice(widget.unit.price)}',
-            bold: true,
-            color: AppColors.mainColor,
+        ] else ...[
+          // Check if price is 0 or empty
+          if (widget.unit.price != null && widget.unit.price != '0' && widget.unit.price.isNotEmpty)
+            CustomText32(
+              'EGP ${_formatPrice(widget.unit.price)}',
+              bold: true,
+              color: AppColors.mainColor,
+            )
+          else
+            CustomText24(
+              'Contact for Price',
+              bold: true,
+              color: AppColors.mainColor,
+            ),
+        ],
+        // Only show price per sqm if both price and area are not 0
+        if (widget.unit.price != null && widget.unit.price != '0' &&
+            widget.unit.area != null && widget.unit.area != '0' &&
+            widget.unit.price.isNotEmpty && widget.unit.area.isNotEmpty)
+          CustomText14(
+            'EGP ${_calculatePricePerSqm()} ${l10n.perSqm}',
+            color: Colors.grey.shade700,
           ),
-        CustomText14(
-          'EGP ${_calculatePricePerSqm()} ${l10n.perSqm}',
-          color: AppColors.grey,
-        ),
       ],
     );
   }
@@ -581,72 +649,127 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.mainColor,
+          width: 2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.mainColor.withOpacity(0.1),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildStatItem(
-            widget.unit.area != '0' ? widget.unit.area : '0',
+            widget.unit.area != null && widget.unit.area != '0' && widget.unit.area.isNotEmpty
+                ? widget.unit.area : '-',
             l10n.sqm,
           ),
-          Container(width: 1, height: 40, color: Colors.grey.shade300),
+          Container(width: 1, height: 30, color: AppColors.mainColor.withOpacity(0.3)),
           _buildStatItem(
-            widget.unit.bedrooms != '0' ? widget.unit.bedrooms : '0',
+            widget.unit.bedrooms != null && widget.unit.bedrooms != '0' && widget.unit.bedrooms.isNotEmpty
+                ? widget.unit.bedrooms : '-',
             l10n.bedrooms,
+            icon: Icons.bed_outlined,
           ),
-          Container(width: 1, height: 40, color: Colors.grey.shade300),
+          Container(width: 1, height: 30, color: AppColors.mainColor.withOpacity(0.3)),
           _buildStatItem(
-            widget.unit.bathrooms != '0' ? widget.unit.bathrooms : '0',
+            widget.unit.bathrooms != null && widget.unit.bathrooms != '0' && widget.unit.bathrooms.isNotEmpty
+                ? widget.unit.bathrooms : '-',
             l10n.bathrooms,
+            icon: Icons.bathtub_outlined,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStatItem(String value, String label) {
+  Widget _buildStatItem(String value, String label, {IconData? icon}) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
+        if (icon != null) ...[
+          Icon(icon, color: Colors.grey.shade600, size: 24),
+          SizedBox(height: 4),
+        ],
         CustomText24(
           value,
           bold: true,
-          color: Colors.black,
+          color: Colors.black87,
         ),
         SizedBox(height: 4),
         CustomText14(
           label,
-          color: AppColors.grey,
+          color: Colors.black87,
         ),
       ],
     );
   }
 
   Widget _buildTabBar(AppLocalizations l10n) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 400),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (Widget child, Animation<double> animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutBack,
+              ),
+            ),
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0.05, 0),
+                end: Offset.zero,
+              ).animate(
+                CurvedAnimation(
+                  parent: animation,
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        key: ValueKey<int>(_tabController.index), // 🔑 triggers animation when switching
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(color: Colors.grey.shade300, width: 1),
+          ),
         ),
-      ),
-      child: TabBar(
-        controller: _tabController,
-        labelColor: AppColors.mainColor,
-        unselectedLabelColor: AppColors.grey,
-        indicatorColor: AppColors.mainColor,
-        labelStyle: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-        unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
-        isScrollable: true,
-        tabs: [
-          Tab(text: l10n.details),
-          Tab(text: l10n.gallery),
-          Tab(text: l10n.viewOnMap),
-          Tab(text: l10n.floorPlan),
-        ],
+        child: TabBar(
+          controller: _tabController,
+          labelColor: AppColors.mainColor,
+          unselectedLabelColor: AppColors.grey,
+          indicatorColor: AppColors.mainColor,
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
+          isScrollable: true,
+          tabs: [
+            Tab(text: l10n.details),
+            Tab(text: l10n.gallery),
+            const Tab(text: 'Notes'),
+            Tab(text: l10n.paymentPlans),
+            Tab(text: l10n.viewOnMap),
+            Tab(text: l10n.floorPlan),
+          ],
+        ),
       ),
     );
   }
+
 
   Widget _buildTabContent(AppLocalizations l10n) {
     return Container(
@@ -656,6 +779,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         children: [
           _buildDetailsTab(l10n),
           _buildGalleryTab(),
+          _buildNotesTab(),
+          _buildPaymentPlansTab(l10n),
           _buildMapTab(l10n),
           _buildFloorPlanTab(l10n),
         ],
@@ -668,35 +793,29 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CustomText18(
-            '${l10n.about} ${widget.unit.unitType}',
-            bold: true,
-            color: Colors.black,
-          ),
-          SizedBox(height: 12),
-          CustomText16(
-            widget.unit.view ?? l10n.noDescriptionAvailable,
-            color: AppColors.grey,
-          ),
-          SizedBox(height: 24),
-
-          // Property Specifications
-          _buildSpecRow(l10n.compound, widget.unit.compoundId ?? '0'),
+          // Property Specifications - Show all fields even if null
+          _buildSpecRow('Unit Code', widget.unit.code ?? widget.unit.unitNumber ?? 'N/A'),
+          _buildSpecRow('Unit Type', widget.unit.unitType ?? 'N/A'),
+          _buildSpecRow('Usage Type', widget.unit.usageType ?? 'N/A'),
+          _buildSpecRow(l10n.compound, widget.unit.compoundName ?? widget.unit.compoundId ?? 'N/A'),
+          _buildSpecRow('Status', widget.unit.status ?? 'N/A'),
+          _buildSpecRow('Available', widget.unit.available != null ? (widget.unit.available! ? 'Yes' : 'No') : 'N/A'),
           _buildSpecRow(l10n.saleType, 'Resale'),
-          _buildSpecRow(l10n.finishing, widget.unit.finishing ?? '0'),
+          _buildSpecRow(l10n.finishing, widget.unit.finishing ?? 'N/A'),
           _buildSpecRow(l10n.deliveryDate, widget.unit.deliveryDate != null && widget.unit.deliveryDate!.isNotEmpty
-            ? _formatDate(widget.unit.deliveryDate!) : '0'),
-          _buildSpecRow(l10n.builtUpArea, '${widget.unit.area != '0' ? widget.unit.area : '0'} ${l10n.sqm}'),
-          if (widget.unit.gardenArea != null && widget.unit.gardenArea!.isNotEmpty)
-            _buildSpecRow(l10n.landArea, '${widget.unit.gardenArea != '0' ? widget.unit.gardenArea : '0'} ${l10n.sqm}'),
-          _buildSpecRow(l10n.floor, widget.unit.floor != '0' ? widget.unit.floor : '0'),
-          _buildSpecRow(l10n.numberOfBedrooms, widget.unit.bedrooms != '0' ? widget.unit.bedrooms : '0'),
-          _buildSpecRow(l10n.numberOfBathrooms, widget.unit.bathrooms != '0' ? widget.unit.bathrooms : '0'),
-          if (widget.unit.buildingName != null && widget.unit.buildingName!.isNotEmpty)
-            _buildSpecRow(l10n.building, widget.unit.buildingName!),
-          if (widget.unit.roofArea != null && widget.unit.roofArea!.isNotEmpty && widget.unit.roofArea != '0')
-            _buildSpecRow(l10n.roofArea, '${widget.unit.roofArea} ${l10n.sqm}'),
-          _buildSpecRow(l10n.price, 'EGP ${_formatPrice(widget.unit.price)}'),
+            ? _formatDate(widget.unit.deliveryDate!) : 'N/A'),
+          _buildSpecRow(l10n.builtUpArea, widget.unit.builtUpArea != null
+            ? '${widget.unit.builtUpArea} ${l10n.sqm}'
+            : (widget.unit.area != '0' ? '${widget.unit.area} ${l10n.sqm}' : 'N/A')),
+          _buildSpecRow('Total Area', widget.unit.area != '0' ? '${widget.unit.area} ${l10n.sqm}' : 'N/A'),
+          _buildSpecRow(l10n.landArea, widget.unit.landArea != null
+            ? '${widget.unit.landArea} ${l10n.sqm}'
+            : (widget.unit.gardenArea != null && widget.unit.gardenArea != '0' ? '${widget.unit.gardenArea} ${l10n.sqm}' : 'N/A')),
+          _buildSpecRow('Garden Area', widget.unit.gardenArea != null && widget.unit.gardenArea != '0' ? '${widget.unit.gardenArea} ${l10n.sqm}' : 'N/A'),
+          _buildSpecRow(l10n.roofArea, widget.unit.roofArea != null && widget.unit.roofArea != '0' ? '${widget.unit.roofArea} ${l10n.sqm}' : 'N/A'),
+          _buildSpecRow(l10n.floor, widget.unit.floor != '0' ? widget.unit.floor : 'N/A'),
+          _buildSpecRow(l10n.building, widget.unit.buildingName ?? 'N/A'),
+          _buildSpecRow('Company', widget.unit.companyName ?? 'N/A'),
         ],
       ),
     );
@@ -710,13 +829,14 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         children: [
           CustomText16(
             label,
-            color: AppColors.grey,
+            color: Colors.grey.shade700,
+            bold: false,
           ),
           Expanded(
             child: CustomText16(
               value,
               bold: true,
-              color: Colors.black,
+              color: Colors.black87,
               align: TextAlign.right,
             ),
           ),
@@ -782,160 +902,148 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     );
   }
 
-  // Sales People Section
-  Widget _buildSaleSection(Sale sale, AppLocalizations l10n) {
-    return Container(
-      padding: EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFFFF6B6B).withOpacity(0.15),
-            Color(0xFFFFE66D).withOpacity(0.15),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Color(0xFFFF6B6B), width: 2),
-      ),
+  Widget _buildNotesTab() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Color(0xFFFF6B6B),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.local_offer, size: 14, color: Colors.white),
-                    SizedBox(width: 6),
-                    CustomText12(
-                      'SALE',
-                      bold: true,
-                      color: Colors.white,
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: 12),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: CustomText12(
-                  '${sale.discountPercentage.toStringAsFixed(0)}% OFF',
-                  bold: true,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
-          CustomText20(
-            sale.saleName,
-            bold: true,
-            color: Color(0xFF333333),
-          ),
-          SizedBox(height: 8),
-          CustomText14(
-            sale.description,
-            color: Color(0xFF666666),
-          ),
-          SizedBox(height: 16),
-          Row(
-            children: [
-              // Old Price
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomText12(
-                      'Original Price',
-                      color: Color(0xFF999999),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'EGP ${_formatPrice(sale.oldPrice.toString())}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF999999),
-                        decoration: TextDecoration.lineThrough,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // New Price
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomText12(
-                      'Sale Price',
-                      color: AppColors.mainColor,
-                    ),
-                    SizedBox(height: 4),
-                    CustomText20(
-                      'EGP ${_formatPrice(sale.newPrice.toString())}',
-                      bold: true,
-                      color: AppColors.mainColor,
-                    ),
-                  ],
-                ),
-              ),
-              // Savings
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    CustomText12(
-                      'You Save',
-                      color: Colors.green,
-                    ),
-                    SizedBox(height: 4),
-                    CustomText18(
-                      'EGP ${_formatPrice(sale.savings.toString())}',
-                      bold: true,
-                      color: Colors.green,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (sale.daysRemaining > 0) ...[
-            SizedBox(height: 16),
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              Row(
                 children: [
-                  Icon(Icons.access_time, size: 16, color: Colors.orange),
+                  Icon(
+                    _currentNote != null && _currentNote!.isNotEmpty
+                        ? Icons.note
+                        : Icons.note_add_outlined,
+                    color: AppColors.mainColor,
+                    size: 20,
+                  ),
                   SizedBox(width: 8),
-                  CustomText14(
-                    '${sale.daysRemaining.toInt()} days remaining',
-                    bold: true,
-                    color: Colors.orange.shade800,
+                  Text(
+                    'My Notes',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
                   ),
                 ],
+              ),
+              TextButton.icon(
+                onPressed: _showNoteDialog,
+                icon: Icon(
+                  _currentNote != null && _currentNote!.isNotEmpty
+                      ? Icons.edit
+                      : Icons.add,
+                  size: 16,
+                ),
+                label: Text(
+                  _currentNote != null && _currentNote!.isNotEmpty
+                      ? 'Edit Note'
+                      : 'Add Note',
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.mainColor,
+                ),
+              ),
+            ],
+          ),
+          if (_currentNote != null && _currentNote!.isNotEmpty) ...[
+            SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.mainColor.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.mainColor.withOpacity(0.2),
+                ),
+              ),
+              child: Text(
+                _currentNote!,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.black,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ] else ...[
+            SizedBox(height: 8),
+            Text(
+              'Add your personal notes about this unit. Your notes are private and only visible to you.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.black,
+                fontStyle: FontStyle.italic,
               ),
             ),
           ],
         ],
       ),
     );
+  }
+
+  Widget _buildPaymentPlansTab(AppLocalizations l10n) {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CustomText20(
+            l10n.paymentPlans,
+            bold: true,
+            color: Colors.black,
+          ),
+          SizedBox(height: 12),
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.payments, color: AppColors.mainColor),
+                    SizedBox(width: 8),
+                    CustomText18('Cash', bold: true, color: Colors.black),
+                  ],
+                ),
+                SizedBox(height: 8),
+                CustomText24(
+                  'EGP ${_formatPrice(widget.unit.price)}',
+                  bold: true,
+                  color: AppColors.mainColor,
+                ),
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.green, size: 16),
+                    SizedBox(width: 4),
+                    CustomText14(
+                      l10n.noMortgageAvailable,
+                      color: Colors.green,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Sales People Section
+  Widget _buildSaleSection(Sale sale, AppLocalizations l10n) {
+    return SaleCard(sale: sale);
   }
 
   Widget _buildSalesPeopleSection(AppLocalizations l10n) {
@@ -1026,6 +1134,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           // Info
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CustomText16(
@@ -1148,77 +1257,6 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       ],
     );
   }
-
-  Widget _buildFillForm(AppLocalizations l10n) {
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CustomText20(
-            l10n.fillForm,
-            bold: true,
-            color: Colors.black,
-          ),
-          SizedBox(height: 12),
-          TextFormField(
-            controller: _nameController,
-            decoration: InputDecoration(
-              labelText: l10n.yourName,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return l10n.pleaseEnterYourName;
-              }
-              return null;
-            },
-          ),
-          SizedBox(height: 12),
-          TextFormField(
-            controller: _phoneController,
-            decoration: InputDecoration(
-              labelText: l10n.phoneNumber,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            ),
-            keyboardType: TextInputType.phone,
-            validator: (value) {
-              if (value == null || value.isEmpty) {
-                return l10n.pleaseEnterYourPhone;
-              }
-              return null;
-            },
-          ),
-          SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _requestInfo,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.mainColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: CustomText16(
-                l10n.requestInfo,
-                bold: true,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBottomButtons(AppLocalizations l10n) {
     return Container(
       padding: EdgeInsets.all(16),
@@ -1270,5 +1308,353 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         ],
       ),
     );
+  }
+
+  // Notes Section
+  Widget _buildNotesSection() {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    _currentNote != null && _currentNote!.isNotEmpty
+                        ? Icons.note
+                        : Icons.note_add_outlined,
+                    color: AppColors.mainColor,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'My Notes',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              ),
+              TextButton.icon(
+                onPressed: _showNoteDialog,
+                icon: Icon(
+                  _currentNote != null && _currentNote!.isNotEmpty
+                      ? Icons.edit
+                      : Icons.add,
+                  size: 16,
+                ),
+                label: Text(
+                  _currentNote != null && _currentNote!.isNotEmpty
+                      ? 'Edit Note'
+                      : 'Add Note',
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.mainColor,
+                ),
+              ),
+            ],
+          ),
+          if (_currentNote != null && _currentNote!.isNotEmpty) ...[
+            SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.mainColor.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.mainColor.withOpacity(0.2),
+                ),
+              ),
+              child: Text(
+                _currentNote!,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ] else ...[
+            SizedBox(height: 8),
+            Text(
+              'Add your personal notes about this unit. Your notes are private and only visible to you.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showNoteDialog() async {
+    final result = await NoteDialog.show(
+      context,
+      initialNote: _currentNote,
+      title: _currentNote != null && _currentNote!.isNotEmpty
+          ? 'Edit Note'
+          : 'Add Note',
+    );
+
+    if (result != null && mounted) {
+      try {
+        if (widget.unit.noteId != null) {
+          // Update existing note
+          await _favoritesWebServices.updateNote(
+            noteId: widget.unit.noteId!,
+            content: result,
+            title: 'Unit Note',
+          );
+        } else {
+          // Create new note
+          await _favoritesWebServices.createNote(
+            content: result,
+            title: 'Unit Note',
+            unitId: int.tryParse(widget.unit.id),
+          );
+        }
+
+        // Update local state
+        setState(() {
+          _currentNote = result;
+        });
+
+        if (mounted) {
+          _showCenteredMessage(
+            context: context,
+            message: 'Note saved successfully',
+            isSuccess: true,
+          );
+        }
+
+        // Trigger bloc refresh to reload favorites with updated noteId
+        if (mounted) {
+          context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
+        }
+      } catch (e) {
+        print('Error saving note: $e');
+        if (mounted) {
+          _showCenteredMessage(
+            context: context,
+            message: 'Failed to save note',
+            isSuccess: false,
+          );
+        }
+      }
+    }
+  }
+
+  void _showCenteredMessage({
+    required BuildContext context,
+    required String message,
+    required bool isSuccess,
+  })
+  {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            margin: EdgeInsets.symmetric(horizontal: 40),
+            decoration: BoxDecoration(
+              color: isSuccess ? Colors.green : Colors.red,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isSuccess ? Icons.check_circle : Icons.error,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    message,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+
+    Future.delayed(Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
+  }
+}
+
+// Unit Change Notes Widget
+class UnitChangeNotes extends StatelessWidget {
+  final Unit unit;
+
+  const UnitChangeNotes({Key? key, required this.unit}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    if (unit.isUpdated != true) return SizedBox.shrink();
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.amber.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange, width: 2),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.orange, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Recent Changes',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange.shade900,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+
+          // Change type
+          if (unit.changeType != null)
+            _buildInfoRow(
+              'Status',
+              unit.changeType!.toUpperCase(),
+              _getChangeColor(unit.changeType!),
+            ),
+
+          // Last changed date
+          if (unit.lastChangedAt != null)
+            _buildInfoRow(
+              'Last Updated',
+              _formatDate(unit.lastChangedAt!),
+              Colors.grey.shade800,
+            ),
+
+          // Changed fields
+          if (unit.changedFields != null && unit.changedFields!.isNotEmpty) ...[
+            SizedBox(height: 8),
+            Text(
+              'Changed Fields:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.grey.shade800,
+              ),
+            ),
+            SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: unit.changedFields!.map((field) {
+                return Chip(
+                  label: Text(
+                    field,
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  backgroundColor: Colors.orange.shade100,
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                );
+              }).toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, Color color) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: Colors.grey.shade800,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getChangeColor(String changeType) {
+    switch (changeType.toLowerCase()) {
+      case 'new':
+        return Colors.green;
+      case 'updated':
+        return Colors.orange;
+      case 'deleted':
+        return Colors.red;
+      default:
+        return Colors.blue;
+    }
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return dateStr;
+    }
   }
 }
