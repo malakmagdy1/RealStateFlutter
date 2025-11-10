@@ -1303,12 +1303,12 @@ class _CompoundScreenState extends State<CompoundScreen>
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: AppColors.mainColor.withOpacity(0.3),
+              color: AppColors.mainColor.withOpacity(0.5),
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.mainColor.withOpacity(0.15),
+                color: AppColors.mainColor.withOpacity(0.2),
                 blurRadius: 12,
                 offset: Offset(0, 4),
               ),
