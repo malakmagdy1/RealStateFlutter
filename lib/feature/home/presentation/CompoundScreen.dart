@@ -1288,6 +1288,7 @@ class _CompoundScreenState extends State<CompoundScreen>
   Widget _buildCornerTabBar() {
     return TabBar(
       controller: _tabController,
+      isScrollable: true,
       labelColor: AppColors.mainColor,
       unselectedLabelColor: AppColors.grey,
       indicatorColor: AppColors.mainColor,

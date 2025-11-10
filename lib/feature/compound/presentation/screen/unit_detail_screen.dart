@@ -720,6 +720,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   Widget _buildTabBar(AppLocalizations l10n) {
     return TabBar(
       controller: _tabController,
+      isScrollable: true,
       labelColor: AppColors.mainColor,
       unselectedLabelColor: AppColors.grey,
       indicatorColor: AppColors.mainColor,
