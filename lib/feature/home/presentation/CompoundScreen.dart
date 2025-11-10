@@ -25,7 +25,7 @@ import '../../search/data/services/view_history_service.dart';
 import 'package:real/core/services/tutorial_service.dart';
 import 'package:real/core/services/tutorial_coach_service.dart';
 import '../../../core/animations/animated_list_item.dart';
-import 'package:real/feature/share/presentation/widgets/share_bottom_sheet.dart';
+import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sheet.dart';
 import 'package:real/core/utils/message_helper.dart';
 import '../../../core/widgets/zoomable_image_viewer.dart';
 import '../../compound/data/web_services/favorites_web_services.dart';
@@ -192,13 +192,34 @@ class _CompoundScreenState extends State<CompoundScreen>
   }
 
   void _shareCompound() {
+    // Get current units from bloc state
+    final unitState = context.read<UnitBloc>().state;
+    List<Map<String, dynamic>>? units;
+
+    if (unitState is UnitSuccess) {
+      // Convert units to map format for AdvancedShareBottomSheet
+      units = unitState.response.data.map((unit) => {
+        'id': unit.id,
+        'unit_name': unit.unitNumber ?? 'Unit ${unit.id}',
+        'unit_code': unit.code ?? unit.unitNumber,
+        'unit_type': unit.unitType,
+        'number_of_beds': unit.bedrooms,
+        'built_up_area': unit.builtUpArea ?? unit.area,
+        'land_area': unit.landArea,
+        'garden_area': unit.gardenArea,
+        'normal_price': unit.price,
+        'status': unit.status,
+      }).toList();
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ShareBottomSheet(
+      builder: (context) => AdvancedShareBottomSheet(
         type: 'compound',
         id: widget.compound.id,
+        units: units,
       ),
     );
   }
