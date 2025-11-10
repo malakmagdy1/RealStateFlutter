@@ -337,15 +337,22 @@ IMPORTANT:
           };
         }).toList();
 
+        print('[AI CHAT] Sending ${unitsData.length} units to Gemini for analysis');
+        print('[AI CHAT] First unit: ${unitsData.first}');
+
         enhancedMessage = '''
 User Query: $userMessage
 
 Available Properties from Database:
 ${jsonEncode(unitsData)}
 
+IMPORTANT: You MUST include the 'id' field from the database in your JSON response.
 Please analyze these REAL properties and recommend the best matches for the user's requirements.
-Return only the properties from this list that match the user's needs.
+Return only the properties from this list that match the user's needs, preserving their 'id' field.
 ''';
+      } else {
+        print('[AI CHAT] No units found in database for query: "$userMessage"');
+        print('[AI CHAT] AI will provide general real estate guidance without specific listings');
       }
 
       // Send message to Gemini with real data context
@@ -359,6 +366,8 @@ Return only the properties from this list that match the user's needs.
         throw Exception('Empty response from AI');
       }
 
+      print('[AI CHAT] Received response from Gemini (length: ${responseText.length} chars)');
+
       // Try to parse as JSON for property data
       try {
         // Clean the response - remove markdown code blocks if present
@@ -368,9 +377,12 @@ Return only the properties from this list that match the user's needs.
             .trim();
 
         final jsonData = jsonDecode(cleanedResponse) as Map<String, dynamic>;
+        print('[AI CHAT] Successfully parsed JSON response');
+        print('[AI CHAT] Response contains properties: ${jsonData.containsKey('properties')}');
 
         // Check if it's a list of properties
         if (jsonData.containsKey('properties')) {
+          print('[AI CHAT] Processing multiple properties from response');
           final propertiesList = (jsonData['properties'] as List)
               .map((p) {
                 final productJson = p as Map<String, dynamic>;
@@ -382,6 +394,9 @@ Return only the properties from this list that match the user's needs.
                     (unit) => unit.id == productId,
                     orElse: () => realUnits.first,
                   );
+                  if (matchedUnit != null) {
+                    print('[AI CHAT] ✓ Matched database unit ID: ${matchedUnit.id}');
+                  }
                 }
                 // Convert matched unit or use JSON data
                 return matchedUnit != null
@@ -389,6 +404,7 @@ Return only the properties from this list that match the user's needs.
                     : RealEstateProduct.fromJson(productJson);
               })
               .toList();
+          print('[AI CHAT] Converted ${propertiesList.length} properties');
 
           // Return message with first property but include full list for rendering
           return ChatMessage(
@@ -400,6 +416,7 @@ Return only the properties from this list that match the user's needs.
           );
         } else {
           // Single property
+          print('[AI CHAT] Processing single property from response');
           Unit? matchedUnit;
           if (jsonData['id'] != null && realUnits.isNotEmpty) {
             final productId = jsonData['id'].toString();
@@ -407,6 +424,9 @@ Return only the properties from this list that match the user's needs.
               (unit) => unit.id == productId,
               orElse: () => realUnits.first,
             );
+            if (matchedUnit != null) {
+              print('[AI CHAT] ✓ Matched database unit ID: ${matchedUnit.id}');
+            }
           }
 
           final product = matchedUnit != null
