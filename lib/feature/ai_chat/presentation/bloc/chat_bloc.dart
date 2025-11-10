@@ -46,6 +46,8 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     if (event.message.trim().isEmpty) return;
 
+    print('[ChatBloc] 📨 Processing message: "${event.message}"');
+
     final currentState = state;
     final currentMessages = currentState is ChatLoaded
         ? currentState.messages
@@ -68,7 +70,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
     try {
       // Get AI response
+      print('[ChatBloc] 🔄 Calling AI remote data source...');
       final aiMessage = await _remoteDataSource.sendMessage(event.message);
+      print('[ChatBloc] ✅ Received AI response');
       final finalMessages = [...updatedMessages, aiMessage];
 
       // Save to local storage

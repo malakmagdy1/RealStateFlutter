@@ -22,6 +22,11 @@ class _AiChatScreenState extends State<AiChatScreen> {
   @override
   void initState() {
     super.initState();
+    print('');
+    print('==============================================');
+    print('🤖 AI CHAT SCREEN OPENED');
+    print('==============================================');
+    print('');
     // Load chat history when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ChatBloc>().add(const LoadChatHistoryEvent());
@@ -38,6 +43,12 @@ class _AiChatScreenState extends State<AiChatScreen> {
   void _sendMessage() {
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
+
+    print('');
+    print('==============================================');
+    print('💬 USER SENT MESSAGE: "$message"');
+    print('==============================================');
+    print('');
 
     context.read<ChatBloc>().add(SendMessageEvent(message));
     _messageController.clear();
