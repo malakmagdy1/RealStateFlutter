@@ -565,7 +565,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         );
                       }
                       return SizedBox(
-                        key: _companyKey,
                         height: 100,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
