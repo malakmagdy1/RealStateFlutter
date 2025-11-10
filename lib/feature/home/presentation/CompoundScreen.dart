@@ -26,6 +26,7 @@ import 'package:real/core/services/tutorial_coach_service.dart';
 import '../../../core/animations/animated_list_item.dart';
 import 'package:real/feature/share/presentation/widgets/share_bottom_sheet.dart';
 import 'package:real/core/utils/message_helper.dart';
+import '../../../core/widgets/zoomable_image_viewer.dart';
 
 class CompoundScreen extends StatefulWidget {
   static String routeName = '/compund';
@@ -544,14 +545,24 @@ class _CompoundScreenState extends State<CompoundScreen>
         return AnimatedListItem(
           index: index,
           delay: Duration(milliseconds: 60),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: RobustNetworkImage(
-              imageUrl: widget.compound.images[index],
-              fit: BoxFit.cover,
-              errorBuilder: (context, url) => Container(
-                color: Colors.grey.shade200,
-                child: Icon(Icons.broken_image, color: AppColors.grey),
+          child: GestureDetector(
+            onTap: () {
+              // Open zoomable image viewer
+              ZoomableImageViewer.show(
+                context,
+                images: widget.compound.images,
+                initialIndex: index,
+              );
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: RobustNetworkImage(
+                imageUrl: widget.compound.images[index],
+                fit: BoxFit.cover,
+                errorBuilder: (context, url) => Container(
+                  color: Colors.grey.shade200,
+                  child: Icon(Icons.broken_image, color: AppColors.grey),
+                ),
               ),
             ),
           ),
@@ -1062,40 +1073,50 @@ class _CompoundScreenState extends State<CompoundScreen>
                 hasImages
                     ? SizedBox(
                   height: 280,
-                  child: PageView.builder(
-                    controller: _imagePageController,
-                    itemCount: widget.compound.images.length,
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentImageIndex = index;
-                      });
-                    },
-                    itemBuilder: (context, index) {
-                      return RobustNetworkImage(
-                        imageUrl: widget.compound.images[index],
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context) => Container(
-                          color: Colors.grey.shade200,
-                          child: Center(
-                            child: CircularProgressIndicator(
-                              color: AppColors.mainColor,
-                            ),
-                          ),
-                        ),
-                        errorBuilder: (context, url) {
-                          return Container(
-                            color: Colors.grey.shade200,
-                            child: Center(
-                              child: Icon(
-                                Icons.broken_image,
-                                size: 60,
-                                color: AppColors.greyText,
-                              ),
-                            ),
-                          );
-                        },
+                  child: GestureDetector(
+                    onTap: () {
+                      // Open zoomable image viewer
+                      ZoomableImageViewer.show(
+                        context,
+                        images: widget.compound.images,
+                        initialIndex: _currentImageIndex,
                       );
                     },
+                    child: PageView.builder(
+                      controller: _imagePageController,
+                      itemCount: widget.compound.images.length,
+                      onPageChanged: (index) {
+                        setState(() {
+                          _currentImageIndex = index;
+                        });
+                      },
+                      itemBuilder: (context, index) {
+                        return RobustNetworkImage(
+                          imageUrl: widget.compound.images[index],
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context) => Container(
+                            color: Colors.grey.shade200,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.mainColor,
+                              ),
+                            ),
+                          ),
+                          errorBuilder: (context, url) {
+                            return Container(
+                              color: Colors.grey.shade200,
+                              child: Center(
+                                child: Icon(
+                                  Icons.broken_image,
+                                  size: 60,
+                                  color: AppColors.greyText,
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
                   ),
                 )
                     : Container(
