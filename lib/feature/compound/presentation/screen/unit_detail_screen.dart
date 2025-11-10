@@ -1037,7 +1037,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Updated: ${_formatDate(note['updated_at'])}',
+                        'Updated: ${_formatNoteDate(note['updated_at'])}',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey[600],
@@ -1055,7 +1055,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     );
   }
 
-  String _formatDate(String? dateStr) {
+  String _formatNoteDate(String? dateStr) {
     if (dateStr == null) return 'Unknown';
     try {
       final date = DateTime.parse(dateStr);
@@ -1676,6 +1676,20 @@ class UnitChangeNotes extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    } catch (e) {
+      if (dateStr.contains('T')) {
+        return dateStr.split('T')[0];
+      }
+      return dateStr;
+    }
   }
 
   Color _getChangeColor(String changeType) {

@@ -1124,7 +1124,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Updated: ${_formatDate(note['updated_at'])}',
+                        'Updated: ${_formatNoteDate(note['updated_at'])}',
                         style: TextStyle(
                           fontSize: 11,
                           color: Colors.grey[600],
@@ -1142,7 +1142,7 @@ class _CompoundScreenState extends State<CompoundScreen>
     );
   }
 
-  String _formatDate(String? dateStr) {
+  String _formatNoteDate(String? dateStr) {
     if (dateStr == null) return 'Unknown';
     try {
       final date = DateTime.parse(dateStr);
