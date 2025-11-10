@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
@@ -10,7 +9,6 @@ import 'package:real/feature/home/presentation/widget/location.dart';
 import 'package:real/feature/home/presentation/widget/rete_review.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import '../../../core/widget/button/showAll.dart';
 import '../../compound/presentation/bloc/unit/unit_bloc.dart';
 import '../../compound/presentation/bloc/unit/unit_event.dart';
@@ -23,6 +21,11 @@ import '../../notifications/presentation/screens/notifications_screen.dart';
 import '../../company/data/web_services/company_web_services.dart';
 import '../../company/data/models/company_user_model.dart';
 import '../../search/data/services/view_history_service.dart';
+import 'package:real/core/services/tutorial_service.dart';
+import 'package:real/core/services/tutorial_coach_service.dart';
+import '../../../core/animations/animated_list_item.dart';
+import 'package:real/feature/share/presentation/widgets/share_bottom_sheet.dart';
+import 'package:real/core/utils/message_helper.dart';
 
 class CompoundScreen extends StatefulWidget {
   static String routeName = '/compund';
@@ -34,7 +37,8 @@ class CompoundScreen extends StatefulWidget {
   State<CompoundScreen> createState() => _CompoundScreenState();
 }
 
-class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProviderStateMixin {
+class _CompoundScreenState extends State<CompoundScreen>
+    with SingleTickerProviderStateMixin {
   int _currentImageIndex = 0;
   int _userRating = 0; // User's rating (0-5)
   bool _showAllUnits = false;
@@ -44,33 +48,19 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
   String _searchQuery = '';
   final PageController _imagePageController = PageController();
   Timer? _imageSliderTimer;
+
   final CompoundWebServices _compoundWebServices = CompoundWebServices();
   final CompanyWebServices _companyWebServices = CompanyWebServices();
+
   late TabController _tabController;
   List<CompanyUser> _salesPeople = [];
   bool _isLoadingSalesPeople = false;
-  final List<Map<String, dynamic>> _reviews = [
-    {
-      'userName': 'Ahmed Mohamed',
-      'rating': 5,
-      'comment': 'Excellent compound with great facilities and location!',
-      'date': '2 days ago',
-    },
-    {
-      'userName': 'Sarah Hassan',
-      'rating': 4,
-      'comment': 'Good value for money, nice community and well maintained.',
-      'date': '1 week ago',
-    },
-    {
-      'userName': 'Khaled Ali',
-      'rating': 5,
-      'comment':
-          'Perfect place to live, great amenities and friendly neighbors.',
-      'date': '2 weeks ago',
-    },
-  ];
 
+  // Tutorial keys
+  final GlobalKey _galleryKey = GlobalKey();
+  final GlobalKey _tabsKey = GlobalKey();
+  final GlobalKey _unitsKey = GlobalKey();
+  final GlobalKey _contactKey = GlobalKey();
   @override
   void initState() {
     super.initState();
@@ -78,8 +68,22 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
     // Track view history
     ViewHistoryService().addViewedCompound(widget.compound);
 
-    // Initialize TabController with 4 tabs
-    _tabController = TabController(length: 4, vsync: this);
+    // Initialize TabController with 5 tabs (including Units)
+    _tabController = TabController(length: 5, vsync: this);
+
+    // Add animation listener for tab changes
+    _tabController.addListener(() {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+
+    // Show notification message if there are updated units
+    if (widget.compound.updatedUnitsCount > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showUpdateNotification();
+      });
+    }
 
     // Debug: Print image count and URLs
     print('==========================================');
@@ -112,6 +116,45 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
         }
       });
     }
+
+    // Show tutorial on first compound view
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showTutorialIfNeeded();
+    });
+  }
+
+  Future<void> _showTutorialIfNeeded() async {
+    final tutorialService = TutorialCoachService();
+    // Wait for UI to be fully built
+    await Future.delayed(Duration(milliseconds: 500));
+    if (mounted) {
+      await tutorialService.showCompoundTutorial(
+        context: context,
+        galleryKey: _galleryKey,
+        tabsKey: _tabsKey,
+        unitsKey: _unitsKey,
+        contactKey: _contactKey,
+      );
+    }
+  }
+
+  void _showUpdateNotification() {
+    if (!mounted) return;
+
+    final l10n = AppLocalizations.of(context)!;
+    final String detailMessage =
+    widget.compound.latestUpdateNote != null &&
+        widget.compound.latestUpdateNote!.isNotEmpty
+        ? '${widget.compound.latestUpdateNote}'
+        : '${widget.compound.updatedUnitsCount} ${widget.compound.updatedUnitsCount == 1 ? "unit has" : "units have"} been updated';
+
+    final String fullMessage = 'New Updates Available! $detailMessage';
+
+    MessageHelper.showMessage(
+      context: context,
+      message: fullMessage,
+      isSuccess: false,
+    );
   }
 
   @override
@@ -138,6 +181,18 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
     }
   }
 
+  void _shareCompound() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ShareBottomSheet(
+        type: 'compound',
+        id: widget.compound.id,
+      ),
+    );
+  }
+
   Future<void> _fetchSalesPeople() async {
     if (_isLoadingSalesPeople) return;
 
@@ -146,8 +201,8 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
     });
 
     try {
-      final companyData = await _companyWebServices.getCompanyById(widget.compound.companyId);
-
+      final companyData =
+      await _companyWebServices.getCompanyById(widget.compound.companyId);
       print('[COMPOUND SCREEN] Company data: $companyData');
 
       if (companyData['users'] != null && companyData['users'] is List) {
@@ -157,7 +212,6 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
 
         // Filter only sales people
         final salesPeople = allUsers.where((user) => user.isSales).toList();
-
         print('[COMPOUND SCREEN] Found ${salesPeople.length} sales people');
 
         if (mounted) {
@@ -185,7 +239,8 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
 
   Future<void> _showSalespeople() async {
     try {
-      final response = await _compoundWebServices.getSalespeopleByCompound(widget.compound.project);
+      final response = await _compoundWebServices
+          .getSalespeopleByCompound(widget.compound.project);
 
       if (response['success'] == true && response['salespeople'] != null) {
         final salespeople = (response['salespeople'] as List)
@@ -198,22 +253,17 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
             salesPersons: salespeople,
           );
         } else if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(AppLocalizations.of(context)!.noSalesPersonAvailable),
-              backgroundColor: AppColors.mainColor,
-            ),
+          MessageHelper.showMessage(
+            context: context,
+            message: AppLocalizations.of(context)!.noSalesPersonAvailable,
+            isSuccess: false,
           );
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${AppLocalizations.of(context)!.error}: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        MessageHelper.showError(
+            context, '${AppLocalizations.of(context)!.error}: $e');
       }
     }
   }
@@ -224,12 +274,7 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
       await launchUrl(phoneUri);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not launch phone call'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        MessageHelper.showError(context, 'Could not launch phone call');
       }
     }
   }
@@ -240,12 +285,7 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
       await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Could not launch WhatsApp'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        MessageHelper.showError(context, 'Could not launch WhatsApp');
       }
     }
   }
@@ -281,7 +321,8 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
             flex: 2,
             child: CustomText16(label, bold: true, color: AppColors.black),
           ),
-          Expanded(flex: 3, child: CustomText16(value, color: AppColors.greyText)),
+          Expanded(
+              flex: 3, child: CustomText16(value, color: Colors.black)),
         ],
       ),
     );
@@ -303,6 +344,7 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
         ),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -320,14 +362,17 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
           Text(
             description,
             maxLines: _showFullDescription ? null : 5,
-            overflow: _showFullDescription ? TextOverflow.visible : TextOverflow.ellipsis,
+            overflow: _showFullDescription
+                ? TextOverflow.visible
+                : TextOverflow.ellipsis,
             style: TextStyle(
               fontSize: 14,
-              color: AppColors.greyText,
+              color: Colors.black,
               height: 1.5,
             ),
           ),
-          if (description.length > 200) // Only show button if text is long enough
+          if (description.length >
+              200) // Only show button if text is long enough
             GestureDetector(
               onTap: () {
                 setState(() {
@@ -364,17 +409,56 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
     );
   }
 
+
+
+  Widget _buildUnitStatCard({
+    required IconData icon,
+    required String label,
+    required String value,
+    required Color color,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.08),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 20),
+          SizedBox(height: 8),
+          CustomText14(label, color: Colors.black),
+          SizedBox(height: 4),
+          CustomText20(value, bold: true, color: color),
+        ],
+      ),
+    );
+  }
+
   // Details Tab Content
   Widget _buildDetailsTab(AppLocalizations l10n) {
     return SingleChildScrollView(
+      physics: BouncingScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Description Section with Finish Specs
-          if (widget.compound.finishSpecs != null && widget.compound.finishSpecs!.isNotEmpty)
+          if (widget.compound.finishSpecs != null &&
+              widget.compound.finishSpecs!.isNotEmpty)
             _buildDescriptionSection(l10n),
           SizedBox(height: 16),
-
           // Other Details
           if (widget.compound.availableUnits != "0")
             _buildInfoRow(
@@ -423,6 +507,9 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
               l10n.completionProgress,
               "${widget.compound.completionProgress}%",
             ),
+          SizedBox(height: 24),
+          // Unit Summary Section
+         // _buildUnitSummarySection(l10n),
         ],
       ),
     );
@@ -433,11 +520,12 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
     if (widget.compound.images.isEmpty) {
       return Center(
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(Icons.photo_library, size: 80, color: AppColors.grey),
             SizedBox(height: 16),
-            CustomText16('No images available', color: AppColors.grey),
+            CustomText16('No images available', color: Colors.black),
           ],
         ),
       );
@@ -445,6 +533,7 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
 
     return GridView.builder(
       padding: EdgeInsets.all(8),
+      physics: BouncingScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 8,
@@ -452,14 +541,18 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
       ),
       itemCount: widget.compound.images.length,
       itemBuilder: (context, index) {
-        return ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: RobustNetworkImage(
-            imageUrl: widget.compound.images[index],
-            fit: BoxFit.cover,
-            errorBuilder: (context, url) => Container(
-              color: Colors.grey.shade200,
-              child: Icon(Icons.broken_image, color: AppColors.grey),
+        return AnimatedListItem(
+          index: index,
+          delay: Duration(milliseconds: 60),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: RobustNetworkImage(
+              imageUrl: widget.compound.images[index],
+              fit: BoxFit.cover,
+              errorBuilder: (context, url) => Container(
+                color: Colors.grey.shade200,
+                child: Icon(Icons.broken_image, color: AppColors.grey),
+              ),
             ),
           ),
         );
@@ -502,7 +595,7 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
           else
             CustomText16(
               'Map location not available',
-              color: AppColors.grey,
+              color: Colors.black,
             ),
         ],
       ),
@@ -525,11 +618,169 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
           SizedBox(height: 8),
           CustomText16(
             'Master plan details coming soon',
-            color: AppColors.grey,
+            color: Colors.black,
             align: TextAlign.center,
           ),
         ],
       ),
+    );
+  }
+
+  // Units Tab Content
+  Widget _buildUnitsTab(AppLocalizations l10n) {
+    return BlocBuilder<UnitBloc, UnitState>(
+      builder: (context, state) {
+        if (state is UnitLoading) {
+          return Center(
+            child: Padding(
+              padding: EdgeInsets.all(32.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        } else if (state is UnitSuccess) {
+          final allUnits = state.response.data;
+
+          // Filter units based on search query
+          final units = _searchQuery.isEmpty
+              ? allUnits
+              : allUnits.where((unit) {
+            final unitNumber = (unit.unitNumber ?? '').toLowerCase();
+            final unitType = (unit.unitType ?? '').toLowerCase();
+            final usageType = (unit.usageType ?? '').toLowerCase();
+            final area = (unit.area ?? '').toLowerCase();
+            final status = (unit.status ?? '').toLowerCase();
+            final floor = (unit.floor ?? '').toLowerCase();
+            final bedrooms = (unit.bedrooms ?? '').toLowerCase();
+
+            return unitNumber.contains(_searchQuery) ||
+                unitType.contains(_searchQuery) ||
+                usageType.contains(_searchQuery) ||
+                area.contains(_searchQuery) ||
+                status.contains(_searchQuery) ||
+                floor.contains(_searchQuery) ||
+                bedrooms.contains(_searchQuery);
+          }).toList();
+
+          if (units.isEmpty) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.home_outlined,
+                      size: 80,
+                      color: AppColors.grey,
+                    ),
+                    SizedBox(height: 16),
+                    CustomText18(
+                      _searchQuery.isEmpty
+                          ? l10n.noUnitsAvailable
+                          : l10n.noUnitsMatch,
+                      color: Colors.black,
+                      bold: true,
+                    ),
+                    if (_searchQuery.isNotEmpty) ...[
+                      SizedBox(height: 8),
+                      CustomText16(
+                        l10n.tryDifferentKeywords,
+                        color: Colors.black,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final displayCount = _showAllUnits
+              ? units.length
+              : (units.length > 6 ? 6 : units.length);
+
+          return SingleChildScrollView(
+            physics: BouncingScrollPhysics(),
+            child: Column(
+              children: [
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.all(8),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    childAspectRatio: 0.65,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
+                  itemCount: displayCount,
+                  itemBuilder: (context, index) {
+                    return AnimatedListItem(
+                      index: index,
+                      delay: Duration(milliseconds: 80),
+                      child: UnitCard(unit: units[index]),
+                    );
+                  },
+                ),
+                if (units.length > 6) ...[
+                  SizedBox(height: 16),
+                  ShowAllButton(
+                    label: _showAllUnits ? l10n.showLess : l10n.showAllUnits,
+                    pressed: () {
+                      setState(() {
+                        _showAllUnits = !_showAllUnits;
+                      });
+                    },
+                  ),
+                  SizedBox(height: 16),
+                ],
+              ],
+            ),
+          );
+        } else if (state is UnitError) {
+          return Center(
+            child: Padding(
+              padding: EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: Colors.red,
+                  ),
+                  SizedBox(height: 16),
+                  CustomText16(
+                    '${l10n.error}: ${state.message}',
+                    color: Colors.red,
+                    align: TextAlign.center,
+                  ),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.mainColor,
+                      foregroundColor: AppColors.white,
+                    ),
+                    onPressed: () {
+                      context.read<UnitBloc>().add(
+                        FetchUnitsEvent(
+                          compoundId: widget.compound.id,
+                          limit: 100,
+                        ),
+                      );
+                    },
+                    child: CustomText16(
+                      l10n.retry,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return SizedBox.shrink();
+      },
     );
   }
 
@@ -559,7 +810,7 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
         SizedBox(height: 12),
         CustomText16(
           'Get in touch with our professional sales team for more information',
-          color: AppColors.grey,
+          color: Colors.black,
         ),
         SizedBox(height: 16),
         ListView.separated(
@@ -622,6 +873,7 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
           // Info
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 CustomText16(
@@ -637,7 +889,7 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
                     Expanded(
                       child: CustomText14(
                         salesPerson.email,
-                        color: AppColors.grey,
+                        color: Colors.black,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -652,7 +904,7 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
                       SizedBox(width: 4),
                       CustomText14(
                         salesPerson.phone!,
-                        color: AppColors.grey,
+                        color: Colors.black,
                       ),
                     ],
                   ),
@@ -684,6 +936,114 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
     );
   }
 
+  // Animated Corner Tab Bar
+  Widget _buildCornerTabBar() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calculate max width based on screen width
+        final screenWidth = MediaQuery.of(context).size.width;
+        final maxTabBarWidth = screenWidth - 32; // 16px margin on each side
+
+        return AnimatedContainer(
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          margin: EdgeInsets.only(right: 16, bottom: 16),
+          constraints: BoxConstraints(
+            maxWidth: maxTabBarWidth,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.mainColor.withOpacity(0.2),
+                blurRadius: 12,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: TabBar(
+              controller: _tabController,
+              isScrollable: true,
+              labelColor: AppColors.white,
+              unselectedLabelColor: AppColors.mainColor,
+              indicator: BoxDecoration(
+                color: AppColors.mainColor,
+                borderRadius: BorderRadius.circular(25),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              dividerColor: Colors.transparent,
+              labelPadding: EdgeInsets.symmetric(horizontal: 16),
+              labelStyle: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+              unselectedLabelStyle: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.normal,
+              ),
+              tabAlignment: TabAlignment.start,
+              tabs: [
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.info_outline, size: 14),
+                  SizedBox(width: 4),
+                  Text('Details'),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.photo_library, size: 14),
+                  SizedBox(width: 4),
+                  Text('Gallery'),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.location_on, size: 14),
+                  SizedBox(width: 4),
+                  Text('Map'),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.architecture, size: 14),
+                  SizedBox(width: 4),
+                  Text('Plan'),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.home_work, size: 14),
+                  SizedBox(width: 4),
+                  Text('Units'),
+                ],
+              ),
+            ),
+            ],
+          ),
+        ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -691,6 +1051,7 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
 
     return Scaffold(
       body: SingleChildScrollView(
+        physics: BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -700,59 +1061,89 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
                 // Image Slider
                 hasImages
                     ? SizedBox(
-                        height: 280,
-                        child: PageView.builder(
-                          controller: _imagePageController,
-                          itemCount: widget.compound.images.length,
-                          onPageChanged: (index) {
-                            setState(() {
-                              _currentImageIndex = index;
-                            });
-                          },
-                          itemBuilder: (context, index) {
-                            return RobustNetworkImage(
-                              imageUrl: widget.compound.images[index],
-                              fit: BoxFit.cover,
-                              loadingBuilder: (context) => Container(
-                                color: Colors.grey.shade200,
-                                child: Center(
-                                  child: CircularProgressIndicator(
-                                    color: AppColors.mainColor,
-                                  ),
-                                ),
-                              ),
-                              errorBuilder: (context, url) {
-                                return Container(
-                                  color: Colors.grey.shade200,
-                                  child: Center(
-                                    child: Icon(
-                                      Icons.broken_image,
-                                      size: 60,
-                                      color: AppColors.greyText,
-                                    ),
-                                  ),
-                                );
-                              },
-                            );
-                          },
-                        ),
-                      )
-                    : Container(
-                        height: 280,
-                        color: Colors.grey.shade200,
-                        child: Center(
-                          child: Icon(
-                            Icons.image_not_supported,
-                            size: 80,
-                            color: AppColors.grey,
+                  height: 280,
+                  child: PageView.builder(
+                    controller: _imagePageController,
+                    itemCount: widget.compound.images.length,
+                    onPageChanged: (index) {
+                      setState(() {
+                        _currentImageIndex = index;
+                      });
+                    },
+                    itemBuilder: (context, index) {
+                      return RobustNetworkImage(
+                        imageUrl: widget.compound.images[index],
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context) => Container(
+                          color: Colors.grey.shade200,
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.mainColor,
+                            ),
                           ),
                         ),
-                      ),
-
+                        errorBuilder: (context, url) {
+                          return Container(
+                            color: Colors.grey.shade200,
+                            child: Center(
+                              child: Icon(
+                                Icons.broken_image,
+                                size: 60,
+                                color: AppColors.greyText,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                )
+                    : Container(
+                  height: 280,
+                  color: Colors.grey.shade200,
+                  child: Center(
+                    child: Icon(
+                      Icons.image_not_supported,
+                      size: 80,
+                      color: AppColors.grey,
+                    ),
+                  ),
+                ),
                 // Back Button
                 Positioned(
                   top: 40,
                   left: 16,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () {
+                        print('[COMPOUND SCREEN] Back button tapped');
+                        Navigator.of(context).pop();
+                      },
+                      borderRadius: BorderRadius.circular(50),
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Icon(Icons.arrow_back, color: AppColors.black),
+                      ),
+                    ),
+                  ),
+                ),
+                // Share Button
+                Positioned(
+                  top: 40,
+                  right: 16,
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppColors.white,
@@ -766,36 +1157,41 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
                       ],
                     ),
                     child: IconButton(
-                      icon: Icon(Icons.arrow_back, color: AppColors.black),
-                      onPressed: () => Navigator.pop(context),
+                      icon: Icon(Icons.share, color: AppColors.mainColor),
+                      onPressed: _shareCompound,
                     ),
                   ),
                 ),
-
-                // Dot Indicators (only show if multiple images)
+                // Dot Indicators (only show if multiple images) - positioned at top right
                 if (hasImages && widget.compound.images.length > 1)
                   Positioned(
-                    bottom: 16,
-                    left: 0,
-                    right: 0,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: List.generate(
-                        widget.compound.images.length,
-                        (index) {
-                          return AnimatedContainer(
-                            duration: Duration(milliseconds: 300),
-                            margin: EdgeInsets.symmetric(horizontal: 4),
-                            width: _currentImageIndex == index ? 24 : 8,
-                            height: 8,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(4),
-                              color: _currentImageIndex == index
-                                  ? AppColors.mainColor
-                                  : Colors.white.withOpacity(0.5),
-                            ),
-                          );
-                        },
+                    top: 100,
+                    right: 16,
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.5),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: List.generate(
+                          widget.compound.images.length,
+                              (index) {
+                            return AnimatedContainer(
+                              duration: Duration(milliseconds: 300),
+                              margin: EdgeInsets.symmetric(horizontal: 3),
+                              width: _currentImageIndex == index ? 20 : 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(3),
+                                color: _currentImageIndex == index
+                                    ? AppColors.mainColor
+                                    : Colors.white.withOpacity(0.6),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ),
@@ -809,39 +1205,41 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Compound Name
-                  CustomText20(
+                  CustomText18(
                     'About ${widget.compound.project}',
                     bold: true,
                     color: AppColors.black,
                   ),
-                  SizedBox(height: 12),
-
+                  SizedBox(height: 10),
                   // Compound Description
-                  CustomText16(
+                  CustomText14(
                     widget.compound.project.isNotEmpty
                         ? '${widget.compound.project} is located in ${widget.compound.location} at El Riviera Real Estate Company. Available units with various sizes and types.'
                         : 'Premium real estate compound with modern amenities and facilities.',
-                    color: AppColors.greyText,
+                    color: Colors.black,
                   ),
                   SizedBox(height: 20),
-
                   // Developer Start Price (calculate from available units)
                   BlocBuilder<UnitBloc, UnitState>(
                     builder: (context, state) {
-                      String developerStartPrice = '6,000,000 EGP'; // Default value
+                      String developerStartPrice =
+                          '6,000,000 EGP'; // Default value
 
                       if (state is UnitSuccess && state.response.data.isNotEmpty) {
                         // Find the minimum price from units
                         try {
                           final prices = state.response.data
-                              .where((unit) => unit.price != null && unit.price!.isNotEmpty)
+                              .where((unit) =>
+                          unit.price != null && unit.price!.isNotEmpty)
                               .map((unit) => double.tryParse(unit.price!) ?? 0)
                               .where((price) => price > 0)
                               .toList();
 
                           if (prices.isNotEmpty) {
-                            final minPrice = prices.reduce((a, b) => a < b ? a : b);
-                            developerStartPrice = '${minPrice.toStringAsFixed(0)} EGP';
+                            final minPrice =
+                            prices.reduce((a, b) => a < b ? a : b);
+                            developerStartPrice =
+                            '${minPrice.toStringAsFixed(0)} EGP';
                           }
                         } catch (e) {
                           print('Error calculating developer start price: $e');
@@ -850,13 +1248,13 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
 
                       return Row(
                         children: [
-                          CustomText16(
+                          CustomText14(
                             'Developer Start Price',
                             bold: true,
                             color: AppColors.black,
                           ),
                           Spacer(),
-                          CustomText18(
+                          CustomText16(
                             developerStartPrice,
                             bold: true,
                             color: AppColors.mainColor,
@@ -866,7 +1264,6 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
                     },
                   ),
                   SizedBox(height: 24),
-
                   // Call Us and WhatsApp Buttons
                   Row(
                     children: [
@@ -880,12 +1277,12 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
                               _showSalespeople();
                             }
                           },
-                          icon: Icon(Icons.phone, size: 20),
-                          label: CustomText16('Call Us', color: AppColors.white),
+                          icon: Icon(Icons.phone, size: 18),
+                          label: CustomText14('Call Us', color: AppColors.white),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.mainColor,
                             foregroundColor: AppColors.white,
-                            padding: EdgeInsets.symmetric(vertical: 14),
+                            padding: EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -900,20 +1297,19 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
                               final phone = widget.compound.sales.first.phone;
                               _launchWhatsApp(phone);
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(l10n.noSalesPersonAvailable),
-                                  backgroundColor: Colors.orange,
-                                ),
+                              MessageHelper.showMessage(
+                                context: context,
+                                message: l10n.noSalesPersonAvailable,
+                                isSuccess: false,
                               );
                             }
                           },
-                          icon: Icon(Icons.chat, size: 20),
-                          label: CustomText16('WhatsApp', color: AppColors.white),
+                          icon: Icon(Icons.chat, size: 18),
+                          label: CustomText14('WhatsApp', color: AppColors.white),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green,
                             foregroundColor: AppColors.white,
-                            padding: EdgeInsets.symmetric(vertical: 14),
+                            padding: EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -924,228 +1320,75 @@ class _CompoundScreenState extends State<CompoundScreen> with SingleTickerProvid
                   ),
                   SizedBox(height: 24),
 
-                  // Tab Bar
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: AppColors.grey.withOpacity(0.3),
-                          width: 1,
+                  // Animated Corner Tab Bar
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _buildCornerTabBar(),
+                  ),
+
+                  SizedBox(height: 24),
+
+                  // Animated Tab Content with fade and scale transition
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 400),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  transitionBuilder: (Widget child, Animation<double> animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: ScaleTransition(
+                        scale: Tween<double>(begin: 0.95, end: 1.0).animate(
+                          CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutBack,
+                          ),
+                        ),
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.05, 0),
+                            end: Offset.zero,
+                          ).animate(
+                            CurvedAnimation(
+                              parent: animation,
+                              curve: Curves.easeOutCubic,
+                            ),
+                          ),
+                          child: child,
                         ),
                       ),
-                    ),
-                    child: TabBar(
-                      controller: _tabController,
-                      labelColor: AppColors.mainColor,
-                      unselectedLabelColor: AppColors.grey,
-                      indicatorColor: AppColors.mainColor,
-                      indicatorWeight: 3,
-                      labelStyle: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                    );
+                  },
+                  child: SingleChildScrollView(
+                    key: ValueKey<int>(_tabController.index),
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minHeight: 300,
+                        maxHeight: double.infinity,
                       ),
-                      unselectedLabelStyle: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.normal,
-                      ),
-                      tabs: [
-                        Tab(text: 'Details'),
-                        Tab(text: 'Gallery'),
-                        Tab(text: 'View on Map'),
-                        Tab(text: 'Master Plan'),
-                      ],
+                      child: _tabController.index == 0
+                          ? _buildDetailsTab(l10n)
+                          : _tabController.index == 1
+                          ? _buildGalleryTab()
+                          : _tabController.index == 2
+                          ? _buildMapTab(l10n)
+                          : _tabController.index == 3
+                          ? _buildMasterPlanTab(l10n)
+                          : _buildUnitsTab(l10n),
                     ),
                   ),
-                  SizedBox(height: 24),
+                ),
 
-                  // Tab Content
-                  SizedBox(
-                    height: 400,
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        // Details Tab
-                        _buildDetailsTab(l10n),
-
-                        // Gallery Tab
-                        _buildGalleryTab(),
-
-                        // View on Map Tab
-                        _buildMapTab(l10n),
-
-                        // Master Plan Tab
-                        _buildMasterPlanTab(l10n),
-                      ],
-                    ),
-                  ),
-                  SizedBox(height: 24),
+                SizedBox(height: 24),
 
                   // Sales People Section
                   _buildSalesPeopleSection(l10n),
-
-                  // Explore Properties Section
-                  CustomText20(
-                    'Explore Properties In ${widget.compound.project}',
-                    bold: true,
-                    color: AppColors.black,
-                  ),
-                  SizedBox(height: 16),
-                  // Units List
-                  BlocBuilder<UnitBloc, UnitState>(
-                    builder: (context, state) {
-                      if (state is UnitLoading) {
-                        return Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(32.0),
-                            child: CircularProgressIndicator(),
-                          ),
-                        );
-                      } else if (state is UnitSuccess) {
-                        final allUnits = state.response.data;
-
-                        // Filter units based on search query
-                        final units = _searchQuery.isEmpty
-                            ? allUnits
-                            : allUnits.where((unit) {
-                                final unitNumber = (unit.unitNumber ?? '')
-                                    .toLowerCase();
-                                final unitType = (unit.unitType ?? '')
-                                    .toLowerCase();
-                                final usageType = (unit.usageType ?? '')
-                                    .toLowerCase();
-                                final area = (unit.area ?? '').toLowerCase();
-                                final status = (unit.status ?? '')
-                                    .toLowerCase();
-                                final floor = (unit.floor ?? '').toLowerCase();
-                                final bedrooms = (unit.bedrooms ?? '')
-                                    .toLowerCase();
-
-                                return unitNumber.contains(_searchQuery) ||
-                                    unitType.contains(_searchQuery) ||
-                                    usageType.contains(_searchQuery) ||
-                                    area.contains(_searchQuery) ||
-                                    status.contains(_searchQuery) ||
-                                    floor.contains(_searchQuery) ||
-                                    bedrooms.contains(_searchQuery);
-                              }).toList();
-
-                        if (units.isEmpty) {
-                          return Center(
-                            child: Padding(
-                              padding: EdgeInsets.all(32.0),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.home_outlined,
-                                    size: 80,
-                                    color: AppColors.grey,
-                                  ),
-                                  SizedBox(height: 16),
-                                  CustomText18(
-                                    _searchQuery.isEmpty
-                                        ? l10n.noUnitsAvailable
-                                        : l10n.noUnitsMatch,
-                                    color: AppColors.grey,
-                                    bold: true,
-                                  ),
-                                  if (_searchQuery.isNotEmpty) ...[
-                                    SizedBox(height: 8),
-                                    CustomText16(
-                                      l10n.tryDifferentKeywords,
-                                      color: AppColors.grey,
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-
-                        final displayCount = _showAllUnits
-                            ? units.length
-                            : (units.length > 6 ? 6 : units.length);
-
-                        return Column(
-                          children: [
-                            GridView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                childAspectRatio: 0.65,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                              ),
-                              itemCount: displayCount,
-                              itemBuilder: (context, index) {
-                                return UnitCard(unit: units[index]);
-                              },
-                            ),
-                            if (units.length > 6) ...[
-                              SizedBox(height: 16),
-                              ShowAllButton(
-                                label: _showAllUnits
-                                    ? l10n.showLess
-                                    : l10n.showAllUnits,
-                                pressed: () {
-                                  setState(() {
-                                    _showAllUnits = !_showAllUnits;
-                                  });
-                                },
-                              ),
-                            ],
-                          ],
-                        );
-                      } else if (state is UnitError) {
-                        return Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(32.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  size: 48,
-                                  color: Colors.red,
-                                ),
-                                SizedBox(height: 16),
-                                CustomText16(
-                                  '${l10n.error}: ${state.message}',
-                                  color: Colors.red,
-                                  align: TextAlign.center,
-                                ),
-                                SizedBox(height: 16),
-                                ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.mainColor,
-                                    foregroundColor: AppColors.white,
-                                  ),
-                                  onPressed: () {
-                                    context.read<UnitBloc>().add(
-                                      FetchUnitsEvent(
-                                        compoundId: widget.compound.id,
-                                        limit: 100,
-                                      ),
-                                    );
-                                  },
-                                  child: CustomText16(
-                                    l10n.retry,
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }
-                      return SizedBox.shrink();
-                    },
-                  ),
                 ],
               ),
             ),
-          ]),
-
+          ],
+        ),
       ),
     );
   }
