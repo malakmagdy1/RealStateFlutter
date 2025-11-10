@@ -58,7 +58,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     context.read<CompoundBloc>().add(FetchCompoundDetailEvent(compoundId: widget.compoundId));
     context.read<UnitBloc>().add(FetchUnitsEvent(compoundId: widget.compoundId));
     _startImageRotation();
@@ -717,7 +717,9 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                           indicatorWeight: 3,
                           tabs: [
                             Tab(text: "Gallery"),
+                            Tab(text: "Units"),
                             Tab(text: l10n.masterPlan),
+                            Tab(text: "Floor Plan"),
                             Tab(text: "Notes"),
                           ],
                         ),
@@ -731,7 +733,9 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                           controller: _tabController,
                           children: [
                             _buildGalleryTab(compoundData),
+                            _buildUnitsTab(),
                             _buildMasterPlanTab(compoundData, l10n),
+                            _buildFloorPlanTab(compoundData, l10n),
                             _buildNotesTab(),
                           ],
                         ),
@@ -902,6 +906,114 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                       child: Center(
                         child: Icon(
                           Icons.map,
+                          size: 100,
+                          color: AppColors.mainColor.withOpacity(0.3),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildUnitsTab() {
+    return BlocBuilder<UnitBloc, UnitState>(
+      builder: (context, state) {
+        if (state is UnitLoading) {
+          return Center(child: CircularProgressIndicator(color: AppColors.mainColor));
+        } else if (state is UnitsLoaded) {
+          final units = state.units;
+          if (units.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.home_outlined,
+                    size: 80,
+                    color: AppColors.mainColor.withOpacity(0.3),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'No units available',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          return GridView.builder(
+            padding: EdgeInsets.all(24),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              mainAxisSpacing: 20,
+              crossAxisSpacing: 20,
+              childAspectRatio: 0.9,
+            ),
+            itemCount: units.length,
+            itemBuilder: (context, index) {
+              return WebUnitCard(unit: units[index]);
+            },
+          );
+        } else if (state is UnitError) {
+          return Center(
+            child: Text(
+              state.message,
+              style: TextStyle(color: Colors.red),
+            ),
+          );
+        }
+        return Center(child: Text('No units data available'));
+      },
+    );
+  }
+
+  Widget _buildFloorPlanTab(Map<String, dynamic> compoundData, AppLocalizations l10n) {
+    final floorPlan = _getString(compoundData, 'floor_plan');
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(24),
+      child: floorPlan.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.architecture_outlined,
+                    size: 80,
+                    color: AppColors.mainColor.withOpacity(0.3),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'No floor plan available',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF999999),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: RobustNetworkImage(
+                    imageUrl: floorPlan,
+                    width: double.infinity,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, url) => Container(
+                      height: 400,
+                      color: Color(0xFFF8F9FA),
+                      child: Center(
+                        child: Icon(
+                          Icons.architecture,
                           size: 100,
                           color: AppColors.mainColor.withOpacity(0.3),
                         ),

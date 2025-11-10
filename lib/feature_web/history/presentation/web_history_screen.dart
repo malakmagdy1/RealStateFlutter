@@ -384,6 +384,35 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
                   ),
                 ),
               ),
+
+              // ⏰ timestamp badge — bottom-left
+              if (item['viewedAt'] != null)
+                Positioned(
+                  bottom: 8,
+                  left: 8,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.75),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.access_time, color: Colors.white, size: 12),
+                        SizedBox(width: 4),
+                        Text(
+                          _getTimeAgo(item['viewedAt']),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         );
