@@ -751,10 +751,6 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.mainColor.withOpacity(0.5),
-          width: 2,
-        ),
         boxShadow: [
           BoxShadow(
             color: AppColors.mainColor.withOpacity(0.1),

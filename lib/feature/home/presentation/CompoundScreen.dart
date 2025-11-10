@@ -567,7 +567,8 @@ class _CompoundScreenState extends State<CompoundScreen>
 
     return GridView.builder(
       padding: EdgeInsets.all(8),
-      physics: BouncingScrollPhysics(),
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 8,
@@ -1170,7 +1171,8 @@ class _CompoundScreenState extends State<CompoundScreen>
     int? noteId,
     String? initialContent,
     String? initialTitle,
-  }) async {
+  }) async
+  {
     final result = await NoteDialog.show(
       context,
       initialNote: initialContent,
