@@ -1,0 +1,115 @@
+═══════════════════════════════════════════════════════════
+   HOW TO RUN ON ALL 3 DEVICES (Phone + Emulator + Web)
+═══════════════════════════════════════════════════════════
+
+OPTION 1: ALL-IN-ONE (Easiest)
+═══════════════════════════════════════════════════════════
+Double-click: RUN_ALL_3_SIMPLE.bat
+
+What it does:
+✓ Starts emulator if not running
+✓ Launches app on physical phone
+✓ Launches app on emulator
+✓ Launches app on web browser
+✓ Opens 3 terminal windows (don't close them!)
+
+Wait 1-2 minutes for everything to load.
+
+
+OPTION 2: MANUAL (More Control)
+═══════════════════════════════════════════════════════════
+
+Step 1: Start emulator first
+   Double-click: start_emulator.bat
+   Wait 30 seconds for emulator to fully boot
+
+Step 2: Run apps on all devices
+   Double-click: QUICK_START.bat
+   This launches all 3 apps instantly
+
+
+OPTION 3: COMMAND LINE (Advanced)
+═══════════════════════════════════════════════════════════
+
+Open 3 separate terminal windows:
+
+Terminal 1 - Physical Phone:
+   flutter run -d RF8TB02VZVH
+
+Terminal 2 - Emulator:
+   flutter run -d emulator-5554
+
+Terminal 3 - Web:
+   flutter run -d chrome --web-port 8080
+
+
+═══════════════════════════════════════════════════════════
+   DEVICE IDs (Reference)
+═══════════════════════════════════════════════════════════
+
+Physical Phone:  RF8TB02VZVH (Samsung SM A137F)
+Emulator:        emulator-5554 (Pixel 7a)
+Web:             chrome (Port 8080)
+
+
+═══════════════════════════════════════════════════════════
+   NOTIFICATION TESTING FLOW
+═══════════════════════════════════════════════════════════
+
+1. Run apps on all 3 devices (use RUN_ALL_3_SIMPLE.bat)
+2. Wait for all apps to load completely
+3. Login with SAME account on all 3 devices:
+   - Phone: testuser@example.com
+   - Emulator: testuser@example.com
+   - Web: testuser@example.com
+
+4. Check database for 3 FCM tokens:
+   SELECT * FROM fcm_tokens
+   WHERE user_id = (SELECT id FROM users WHERE email = 'testuser@example.com');
+
+5. Send test notification from Firebase Console
+6. Verify notification appears on ALL 3 devices! ✓
+
+
+═══════════════════════════════════════════════════════════
+   TROUBLESHOOTING
+═══════════════════════════════════════════════════════════
+
+Problem: Emulator won't start
+Solution: Run check_devices.bat → Option 3 (Kill Emulator)
+          Then run RUN_ALL_3_SIMPLE.bat again
+
+Problem: Port 8080 is busy
+Solution: Run check_devices.bat → Option 4 (Kill Port 8080)
+          Or use different port: flutter run -d chrome --web-port 8081
+
+Problem: Phone not detected
+Solution: Check USB debugging is enabled on phone
+          Run: adb devices (should show RF8TB02VZVH)
+
+Problem: Apps won't hot reload
+Solution: Press 'R' (capital R) in terminal to restart
+          Or press 'r' (lowercase) to hot reload
+
+
+═══════════════════════════════════════════════════════════
+   TIPS
+═══════════════════════════════════════════════════════════
+
+✓ Don't close terminal windows - apps will stop
+✓ Press 'r' in terminal to hot reload changes
+✓ Press 'R' to fully restart app
+✓ Press 'q' to quit app
+✓ Keep emulator running between tests (saves time)
+
+
+═══════════════════════════════════════════════════════════
+   RECOMMENDED: Start Here
+═══════════════════════════════════════════════════════════
+
+   >>> Double-click: RUN_ALL_3_SIMPLE.bat <<<
+
+That's it! Everything will start automatically.
+
+
+═══════════════════════════════════════════════════════════

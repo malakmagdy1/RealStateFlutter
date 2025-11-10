@@ -1,0 +1,36 @@
+====================================================================
+GOOGLE CLOUD CONSOLE - COPY THESE EXACT URLs
+====================================================================
+
+Go to: https://console.cloud.google.com/apis/credentials
+Find your Web Client ID: 832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9
+Click Edit (pencil icon)
+
+====================================================================
+AUTHORIZED JAVASCRIPT ORIGINS (Add both):
+====================================================================
+
+http://localhost:5000
+
+https://aqar.bdcbiz.com
+
+====================================================================
+AUTHORIZED REDIRECT URIS (Add both):
+====================================================================
+
+http://localhost:5000
+
+https://aqar.bdcbiz.com
+
+====================================================================
+IMPORTANT NOTES:
+====================================================================
+
+1. NO trailing slashes (/)
+2. NO /callback or other paths
+3. Use http:// for localhost (NOT https://)
+4. Click SAVE button
+5. Wait 5-10 minutes for changes to take effect
+6. Clear browser cache or use incognito mode
+
+====================================================================

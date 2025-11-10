@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
@@ -24,12 +25,12 @@ class WebCompanyCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => WebCompanyDetailScreen(company: company),
-              ),
-            );
+            print('[COMPANY CARD] Navigating to company: ${company.id} - ${company.name}');
+            try {
+              context.push('/company/${company.id}', extra: company.toJson());
+            } catch (e) {
+              print('[COMPANY CARD] Navigation error: $e');
+            }
           },
           borderRadius: BorderRadius.circular(10),
           hoverColor: AppColors.mainColor.withOpacity(0.05),

@@ -32,6 +32,7 @@ class UserModel {
   final bool isBanned;
   final String? companyId;
   final UserStats? stats;
+  final String? imageUrl;
 
   UserModel({
     this.id,
@@ -44,6 +45,7 @@ class UserModel {
     this.isBanned = false,
     this.companyId,
     this.stats,
+    this.imageUrl,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -68,6 +70,7 @@ class UserModel {
           json['is_banned'] == '1' ||
           json['is_banned'] == 'true',
       stats: json['stats'] != null ? UserStats.fromJson(json['stats']) : null,
+      imageUrl: json['image_url']?.toString(),
     );
   }
 
@@ -83,6 +86,7 @@ class UserModel {
       'is_banned': isBanned,
       if (companyId != null) 'company_id': companyId,
       if (stats != null) 'stats': stats!.toJson(),
+      if (imageUrl != null) 'image_url': imageUrl,
     };
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/feature/auth/presentation/bloc/verification_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/verification_event.dart';
 import 'package:real/feature/auth/presentation/bloc/verification_state.dart';
@@ -106,12 +107,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
             ),
           );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter the complete 6-digit code'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      MessageHelper.showError(context, 'Please enter the complete 6-digit code');
     }
   }
 
@@ -192,13 +188,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
       body: BlocListener<VerificationBloc, VerificationState>(
         listener: (context, state) {
           if (state is VerificationSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.response.message),
-                backgroundColor: Colors.green,
-                duration: const Duration(seconds: 2),
-              ),
-            );
+            MessageHelper.showSuccess(context, state.response.message);
 
             print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
             print('[VerificationScreen] Email verified successfully!');
@@ -219,37 +209,19 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
               Navigator.pushReplacementNamed(context, CustomNav.routeName);
             }
           } else if (state is VerificationError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 3),
-              ),
-            );
+            MessageHelper.showError(context, state.message);
             if (state.remainingAttempts != null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                      'Remaining attempts: ${state.remainingAttempts}'),
-                  backgroundColor: Colors.orange,
-                ),
+              MessageHelper.showMessage(
+                context: context,
+                message: 'Remaining attempts: ${state.remainingAttempts}',
+                isSuccess: false,
               );
             }
             _clearCode();
           } else if (state is ResendCodeSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.response.message),
-                backgroundColor: Colors.green,
-              ),
-            );
+            MessageHelper.showSuccess(context, state.response.message);
           } else if (state is ResendCodeError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            MessageHelper.showError(context, state.message);
           }
         },
         child: BlocBuilder<VerificationBloc, VerificationState>(

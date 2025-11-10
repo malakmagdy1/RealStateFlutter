@@ -8,9 +8,11 @@ import 'search_state.dart';
 
 class SearchBloc extends Bloc<SearchEvent, SearchState> {
   final SearchRepository repository;
+  List<SearchResult> _allResults = [];
 
   SearchBloc({required this.repository}) : super(SearchInitial()) {
     on<SearchQueryEvent>(_onSearchQuery);
+    on<LoadMoreSearchResultsEvent>(_onLoadMoreResults);
     on<ClearSearchEvent>(_onClearSearch);
   }
 
@@ -24,27 +26,135 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       return;
     }
 
+    // Reset results for new search
+    _allResults = [];
     emit(SearchLoading());
 
     try {
-      // Use the search API (returns companies, compounds, and units)
-      print('[SEARCH] Using search API with query: "${event.query}"');
-      final response = await repository.search(
-        query: event.query,
-        type: event.type,
-        perPage: 100,
-        filter: event.filter,
-      );
+      // If there's a filter, use the dedicated filter API with pagination
+      if (event.filter != null && !event.filter!.isEmpty) {
+        print('[SEARCH BLOC] Using filter-units API with filter (Page: ${event.page})');
+        print('[SEARCH BLOC] Filter params: ${event.filter!.toQueryParameters()}');
 
-      if (response.results.isEmpty) {
-        emit(SearchEmpty());
+        // Fetch with limit of 10 units (2 rows of 5 each) for first page
+        final filterResponse = await repository.filterUnits(
+          event.filter!,
+          page: event.page,
+          limit: 10,
+        );
+
+        // Convert FilteredUnit to SearchResult
+        final searchResults = filterResponse.units.map((unit) {
+          return SearchResult(
+            type: 'unit',
+            id: unit.id,
+            name: unit.unitName,
+            data: _convertFilteredUnitToSearchData(unit),
+          );
+        }).toList();
+
+        _allResults = searchResults;
+
+        // Create a SearchResponse with the filtered units
+        final response = SearchResponse(
+          status: filterResponse.success,
+          searchQuery: event.query,
+          totalResults: filterResponse.totalUnits,
+          results: searchResults,
+        );
+
+        if (searchResults.isEmpty) {
+          emit(SearchEmpty());
+        } else {
+          final hasMore = filterResponse.page < filterResponse.totalPages;
+          print('[SEARCH BLOC] Found ${searchResults.length} filtered units (Page ${filterResponse.page}/${filterResponse.totalPages})');
+          emit(SearchSuccess(
+            response: response,
+            hasMorePages: hasMore,
+            currentPage: filterResponse.page,
+            totalPages: filterResponse.totalPages,
+          ));
+        }
       } else {
-        print('[SEARCH] Found ${response.totalResults} results');
-        emit(SearchSuccess(response: response));
+        // Use the search API (returns companies, compounds, and units)
+        print('[SEARCH BLOC] Using search API with query: "${event.query}"');
+        final response = await repository.search(
+          query: event.query,
+          type: event.type,
+          perPage: 100,
+          filter: event.filter,
+        );
+
+        _allResults = response.results;
+
+        if (response.results.isEmpty) {
+          emit(SearchEmpty());
+        } else {
+          print('[SEARCH BLOC] Found ${response.totalResults} results');
+          emit(SearchSuccess(response: response));
+        }
       }
     } catch (e) {
-      print('[SEARCH] Error: ${e.toString()}');
+      print('[SEARCH BLOC] Error: ${e.toString()}');
       emit(SearchError(message: e.toString()));
+    }
+  }
+
+  Future<void> _onLoadMoreResults(
+    LoadMoreSearchResultsEvent event,
+    Emitter<SearchState> emit,
+  ) async {
+    // Check if we're already in a loading state
+    if (state is! SearchSuccess) return;
+
+    final currentState = state as SearchSuccess;
+    if (!currentState.hasMorePages) return;
+
+    emit(SearchLoadingMore(currentResponse: currentState.response));
+
+    try {
+      print('[SEARCH BLOC] Loading more results (Page: ${event.page})');
+
+      final filterResponse = await repository.filterUnits(
+        event.filter!,
+        page: event.page,
+        limit: 10,
+      );
+
+      // Convert new units to SearchResult
+      final newSearchResults = filterResponse.units.map((unit) {
+        return SearchResult(
+          type: 'unit',
+          id: unit.id,
+          name: unit.unitName,
+          data: _convertFilteredUnitToSearchData(unit),
+        );
+      }).toList();
+
+      // Append new results to existing
+      _allResults.addAll(newSearchResults);
+
+      // Create updated response with all results
+      final updatedResponse = SearchResponse(
+        status: filterResponse.success,
+        searchQuery: currentState.response.searchQuery,
+        totalResults: filterResponse.totalUnits,
+        results: _allResults,
+      );
+
+      final hasMore = filterResponse.page < filterResponse.totalPages;
+      print('[SEARCH BLOC] Loaded ${newSearchResults.length} more units. Total: ${_allResults.length} (Page ${filterResponse.page}/${filterResponse.totalPages})');
+
+      emit(SearchSuccess(
+        response: updatedResponse,
+        hasMorePages: hasMore,
+        currentPage: filterResponse.page,
+        totalPages: filterResponse.totalPages,
+      ));
+    } catch (e) {
+      print('[SEARCH BLOC] Error loading more: ${e.toString()}');
+      // Restore previous state on error
+      emit(currentState);
     }
   }
 

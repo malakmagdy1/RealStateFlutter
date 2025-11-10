@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/feature/auth/presentation/bloc/user_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/user_state.dart';
 
@@ -182,12 +184,7 @@ class _WebProfileSettingsScreenState extends State<WebProfileSettingsScreen> {
                         ElevatedButton(
                           onPressed: () {
                             // Save changes
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Changes saved successfully'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
+                            MessageHelper.showSuccess(context, 'Changes saved successfully');
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.mainColor,
@@ -210,7 +207,7 @@ class _WebProfileSettingsScreenState extends State<WebProfileSettingsScreen> {
                         OutlinedButton(
                           onPressed: () {
                             // Cancel changes
-                            Navigator.pop(context);
+                            context.pop();
                           },
                           style: OutlinedButton.styleFrom(
                             padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),

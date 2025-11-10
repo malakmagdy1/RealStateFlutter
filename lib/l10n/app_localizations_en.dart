@@ -302,6 +302,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noUnits => 'No units found';
 
   @override
+  String get recommendedForYou => 'Recommended For You';
+
+  @override
   String get personalInformation => 'Personal Information';
 
   @override
@@ -802,4 +805,120 @@ class AppLocalizationsEn extends AppLocalizations {
   String leadingDeveloper(String companyName) {
     return '$companyName is a leading real estate developer in Egypt, known for creating exceptional residential and commercial properties.';
   }
+
+  @override
+  String get verifiedAccount => 'Verified Account';
+
+  @override
+  String get updateYourDisplayName => 'Update your display name';
+
+  @override
+  String get editPhoneNumber => 'Edit Phone Number';
+
+  @override
+  String get updateYourContactNumber => 'Update your contact number';
+
+  @override
+  String get viewYourEmailAddress => 'View your email address';
+
+  @override
+  String get updateYourPassword => 'Update your password';
+
+  @override
+  String get twoFactorAuthentication => 'Two-Factor Authentication';
+
+  @override
+  String get addExtraSecurity => 'Add extra security';
+
+  @override
+  String get manageNotificationSettings => 'Manage notification settings';
+
+  @override
+  String get subscriptionPlan => 'Subscription Plan';
+
+  @override
+  String get active => 'Active';
+
+  @override
+  String get inactive => 'Inactive';
+
+  @override
+  String get searchQuota => 'Search Quota';
+
+  @override
+  String get unlimitedSearches => 'Unlimited searches';
+
+  @override
+  String searchesUsed(int used, int limit) {
+    return '$used / $limit searches';
+  }
+
+  @override
+  String searchesRemaining(int count) {
+    return '$count searches remaining';
+  }
+
+  @override
+  String get noSearchesRemaining => 'No searches remaining';
+
+  @override
+  String get expiresOn => 'Expires On';
+
+  @override
+  String get manageSubscription => 'Manage Subscription';
+
+  @override
+  String get termsOfService => 'Terms of Service';
+
+  @override
+  String get viewOurPrivacyPolicy => 'View our privacy policy';
+
+  @override
+  String get readOurTerms => 'Read our terms';
+
+  @override
+  String get getHelpWithYourAccount => 'Get help with your account';
+
+  @override
+  String get appVersion => 'App Version 1.0.0';
+
+  @override
+  String get developerTools => 'Developer Tools';
+
+  @override
+  String get dev => 'DEV';
+
+  @override
+  String get apiTokenDescription =>
+      'Use this token to test API endpoints in Postman or other API clients.';
+
+  @override
+  String get authenticationToken => 'Authentication Token:';
+
+  @override
+  String get copyToken => 'Copy Token';
+
+  @override
+  String get noTokenFound => 'No token found. Please log in first.';
+
+  @override
+  String get tokenCopied => 'Token copied to clipboard!';
+
+  @override
+  String get bearerTokenInstructions =>
+      'Add this token as a Bearer token in your API requests:\nAuthorization: Bearer <token>';
+
+  @override
+  String get uploadingProfileImage => 'Uploading profile image...';
+
+  @override
+  String get profileImageUpdated => 'Profile image updated successfully!';
+
+  @override
+  String errorUploadingImage(String error) {
+    return 'Error uploading image: $error';
+  }
+
+  @override
+  String get noLoginMessage => 'No token found. Please log in first.';
 }

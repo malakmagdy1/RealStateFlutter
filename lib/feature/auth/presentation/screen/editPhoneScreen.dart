@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/utils/validators.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/feature/auth/data/models/update_phone_request.dart';
 import 'package:real/feature/auth/presentation/bloc/update_phone_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/update_phone_event.dart';
@@ -44,21 +45,11 @@ class _EditPhoneScreenState extends State<EditPhoneScreen> {
       body: BlocListener<UpdatePhoneBloc, UpdatePhoneState>(
         listener: (context, state) {
           if (state is UpdatePhoneSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.response.message),
-                backgroundColor: Colors.green,
-              ),
-            );
+            MessageHelper.showSuccess(context, state.response.message);
             // Navigate back after successful phone update
             Navigator.pop(context);
           } else if (state is UpdatePhoneError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            MessageHelper.showError(context, state.message);
           }
         },
         child: SingleChildScrollView(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:real/core/utils/colors.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/l10n/app_localizations.dart';
 import '../../data/models/notification_model.dart';
 import '../../data/services/notification_cache_service.dart';
@@ -100,12 +101,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
               await _cacheService.markAllAsRead();
               await _loadNotifications();
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.markedAllAsRead),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                MessageHelper.showSuccess(context, l10n.markedAllAsRead);
               }
             },
             tooltip: l10n.markAllAsRead,
@@ -240,12 +236,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                     await _cacheService.deleteNotification(notification.id);
                     await _loadNotifications();
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(l10n.notificationDeleted),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
+                      MessageHelper.showSuccess(context, l10n.notificationDeleted);
                     }
                   },
                 );
@@ -381,11 +372,10 @@ class _NotificationsScreenState extends State<NotificationsScreen>
       case 'general':
       default:
         // For general notifications, just show a message
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AppLocalizations.of(context)!.noDetailsAvailable),
-            duration: Duration(seconds: 2),
-          ),
+        MessageHelper.showMessage(
+          context: context,
+          message: AppLocalizations.of(context)!.noDetailsAvailable,
+          isSuccess: true,
         );
         break;
     }
@@ -505,12 +495,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
               Navigator.pop(context);
 
               if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.allNotificationsCleared),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                MessageHelper.showSuccess(context, l10n.allNotificationsCleared);
               }
             },
             child: Text(

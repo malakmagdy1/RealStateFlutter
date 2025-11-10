@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:real/core/utils/colors.dart';
@@ -12,12 +13,18 @@ import 'package:real/feature/auth/presentation/bloc/login_event.dart';
 import 'package:real/feature/auth/presentation/bloc/login_state.dart';
 import 'package:real/feature/auth/presentation/bloc/user_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/user_state.dart';
-import 'package:real/feature/auth/presentation/screen/changePasswordScreen.dart';
+import 'package:real/feature/auth/presentation/bloc/user_event.dart';
 import 'package:real/feature/auth/presentation/screen/editNameScreen.dart';
 import 'package:real/feature/auth/presentation/screen/editPhoneScreen.dart';
 import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
 import 'package:real/feature/home/presentation/widget/customListTile.dart';
 import 'package:real/feature/notifications/presentation/screens/notifications_screen.dart';
+import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_event.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
+import 'package:real/feature/subscription/presentation/screens/subscription_plans_screen.dart';
+import 'package:real/core/utils/message_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
   ProfileScreen({super.key});
@@ -30,13 +37,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
   bool _isPersonalInfoExpanded = false;
-  bool _isSecurityExpanded = false;
   bool _isPreferencesExpanded = false;
 
-  Future<void> _pickImage() async {
+  @override
+  void initState() {
+    super.initState();
+    // Load subscription status when profile screen loads
+    context.read<SubscriptionBloc>().add(LoadSubscriptionStatusEvent());
+  }
+
+  void _showImagePickerModal() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AnimatedImagePickerSheet(
+        onCameraTap: () async {
+          Navigator.pop(context);
+          await _pickImageFromSource(ImageSource.camera);
+        },
+        onGalleryTap: () async {
+          Navigator.pop(context);
+          await _pickImageFromSource(ImageSource.gallery);
+        },
+      ),
+    );
+  }
+
+  Future<void> _pickImageFromSource(ImageSource source) async {
     try {
       final XFile? pickedFile = await _picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         imageQuality: 80,
       );
 
@@ -44,14 +74,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           _imageFile = File(pickedFile.path);
         });
+
+        // Upload the image to the backend
+        MessageHelper.showMessage(
+          context: context,
+          message: 'Uploading profile image...',
+          isSuccess: true,
+        );
+
+        final authWebServices = AuthWebServices();
+        await authWebServices.uploadProfileImage(pickedFile.path);
+
+        // Refresh user data to get the updated image URL from backend
+        context.read<UserBloc>().add(FetchUserEvent());
+
+        MessageHelper.showSuccess(context, 'Profile image updated successfully!');
+
+        // Clear local image file so it uses the backend image
+        setState(() {
+          _imageFile = null;
+        });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking image: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      MessageHelper.showError(context, 'Error uploading image: $e');
     }
   }
 
@@ -148,13 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         localeCubit.changeLocale(Locale(languageCode));
         Navigator.of(context).pop();
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.languageChanged),
-            backgroundColor: AppColors.mainColor,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        MessageHelper.showSuccess(context, l10n.languageChanged);
       },
     );
   }
@@ -171,16 +210,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Navigator.of(
             context,
           ).pushNamedAndRemoveUntil(LoginScreen.routeName, (route) => false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.green,
-            ),
-          );
+          MessageHelper.showSuccess(context, state.message);
         } else if (state is LogoutError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
+          MessageHelper.showError(context, state.message);
         }
       },
       child: Scaffold(
@@ -219,69 +251,93 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Center(
                   child: Column(
                     children: [
-                      Stack(
-                        children: [
-                          Container(
-                            width: screenWidth * 0.28,
-                            height: screenWidth * 0.28,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.mainColor.withOpacity(0.2),
-                                  AppColors.mainColor.withOpacity(0.1),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppColors.mainColor.withOpacity(0.3),
-                                width: 2,
-                              ),
-                            ),
-                            child: _imageFile == null
-                                ? Icon(
-                                    Icons.person,
-                                    size: screenWidth * 0.12,
-                                    color: AppColors.mainColor,
-                                  )
-                                : ClipRRect(
-                                    borderRadius: BorderRadius.circular(18),
-                                    child: Image.file(
-                                      _imageFile!,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: GestureDetector(
-                              onTap: _pickImage,
-                              child: Container(
-                                padding: EdgeInsets.all(8),
+                      BlocBuilder<UserBloc, UserState>(
+                        builder: (context, userState) {
+                          String? imageUrl;
+                          if (userState is UserSuccess) {
+                            imageUrl = userState.user.imageUrl;
+                          }
+
+                          return Stack(
+                            children: [
+                              Container(
+                                width: screenWidth * 0.28,
+                                height: screenWidth * 0.28,
                                 decoration: BoxDecoration(
-                                  color: AppColors.mainColor,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 3,
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.mainColor.withOpacity(0.2),
+                                      AppColors.mainColor.withOpacity(0.1),
+                                    ],
                                   ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.mainColor.withOpacity(0.3),
-                                      blurRadius: 8,
-                                      offset: Offset(0, 2),
-                                    ),
-                                  ],
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: AppColors.mainColor.withOpacity(0.3),
+                                    width: 2,
+                                  ),
                                 ),
-                                child: Icon(
-                                  Icons.camera_alt,
-                                  size: 16,
-                                  color: Colors.white,
+                                child: _imageFile != null
+                                    ? ClipRRect(
+                                        borderRadius: BorderRadius.circular(18),
+                                        child: Image.file(
+                                          _imageFile!,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      )
+                                    : imageUrl != null && imageUrl.isNotEmpty
+                                        ? ClipRRect(
+                                            borderRadius: BorderRadius.circular(18),
+                                            child: Image.network(
+                                              imageUrl,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) {
+                                                return Icon(
+                                                  Icons.person,
+                                                  size: screenWidth * 0.12,
+                                                  color: AppColors.mainColor,
+                                                );
+                                              },
+                                            ),
+                                          )
+                                        : Icon(
+                                            Icons.person,
+                                            size: screenWidth * 0.12,
+                                            color: AppColors.mainColor,
+                                          ),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: _showImagePickerModal,
+                                  child: Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.mainColor,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 3,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.mainColor.withOpacity(0.3),
+                                          blurRadius: 8,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      Icons.camera_alt,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ),
-                        ],
+                            ],
+                          );
+                        },
                       ),
                       SizedBox(height: screenHeight * 0.02),
                       BlocBuilder<UserBloc, UserState>(
@@ -339,6 +395,369 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               Divider(height: 1, thickness: 1),
 
+              // Subscription Section
+              BlocBuilder<SubscriptionBloc, SubscriptionState>(
+                builder: (context, state) {
+                  if (state is SubscriptionStatusLoaded) {
+                    final status = state.status;
+                    return Container(
+                      margin: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: status.hasActiveSubscription
+                              ? [
+                                  AppColors.mainColor,
+                                  AppColors.mainColor.withOpacity(0.8),
+                                ]
+                              : [
+                                  Colors.grey[700]!,
+                                  Colors.grey[600]!,
+                                ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: status.hasActiveSubscription
+                                ? AppColors.mainColor.withOpacity(0.3)
+                                : Colors.grey.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          // Background pattern
+                          Positioned(
+                            right: -20,
+                            top: -20,
+                            child: Icon(
+                              Icons.stars_rounded,
+                              size: 120,
+                              color: Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+                          Positioned(
+                            left: -10,
+                            bottom: -10,
+                            child: Icon(
+                              Icons.workspace_premium_rounded,
+                              size: 80,
+                              color: Colors.white.withOpacity(0.1),
+                            ),
+                          ),
+
+                          // Content
+                          Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Header with status badge
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: EdgeInsets.all(10),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.2),
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          child: Icon(
+                                            Icons.workspace_premium,
+                                            color: Colors.white,
+                                            size: 24,
+                                          ),
+                                        ),
+                                        SizedBox(width: 12),
+                                        Text(
+                                          'Your Plan',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.white.withOpacity(0.9),
+                                            letterSpacing: 0.5,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: status.hasActiveSubscription
+                                            ? Colors.green
+                                            : Colors.orange[700],
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.2),
+                                            blurRadius: 4,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            status.hasActiveSubscription
+                                                ? Icons.check_circle
+                                                : Icons.info_outline,
+                                            color: Colors.white,
+                                            size: 14,
+                                          ),
+                                          SizedBox(width: 4),
+                                          Text(
+                                            status.hasActiveSubscription ? 'ACTIVE' : 'INACTIVE',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              letterSpacing: 0.8,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                SizedBox(height: 20),
+
+                                // Plan name
+                                Text(
+                                  status.planNameEn,
+                                  style: TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    height: 1.2,
+                                  ),
+                                ),
+                                if (status.planName.isNotEmpty && status.planName != status.planNameEn) ...[
+                                  SizedBox(height: 4),
+                                  Text(
+                                    status.planName,
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.white.withOpacity(0.8),
+                                    ),
+                                  ),
+                                ],
+
+                                SizedBox(height: 24),
+
+                                // Search usage card
+                                Container(
+                                  padding: EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.2),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.search_rounded,
+                                                color: Colors.white,
+                                                size: 20,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Search Usage',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white.withOpacity(0.9),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          if (status.hasUnlimitedSearches)
+                                            Container(
+                                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.amber[600],
+                                                borderRadius: BorderRadius.circular(12),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  Icon(Icons.all_inclusive, color: Colors.white, size: 14),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    'Unlimited',
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+
+                                      if (!status.hasUnlimitedSearches) ...[
+                                        SizedBox(height: 12),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              '${status.searchesUsed} used',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.white.withOpacity(0.8),
+                                              ),
+                                            ),
+                                            Text(
+                                              '${status.remainingSearches} left',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        SizedBox(height: 8),
+                                        ClipRRect(
+                                          borderRadius: BorderRadius.circular(10),
+                                          child: LinearProgressIndicator(
+                                            value: status.searchLimit > 0
+                                                ? status.searchesUsed / status.searchLimit
+                                                : 0,
+                                            backgroundColor: Colors.white.withOpacity(0.2),
+                                            valueColor: AlwaysStoppedAnimation<Color>(
+                                              status.canSearch
+                                                  ? Colors.green[300]!
+                                                  : Colors.red[300]!,
+                                            ),
+                                            minHeight: 8,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+
+                                // Expiry info
+                                if (status.expiresAt != null) ...[
+                                  SizedBox(height: 16),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.event_available,
+                                          color: Colors.white.withOpacity(0.8),
+                                          size: 16,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          'Renews on ${status.expiresAt}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.white.withOpacity(0.8),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+
+                                SizedBox(height: 20),
+
+                                // Action button
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.pushNamed(
+                                        context,
+                                        SubscriptionPlansScreen.routeName,
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.white,
+                                      foregroundColor: status.hasActiveSubscription
+                                          ? AppColors.mainColor
+                                          : Colors.grey[700],
+                                      padding: EdgeInsets.symmetric(vertical: 14),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          status.hasActiveSubscription
+                                              ? Icons.manage_accounts
+                                              : Icons.upgrade,
+                                          size: 20,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          status.hasActiveSubscription
+                                              ? 'Manage Subscription'
+                                              : 'Upgrade Now',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  } else if (state is SubscriptionLoading) {
+                    return Container(
+                      margin: EdgeInsets.all(16),
+                      padding: EdgeInsets.all(40),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.mainColor),
+                        ),
+                      ),
+                    );
+                  }
+                  return SizedBox.shrink();
+                },
+              ),
+
+              Divider(height: 1, thickness: 1),
+
               // Personal Information Section
               ExpansionTile(
                 leading: Icon(Icons.person_outline, color: AppColors.mainColor),
@@ -380,42 +799,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               Divider(height: 1, thickness: 1),
 
-              // Security Section
-              ExpansionTile(
-                leading: Icon(Icons.security_outlined, color: AppColors.mainColor),
-                title: Text(
-                  l10n.security,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.mainColor,
-                  ),
-                ),
-                iconColor: AppColors.mainColor,
-                collapsedIconColor: AppColors.mainColor,
-                initiallyExpanded: _isSecurityExpanded,
-                onExpansionChanged: (expanded) {
-                  setState(() {
-                    _isSecurityExpanded = expanded;
-                  });
-                },
-                children: [
-                  ListTile(
-                    leading: Icon(Icons.lock_outline, color: AppColors.mainColor.withOpacity(0.7)),
-                    title: Text(l10n.changePassword),
-                    trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mainColor),
-                    onTap: () {
-                      Navigator.pushNamed(
-                        context,
-                        ChangePasswordScreen.routeName,
-                      );
-                    },
-                  ),
-                ],
-              ),
-
-              Divider(height: 1, thickness: 1),
-
               // Preferences Section
               ExpansionTile(
                 leading: Icon(Icons.settings_outlined, color: AppColors.mainColor),
@@ -436,15 +819,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   });
                 },
                 children: [
-                  ListTile(
-                    leading: Icon(Icons.brightness_6_outlined, color: AppColors.mainColor.withOpacity(0.7)),
-                    title: Text(l10n.theme),
-                    subtitle: Text(l10n.light),
-                    trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mainColor),
-                    onTap: () {
-                      // TODO: Navigate to theme settings
-                    },
-                  ),
                   BlocBuilder<LocaleCubit, Locale>(
                     builder: (context, locale) {
                       return ListTile(
@@ -528,6 +902,296 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Animated Image Picker Bottom Sheet Widget
+class AnimatedImagePickerSheet extends StatefulWidget {
+  final VoidCallback onCameraTap;
+  final VoidCallback onGalleryTap;
+
+  const AnimatedImagePickerSheet({
+    Key? key,
+    required this.onCameraTap,
+    required this.onGalleryTap,
+  }) : super(key: key);
+
+  @override
+  State<AnimatedImagePickerSheet> createState() => _AnimatedImagePickerSheetState();
+}
+
+class _AnimatedImagePickerSheetState extends State<AnimatedImagePickerSheet>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _scaleAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutBack,
+    );
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _fadeAnimation,
+      child: Container(
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(25),
+            topRight: Radius.circular(25),
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              width: 40,
+              height: 4,
+              margin: EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+
+            Text(
+              'Choose Profile Photo',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+
+            SizedBox(height: 20),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                // Camera Option
+                ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: _buildPickerOption(
+                    icon: Icons.camera_alt,
+                    label: 'Camera',
+                    color: AppColors.mainColor,
+                    onTap: widget.onCameraTap,
+                    delay: 0,
+                  ),
+                ),
+
+                // Gallery Option
+                ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: _buildPickerOption(
+                    icon: Icons.photo_library,
+                    label: 'Gallery',
+                    color: Colors.blue,
+                    onTap: widget.onGalleryTap,
+                    delay: 100,
+                  ),
+                ),
+              ],
+            ),
+
+            SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPickerOption({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+    required int delay,
+  }) {
+    return _AnimatedPickerButton(
+      icon: icon,
+      label: label,
+      color: color,
+      onTap: onTap,
+    );
+  }
+}
+
+/// Animated Picker Button with scale and vibration
+class _AnimatedPickerButton extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+
+  const _AnimatedPickerButton({
+    Key? key,
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  }) : super(key: key);
+
+  @override
+  State<_AnimatedPickerButton> createState() => _AnimatedPickerButtonState();
+}
+
+class _AnimatedPickerButtonState extends State<_AnimatedPickerButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _rotateAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.3), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.3, end: 0.9), weight: 25),
+      TweenSequenceItem(tween: Tween(begin: 0.9, end: 1.0), weight: 25),
+    ]).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    ));
+
+    _rotateAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 0.0, end: 0.05), weight: 25),
+      TweenSequenceItem(tween: Tween(begin: 0.05, end: -0.05), weight: 25),
+      TweenSequenceItem(tween: Tween(begin: -0.05, end: 0.05), weight: 25),
+      TweenSequenceItem(tween: Tween(begin: 0.05, end: 0.0), weight: 25),
+    ]).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    ));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleTap() {
+    HapticFeedback.mediumImpact();
+    _controller.forward().then((_) {
+      _controller.reverse();
+    });
+
+    // Delay the actual tap callback slightly for better UX
+    Future.delayed(Duration(milliseconds: 100), () {
+      widget.onTap();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: Duration(milliseconds: 300),
+      curve: Curves.easeOutBack,
+      builder: (context, value, child) {
+        return Transform.scale(
+          scale: value,
+          child: AnimatedBuilder(
+            animation: _controller,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: _scaleAnimation.value,
+                child: Transform.rotate(
+                  angle: _rotateAnimation.value,
+                  child: GestureDetector(
+                    onTap: _handleTap,
+                    child: Container(
+                      width: 140,
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      decoration: BoxDecoration(
+                        color: widget.color.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(15),
+                        border: Border.all(
+                          color: widget.color.withOpacity(0.3),
+                          width: 2,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.color.withOpacity(0.2),
+                            blurRadius: _controller.value * 15,
+                            spreadRadius: _controller.value * 2,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              color: widget.color,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: widget.color.withOpacity(0.3),
+                                  blurRadius: 10,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              widget.icon,
+                              size: 30,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            widget.label,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: widget.color,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

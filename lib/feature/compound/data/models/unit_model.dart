@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:real/feature/sale/data/models/sale_model.dart';
 
 class Unit extends Equatable {
   final String id;
@@ -29,6 +30,33 @@ class Unit extends Equatable {
   final String? companyId;
   final String? compoundName;
 
+  // Additional fields from search API
+  final String? code;
+  final String? originalPrice;
+  final String? discountedPrice;
+  final String? discountPercentage;
+  final bool? available;
+  final bool? isSold;
+  final String? totalPrice;
+  final String? normalPrice;
+  final String? builtUpArea;
+  final String? landArea;
+
+  // Favorite fields
+  final int? favoriteId;
+  final String? notes;
+  final int? noteId; // ID of the note in the notes table
+
+  // Update tracking fields
+  final bool? isUpdated;
+  final String? lastChangedAt;
+  final String? changeType; // 'new', 'updated', 'deleted'
+  final List<String>? changedFields;
+
+  // Sale fields
+  final bool? hasActiveSale;
+  final Sale? sale;
+
   Unit({
     required this.id,
     required this.compoundId,
@@ -56,6 +84,29 @@ class Unit extends Equatable {
     this.companyName,
     this.companyId,
     this.compoundName,
+    // Additional fields from search API
+    this.code,
+    this.originalPrice,
+    this.discountedPrice,
+    this.discountPercentage,
+    this.available,
+    this.isSold,
+    this.totalPrice,
+    this.normalPrice,
+    this.builtUpArea,
+    this.landArea,
+    // Favorite fields
+    this.favoriteId,
+    this.notes,
+    this.noteId,
+    // Update tracking fields
+    this.isUpdated,
+    this.lastChangedAt,
+    this.changeType,
+    this.changedFields,
+    // Sale fields
+    this.hasActiveSale,
+    this.sale,
   });
 
   factory Unit.fromJson(Map<String, dynamic> json) {
@@ -87,12 +138,71 @@ class Unit extends Equatable {
 
     // Handle price - use various pricing fields
     String price = '0';
-    if (json['unit_total_with_finish_price'] != null) {
+    if (json['unit_total_with_finish_price'] != null && json['unit_total_with_finish_price'].toString() != '0') {
       price = json['unit_total_with_finish_price'].toString();
-    } else if (json['total_pricing'] != null) {
+    } else if (json['total_pricing'] != null && json['total_pricing'].toString() != '0') {
       price = json['total_pricing'].toString();
+    } else if (json['normal_price'] != null && json['normal_price'].toString() != '0') {
+      price = json['normal_price'].toString();
     } else if (json['price'] != null) {
       price = json['price'].toString();
+    }
+
+    // TEMPORARY TEST: Force first 3 units to show update badges for testing
+    bool isUpdated = json['is_updated'] == true || json['is_updated'] == 1;
+    String? changeType = json['change_type']?.toString();
+    String? lastChangedAt = json['last_changed_at']?.toString();
+    List<String>? changedFields = json['changed_fields'] != null
+        ? (json['changed_fields'] as List).map((e) => e.toString()).toList()
+        : null;
+
+    // TEST DATA - Remove this after testing
+    final unitId = json['id']?.toString() ?? '';
+    if (unitId.isNotEmpty) {
+      final idNum = int.tryParse(unitId) ?? 0;
+      if (idNum % 3 == 1) {
+        // Every 3rd unit starting from 1: NEW
+        isUpdated = true;
+        changeType = 'new';
+        lastChangedAt = DateTime.now().subtract(Duration(hours: 2)).toIso8601String();
+        changedFields = ['price', 'status'];
+      } else if (idNum % 3 == 2) {
+        // Every 3rd unit starting from 2: UPDATED
+        isUpdated = true;
+        changeType = 'updated';
+        lastChangedAt = DateTime.now().subtract(Duration(days: 1)).toIso8601String();
+        changedFields = ['price'];
+      }
+    }
+    // END TEST DATA
+
+    // Parse sale data if available
+    Sale? sale;
+    bool hasActiveSale = json['has_active_sale'] == true || json['has_active_sale'] == 1;
+
+    if (json['sale'] != null && json['sale'] is Map<String, dynamic>) {
+      try {
+        final saleJson = Map<String, dynamic>.from(json['sale'] as Map<String, dynamic>);
+
+        // If old_price and new_price are not in the sale, calculate them from unit price
+        if ((saleJson['old_price'] == null || saleJson['old_price'] == 0) &&
+            (saleJson['new_price'] == null || saleJson['new_price'] == 0)) {
+          final unitPrice = double.tryParse(price) ?? 0.0;
+          final discountPercent = saleJson['discount_percentage'] is num
+              ? (saleJson['discount_percentage'] as num).toDouble()
+              : double.tryParse(saleJson['discount_percentage']?.toString() ?? '0') ?? 0.0;
+
+          if (unitPrice > 0 && discountPercent > 0) {
+            saleJson['old_price'] = unitPrice;
+            saleJson['new_price'] = unitPrice * (1 - (discountPercent / 100));
+            saleJson['savings'] = unitPrice * (discountPercent / 100);
+          }
+        }
+
+        sale = Sale.fromJson(saleJson);
+      } catch (e) {
+        print('[UNIT MODEL] Error parsing sale: $e');
+      }
     }
 
     return Unit(
@@ -141,6 +251,29 @@ class Unit extends Equatable {
       // Extract compound name from either direct field or nested compound object
       compoundName: json['compound_name']?.toString() ??
                     (json['compound'] != null ? json['compound']['name']?.toString() : null),
+      // Additional fields from search API
+      code: json['code']?.toString() ?? json['unit_code']?.toString(),
+      originalPrice: json['original_price']?.toString(),
+      discountedPrice: json['discounted_price']?.toString(),
+      discountPercentage: json['discount_percentage']?.toString(),
+      available: json['available'] is bool ? json['available'] as bool? : (json['available'] == 1 || json['available'] == true),
+      isSold: json['is_sold'] is bool ? json['is_sold'] as bool? : (json['is_sold'] == 1 || json['is_sold'] == true),
+      totalPrice: json['total_price']?.toString(),
+      normalPrice: json['normal_price']?.toString(),
+      builtUpArea: json['built_up_area']?.toString(),
+      landArea: json['land_area']?.toString(),
+      // Favorite fields
+      favoriteId: json['favorite_id'] as int?,
+      notes: json['notes'] as String?,
+      noteId: json['note_id'] as int?,
+      // Update tracking fields (using test data if available)
+      isUpdated: isUpdated,
+      lastChangedAt: lastChangedAt,
+      changeType: changeType,
+      changedFields: changedFields,
+      // Sale fields
+      hasActiveSale: hasActiveSale,
+      sale: sale,
     );
   }
 
@@ -171,6 +304,19 @@ class Unit extends Equatable {
       'company_name': companyName,
       'company_id': companyId,
       'compound_name': compoundName,
+      'code': code,
+      'original_price': originalPrice,
+      'discounted_price': discountedPrice,
+      'discount_percentage': discountPercentage,
+      'available': available,
+      'is_sold': isSold,
+      'total_price': totalPrice,
+      'built_up_area': builtUpArea,
+      'land_area': landArea,
+      'favorite_id': favoriteId,
+      'notes': notes,
+      'has_active_sale': hasActiveSale,
+      'sale': sale?.toJson(),
     };
   }
 
@@ -201,6 +347,25 @@ class Unit extends Equatable {
     companyName,
     companyId,
     compoundName,
+    code,
+    originalPrice,
+    discountedPrice,
+    discountPercentage,
+    available,
+    isSold,
+    totalPrice,
+    normalPrice,
+    builtUpArea,
+    landArea,
+    favoriteId,
+    notes,
+    noteId,
+    isUpdated,
+    lastChangedAt,
+    changeType,
+    changedFields,
+    hasActiveSale,
+    sale,
   ];
 
   @override

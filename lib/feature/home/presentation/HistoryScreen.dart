@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
-import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
-import 'package:real/feature/home/presentation/CompoundScreen.dart';
-import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
-import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_state.dart';
 import 'package:real/feature/search/data/services/view_history_service.dart';
+import 'package:real/feature/home/presentation/widget/compunds_name.dart';
+import 'package:real/feature/compound/presentation/widget/unit_card.dart';
+import 'package:real/core/utils/card_dimensions.dart';
+import 'package:real/core/animations/animated_list_item.dart';
 
 class HistoryScreen extends StatefulWidget {
   HistoryScreen({super.key});
@@ -134,32 +133,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  String _formatPrice(String? price) {
-    if (price == null || price.isEmpty || price == '0') {
-      return 'Contact for Price';
-    }
-    try {
-      final numPrice = double.parse(price);
-      if (numPrice == 0) {
-        return 'Contact for Price';
-      }
-      if (numPrice >= 1000000) {
-        return '${(numPrice / 1000000).toStringAsFixed(2)}M EGP';
-      } else if (numPrice >= 1000) {
-        return '${(numPrice / 1000).toStringAsFixed(0)}K EGP';
-      }
-      return '${numPrice.toStringAsFixed(0)} EGP';
-    } catch (e) {
-      return 'Contact for Price';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.all(16.0),
+          padding: EdgeInsets.all(5.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -350,400 +329,160 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildHistoryList() {
-    return ListView.builder(
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double iconSize = 16.0; // Fixed icon size
+    final double buttonSize = 32.0; // Fixed button size
+
+    return GridView.builder(
+      padding: EdgeInsets.all(8),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        childAspectRatio: 0.63,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+      ),
       itemCount: _filteredItems.length,
       itemBuilder: (context, index) {
         final item = _filteredItems[index];
         final viewedAt = item['viewedAt'] as String?;
 
         if (item['itemType'] == 'compound') {
-          return _buildCompoundHistoryItem(Compound.fromJson(item), viewedAt);
+          final compound = Compound.fromJson(item);
+          return AnimatedListItem(
+            index: index,
+            delay: Duration(milliseconds: 50),
+            child: Stack(
+              children: [
+                CompoundsName(compound: compound),
+                // Time badge overlay - positioned at bottom
+              if (viewedAt != null)
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.mainColor,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      _getTimeAgo(viewedAt),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              // Remove button - positioned at top right
+              Positioned(
+                top: 8,
+                right: 8,
+                child: GestureDetector(
+                  onTap: () => _removeItem({'itemType': 'compound', 'id': int.tryParse(compound.id.toString()) ?? 0}),
+                  child: Container(
+                    width: buttonSize,
+                    height: buttonSize,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.close,
+                      color: Colors.red,
+                      size: iconSize,
+                    ),
+                  ),
+                ),
+              ),
+              ],
+            ),
+          );
         } else {
-          return _buildUnitHistoryItem(Unit.fromJson(item), viewedAt);
+          final unit = Unit.fromJson(item);
+          return AnimatedListItem(
+            index: index,
+            delay: Duration(milliseconds: 50),
+            child: Stack(
+              children: [
+                UnitCard(unit: unit),
+                // Time badge overlay - positioned at bottom
+              if (viewedAt != null)
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.mainColor,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      _getTimeAgo(viewedAt),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              // Remove button for unit - positioned at top right
+              Positioned(
+                top: 8,
+                right: 8,
+                child: GestureDetector(
+                  onTap: () => _removeItem({'itemType': 'unit', 'id': int.tryParse(unit.id.toString()) ?? 0}),
+                  child: Container(
+                    width: buttonSize,
+                    height: buttonSize,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.close,
+                      color: Colors.red,
+                      size: iconSize,
+                    ),
+                  ),
+                ),
+              ),
+              ],
+            ),
+          );
         }
       },
     );
   }
 
-  Widget _buildCompoundHistoryItem(Compound compound, String? viewedAt) {
-    return Card(
-      margin: EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CompoundScreen(compound: compound),
-            ),
-          );
-        },
-        child: Stack(
-          children: [
-            Padding(
-              padding: EdgeInsets.all(12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Image
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: compound.images.isNotEmpty
-                        ? Image.network(
-                            compound.images.first,
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                              width: 80,
-                              height: 80,
-                              color: Colors.grey.shade200,
-                              child: Icon(Icons.apartment,
-                                  size: 30, color: AppColors.greyText),
-                            ),
-                          )
-                        : Container(
-                            width: 80,
-                            height: 80,
-                            color: Colors.grey.shade200,
-                            child: Icon(Icons.apartment,
-                                size: 30, color: AppColors.greyText),
-                          ),
-                  ),
-                  SizedBox(width: 12),
-                  // Content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.apartment,
-                                size: 14, color: Colors.green),
-                            SizedBox(width: 4),
-                            Text(
-                              'COMPOUND',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          compound.project,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(Icons.location_on,
-                                size: 14, color: AppColors.greyText),
-                            SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                compound.location,
-                                style: TextStyle(
-                                    fontSize: 12, color: AppColors.greyText),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 4),
-                        if (viewedAt != null)
-                          Text(
-                            'Viewed ${_getTimeAgo(viewedAt)}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.mainColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right,
-                      size: 20, color: AppColors.greyText),
-                ],
-              ),
-            ),
-            // Remove button
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap: () => _removeItem({'itemType': 'compound', 'id': int.tryParse(compound.id.toString()) ?? 0}),
-                child: Container(
-                  padding: EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.close,
-                    color: Colors.red,
-                    size: 14,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUnitHistoryItem(Unit unit, String? viewedAt) {
-    Color getStatusColor() {
-      final status = unit.status.toLowerCase();
-      switch (status) {
-        case 'available':
-          return Colors.green;
-        case 'reserved':
-          return Colors.orange;
-        case 'sold':
-          return Colors.red;
-        default:
-          return Colors.grey;
-      }
-    }
-
-    return Card(
-      margin: EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => UnitDetailScreen(unit: unit),
-            ),
-          );
-        },
-        child: Stack(
-          children: [
-            Padding(
-              padding: EdgeInsets.all(12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Image with favorite button
-                  Stack(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: unit.images.isNotEmpty
-                            ? Image.network(
-                                unit.images.first,
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Container(
-                                  width: 80,
-                                  height: 80,
-                                  color: Colors.grey.shade200,
-                                  child: Icon(Icons.home,
-                                      size: 30, color: AppColors.greyText),
-                                ),
-                              )
-                            : Container(
-                                width: 80,
-                                height: 80,
-                                color: Colors.grey.shade200,
-                                child: Icon(Icons.home,
-                                    size: 30, color: AppColors.greyText),
-                              ),
-                      ),
-                      // Favorite Button
-                      Positioned(
-                        top: 4,
-                        right: 4,
-                        child: BlocBuilder<UnitFavoriteBloc, UnitFavoriteState>(
-                          builder: (context, state) {
-                            final bloc = context.read<UnitFavoriteBloc>();
-                            final isFavorite = bloc.isFavorite(unit);
-
-                            return GestureDetector(
-                              onTap: () => bloc.toggleFavorite(unit),
-                              child: Container(
-                                padding: EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.9),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  isFavorite
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: Colors.red,
-                                  size: 16,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(width: 12),
-                  // Content
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Type badge and Status
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(Icons.home, size: 14, color: Colors.orange),
-                                SizedBox(width: 4),
-                                Text(
-                                  'UNIT',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orange,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: getStatusColor(),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                unit.status.toUpperCase(),
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 4),
-                        // Unit number
-                        Text(
-                          unit.unitNumber ?? unit.unitType,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: 4),
-                        // Details Row
-                        Row(
-                          children: [
-                            if (unit.usageType != null) ...[
-                              Icon(Icons.category,
-                                  size: 12, color: AppColors.greyText),
-                              SizedBox(width: 4),
-                              Text(
-                                unit.usageType!,
-                                style: TextStyle(
-                                    fontSize: 11, color: AppColors.greyText),
-                              ),
-                              SizedBox(width: 8),
-                            ],
-                            if (unit.bedrooms != '0') ...[
-                              Icon(Icons.bed,
-                                  size: 12, color: AppColors.greyText),
-                              SizedBox(width: 4),
-                              Text(
-                                '${unit.bedrooms} Beds',
-                                style: TextStyle(
-                                    fontSize: 11, color: AppColors.greyText),
-                              ),
-                            ],
-                          ],
-                        ),
-                        SizedBox(height: 4),
-                        // Price
-                        Text(
-                          _formatPrice(unit.price),
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.mainColor,
-                          ),
-                        ),
-                        if (viewedAt != null) ...[
-                          SizedBox(height: 4),
-                          Text(
-                            'Viewed ${_getTimeAgo(viewedAt)}',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppColors.mainColor,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                  Icon(Icons.chevron_right,
-                      size: 20, color: AppColors.greyText),
-                ],
-              ),
-            ),
-            // Remove button
-            Positioned(
-              top: 8,
-              right: 8,
-              child: GestureDetector(
-                onTap: () => _removeItem({'itemType': 'unit', 'id': int.tryParse(unit.id.toString()) ?? 0}),
-                child: Container(
-                  padding: EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.close,
-                    color: Colors.red,
-                    size: 14,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }

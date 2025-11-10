@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:real/core/utils/web_utils.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/constant.dart';
 import 'package:real/core/utils/validators.dart';
+import 'package:real/core/utils/message_helper.dart';
+import 'package:real/core/router/auth_state_notifier.dart';
 import 'package:real/feature/auth/data/models/login_request.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/feature/auth/presentation/bloc/login_bloc.dart';
@@ -14,7 +17,6 @@ import 'package:real/feature/auth/presentation/bloc/login_state.dart';
 import 'package:real/feature/auth/presentation/bloc/user_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/user_event.dart';
 import 'package:real/feature_web/auth/presentation/web_signup_screen.dart';
-import 'package:real/feature_web/navigation/web_main_screen.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_event.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
@@ -22,10 +24,7 @@ import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_e
 import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_event.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
-import 'package:real/feature_web/subscription/presentation/web_subscription_plans_screen.dart';
 import 'package:real/feature_web/auth/presentation/web_forgot_password_screen.dart';
-
-import '../../../feature/auth/presentation/screen/forgetPasswordScreen.dart';
 
 class WebLoginScreen extends StatefulWidget {
   static String routeName = '/web-login';
@@ -40,12 +39,23 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   bool _obscurePassword = true;
+  String? _redirectUrl; // Store redirect URL from query params
 
   GoogleSignIn? _googleSignIn;
 
   @override
   void initState() {
     super.initState();
+
+    // Capture redirect URL from query parameters early
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uri = GoRouterState.of(context).uri;
+      final from = uri.queryParameters['from'];
+      if (from != null && from.isNotEmpty) {
+        _redirectUrl = Uri.decodeComponent(from);
+      }
+    });
+
     // Initialize Google Sign-In
     // Web: Requires clientId explicitly
     // Mobile: Uses google-services.json (Android) and GoogleService-Info.plist (iOS)
@@ -64,11 +74,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
   Future<void> _handleSignIn() async {
     if (_googleSignIn == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Google Sign-In is not initialized. Please try again.'),
-          backgroundColor: Colors.orange,
-        ),
+      MessageHelper.showMessage(
+        context: context,
+        message: 'Google Sign-In is not initialized. Please try again.',
+        isSuccess: false,
       );
       return;
     }
@@ -117,19 +126,12 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       if (!error.toString().contains('popup_closed') &&
           !error.toString().contains('popup_closed_by_user') &&
           !error.toString().contains('redirect_uri_mismatch')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Sign-in error: $error'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        MessageHelper.showError(context, 'Sign-in error: $error');
       } else if (error.toString().contains('redirect_uri_mismatch')) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('OAuth configuration error. Please contact support.'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 5),
-          ),
+        MessageHelper.showMessage(
+          context: context,
+          message: 'OAuth configuration error. Please contact support.',
+          isSuccess: false,
         );
       }
     }
@@ -196,6 +198,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
       print('Backend Token SAVED: ${response.token}');
       print('Global token variable updated: $token');
+
+      // Notify router that auth state has changed
+      AuthStateNotifier().notifyAuthChanged();
+
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
       // SECURITY CHECKS: Only allow buyers who are verified and not banned
@@ -225,7 +231,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
             actions: [
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context);
+                  context.pop();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
@@ -267,7 +273,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
             actions: [
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context);
+                  context.pop();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.orange,
@@ -329,7 +335,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
             actions: [
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context);
+                  context.pop();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
@@ -407,21 +413,15 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => context.pop(),
               child: Text('OK', style: TextStyle(fontSize: 16)),
             ),
           ],
         ),
       );
 
-      // Also show SnackBar for quick reference
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Backend authentication failed - see error dialog'),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 5),
-        ),
-      );
+      // Also show error message for quick reference
+      MessageHelper.showError(context, 'Backend authentication failed - see error dialog');
     }
   }
 
@@ -436,9 +436,51 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   void _checkSubscriptionStatus(BuildContext context) {
     context.read<SubscriptionBloc>().add(LoadSubscriptionStatusEvent());
 
-    // Show subscription dialog after a short delay
+    // Show subscription dialog after a short delay, only if needed
     Future.delayed(Duration(milliseconds: 500), () {
-      _showSubscriptionDialog(context);
+      final subscriptionBloc = context.read<SubscriptionBloc>();
+      final currentState = subscriptionBloc.state;
+
+      // Only show dialog if user doesn't have active subscription
+      if (currentState is SubscriptionStatusLoaded) {
+        if (!currentState.status.hasActiveSubscription) {
+          _showSubscriptionDialog(context);
+        } else {
+          // User has active subscription, just show success and navigate
+          MessageHelper.showSuccess(context, 'Login successful! Welcome back.');
+          Future.delayed(Duration(milliseconds: 800), () {
+            if (context.mounted) {
+              context.go(_getRedirectUrl());
+            }
+          });
+        }
+      } else {
+        // If status isn't loaded yet, listen for state changes
+        _listenForSubscriptionStatus(context);
+      }
+    });
+  }
+
+  void _listenForSubscriptionStatus(BuildContext context) {
+    final subscription = context.read<SubscriptionBloc>().stream.listen((state) {
+      if (state is SubscriptionStatusLoaded) {
+        if (!state.status.hasActiveSubscription) {
+          _showSubscriptionDialog(context);
+        } else {
+          // User has active subscription, just show success and navigate
+          MessageHelper.showSuccess(context, 'Login successful! Welcome back.');
+          Future.delayed(Duration(milliseconds: 800), () {
+            if (context.mounted) {
+              context.go(_getRedirectUrl());
+            }
+          });
+        }
+      }
+    });
+
+    // Cancel subscription after first event
+    Future.delayed(Duration(seconds: 2), () {
+      subscription.cancel();
     });
   }
 
@@ -469,152 +511,306 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
           if (state is SubscriptionStatusLoaded) {
             final status = state.status;
-            return AlertDialog(
+            return Dialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(24),
               ),
-              title: Row(
-                children: [
-                  Icon(
-                    status.hasActiveSubscription
-                        ? Icons.check_circle
-                        : Icons.card_membership,
-                    color: status.hasActiveSubscription
-                        ? Colors.green
-                        : AppColors.mainColor,
-                    size: 28,
+              child: Container(
+                constraints: BoxConstraints(maxWidth: 450),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: status.hasActiveSubscription
+                        ? [
+                            AppColors.mainColor,
+                            AppColors.mainColor.withOpacity(0.8),
+                          ]
+                        : [
+                            Colors.grey[800]!,
+                            Colors.grey[700]!,
+                          ],
                   ),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      status.hasActiveSubscription
-                          ? 'Active Subscription'
-                          : 'Unlock Premium Features',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Stack(
+                  children: [
+                    // Background pattern
+                    Positioned(
+                      right: -30,
+                      top: -30,
+                      child: Icon(
+                        Icons.stars_rounded,
+                        size: 150,
+                        color: Colors.white.withOpacity(0.1),
                       ),
                     ),
-                  ),
-                ],
-              ),
-              content: Container(
-                width: 500,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (status.hasActiveSubscription) ...[
-                      Text(
-                        'You are subscribed to:',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        status.planName ?? 'N/A',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.mainColor,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[50],
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.search, color: AppColors.mainColor, size: 24),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                status.isUnlimited
-                                    ? 'You have unlimited searches'
-                                    : 'Searches used: ${status.searchesUsed}/${status.searchesAllowed}',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 15,
-                                ),
+
+                    // Content
+                    Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Icon
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              status.hasActiveSubscription
+                                  ? Icons.workspace_premium
+                                  : Icons.rocket_launch,
+                              size: 40,
+                              color: Colors.white,
+                            ),
+                          ),
+
+                          SizedBox(height: 20),
+
+                          // Status badge
+                          if (status.hasActiveSubscription)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.check_circle, color: Colors.white, size: 16),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'ACTIVE',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
+
+                          SizedBox(height: 16),
+
+                          // Title
+                          Text(
+                            status.hasActiveSubscription
+                                ? 'Welcome Back!'
+                                : 'Unlock Premium Features',
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              height: 1.2,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+
+                          SizedBox(height: 12),
+
+                          // Subtitle/Description
+                          if (status.hasActiveSubscription) ...[
+                            Text(
+                              status.planNameEn ?? status.planName ?? 'Premium Plan',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withOpacity(0.95),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 20),
+
+                            // Search usage info
+                            Container(
+                              padding: EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.search_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Search Access',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.white.withOpacity(0.8),
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          status.isUnlimited
+                                              ? 'Unlimited Searches'
+                                              : '${status.searchesUsed}/${status.searchesAllowed} Used',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (status.isUnlimited)
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.amber[600],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        Icons.all_inclusive,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ] else ...[
+                            Text(
+                              'Get unlimited searches and access to exclusive property listings',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.white.withOpacity(0.9),
+                                height: 1.5,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 20),
+
+                            // Features list
+                            ...[
+                              'Unlimited property searches',
+                              'Advanced filters & sorting',
+                              'Priority customer support',
+                              'Exclusive premium listings',
+                            ].map((feature) => Padding(
+                              padding: EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Colors.green[300],
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      feature,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white.withOpacity(0.95),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )),
                           ],
-                        ),
-                      ),
-                    ] else ...[
-                      Text(
-                        'Choose a subscription plan to access:',
-                        style: TextStyle(
-                          fontSize: 16,
-                          height: 1.5,
-                          color: Colors.grey[700],
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      ...[
-                        'Unlimited property searches',
-                        'Advanced filtering options',
-                        'Priority support',
-                        'Exclusive property listings',
-                      ].map((benefit) => Padding(
-                            padding: EdgeInsets.only(bottom: 12),
-                            child: Row(
-                              children: [
-                                Icon(Icons.check_circle,
-                                    color: Colors.green, size: 22),
-                                SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    benefit,
-                                    style: TextStyle(fontSize: 15, height: 1.4),
+
+                          SizedBox(height: 24),
+
+                          // Buttons
+                          Column(
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    Navigator.of(dialogContext).pop();
+                                    if (!status.hasActiveSubscription) {
+                                      await context.push('/subscription');
+                                    }
+                                    context.go(_getRedirectUrl());
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: status.hasActiveSubscription
+                                        ? AppColors.mainColor
+                                        : Colors.grey[800],
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        status.hasActiveSubscription
+                                            ? Icons.arrow_forward
+                                            : Icons.star,
+                                        size: 20,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        status.hasActiveSubscription
+                                            ? 'Continue to App'
+                                            : 'View Plans',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
-                            ),
-                          )),
-                    ],
+                              ),
+
+                              SizedBox(height: 12),
+
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(dialogContext).pop();
+                                  context.go(_getRedirectUrl());
+                                },
+                                child: Text(
+                                  status.hasActiveSubscription ? 'View My Plan' : 'Maybe Later',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
-                  },
-                  child: Text(
-                    status.hasActiveSubscription ? 'Continue' : 'Maybe Later',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
-                SizedBox(width: 8),
-                ElevatedButton(
-                  onPressed: () async {
-                    Navigator.of(dialogContext).pop();
-                    await Navigator.pushNamed(
-                      context,
-                      WebSubscriptionPlansScreen.routeName,
-                    );
-                    Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.mainColor,
-                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    status.hasActiveSubscription ? 'Upgrade Plan' : 'View Plans',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
             );
           }
 
@@ -632,7 +828,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
               ElevatedButton(
                 onPressed: () {
                   Navigator.of(dialogContext).pop();
-                  Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
+                  context.go(_getRedirectUrl());
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.mainColor,
@@ -652,6 +848,11 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     emailController.dispose();
     passwordController.dispose();
     super.dispose();
+  }
+
+  /// Get the redirect URL from stored value, or default to home
+  String _getRedirectUrl() {
+    return _redirectUrl ?? '/';
   }
 
   @override
@@ -691,7 +892,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                   actions: [
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        context.pop();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
@@ -734,7 +935,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                   actions: [
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        context.pop();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
@@ -797,7 +998,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                   actions: [
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.pop(context);
+                        context.pop();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
@@ -817,12 +1018,6 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
             }
 
             // All checks passed - proceed with login
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.response.message),
-                backgroundColor: Colors.green,
-              ),
-            );
             // Refresh user data with new token
             context.read<UserBloc>().add(RefreshUserEvent());
 
@@ -831,14 +1026,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
             context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
 
             // Check subscription status after login
+            // (Success message will be shown based on subscription status)
             _checkSubscriptionStatus(context);
           } else if (state is LoginError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            MessageHelper.showError(context, state.message);
           }
         },
         child: Row(

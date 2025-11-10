@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/core/utils/constant.dart';
 import 'package:real/services/fcm_service.dart';
+import 'package:real/core/services/route_persistence_service.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'login_event.dart';
 import 'login_state.dart';
@@ -79,8 +80,11 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       token = '';
       userId = '';
 
+      // Clear saved route
+      await RoutePersistenceService.clearSavedRoute();
+
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-      print('[LoginBloc] Logout successful - Token, User ID, and FCM token cleared');
+      print('[LoginBloc] Logout successful - Token, User ID, FCM token, and saved route cleared');
       print('[LoginBloc] Response: $response');
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
@@ -104,7 +108,10 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         token = '';
         userId = '';
 
-        print('[LoginBloc] Token was invalid/expired - Cleared local token, user ID, and FCM token');
+        // Clear saved route
+        await RoutePersistenceService.clearSavedRoute();
+
+        print('[LoginBloc] Token was invalid/expired - Cleared local token, user ID, FCM token, and saved route');
         emit(LogoutSuccess('Logged out successfully'));
       } else {
         // For other errors, still try to clear everything but show error
@@ -113,6 +120,10 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         await CasheNetwork.deletecasheItem(key: "user_id");
         token = '';
         userId = '';
+
+        // Clear saved route
+        await RoutePersistenceService.clearSavedRoute();
+
         emit(LogoutError(e.toString().replaceAll('Exception: ', '')));
       }
     }

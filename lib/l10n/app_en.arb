@@ -119,6 +119,7 @@
   "noCompanies": "No companies found",
   "noCompounds": "No compounds found",
   "noUnits": "No units found",
+  "recommendedForYou": "Recommended For You",
 
   "personalInformation": "Personal Information",
   "editName": "Edit Name",
@@ -310,5 +311,72 @@
         "type": "String"
       }
     }
-  }
+  },
+
+  "verifiedAccount": "Verified Account",
+  "updateYourDisplayName": "Update your display name",
+  "editPhoneNumber": "Edit Phone Number",
+  "updateYourContactNumber": "Update your contact number",
+  "viewYourEmailAddress": "View your email address",
+  "updateYourPassword": "Update your password",
+  "twoFactorAuthentication": "Two-Factor Authentication",
+  "addExtraSecurity": "Add extra security",
+  "manageNotificationSettings": "Manage notification settings",
+
+  "subscriptionPlan": "Subscription Plan",
+  "active": "Active",
+  "inactive": "Inactive",
+  "searchQuota": "Search Quota",
+  "unlimitedSearches": "Unlimited searches",
+  "searchesUsed": "{used} / {limit} searches",
+  "@searchesUsed": {
+    "description": "Shows how many searches have been used out of the limit",
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "searchesRemaining": "{count} searches remaining",
+  "@searchesRemaining": {
+    "description": "Shows how many searches are remaining",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "noSearchesRemaining": "No searches remaining",
+  "expiresOn": "Expires On",
+  "manageSubscription": "Manage Subscription",
+
+  "termsOfService": "Terms of Service",
+  "viewOurPrivacyPolicy": "View our privacy policy",
+  "readOurTerms": "Read our terms",
+  "getHelpWithYourAccount": "Get help with your account",
+  "appVersion": "App Version 1.0.0",
+
+  "developerTools": "Developer Tools",
+  "dev": "DEV",
+  "apiTokenDescription": "Use this token to test API endpoints in Postman or other API clients.",
+  "authenticationToken": "Authentication Token:",
+  "copyToken": "Copy Token",
+  "noTokenFound": "No token found. Please log in first.",
+  "tokenCopied": "Token copied to clipboard!",
+  "bearerTokenInstructions": "Add this token as a Bearer token in your API requests:\nAuthorization: Bearer <token>",
+  "uploadingProfileImage": "Uploading profile image...",
+  "profileImageUpdated": "Profile image updated successfully!",
+  "errorUploadingImage": "Error uploading image: {error}",
+  "@errorUploadingImage": {
+    "description": "Error message when image upload fails",
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noLoginMessage": "No token found. Please log in first."
 }

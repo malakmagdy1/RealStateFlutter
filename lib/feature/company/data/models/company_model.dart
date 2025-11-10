@@ -68,6 +68,12 @@ class Company extends Equatable {
   final int salesCount;
   final List<CompanyCompound> compounds;
 
+  // Update tracking fields
+  final int updatedUnitsCount;
+  final String? latestUpdateNote;
+  final String? latestUpdateTitle;
+  final String? latestUpdateDate;
+
   Company({
     required this.id,
     required this.name,
@@ -79,6 +85,11 @@ class Company extends Equatable {
     required this.sales ,
     this.salesCount = 0,
     required this.compounds,
+    // Update tracking fields
+    this.updatedUnitsCount = 0,
+    this.latestUpdateNote,
+    this.latestUpdateTitle,
+    this.latestUpdateDate,
   });
 
   factory Company.fromJson(Map<String, dynamic> json) {
@@ -112,6 +123,11 @@ class Company extends Equatable {
       sales: salesList,
       salesCount: int.tryParse(json['sales_count']?.toString() ?? '0') ?? 0,
       compounds: compoundsList,
+      // Update tracking fields
+      updatedUnitsCount: json['updated_units_count'] as int? ?? 0,
+      latestUpdateNote: json['latest_update_note']?.toString(),
+      latestUpdateTitle: json['latest_update_title']?.toString(),
+      latestUpdateDate: json['latest_update_date']?.toString(),
     );
   }
 
@@ -127,6 +143,11 @@ class Company extends Equatable {
       'sales': sales.map((s) => s.toJson()).toList(),
       'sales_count': salesCount,
       'compounds': compounds.map((c) => c.toJson()).toList(),
+      // Update tracking fields
+      'updated_units_count': updatedUnitsCount,
+      'latest_update_note': latestUpdateNote,
+      'latest_update_title': latestUpdateTitle,
+      'latest_update_date': latestUpdateDate,
     };
   }
 
@@ -142,6 +163,11 @@ class Company extends Equatable {
         sales,
         salesCount,
         compounds,
+        // Update tracking fields
+        updatedUnitsCount,
+        latestUpdateNote,
+        latestUpdateTitle,
+        latestUpdateDate,
       ];
 
   @override

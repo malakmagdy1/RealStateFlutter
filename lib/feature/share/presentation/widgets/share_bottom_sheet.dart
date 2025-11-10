@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../data/models/share_model.dart';
 import '../../data/services/share_service.dart';
@@ -63,22 +64,12 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Could not open link'),
-              backgroundColor: Colors.red,
-            ),
-          );
+          MessageHelper.showError(context, 'Could not open link');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        MessageHelper.showError(context, 'Error: $e');
       }
     }
   }
@@ -86,13 +77,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
   Future<void> _copyToClipboard(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Link copied to clipboard!'),
-          backgroundColor: Colors.green,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      MessageHelper.showSuccess(context, 'Link copied to clipboard!');
       Navigator.pop(context);
     }
   }
@@ -121,7 +106,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
 
           // Title
           CustomText20(
-            'Share ${widget.type == 'unit' ? 'Unit' : 'Compound'}',
+            'Share ${widget.type == 'unit' ? 'Unit' : widget.type == 'compound' ? 'Compound' : 'Company'}',
             bold: true,
             color: AppColors.black,
           ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/feature/sale/data/models/sale_model.dart';
 import 'package:real/l10n/app_localizations.dart';
 
@@ -246,15 +247,7 @@ class SalesPersonSelector {
                       await launchUrl(phoneUri);
                       if (context.mounted) {
                         Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: CustomText16(
-                              l10n.calling2(salesPerson.name),
-                              color: AppColors.white,
-                            ),
-                            backgroundColor: AppColors.mainColor,
-                          ),
-                        );
+                        MessageHelper.showSuccess(context, l10n.calling2(salesPerson.name));
                       }
                     }
                   },

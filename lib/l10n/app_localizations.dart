@@ -680,6 +680,12 @@ abstract class AppLocalizations {
   /// **'No units found'**
   String get noUnits;
 
+  /// No description provided for @recommendedForYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommended For You'**
+  String get recommendedForYou;
+
   /// No description provided for @personalInformation.
   ///
   /// In en, this message translates to:
@@ -1657,6 +1663,222 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{companyName} is a leading real estate developer in Egypt, known for creating exceptional residential and commercial properties.'**
   String leadingDeveloper(String companyName);
+
+  /// No description provided for @verifiedAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Verified Account'**
+  String get verifiedAccount;
+
+  /// No description provided for @updateYourDisplayName.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your display name'**
+  String get updateYourDisplayName;
+
+  /// No description provided for @editPhoneNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Phone Number'**
+  String get editPhoneNumber;
+
+  /// No description provided for @updateYourContactNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your contact number'**
+  String get updateYourContactNumber;
+
+  /// No description provided for @viewYourEmailAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'View your email address'**
+  String get viewYourEmailAddress;
+
+  /// No description provided for @updateYourPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your password'**
+  String get updateYourPassword;
+
+  /// No description provided for @twoFactorAuthentication.
+  ///
+  /// In en, this message translates to:
+  /// **'Two-Factor Authentication'**
+  String get twoFactorAuthentication;
+
+  /// No description provided for @addExtraSecurity.
+  ///
+  /// In en, this message translates to:
+  /// **'Add extra security'**
+  String get addExtraSecurity;
+
+  /// No description provided for @manageNotificationSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage notification settings'**
+  String get manageNotificationSettings;
+
+  /// No description provided for @subscriptionPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription Plan'**
+  String get subscriptionPlan;
+
+  /// No description provided for @active.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get active;
+
+  /// No description provided for @inactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get inactive;
+
+  /// No description provided for @searchQuota.
+  ///
+  /// In en, this message translates to:
+  /// **'Search Quota'**
+  String get searchQuota;
+
+  /// No description provided for @unlimitedSearches.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlimited searches'**
+  String get unlimitedSearches;
+
+  /// Shows how many searches have been used out of the limit
+  ///
+  /// In en, this message translates to:
+  /// **'{used} / {limit} searches'**
+  String searchesUsed(int used, int limit);
+
+  /// Shows how many searches are remaining
+  ///
+  /// In en, this message translates to:
+  /// **'{count} searches remaining'**
+  String searchesRemaining(int count);
+
+  /// No description provided for @noSearchesRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'No searches remaining'**
+  String get noSearchesRemaining;
+
+  /// No description provided for @expiresOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires On'**
+  String get expiresOn;
+
+  /// No description provided for @manageSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Subscription'**
+  String get manageSubscription;
+
+  /// No description provided for @termsOfService.
+  ///
+  /// In en, this message translates to:
+  /// **'Terms of Service'**
+  String get termsOfService;
+
+  /// No description provided for @viewOurPrivacyPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'View our privacy policy'**
+  String get viewOurPrivacyPolicy;
+
+  /// No description provided for @readOurTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Read our terms'**
+  String get readOurTerms;
+
+  /// No description provided for @getHelpWithYourAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Get help with your account'**
+  String get getHelpWithYourAccount;
+
+  /// No description provided for @appVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'App Version 1.0.0'**
+  String get appVersion;
+
+  /// No description provided for @developerTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer Tools'**
+  String get developerTools;
+
+  /// No description provided for @dev.
+  ///
+  /// In en, this message translates to:
+  /// **'DEV'**
+  String get dev;
+
+  /// No description provided for @apiTokenDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this token to test API endpoints in Postman or other API clients.'**
+  String get apiTokenDescription;
+
+  /// No description provided for @authenticationToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication Token:'**
+  String get authenticationToken;
+
+  /// No description provided for @copyToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy Token'**
+  String get copyToken;
+
+  /// No description provided for @noTokenFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No token found. Please log in first.'**
+  String get noTokenFound;
+
+  /// No description provided for @tokenCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Token copied to clipboard!'**
+  String get tokenCopied;
+
+  /// No description provided for @bearerTokenInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Add this token as a Bearer token in your API requests:\nAuthorization: Bearer <token>'**
+  String get bearerTokenInstructions;
+
+  /// No description provided for @uploadingProfileImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading profile image...'**
+  String get uploadingProfileImage;
+
+  /// No description provided for @profileImageUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Profile image updated successfully!'**
+  String get profileImageUpdated;
+
+  /// Error message when image upload fails
+  ///
+  /// In en, this message translates to:
+  /// **'Error uploading image: {error}'**
+  String errorUploadingImage(String error);
+
+  /// No description provided for @noLoginMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'No token found. Please log in first.'**
+  String get noLoginMessage;
 }
 
 class _AppLocalizationsDelegate

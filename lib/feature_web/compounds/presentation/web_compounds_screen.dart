@@ -17,14 +17,14 @@ import 'package:real/feature/search/presentation/bloc/search_event.dart';
 import 'package:real/feature/search/presentation/bloc/search_state.dart';
 import 'package:real/feature/search/data/models/search_result_model.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
-import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
-import 'package:real/feature/home/presentation/CompoundScreen.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature_web/company/presentation/web_company_detail_screen.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_state.dart';
 import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/core/utils/text_style.dart';
+import 'package:real/core/animations/animated_list_item.dart';
+import 'package:real/core/animations/page_transitions.dart';
 
 class WebCompoundsScreen extends StatefulWidget {
   const WebCompoundsScreen({Key? key}) : super(key: key);
@@ -91,9 +91,6 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   };
 
   // Track expanded state for search results
-  bool _showAllCompanies = false;
-  bool _showAllCompounds = false;
-  bool _showAllUnits = false;
 
   @override
   void initState() {
@@ -118,16 +115,41 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   }
 
   void _onScroll() {
-    if (_showSearchResults) return; // Don't paginate during search
-
     final maxScroll = _scrollController.position.maxScrollExtent;
     final currentScroll = _scrollController.position.pixels;
     final delta = 200.0; // Trigger when 200px from bottom
 
     if (maxScroll - currentScroll <= delta) {
-      if (!_isLoadingMore && _hasMorePages) {
-        _loadMoreCompounds();
+      if (_showSearchResults) {
+        // Auto-load more search results
+        _loadMoreSearchResults();
+      } else {
+        // Auto-load more compounds
+        if (!_isLoadingMore && _hasMorePages) {
+          _loadMoreCompounds();
+        }
       }
+    }
+  }
+
+  void _loadMoreSearchResults() {
+    // Get current search state
+    final currentState = _searchBloc.state;
+
+    // Only load if we have more pages and not currently loading
+    if (currentState is SearchSuccess &&
+        currentState.hasMorePages &&
+        currentState is! SearchLoadingMore) {
+
+      print('[WEB COMPOUNDS] Auto-loading more results - Page ${currentState.currentPage + 1}/${currentState.totalPages}');
+
+      _searchBloc.add(
+        LoadMoreSearchResultsEvent(
+          query: _searchController.text,
+          filter: _currentFilter,
+          page: currentState.currentPage + 1,
+        ),
+      );
     }
   }
 
@@ -180,18 +202,28 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     setState(() {
       _showSearchResults = true;
       _showSearchHistory = false;
-      _showAllCompanies = false;
-      _showAllCompounds = false;
-      _showAllUnits = false;
     });
 
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      print('═══════════════════════════════════════════════');
+      print('[WEB COMPOUNDS] Performing Search:');
+      print('[WEB] Query: "${query.trim()}"');
+      print('[WEB] Current Filter isEmpty: ${_currentFilter.isEmpty}');
+      print('[WEB] Current Filter activeCount: ${_currentFilter.activeFiltersCount}');
+      print('[WEB] Filter to pass: ${_currentFilter.isEmpty ? 'NULL' : 'FILTER OBJECT'}');
+      if (!_currentFilter.isEmpty) {
+        print('[WEB] Filter Details: ${_currentFilter.toString()}');
+        print('[WEB] Filter Query Params: ${_currentFilter.toQueryParameters()}');
+      }
+      print('═══════════════════════════════════════════════');
+
       if (query.trim().isNotEmpty) {
         _saveToHistory(query);
       }
 
       _searchBloc.add(SearchQueryEvent(
         query: query.trim(),
+        type: _currentFilter.isEmpty ? null : 'unit', // Filter-only searches show units only
         filter: _currentFilter.isEmpty ? null : _currentFilter,
       ));
     });
@@ -247,7 +279,13 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
       _allCompounds.clear();
       _hasMorePages = true;
     });
-    _performSearch(_searchController.text);
+
+    // Clear search if there's no query
+    if (_searchController.text.isEmpty) {
+      _clearSearch();
+    } else {
+      _performSearch(_searchController.text);
+    }
   }
 
   Future<void> _saveToHistory(String query) async {
@@ -278,9 +316,6 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     setState(() {
       _showSearchHistory = false;
       _showSearchResults = true;
-      _showAllCompanies = false;
-      _showAllCompounds = false;
-      _showAllUnits = false;
     });
     _searchBloc.add(SearchQueryEvent(
       query: query,
@@ -320,29 +355,58 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
           Expanded(
             child: SingleChildScrollView(
               controller: _scrollController,
+              physics: BouncingScrollPhysics(),
               padding: const EdgeInsets.all(32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 32),
-                  // Header
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.apartment,
-                        size: 32,
-                        color: AppColors.mainColor,
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        l10n.compounds ?? 'Compounds',
-                        style: const TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF333333),
-                        ),
-                      ),
-                    ],
+                  // Header with count
+                  BlocBuilder<CompoundBloc, CompoundState>(
+                    builder: (context, state) {
+                      final compoundCount = state is CompoundSuccess
+                          ? int.tryParse(state.response.total) ?? 0
+                          : 0;
+
+                      return Row(
+                        children: [
+                          Icon(
+                            Icons.apartment,
+                            size: 32,
+                            color: AppColors.mainColor,
+                          ),
+                          const SizedBox(width: 16),
+                          Text(
+                            l10n.compounds ?? 'Compounds',
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF333333),
+                            ),
+                          ),
+                          if (compoundCount > 0) ...[
+                            const SizedBox(width: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [AppColors.mainColor, AppColors.mainColor.withOpacity(0.8)],
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Text(
+                                '$compoundCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 8),
                   const Text(
@@ -451,6 +515,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
         ],
       ),
       child: SingleChildScrollView(
+        physics: BouncingScrollPhysics(),
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -992,14 +1057,18 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 400,
-                crossAxisSpacing: 24,
-                mainAxisSpacing: 24,
-                childAspectRatio: 0.85,
+                maxCrossAxisExtent: 320,
+                mainAxisSpacing: 20,
+                crossAxisSpacing: 20,
+                childAspectRatio: 0.9, // balanced card proportions
               ),
               itemCount: _allCompounds.length,
               itemBuilder: (context, index) {
-                return WebCompoundCard(compound: _allCompounds[index]);
+                return AnimatedListItem(
+                  index: index,
+                  delay: Duration(milliseconds: 60),
+                  child: WebCompoundCard(compound: _allCompounds[index]),
+                );
               },
             ),
 
@@ -1043,8 +1112,16 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
               child: CircularProgressIndicator(),
             ),
           );
-        } else if (state is SearchSuccess) {
-          final results = state.response.results;
+        } else if (state is SearchSuccess || state is SearchLoadingMore) {
+          // Get the current response (works for both states)
+          final response = state is SearchSuccess
+              ? state.response
+              : (state as SearchLoadingMore).currentResponse;
+          final hasMorePages = state is SearchSuccess ? state.hasMorePages : false;
+          final currentPage = state is SearchSuccess ? state.currentPage : 1;
+          final totalPages = state is SearchSuccess ? state.totalPages : 1;
+          final isLoadingMore = state is SearchLoadingMore;
+          final results = response.results;
 
           if (results.isEmpty) {
             return Center(
@@ -1072,9 +1149,23 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Found ${results.length} results',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Found ${response.totalResults} results',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  if (hasMorePages)
+                    Text(
+                      'Showing ${results.length} of ${response.totalResults}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 24),
 
@@ -1097,9 +1188,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _showAllCompanies
-                      ? companyResults.length
-                      : (companyResults.length > 3 ? 3 : companyResults.length),
+                  itemCount: companyResults.length,
                   itemBuilder: (context, index) {
                     final result = companyResults[index];
                     final data = result.data as CompanySearchData;
@@ -1126,12 +1215,10 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                         trailing: Icon(Icons.arrow_forward_ios, size: 16),
                         onTap: () {
                           final company = _convertToCompany(data, result.id);
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => WebCompanyDetailScreen(
-                                company: company,
-                              ),
+                          context.pushSlideFade(
+                            WebCompanyDetailScreen(
+                              companyId: result.id,
+                              company: company,
                             ),
                           );
                         },
@@ -1139,17 +1226,6 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                     );
                   },
                 ),
-                if (companyResults.length > 3)
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _showAllCompanies = !_showAllCompanies;
-                      });
-                    },
-                    child: Text(
-                      _showAllCompanies ? 'Show less' : 'Show all companies',
-                    ),
-                  ),
                 const SizedBox(height: 24),
               ],
 
@@ -1169,36 +1245,35 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 400,
-                    crossAxisSpacing: 24,
-                    mainAxisSpacing: 24,
-                    childAspectRatio: 0.85,
-                  ),
-                  itemCount: _showAllCompounds
-                      ? compoundResults.length
-                      : (compoundResults.length > 6 ? 6 : compoundResults.length),
-                  itemBuilder: (context, index) {
-                    final result = compoundResults[index];
-                    final data = result.data as CompoundSearchData;
-                    final compound = _convertToCompound(data, result.id);
-                    return WebCompoundCard(compound: compound);
-                  },
-                ),
-                if (compoundResults.length > 6)
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _showAllCompounds = !_showAllCompounds;
-                      });
-                    },
-                    child: Text(
-                      _showAllCompounds ? 'Show less' : 'Show all compounds',
+                // Horizontal scrolling grid with 2 rows
+                SizedBox(
+                  height: 820, // Height for 2 rows (400px each + spacing)
+                  child: GridView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 20),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2, // 2 rows
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 1.3, // width/height ratio for compound cards
                     ),
+                    itemCount: compoundResults.length,
+                    itemBuilder: (context, index) {
+                      final result = compoundResults[index];
+                      final data = result.data as CompoundSearchData;
+                      final compound = _convertToCompound(data, result.id);
+                      return AnimatedListItem(
+                        index: index,
+                        delay: Duration(milliseconds: 50),
+                        child: SizedBox(
+                          width: 300,
+                          child: WebCompoundCard(compound: compound),
+                        ),
+                      );
+                    },
                   ),
+                ),
                 const SizedBox(height: 24),
               ],
 
@@ -1209,45 +1284,88 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                     Icon(Icons.home, size: 20, color: AppColors.mainColor),
                     const SizedBox(width: 8),
                     Text(
-                      'Properties (${unitResults.length})',
+                      'Properties (${response.totalResults})',
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    if (hasMorePages) ...[
+                      const SizedBox(width: 12),
+                      CustomText14(
+                        'Page $currentPage/$totalPages',
+                        color: Colors.grey,
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 16),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 400,
-                    crossAxisSpacing: 24,
-                    mainAxisSpacing: 24,
-                    childAspectRatio: 0.85,
-                  ),
-                  itemCount: _showAllUnits
-                      ? unitResults.length
-                      : (unitResults.length > 6 ? 6 : unitResults.length),
-                  itemBuilder: (context, index) {
-                    final result = unitResults[index];
-                    final data = result.data as UnitSearchData;
-                    final unit = _convertToUnit(data);
-                    return WebUnitCard(unit: unit);
-                  },
-                ),
-                if (unitResults.length > 6)
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _showAllUnits = !_showAllUnits;
-                      });
+                // Horizontal scrolling grid with 2 rows
+                SizedBox(
+                  height: 820, // Height for 2 rows (400px each + spacing)
+                  child: GridView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 20),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2, // 2 rows
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      childAspectRatio: 1.3, // width/height ratio for unit cards
+                    ),
+                    itemCount: unitResults.length,
+                    itemBuilder: (context, index) {
+                      final result = unitResults[index];
+                      final data = result.data as UnitSearchData;
+                      final unit = _convertToUnit(data);
+                      return AnimatedListItem(
+                        index: index,
+                        delay: Duration(milliseconds: 50),
+                        child: SizedBox(
+                          width: 300,
+                          child: WebUnitCard(unit: unit),
+                        ),
+                      );
                     },
-                    child: Text(
-                      _showAllUnits ? 'Show less' : 'Show all properties',
+                  ),
+                ),
+                // Loading indicator when loading more
+                if (isLoadingMore) ...[
+                  const SizedBox(height: 24),
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          CircularProgressIndicator(),
+                          SizedBox(height: 12),
+                          Text(
+                            'Loading more results...',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
+                ],
+                // Show remaining count when there are more pages
+                if (hasMorePages && !isLoadingMore) ...[
+                  const SizedBox(height: 24),
+                  Center(
+                    child: Text(
+                      '${response.totalResults - unitResults.length} more results available - Scroll to load',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ],
           );

@@ -4,6 +4,7 @@ import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/utils/validators.dart';
 import 'package:real/core/utils/constant.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/feature/auth/data/models/register_request.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/feature/auth/presentation/bloc/register_bloc.dart';
@@ -78,12 +79,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
             }
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.response.message),
-                backgroundColor: Colors.green,
-              ),
-            );
+            MessageHelper.showSuccess(context, state.response.message);
 
             // Navigate to email verification screen after successful registration
             Navigator.pushReplacement(
@@ -95,12 +91,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               ),
             );
           } else if (state is RegisterError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            MessageHelper.showError(context, state.message);
           }
         },
         child: SingleChildScrollView(

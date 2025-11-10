@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:real/core/utils/colors.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/feature/auth/presentation/bloc/login_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/login_event.dart';
 import 'package:real/feature/auth/presentation/bloc/login_state.dart';
@@ -81,16 +82,9 @@ class _CustomNavState extends State<CustomNav> {
               Navigator.of(
                 context,
               ).pushNamedAndRemoveUntil(LoginScreen.routeName, (route) => false);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(state.message),
-                  backgroundColor: Colors.green,
-                ),
-              );
+              MessageHelper.showSuccess(context, state.message);
             } else if (state is LogoutError) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-              );
+              MessageHelper.showError(context, state.message);
             }
           },
         ),
@@ -347,14 +341,13 @@ class _CustomNavState extends State<CustomNav> {
                 tabBorderRadius: 12,
                 // decrease radius of background bubble
                 tabs: [
-                  GButton(icon: Icons.home_outlined, text: 'Home'),
-                  GButton(icon: Icons.business, text: 'Units'),
+                  GButton(icon: Icons.home_outlined,),
+                  GButton(icon: Icons.business, ),
                   GButton(
                     icon: Icons.favorite_border_outlined,
-                    text: 'Fav',
                   ),
-                  GButton(icon: Icons.history, text: 'History'),
-                  GButton(icon: Icons.person_2_outlined, text: 'Profile'),
+                  GButton(icon: Icons.history, ),
+                  GButton(icon: Icons.person_2_outlined),
                 ],
                 selectedIndex: _selectedIndex,
                 onTabChange: (index) {

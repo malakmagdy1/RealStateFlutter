@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/utils/validators.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/feature/auth/data/models/forgot_password_request.dart';
 import 'package:real/feature/auth/presentation/bloc/forgot_password_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/forgot_password_event.dart';
@@ -49,21 +50,11 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       body: BlocListener<ForgotPasswordBloc, ForgotPasswordState>(
         listener: (context, state) {
           if (state is ForgotPasswordSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.response.message),
-                backgroundColor: Colors.green,
-              ),
-            );
+            MessageHelper.showSuccess(context, state.response.message);
             // Navigate back after successful password change
             Navigator.pop(context);
           } else if (state is ForgotPasswordError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            MessageHelper.showError(context, state.message);
           }
         },
         child: SingleChildScrollView(

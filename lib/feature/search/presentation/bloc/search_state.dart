@@ -18,11 +18,28 @@ class SearchLoading extends SearchState {
 
 class SearchSuccess extends SearchState {
   final SearchResponse response;
+  final bool hasMorePages;
+  final int currentPage;
+  final int totalPages;
 
-  SearchSuccess({required this.response});
+  SearchSuccess({
+    required this.response,
+    this.hasMorePages = false,
+    this.currentPage = 1,
+    this.totalPages = 1,
+  });
 
   @override
-  List<Object?> get props => [response];
+  List<Object?> get props => [response, hasMorePages, currentPage, totalPages];
+}
+
+class SearchLoadingMore extends SearchState {
+  final SearchResponse currentResponse;
+
+  SearchLoadingMore({required this.currentResponse});
+
+  @override
+  List<Object?> get props => [currentResponse];
 }
 
 class SearchError extends SearchState {

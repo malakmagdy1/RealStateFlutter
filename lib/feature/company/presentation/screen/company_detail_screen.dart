@@ -8,6 +8,7 @@ import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
 import 'package:real/feature/home/presentation/widget/compunds_name.dart';
+import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sheet.dart';
 import 'package:real/l10n/app_localizations.dart';
 
 class CompanyDetailScreen extends StatefulWidget {
@@ -70,6 +71,52 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     ),
                   ),
                   Spacer(),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: IconButton(
+                      icon: Icon(Icons.share, color: AppColors.black),
+                      onPressed: () async {
+                        // Fetch compounds for this company to pass to advanced share
+                        final compoundState = context.read<CompoundBloc>().state;
+                        List<Map<String, dynamic>>? compounds;
+
+                        if (compoundState is CompoundSuccess) {
+                          compounds = compoundState.response.data.map((compound) {
+                            return {
+                              'id': compound.id,
+                              'project': compound.project,
+                              'location': compound.location,
+                              'totalUnits': compound.totalUnits,
+                            };
+                          }).toList();
+                        }
+
+                        if (context.mounted) {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (context) => AdvancedShareBottomSheet(
+                              type: 'company',
+                              id: widget.company.id.toString(),
+                              compounds: compounds,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  SizedBox(width: 12),
                   Container(
                     decoration: BoxDecoration(
                       color: AppColors.white,

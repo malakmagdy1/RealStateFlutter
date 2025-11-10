@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
@@ -52,11 +53,11 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
         content: Text('Are you sure you want to clear all viewing history?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => context.pop(false),
             child: Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => context.pop(true),
             child: Text('Clear', style: TextStyle(color: Colors.red)),
           ),
         ],
@@ -281,9 +282,12 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
                   child: _isLoading
                       ? Center(child: CircularProgressIndicator())
                       : _filteredItems.isEmpty
-                          ? _buildEmptyState()
-                          : _buildHistoryGrid(),
+                      ? _buildEmptyState()
+                      : SingleChildScrollView(
+                    child: _buildHistoryGrid(),
+                  ),
                 ),
+
               ],
             ),
           ),
@@ -341,83 +345,51 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
 
   Widget _buildHistoryGrid() {
     return GridView.builder(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(), // prevent nested scroll
+      padding: EdgeInsets.only(bottom: 50),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 4,
-        childAspectRatio: 0.85,
-        crossAxisSpacing: 20,
         mainAxisSpacing: 20,
+        crossAxisSpacing: 20,
+        childAspectRatio: 0.9, // balanced card proportions
       ),
       itemCount: _filteredItems.length,
       itemBuilder: (context, index) {
         final item = _filteredItems[index];
-        return Stack(
-          children: [
-            if (item['itemType'] == 'compound')
-              WebCompoundCard(
-                compound: Compound.fromJson(item),
-              )
-            else
-              WebUnitCard(
-                unit: Unit.fromJson(item),
+
+        return AspectRatio(
+          aspectRatio: 1.2, // enforce consistent height/width
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // ✅ ensure card (and its background image) fills the stack
+              Positioned.fill(
+                child: item['itemType'] == 'compound'
+                    ? WebCompoundCard(compound: Compound.fromJson(item))
+                    : WebUnitCard(unit: Unit.fromJson(item)),
               ),
 
-            // Remove button overlay
-            Positioned(
-              top: 40,
-              right: 8,
-              child: MouseRegion(
-                cursor: SystemMouseCursors.click,
-                child: GestureDetector(
+              // 🗑 delete button — top-right outside card
+              Positioned(
+                top: -6,
+                right: -6,
+                child: InkWell(
                   onTap: () => _removeItem(item),
-                  child: Container(
-                    padding: EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.close,
-                      color: Colors.red,
-                      size: 16,
-                    ),
+                  borderRadius: BorderRadius.circular(20),
+                  child: CircleAvatar(
+                    radius: 14,
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.close, color: Colors.red, size: 16),
                   ),
                 ),
               ),
-            ),
-
-            // Viewed time badge
-            Positioned(
-              bottom: 8,
-              left: 8,
-              child: Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  _getTimeAgo(item['viewedAt'] as String),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
   }
-
   String _getTimeAgo(String dateTimeString) {
     final viewedAt = DateTime.parse(dateTimeString);
     final now = DateTime.now();

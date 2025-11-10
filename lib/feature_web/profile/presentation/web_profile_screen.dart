@@ -1,9 +1,10 @@
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:real/core/utils/colors.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/core/locale/locale_cubit.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:real/feature/auth/presentation/bloc/login_bloc.dart';
@@ -11,15 +12,18 @@ import 'package:real/feature/auth/presentation/bloc/login_event.dart';
 import 'package:real/feature/auth/presentation/bloc/login_state.dart';
 import 'package:real/feature/auth/presentation/bloc/user_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/user_state.dart';
+import 'package:real/feature/auth/presentation/bloc/user_event.dart';
 import 'package:real/feature/auth/presentation/screen/changePasswordScreen.dart';
 import 'package:real/feature/auth/presentation/screen/editNameScreen.dart';
 import 'package:real/feature/auth/presentation/screen/editPhoneScreen.dart';
 import 'package:real/feature_web/auth/presentation/web_login_screen.dart';
-import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
-import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_state.dart';
-import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
-import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_state.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
+import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_event.dart';
+import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
+import 'package:real/feature_web/subscription/presentation/web_subscription_plans_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class WebProfileScreen extends StatefulWidget {
   WebProfileScreen({Key? key}) : super(key: key);
@@ -29,10 +33,19 @@ class WebProfileScreen extends StatefulWidget {
 }
 
 class _WebProfileScreenState extends State<WebProfileScreen> {
-  File? _imageFile;
+  Uint8List? _imageBytes;
   final ImagePicker _picker = ImagePicker();
 
+  @override
+  void initState() {
+    super.initState();
+    // Load subscription status when profile screen loads
+    context.read<SubscriptionBloc>().add(LoadSubscriptionStatusEvent());
+  }
+
   Future<void> _pickImage() async {
+    final l10n = AppLocalizations.of(context)!;
+
     try {
       final XFile? pickedFile = await _picker.pickImage(
         source: ImageSource.gallery,
@@ -40,17 +53,37 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
       );
 
       if (pickedFile != null) {
+        // Read image as bytes for web compatibility
+        final bytes = await pickedFile.readAsBytes();
         setState(() {
-          _imageFile = File(pickedFile.path);
+          _imageBytes = bytes;
+        });
+
+        // Upload the image to the backend
+        MessageHelper.showMessage(
+          context: context,
+          message: l10n.uploadingProfileImage,
+          isSuccess: true,
+        );
+
+        final authWebServices = AuthWebServices();
+        await authWebServices.uploadProfileImage(
+          pickedFile.path,
+          fileBytes: bytes,
+        );
+
+        // Refresh user data to get the updated image URL from backend
+        context.read<UserBloc>().add(FetchUserEvent());
+
+        MessageHelper.showSuccess(context, l10n.profileImageUpdated);
+
+        // Clear local image bytes so it uses the backend image
+        setState(() {
+          _imageBytes = null;
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error picking image: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      MessageHelper.showError(context, 'Error uploading image: $e');
     }
   }
 
@@ -138,26 +171,19 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
   }
 
   Future<void> _copyToken() async {
+    final l10n = AppLocalizations.of(context)!;
     final token = await CasheNetwork.getCasheDataAsync(key: 'token');
     if (token.isNotEmpty) {
       await Clipboard.setData(ClipboardData(text: token));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Token copied to clipboard!'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        MessageHelper.showSuccess(context, l10n.tokenCopied);
       }
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('No token found. Please log in first.'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
-          ),
+        MessageHelper.showMessage(
+          context: context,
+          message: l10n.noLoginMessage,
+          isSuccess: false,
         );
       }
     }
@@ -175,13 +201,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
         localeCubit.changeLocale(Locale(languageCode));
         Navigator.of(context).pop();
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.languageChanged),
-            backgroundColor: AppColors.mainColor,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        MessageHelper.showSuccess(context, l10n.languageChanged);
       },
       borderRadius: BorderRadius.circular(8),
       child: Container(
@@ -225,16 +245,9 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
             WebLoginScreen.routeName,
             (route) => false,
           );
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.green,
-            ),
-          );
+          MessageHelper.showSuccess(context, state.message);
         } else if (state is LogoutError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
-          );
+          MessageHelper.showError(context, state.message);
         }
       },
       child: Container(
@@ -263,7 +276,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                                 children: [
                                   _buildPersonalInfoSection(l10n),
                                   SizedBox(height: 24),
-                                  _buildSecuritySection(l10n),
+                                  _buildPreferencesSection(l10n),
                                 ],
                               ),
                             ),
@@ -272,17 +285,14 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                             Expanded(
                               child: Column(
                                 children: [
-                                  _buildPreferencesSection(l10n),
+                                  _buildSubscriptionSection(l10n),
                                   SizedBox(height: 24),
-                                  _buildAccountSection(l10n),
+                                  _buildLogoutSection(l10n),
                                 ],
                               ),
                             ),
                           ],
                         ),
-                        SizedBox(height: 24),
-                        // Developer Section (Full Width)
-                        _buildDeveloperSection(),
                       ],
                     ),
                   ),
@@ -316,68 +326,92 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
             child: Row(
               children: [
                 // Avatar with edit button
-                Stack(
-                  children: [
-                    Container(
-                      width: 140,
-                      height: 140,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 4),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 20,
-                            offset: Offset(0, 8),
+                BlocBuilder<UserBloc, UserState>(
+                  builder: (context, userState) {
+                    String? imageUrl;
+                    if (userState is UserSuccess) {
+                      imageUrl = userState.user.imageUrl;
+                    }
+
+                    return Stack(
+                      children: [
+                        Container(
+                          width: 140,
+                          height: 140,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 20,
+                                offset: Offset(0, 8),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: _imageFile == null
-                            ? Container(
-                                color: Colors.white,
+                          child: ClipOval(
+                            child: _imageBytes != null
+                                ? Image.memory(
+                                    _imageBytes!,
+                                    fit: BoxFit.cover,
+                                  )
+                                : imageUrl != null && imageUrl.isNotEmpty
+                                    ? Image.network(
+                                        imageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Container(
+                                            color: Colors.white,
+                                            child: Icon(
+                                              Icons.person,
+                                              size: 70,
+                                              color: AppColors.mainColor,
+                                            ),
+                                          );
+                                        },
+                                      )
+                                    : Container(
+                                        color: Colors.white,
+                                        child: Icon(
+                                          Icons.person,
+                                          size: 70,
+                                          color: AppColors.mainColor,
+                                        ),
+                                      ),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: _pickImage,
+                              child: Container(
+                                padding: EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.2),
+                                      blurRadius: 8,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
                                 child: Icon(
-                                  Icons.person,
-                                  size: 70,
+                                  Icons.camera_alt,
+                                  size: 20,
                                   color: AppColors.mainColor,
                                 ),
-                              )
-                            : Image.file(
-                                _imageFile!,
-                                fit: BoxFit.cover,
                               ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: MouseRegion(
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: _pickImage,
-                          child: Container(
-                            padding: EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  blurRadius: 8,
-                                  offset: Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Icon(
-                              Icons.camera_alt,
-                              size: 20,
-                              color: AppColors.mainColor,
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
                 SizedBox(width: 32),
                 // User Info
@@ -423,7 +457,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                               Icon(Icons.verified_user, color: Colors.white.withOpacity(0.9), size: 20),
                               SizedBox(width: 8),
                               Text(
-                                'Verified Account',
+                                l10n.verifiedAccount,
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.white.withOpacity(0.9),
@@ -478,21 +512,21 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
           _buildSettingItem(
             icon: Icons.person_outline,
             title: l10n.editName,
-            subtitle: 'Update your display name',
+            subtitle: l10n.updateYourDisplayName,
             onTap: () => Navigator.pushNamed(context, EditNameScreen.routeName),
           ),
           SizedBox(height: 12),
           _buildSettingItem(
             icon: Icons.phone_outlined,
-            title: 'Edit Phone Number',
-            subtitle: 'Update your contact number',
+            title: l10n.editPhoneNumber,
+            subtitle: l10n.updateYourContactNumber,
             onTap: () => Navigator.pushNamed(context, EditPhoneScreen.routeName),
           ),
           SizedBox(height: 12),
           _buildSettingItem(
             icon: Icons.email_outlined,
-            title: 'Email Address',
-            subtitle: 'View your email address',
+            title: l10n.emailAddress,
+            subtitle: l10n.viewYourEmailAddress,
             onTap: () {},
           ),
         ],
@@ -500,53 +534,293 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
     );
   }
 
-  Widget _buildSecuritySection(AppLocalizations l10n) {
-    return Container(
-      padding: EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.security, color: AppColors.mainColor, size: 24),
-              SizedBox(width: 12),
-              Text(
-                l10n.security,
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF333333),
-                ),
+
+  Widget _buildSubscriptionSection(AppLocalizations l10n) {
+    return BlocBuilder<SubscriptionBloc, SubscriptionState>(
+      builder: (context, state) {
+        if (state is SubscriptionStatusLoaded) {
+          final status = state.status;
+          return Container(
+            padding: EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.mainColor.withOpacity(0.05),
+                  AppColors.mainColor.withOpacity(0.02),
+                ],
               ),
-            ],
-          ),
-          SizedBox(height: 24),
-          _buildSettingItem(
-            icon: Icons.lock_outline,
-            title: l10n.changePassword,
-            subtitle: 'Update your password',
-            onTap: () => Navigator.pushNamed(context, ChangePasswordScreen.routeName),
-          ),
-          SizedBox(height: 12),
-          _buildSettingItem(
-            icon: Icons.shield_outlined,
-            title: 'Two-Factor Authentication',
-            subtitle: 'Add extra security',
-            onTap: () {},
-          ),
-        ],
-      ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.mainColor.withOpacity(0.3),
+                width: 2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.mainColor.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.workspace_premium, color: AppColors.mainColor, size: 28),
+                        SizedBox(width: 12),
+                        Text(
+                          l10n.subscriptionPlan,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF333333),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: status.hasActiveSubscription
+                            ? Colors.green
+                            : Colors.orange,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (status.hasActiveSubscription
+                                    ? Colors.green
+                                    : Colors.orange)
+                                .withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        status.hasActiveSubscription ? l10n.active : l10n.inactive,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
+                Container(
+                  padding: EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        status.planNameEn,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.mainColor,
+                        ),
+                      ),
+                      if (status.planName.isNotEmpty && status.planName != status.planNameEn) ...[
+                        SizedBox(height: 4),
+                        Text(
+                          status.planName,
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: Colors.black54,
+                          ),
+                        ),
+                      ],
+                      SizedBox(height: 16),
+                      Divider(),
+                      SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Icon(Icons.search, color: AppColors.mainColor, size: 24),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  l10n.searchQuota,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  status.hasUnlimitedSearches
+                                      ? l10n.unlimitedSearches
+                                      : '${status.searchesUsed} / ${status.searchLimit} ${l10n.search}es',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (!status.hasUnlimitedSearches) ...[
+                        SizedBox(height: 12),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: status.searchLimit > 0
+                                ? status.searchesUsed / status.searchLimit
+                                : 0,
+                            backgroundColor: Colors.grey[200],
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              status.canSearch
+                                  ? AppColors.mainColor
+                                  : Colors.red,
+                            ),
+                            minHeight: 8,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          status.canSearch
+                              ? '${status.remainingSearches} ${l10n.search}es remaining'
+                              : l10n.noSearchesRemaining,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: status.canSearch
+                                ? Colors.grey[600]
+                                : Colors.red,
+                            fontWeight: status.canSearch
+                                ? FontWeight.normal
+                                : FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                      if (status.expiresAt != null) ...[
+                        SizedBox(height: 16),
+                        Divider(),
+                        SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Icon(Icons.calendar_today, color: Colors.grey[600], size: 20),
+                            SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    l10n.expiresOn,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    status.expiresAt!,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.black87,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: InkWell(
+                    onTap: () {
+                      context.push('/subscription');
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppColors.mainColor,
+                            AppColors.mainColor.withOpacity(0.8),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.mainColor.withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.upgrade, color: Colors.white),
+                          SizedBox(width: 12),
+                          Text(
+                            l10n.manageSubscription,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        } else if (state is SubscriptionLoading) {
+          return Container(
+            padding: EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        return SizedBox.shrink();
+      },
     );
   }
 
@@ -594,16 +868,9 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
           ),
           SizedBox(height: 12),
           _buildSettingItem(
-            icon: Icons.brightness_6_outlined,
-            title: l10n.theme,
-            subtitle: l10n.light,
-            onTap: () {},
-          ),
-          SizedBox(height: 12),
-          _buildSettingItem(
             icon: Icons.notifications_outlined,
-            title: 'Notifications',
-            subtitle: 'Manage notification settings',
+            title: l10n.notifications,
+            subtitle: l10n.manageNotificationSettings,
             onTap: () {},
           ),
         ],
@@ -611,7 +878,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
     );
   }
 
-  Widget _buildAccountSection(AppLocalizations l10n) {
+  Widget _buildLogoutSection(AppLocalizations l10n) {
     return Container(
       padding: EdgeInsets.all(28),
       decoration: BoxDecoration(
@@ -630,10 +897,10 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.account_circle, color: AppColors.mainColor, size: 24),
+              Icon(Icons.logout, color: Colors.red, size: 24),
               SizedBox(width: 12),
               Text(
-                'Account',
+                l10n.logout,
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -642,29 +909,6 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
               ),
             ],
           ),
-          SizedBox(height: 24),
-          _buildSettingItem(
-            icon: Icons.privacy_tip_outlined,
-            title: 'Privacy Policy',
-            subtitle: 'View our privacy policy',
-            onTap: () {},
-          ),
-          SizedBox(height: 12),
-          _buildSettingItem(
-            icon: Icons.description_outlined,
-            title: 'Terms of Service',
-            subtitle: 'Read our terms',
-            onTap: () {},
-          ),
-          SizedBox(height: 12),
-          _buildSettingItem(
-            icon: Icons.help_outline,
-            title: 'Help & Support',
-            subtitle: 'Get help with your account',
-            onTap: () {},
-          ),
-          SizedBox(height: 24),
-          Divider(),
           SizedBox(height: 24),
           // Logout Button
           BlocBuilder<LoginBloc, LoginState>(
@@ -695,19 +939,30 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                     width: double.infinity,
                     padding: EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.red,
+                          Colors.red.withOpacity(0.8),
+                        ],
+                      ),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.logout, color: Colors.red),
+                        Icon(Icons.logout, color: Colors.white),
                         SizedBox(width: 12),
                         Text(
                           l10n.logout,
                           style: TextStyle(
-                            color: Colors.red,
+                            color: Colors.white,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -722,7 +977,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
           SizedBox(height: 16),
           Center(
             child: Text(
-              'App Version 1.0.0',
+              l10n.appVersion,
               style: TextStyle(
                 fontSize: 14,
                 color: Color(0xFF999999),
@@ -733,160 +988,6 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
       ),
     );
   }
-
-  Widget _buildDeveloperSection() {
-    return Container(
-      padding: EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.orange.withOpacity(0.3), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.orange.withOpacity(0.1),
-            blurRadius: 15,
-            offset: Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.code, color: Colors.orange, size: 24),
-              SizedBox(width: 12),
-              Text(
-                'Developer Tools',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Color(0xFF333333),
-                ),
-              ),
-              SizedBox(width: 8),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  'DEV',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.orange,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 16),
-          Text(
-            'Use this token to test API endpoints in Postman or other API clients.',
-            style: TextStyle(
-              fontSize: 14,
-              color: Color(0xFF666666),
-            ),
-          ),
-          SizedBox(height: 20),
-          FutureBuilder<String>(
-            future: CasheNetwork.getCasheDataAsync(key: 'token'),
-            builder: (context, snapshot) {
-              final token = snapshot.data ?? '';
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Authentication Token:',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF333333),
-                        ),
-                      ),
-                      Spacer(),
-                      ElevatedButton.icon(
-                        onPressed: token.isEmpty ? null : _copyToken,
-                        icon: Icon(Icons.copy, size: 18),
-                        label: Text('Copy Token'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange,
-                          foregroundColor: Colors.white,
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Color(0xFFF8F9FA),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Color(0xFFE6E6E6)),
-                    ),
-                    child: token.isEmpty
-                        ? Text(
-                            'No token found. Please log in first.',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          )
-                        : SelectableText(
-                            token,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontFamily: 'monospace',
-                              color: Color(0xFF333333),
-                            ),
-                          ),
-                  ),
-                  if (token.isNotEmpty) ...[
-                    SizedBox(height: 16),
-                    Container(
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.blue.withOpacity(0.2)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline, color: Colors.blue, size: 20),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Add this token as a Bearer token in your API requests:\nAuthorization: Bearer <token>',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.blue[900],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSettingItem({
     required IconData icon,
     required String title,

@@ -68,6 +68,70 @@ class UnitWebServices {
     ));
   }
 
+  Future<Map<String, dynamic>> getUnitById(String unitId) async {
+    try {
+      // Get token from storage
+      final authToken = token ?? '';
+      final currentLang = LanguageService.currentLanguage;
+
+      print('[UNIT WEB SERVICES] Fetching unit with ID: $unitId');
+
+      Response response = await dio.get(
+        '/units/$unitId',
+        queryParameters: {
+          'lang': currentLang,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('[UNIT WEB SERVICES] Unit Response: ${response.data}');
+
+      if (response.data is Map<String, dynamic>) {
+        // Handle case where data is directly in response
+        if (response.data['data'] != null) {
+          final data = response.data['data'];
+          // Handle if data is a List (take first item)
+          if (data is List && data.isNotEmpty) {
+            return data.first as Map<String, dynamic>;
+          }
+          // Handle if data is already a Map
+          if (data is Map<String, dynamic>) {
+            return data;
+          }
+        }
+        return response.data;
+      } else if (response.data is List) {
+        // Handle case where response is directly a List
+        final dataList = response.data as List;
+        if (dataList.isNotEmpty) {
+          return dataList.first as Map<String, dynamic>;
+        }
+        throw Exception('No unit found with ID: $unitId');
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('[UNIT WEB SERVICES] Get Unit DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('[UNIT WEB SERVICES] Get Unit Error: ${e.toString()}');
+      throw Exception('Failed to fetch unit: $e');
+    }
+  }
+
   Future<UnitResponse> getUnitsByCompound({
     required String compoundId,
     int page = 1,

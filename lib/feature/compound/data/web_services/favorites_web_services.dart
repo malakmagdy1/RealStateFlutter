@@ -223,6 +223,277 @@ class FavoritesWebServices {
     }
   }
 
+  /// Get all notes (optionally filtered by unit_id or compound_id)
+  Future<Map<String, dynamic>> getNotes({int? unitId, int? compoundId}) async {
+    try {
+      final authToken = token ?? '';
+      print('[NOTES API] ==========================================');
+      print('[NOTES API] Getting notes');
+      print('[NOTES API] Unit ID: $unitId');
+      print('[NOTES API] Compound ID: $compoundId');
+
+      Map<String, dynamic> queryParams = {};
+      if (unitId != null) {
+        queryParams['unit_id'] = unitId;
+      }
+      if (compoundId != null) {
+        queryParams['compound_id'] = compoundId;
+      }
+
+      print('[NOTES API] Query params: $queryParams');
+      print('[NOTES API] Endpoint: GET /notes');
+
+      Response response = await dio.get(
+        '/notes',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('[NOTES API] Response status: ${response.statusCode}');
+      print('[NOTES API] Response data type: ${response.data.runtimeType}');
+      print('[NOTES API] Response data: ${response.data}');
+      print('[NOTES API] ==========================================');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      print('[NOTES API] Error getting notes: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('[NOTES API] Unexpected error: ${e.toString()}');
+      throw Exception('Failed to get notes: $e');
+    }
+  }
+
+  /// Create a new note
+  Future<Map<String, dynamic>> createNote({
+    required String content,
+    String? title,
+    int? unitId,
+    int? compoundId,
+  }) async {
+    try {
+      final authToken = token ?? '';
+      print('[NOTES API] Creating note');
+
+      Map<String, dynamic> requestData = {
+        'content': content,
+      };
+      if (title != null && title.isNotEmpty) {
+        requestData['title'] = title;
+      }
+      if (unitId != null) {
+        requestData['unit_id'] = unitId;
+      }
+      if (compoundId != null) {
+        requestData['compound_id'] = compoundId;
+      }
+
+      Response response = await dio.post(
+        '/notes',
+        data: requestData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('[NOTES API] Create note response: ${response.statusCode}');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      print('[NOTES API] Error creating note: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('[NOTES API] Unexpected error: ${e.toString()}');
+      throw Exception('Failed to create note: $e');
+    }
+  }
+
+  /// Update an existing note
+  Future<Map<String, dynamic>> updateNote({
+    required int noteId,
+    required String content,
+    String? title,
+  }) async {
+    try {
+      final authToken = token ?? '';
+      print('[NOTES API] Updating note $noteId');
+
+      Map<String, dynamic> requestData = {
+        'content': content,
+      };
+      if (title != null && title.isNotEmpty) {
+        requestData['title'] = title;
+      }
+
+      Response response = await dio.put(
+        '/notes/$noteId',
+        data: requestData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('[NOTES API] Update note response: ${response.statusCode}');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      print('[NOTES API] Error updating note: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('[NOTES API] Unexpected error: ${e.toString()}');
+      throw Exception('Failed to update note: $e');
+    }
+  }
+
+  /// Delete a note
+  Future<Map<String, dynamic>> deleteNote(int noteId) async {
+    try {
+      final authToken = token ?? '';
+      print('[NOTES API] Deleting note $noteId');
+
+      Response response = await dio.delete(
+        '/notes/$noteId',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('[NOTES API] Delete note response: ${response.statusCode}');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      print('[NOTES API] Error deleting note: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('[NOTES API] Unexpected error: ${e.toString()}');
+      throw Exception('Failed to delete note: $e');
+    }
+  }
+
+  /// Update notes for a favorite (DEPRECATED - use createNote/updateNote instead)
+  @Deprecated('Use createNote() or updateNote() instead')
+  Future<Map<String, dynamic>> updateFavoriteNotes({
+    required int favoriteId,
+    required String notes,
+  }) async {
+    try {
+      final authToken = token ?? '';
+      final currentUserId = userId ?? '';
+      print('[FAVORITES API] Updating notes for favorite $favoriteId');
+
+      Map<String, dynamic> requestData = {
+        'favorite_id': favoriteId,
+        'notes': notes,
+      };
+      if (currentUserId.isNotEmpty) {
+        requestData['user_id'] = int.parse(currentUserId);
+      }
+
+      Response response = await dio.put(
+        '/favorites',
+        data: requestData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('[FAVORITES API] Update notes response: ${response.statusCode}');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      print('[FAVORITES API] Error updating notes: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('[FAVORITES API] Unexpected error: ${e.toString()}');
+      throw Exception('Failed to update notes: $e');
+    }
+  }
+
+  /// Add a unit to favorites with notes
+  Future<Map<String, dynamic>> addToFavoritesWithNotes({
+    required int unitId,
+    String? notes,
+  }) async {
+    try {
+      final authToken = token ?? '';
+      final currentUserId = userId ?? '';
+      print('[FAVORITES API] Adding unit $unitId to favorites with notes');
+
+      Map<String, dynamic> requestData = {'unit_id': unitId};
+      if (notes != null && notes.isNotEmpty) {
+        requestData['notes'] = notes;
+      }
+      if (currentUserId.isNotEmpty) {
+        requestData['user_id'] = int.parse(currentUserId);
+      }
+
+      Response response = await dio.post(
+        '/favorites',
+        data: requestData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('[FAVORITES API] Add to favorites with notes response: ${response.statusCode}');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      print('[FAVORITES API] Error adding to favorites with notes: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('[FAVORITES API] Unexpected error: ${e.toString()}');
+      throw Exception('Failed to add to favorites with notes: $e');
+    }
+  }
+
+  /// Add a compound to favorites with notes
+  Future<Map<String, dynamic>> addCompoundToFavoritesWithNotes({
+    required int compoundId,
+    String? notes,
+  }) async {
+    try {
+      final authToken = token ?? '';
+      final currentUserId = userId ?? '';
+      print('[FAVORITES API] Adding compound $compoundId to favorites with notes');
+
+      Map<String, dynamic> requestData = {'compound_id': compoundId};
+      if (notes != null && notes.isNotEmpty) {
+        requestData['notes'] = notes;
+      }
+      if (currentUserId.isNotEmpty) {
+        requestData['user_id'] = int.parse(currentUserId);
+      }
+
+      Response response = await dio.post(
+        '/favorites',
+        data: requestData,
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('[FAVORITES API] Add compound to favorites with notes response: ${response.statusCode}');
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      print('[FAVORITES API] Error adding compound to favorites with notes: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('[FAVORITES API] Unexpected error: ${e.toString()}');
+      throw Exception('Failed to add compound to favorites with notes: $e');
+    }
+  }
+
   /// Check if a unit is in favorites
   Future<bool> isFavorite(int unitId) async {
     try {

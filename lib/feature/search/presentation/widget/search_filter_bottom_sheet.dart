@@ -123,11 +123,29 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
       deliveryDate: _deliveryDateController.text.isEmpty
           ? null
           : _deliveryDateController.text,
-      hasClub: _hasClub,
-      hasRoof: _hasRoof,
-      hasGarden: _hasGarden,
+      hasClub: _hasClub ? true : null,
+      hasRoof: _hasRoof ? true : null,
+      hasGarden: _hasGarden ? true : null,
       sortBy: _selectedSortBy,
     );
+
+    print('═══════════════════════════════════════════════');
+    print('[FILTER BOTTOM SHEET] Filter Applied:');
+    print('[FILTER] Property Type: ${filter.propertyType}');
+    print('[FILTER] Bedrooms: ${filter.bedrooms}');
+    print('[FILTER] Min Price: ${filter.minPrice}');
+    print('[FILTER] Max Price: ${filter.maxPrice}');
+    print('[FILTER] Location: ${filter.location}');
+    print('[FILTER] Finishing: ${filter.finishing}');
+    print('[FILTER] Has Club: ${filter.hasClub}');
+    print('[FILTER] Has Roof: ${filter.hasRoof}');
+    print('[FILTER] Has Garden: ${filter.hasGarden}');
+    print('[FILTER] Sort By: ${filter.sortBy}');
+    print('[FILTER] isEmpty: ${filter.isEmpty}');
+    print('[FILTER] activeFiltersCount: ${filter.activeFiltersCount}');
+    print('[FILTER] Query Parameters: ${filter.toQueryParameters()}');
+    print('═══════════════════════════════════════════════');
+
     widget.onApplyFilters(filter);
     Navigator.pop(context);
   }

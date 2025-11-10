@@ -11,10 +11,15 @@ import 'package:real/feature/compound/presentation/bloc/unit/unit_event.dart';
 import 'package:real/feature/compound/presentation/bloc/unit/unit_state.dart';
 import 'package:real/core/network/api_service.dart';
 import 'package:real/l10n/app_localizations.dart';
-import '../../../feature_web/widgets/web_unit_card.dart';
 import 'package:real/core/widget/robust_network_image.dart';
 import 'package:flutter_html/flutter_html.dart';
 import 'package:real/feature/search/data/services/view_history_service.dart';
+import 'package:real/feature/sale/data/models/sale_model.dart';
+import 'package:real/feature/sale/data/services/sale_web_services.dart';
+import 'package:real/feature/compound/data/web_services/favorites_web_services.dart';
+import 'package:real/core/widgets/zoomable_image_viewer.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:real/feature_web/widgets/web_unit_card.dart';
 
 class WebCompoundDetailScreen extends StatefulWidget {
   static String routeName = '/web-compound-detail';
@@ -37,14 +42,27 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _messageController = TextEditingController();
+  final SaleWebServices _saleWebServices = SaleWebServices();
+  final FavoritesWebServices _favoritesWebServices = FavoritesWebServices();
+  Sale? _compoundSale;
+  bool _isLoadingSale = false;
+  Compound? _currentCompound;
+  String? _currentNote;
+  String? _lastFetchedCompoundId; // Track which compound we've fetched notes for
+
+  // Notes for tab
+  List<Map<String, dynamic>> _compoundNotes = [];
+  bool _isLoadingNotes = false;
+  final TextEditingController _noteController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     context.read<CompoundBloc>().add(FetchCompoundDetailEvent(compoundId: widget.compoundId));
     context.read<UnitBloc>().add(FetchUnitsEvent(compoundId: widget.compoundId));
     _startImageRotation();
+    _fetchCompoundSale();
   }
 
   void _startImageRotation() {
@@ -65,6 +83,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
     _phoneController.dispose();
     _emailController.dispose();
     _messageController.dispose();
+    _noteController.dispose();
     super.dispose();
   }
 
@@ -80,10 +99,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
             appBar: AppBar(
               backgroundColor: Colors.white,
               elevation: 0,
-              leading: IconButton(
-                icon: Icon(Icons.arrow_back, color: AppColors.mainColor),
-                onPressed: () => Navigator.pop(context),
-              ),
+              automaticallyImplyLeading: false,
               title: Text(
                 l10n.loading,
                 style: TextStyle(
@@ -104,10 +120,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
             appBar: AppBar(
               backgroundColor: Colors.white,
               elevation: 0,
-              leading: IconButton(
-                icon: Icon(Icons.arrow_back, color: AppColors.mainColor),
-                onPressed: () => Navigator.pop(context),
-              ),
+              automaticallyImplyLeading: false,
               title: Text(
                 l10n.error,
                 style: TextStyle(
@@ -150,6 +163,26 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
           // Track view history
           final compound = Compound.fromJson(actualCompoundData);
           ViewHistoryService().addViewedCompound(compound);
+
+          // Store compound and fetch notes from API only if we haven't fetched for this compound yet
+          _currentCompound = compound;
+          _currentNote = compound.notes;
+
+          print('[WEB COMPOUND DETAIL] Current compound ID: ${compound.id}');
+          print('[WEB COMPOUND DETAIL] Last fetched compound ID: $_lastFetchedCompoundId');
+          print('[WEB COMPOUND DETAIL] Is loading notes: $_isLoadingNotes');
+
+          // Only fetch if this is a new compound or if we haven't fetched yet
+          if (_lastFetchedCompoundId != compound.id && !_isLoadingNotes) {
+            print('[WEB COMPOUND DETAIL] Triggering notes fetch for compound ${compound.id}');
+            _lastFetchedCompoundId = compound.id;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _fetchCompoundNotes();
+            });
+          } else {
+            print('[WEB COMPOUND DETAIL] Skipping notes fetch - already fetched or loading');
+          }
+
           return _buildDetailScreen(compoundData, l10n);
         }
 
@@ -198,6 +231,76 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
     } catch (e) {
       setState(() => _loadingSalespeople = false);
       print('Error loading salespeople: $e');
+    }
+  }
+
+  Future<void> _fetchCompoundSale() async {
+    if (_isLoadingSale) return;
+
+    setState(() {
+      _isLoadingSale = true;
+    });
+
+    try {
+      final response = await _saleWebServices.getSalesByCompound(widget.compoundId);
+
+      if (response['success'] == true && response['sales'] != null) {
+        final sales = (response['sales'] as List)
+            .map((sale) => Sale.fromJson(sale as Map<String, dynamic>))
+            .where((sale) => sale.isCurrentlyActive)
+            .toList();
+
+        if (mounted && sales.isNotEmpty) {
+          setState(() {
+            _compoundSale = sales.first;
+            _isLoadingSale = false;
+          });
+          print('[WEB COMPOUND DETAIL] Found active sale: ${_compoundSale!.saleName}');
+        } else {
+          if (mounted) {
+            setState(() {
+              _isLoadingSale = false;
+            });
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isLoadingSale = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('[WEB COMPOUND DETAIL] Error fetching compound sale: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingSale = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _fetchCompoundNote() async {
+    if (_currentCompound == null) return;
+
+    try {
+      final response = await _favoritesWebServices.getNotes(
+        compoundId: int.parse(_currentCompound!.id),
+      );
+
+      if (response['success'] == true && response['notes'] != null) {
+        final notes = response['notes'] as List;
+        if (notes.isNotEmpty) {
+          if (mounted) {
+            setState(() {
+              _currentNote = notes.first['content'] as String?;
+            });
+          }
+          print('[WEB COMPOUND DETAIL] Loaded note: $_currentNote');
+        }
+      }
+    } catch (e) {
+      print('[WEB COMPOUND DETAIL] Error fetching compound note: $e');
     }
   }
 
@@ -264,15 +367,26 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: images.isNotEmpty
-            ? Stack(
-                children: [
-                  RobustNetworkImage(
-                    imageUrl: images[currentIndex],
-                    height: 350,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, url) => _buildImagePlaceholder(),
-                  ),
+            ? GestureDetector(
+                onTap: () {
+                  // Open zoomable image viewer
+                  ZoomableImageViewer.show(
+                    context,
+                    images: images,
+                    initialIndex: currentIndex,
+                  );
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Stack(
+                    children: [
+                      RobustNetworkImage(
+                        imageUrl: images[currentIndex],
+                        height: 350,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, url) => _buildImagePlaceholder(),
+                      ),
                   // Gradient overlay at bottom
                   Positioned(
                     bottom: 0,
@@ -312,7 +426,9 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                       ),
                     ),
                   ),
-                ],
+                    ],
+                  ),
+                ),
               )
             : _buildImagePlaceholder(),
       ),
@@ -551,104 +667,95 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: 1400),
           child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
+            padding: const EdgeInsets.all(20),
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image Gallery
-                _buildImageGallery(compoundData),
-                SizedBox(height: 20),
-
-                // Main Content Row
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Left Column - Main Info
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        children: [
-                          _buildCompoundDescription(compoundData),
-                          SizedBox(height: 16),
-                          _buildCompoundInfo(compoundData),
-                          SizedBox(height: 16),
-                          if (_getString(compoundData, 'finish_specs').isNotEmpty)
-                            _buildFinishSpecs(compoundData),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: 20),
-
-                    // Right Column - Pricing & Contact
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        children: [
-                          _buildPricingInfo(compoundData),
-                          SizedBox(height: 16),
-                          _buildSalespeople(),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 20),
-
-                // Features & Amenities
-                _buildFeaturesAmenities(compoundData),
-                SizedBox(height: 20),
-
-                // TabBar Section
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 10,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
+                /// ---------------- LEFT CONTENT ----------------
+                Expanded(
+                  flex: 2,
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      _buildImageGallery(compoundData),
+                      SizedBox(height: 16),
+
+                      _buildCompoundDescription(compoundData),
+                      SizedBox(height: 16),
+
+                      if (_getString(compoundData, 'finish_specs').isNotEmpty) ...[
+                        _buildFinishSpecs(compoundData),
+                        SizedBox(height: 16),
+                      ],
+
+                      _buildFeaturesAmenities(compoundData),
+                      SizedBox(height: 16),
+
+                      /// ---- UNITS HORIZONTAL SCROLL SECTION ----
+                      _buildUnitsHorizontalSection(l10n),
+                      SizedBox(height: 16),
+
+                      /// ---- TAB BAR ----
                       Container(
                         decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(
-                              color: Color(0xFFE6E6E6),
-                              width: 1,
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.04),
+                              blurRadius: 10,
+                              offset: Offset(0, 2),
                             ),
-                          ),
+                          ],
                         ),
                         child: TabBar(
                           controller: _tabController,
-                          indicatorColor: AppColors.mainColor,
+                          isScrollable: true,
                           labelColor: AppColors.mainColor,
-                          unselectedLabelColor: Color(0xFF666666),
-                          labelStyle: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                          unselectedLabelColor: Colors.grey,
+                          indicatorColor: AppColors.mainColor,
+                          indicatorWeight: 3,
                           tabs: [
-                            Tab(text: 'Gallery'),
+                            Tab(text: "Gallery"),
                             Tab(text: l10n.masterPlan),
-                            Tab(text: l10n.units),
-                            Tab(text: 'Request'),
+                            Tab(text: "Notes"),
                           ],
                         ),
                       ),
+                      SizedBox(height: 16),
+
+                      /// ---- TAB CONTENT ----
                       SizedBox(
-                        height: 450,
+                        height: 800,
                         child: TabBarView(
                           controller: _tabController,
                           children: [
                             _buildGalleryTab(compoundData),
                             _buildMasterPlanTab(compoundData, l10n),
-                            _buildUnitsTabContent(compoundData, l10n),
-                            _buildRequestTab(l10n),
+                            _buildNotesTab(),
                           ],
                         ),
                       ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(width: 20),
+
+                /// ---------------- RIGHT SIDEBAR ----------------
+                SizedBox(
+                  width: 320,
+                  child: Column(
+                    children: [
+                      if (_compoundSale != null) ...[
+                        _buildSaleSection(_compoundSale!, l10n),
+                        SizedBox(height: 16),
+                      ],
+
+                      _buildPricingInfo(compoundData),
+                      SizedBox(height: 16),
+
+                      _buildSalespeople(),
                     ],
                   ),
                 ),
@@ -698,19 +805,32 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
               ),
               itemCount: images.length,
               itemBuilder: (context, index) {
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: RobustNetworkImage(
-                    imageUrl: images[index],
-                    width: double.infinity,
-                    height: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, url) => Container(
-                      color: Color(0xFFF8F9FA),
-                      child: Icon(
-                        Icons.broken_image_outlined,
-                        color: AppColors.mainColor.withOpacity(0.3),
-                        size: 50,
+                return GestureDetector(
+                  onTap: () {
+                    // Open zoomable image viewer
+                    ZoomableImageViewer.show(
+                      context,
+                      images: images,
+                      initialIndex: index,
+                    );
+                  },
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: RobustNetworkImage(
+                        imageUrl: images[index],
+                        width: double.infinity,
+                        height: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, url) => Container(
+                          color: Color(0xFFF8F9FA),
+                          child: Icon(
+                            Icons.broken_image_outlined,
+                            color: AppColors.mainColor.withOpacity(0.3),
+                            size: 50,
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -754,8 +874,12 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                   Padding(
                     padding: EdgeInsets.only(bottom: 16),
                     child: ElevatedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
                         // Open location URL in browser
+                        final uri = Uri.parse(locationUrl);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
                       },
                       icon: Icon(Icons.location_on, size: 18),
                       label: Text(l10n.viewOnMap),
@@ -790,172 +914,117 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
     );
   }
 
-  Widget _buildUnitsTabContent(Map<String, dynamic> compoundData, AppLocalizations l10n) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(24),
-      child: BlocBuilder<UnitBloc, UnitState>(
-        builder: (context, state) {
-          if (state is UnitLoading) {
-            return Center(
-              child: Padding(
-                padding: EdgeInsets.all(48),
-                child: CircularProgressIndicator(color: AppColors.mainColor),
-              ),
-            );
-          } else if (state is UnitSuccess) {
-            if (state.response.data.isEmpty) {
-              return Center(
-                child: Padding(
-                  padding: EdgeInsets.all(48),
-                  child: Text(
-                    l10n.noUnitsAvailable,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF999999),
-                    ),
-                  ),
-                ),
-              );
-            }
-            return GridView.builder(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                childAspectRatio: 1.2,
-                crossAxisSpacing: 20,
-                mainAxisSpacing: 20,
-              ),
-              itemCount: state.response.data.length,
-              itemBuilder: (context, index) {
-                return WebUnitCard(unit: state.response.data[index]);
-              },
-            );
-          } else if (state is UnitError) {
-            return Center(
-              child: Padding(
-                padding: EdgeInsets.all(48),
-                child: Text(
-                  state.message,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.red,
-                  ),
-                ),
-              ),
-            );
-          }
-          return SizedBox.shrink();
-        },
+  // Build Sale Section (like unit details)
+  Widget _buildSaleSection(Sale sale, AppLocalizations l10n) {
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFFFF6B6B).withOpacity(0.1),
+            Color(0xFFFFE66D).withOpacity(0.1),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Color(0xFFFF6B6B), width: 2),
       ),
-    );
-  }
-
-  Widget _buildRequestTab(AppLocalizations l10n) {
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            l10n.requestMoreInformation,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF333333),
-            ),
-          ),
-          SizedBox(height: 24),
           Row(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _nameController,
-                  decoration: InputDecoration(
-                    labelText: l10n.yourName,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Color(0xFFFF6B6B),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.local_offer, size: 16, color: Colors.white),
+                    SizedBox(width: 6),
+                    Text(
+                      'SALE',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1,
+                      ),
                     ),
-                    filled: true,
-                    fillColor: Color(0xFFF8F9FA),
-                  ),
+                  ],
                 ),
               ),
-              SizedBox(width: 16),
-              Expanded(
-                child: TextField(
-                  controller: _phoneController,
-                  decoration: InputDecoration(
-                    labelText: l10n.phoneNumber,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    filled: true,
-                    fillColor: Color(0xFFF8F9FA),
+              SizedBox(width: 12),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '${sale.discountPercentage.toStringAsFixed(0)}% OFF',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 16),
-          TextField(
-            controller: _emailController,
-            decoration: InputDecoration(
-              labelText: l10n.emailAddress,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              filled: true,
-              fillColor: Color(0xFFF8F9FA),
+          SizedBox(height: 8),
+          Text(
+            sale.saleName,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF333333),
             ),
           ),
-          SizedBox(height: 16),
-          TextField(
-            controller: _messageController,
-            maxLines: 4,
-            decoration: InputDecoration(
-              labelText: l10n.messageOptional,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              filled: true,
-              fillColor: Color(0xFFF8F9FA),
+          SizedBox(height: 4),
+          Text(
+            sale.description,
+            style: TextStyle(
+              fontSize: 13,
+              color: Color(0xFF666666),
+              height: 1.4,
             ),
           ),
-          SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: () {
-                // Handle form submission
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(l10n.requestSubmittedSuccessfully),
-                    backgroundColor: AppColors.mainColor,
+          if (sale.daysRemaining > 0) ...[
+            SizedBox(height: 8),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.access_time, size: 16, color: Colors.orange),
+                  SizedBox(width: 8),
+                  Text(
+                    '${sale.daysRemaining.toInt()} days remaining',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.orange.shade800,
+                    ),
                   ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.mainColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(
-                l10n.submitRequest,
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+                ],
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
   }
+
+
 
   Widget _buildFinishSpecs(Map<String, dynamic> compoundData) {
     final finishSpecs = _getString(compoundData, 'finish_specs');
@@ -1069,8 +1138,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Compound Name
-          Padding(
+          _buildCompoundInfo(compoundData),          Padding(
             padding: EdgeInsets.only(bottom: 12),
             child: Text(
               project,
@@ -1298,6 +1366,676 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
             },
           ),
         ],
+      ),
+    );
+  }
+
+  // Build Notes Tab
+  Widget _buildNotesTab() {
+    return Column(
+      children: [
+        // Add note section
+        Padding(
+          padding: EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _noteController,
+                  decoration: InputDecoration(
+                    hintText: 'Add a note...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                  ),
+                  maxLines: 3,
+                ),
+              ),
+              SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: _addNote,
+                icon: Icon(Icons.add, size: 18),
+                label: Text('Add'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.mainColor,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        Divider(height: 1),
+
+        // Notes list
+        Expanded(
+          child: _isLoadingNotes
+              ? Center(child: CircularProgressIndicator(color: AppColors.mainColor))
+              : _compoundNotes.isEmpty
+              ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.note_outlined, size: 60, color: Colors.grey),
+                SizedBox(height: 16),
+                Text(
+                  'No notes yet',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Add your first note above',
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
+                ),
+              ],
+            ),
+          )
+              : ListView.builder(
+            padding: EdgeInsets.all(16),
+            itemCount: _compoundNotes.length,
+            itemBuilder: (context, index) {
+              final note = _compoundNotes[index];
+              final noteId = note['id'];
+              final content = note['content'] ?? '';
+              final createdAt = note['created_at'] ?? '';
+
+              return Card(
+                margin: EdgeInsets.only(bottom: 12),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(Icons.note, color: AppColors.mainColor, size: 20),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              content,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF333333),
+                              ),
+                            ),
+                            if (createdAt.isNotEmpty) ...[
+                              SizedBox(height: 6),
+                              Text(
+                                _formatNoteDate(createdAt),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        onPressed: () => _deleteNote(noteId),
+                        padding: EdgeInsets.zero,
+                        constraints: BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+  // Fetch compound notes
+  Future<void> _fetchCompoundNotes() async {
+    if (_currentCompound == null) {
+      print('[WEB COMPOUND DETAIL] Cannot fetch notes: _currentCompound is null');
+      return;
+    }
+
+    if (_isLoadingNotes) {
+      print('[WEB COMPOUND DETAIL] Already loading notes, skipping...');
+      return;
+    }
+
+    print('[WEB COMPOUND DETAIL] Fetching notes for compound ID: ${_currentCompound!.id}');
+    setState(() => _isLoadingNotes = true);
+
+    try {
+      final compoundIdInt = int.tryParse(_currentCompound!.id);
+      print('[WEB COMPOUND DETAIL] Parsed compound ID: $compoundIdInt');
+
+      final response = await _favoritesWebServices.getNotes(
+        compoundId: compoundIdInt,
+      );
+
+      print('[WEB COMPOUND DETAIL] Notes API response received');
+      print('[WEB COMPOUND DETAIL] Response keys: ${response.keys}');
+      print('[WEB COMPOUND DETAIL] Full response: $response');
+
+      if (response['success'] == true) {
+        List<Map<String, dynamic>> notes = [];
+        bool structureMatched = false;
+
+        // Check multiple possible response structures
+        if (response['data'] != null && response['data'] is Map && response['data']['notes'] != null) {
+          // Structure: { success: true, data: { notes: [...] } }
+          print('[WEB COMPOUND DETAIL] Response structure: data.notes');
+          notes = (response['data']['notes'] as List)
+              .map((note) => note as Map<String, dynamic>)
+              .toList();
+          structureMatched = true;
+        } else if (response['notes'] != null && response['notes'] is List) {
+          // Structure: { success: true, notes: [...] }
+          print('[WEB COMPOUND DETAIL] Response structure: notes array');
+          notes = (response['notes'] as List)
+              .map((note) => note as Map<String, dynamic>)
+              .toList();
+          structureMatched = true;
+        } else if (response['data'] is List) {
+          // Structure: { success: true, data: [...] }
+          print('[WEB COMPOUND DETAIL] Response structure: data array');
+          notes = (response['data'] as List)
+              .map((note) => note as Map<String, dynamic>)
+              .toList();
+          structureMatched = true;
+        } else {
+          print('[WEB COMPOUND DETAIL] ⚠️ WARNING: Response structure does not match any expected pattern!');
+          print('[WEB COMPOUND DETAIL] Available keys: ${response.keys.toList()}');
+          if (response['data'] != null) {
+            print('[WEB COMPOUND DETAIL] data type: ${response['data'].runtimeType}');
+            if (response['data'] is Map) {
+              print('[WEB COMPOUND DETAIL] data keys: ${(response['data'] as Map).keys.toList()}');
+            }
+          }
+        }
+
+        print('[WEB COMPOUND DETAIL] Structure matched: $structureMatched');
+        print('[WEB COMPOUND DETAIL] Parsed ${notes.length} notes');
+        if (notes.isNotEmpty) {
+          print('[WEB COMPOUND DETAIL] First note: ${notes.first}');
+        } else if (structureMatched) {
+          print('[WEB COMPOUND DETAIL] Structure matched but notes list is empty');
+        }
+
+        if (mounted) {
+          setState(() {
+            _compoundNotes = notes;
+            _isLoadingNotes = false;
+          });
+        }
+      } else {
+        print('[WEB COMPOUND DETAIL] Notes fetch failed: success=false, message: ${response['message']}');
+        if (mounted) {
+          setState(() => _isLoadingNotes = false);
+        }
+      }
+    } catch (e) {
+      print('[WEB COMPOUND DETAIL] Error fetching notes: $e');
+      if (mounted) {
+        setState(() => _isLoadingNotes = false);
+      }
+    }
+  }
+
+  // Add note
+  Future<void> _addNote() async {
+    if (_noteController.text.trim().isEmpty) {
+      _showCenteredMessage(
+        context: context,
+        message: 'Please enter a note',
+        isSuccess: false,
+      );
+      return;
+    }
+
+    try {
+      final response = await _favoritesWebServices.createNote(
+        content: _noteController.text.trim(),
+        title: 'Compound Note',
+        compoundId: int.tryParse(_currentCompound!.id),
+      );
+
+      if (response['success'] == true) {
+        _noteController.clear();
+        _showCenteredMessage(
+          context: context,
+          message: 'Note added successfully',
+          isSuccess: true,
+        );
+        // Force refetch by resetting the tracking flag
+        _lastFetchedCompoundId = null;
+        _fetchCompoundNotes();
+      } else {
+        _showCenteredMessage(
+          context: context,
+          message: 'Failed to add note',
+          isSuccess: false,
+        );
+      }
+    } catch (e) {
+      _showCenteredMessage(
+        context: context,
+        message: 'Error: $e',
+        isSuccess: false,
+      );
+    }
+  }
+
+  // Delete note
+  Future<void> _deleteNote(int noteId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Note'),
+        content: Text('Are you sure you want to delete this note?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final response = await _favoritesWebServices.deleteNote(noteId);
+
+      if (response['success'] == true) {
+        _showCenteredMessage(
+          context: context,
+          message: 'Note deleted successfully',
+          isSuccess: true,
+        );
+        // Force refetch by resetting the tracking flag
+        _lastFetchedCompoundId = null;
+        _fetchCompoundNotes();
+      } else {
+        _showCenteredMessage(
+          context: context,
+          message: 'Failed to delete note',
+          isSuccess: false,
+        );
+      }
+    } catch (e) {
+      _showCenteredMessage(
+        context: context,
+        message: 'Error: $e',
+        isSuccess: false,
+      );
+    }
+  }
+
+  String _formatNoteDate(String dateStr) {
+    try {
+      final date = DateTime.parse(dateStr);
+      final now = DateTime.now();
+      final difference = now.difference(date);
+
+      if (difference.inDays == 0) {
+        return 'Today ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+      } else if (difference.inDays == 1) {
+        return 'Yesterday ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+      } else if (difference.inDays < 7) {
+        return '${difference.inDays} days ago';
+      } else {
+        return '${date.day}/${date.month}/${date.year}';
+      }
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  void _showCenteredMessage({
+    required BuildContext context,
+    required String message,
+    required bool isSuccess,
+  })
+  {
+    final overlay = Overlay.of(context);
+    final overlayEntry = OverlayEntry(
+      builder: (context) => Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            margin: EdgeInsets.symmetric(horizontal: 40),
+            decoration: BoxDecoration(
+              color: isSuccess ? Colors.green : Colors.red,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isSuccess ? Icons.check_circle : Icons.error,
+                  color: Colors.white,
+                  size: 24,
+                ),
+                SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    message,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlay.insert(overlayEntry);
+
+    Future.delayed(Duration(seconds: 2), () {
+      overlayEntry.remove();
+    });
+  }
+
+  /// Build Units Horizontal Section - Display units in horizontal scroll
+  Widget _buildUnitsHorizontalSection(AppLocalizations l10n) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header
+          Row(
+            children: [
+              Icon(Icons.home_work, color: AppColors.mainColor, size: 28),
+              SizedBox(width: 12),
+              Text(
+                'Available Units',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.black,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 24),
+
+          // Units Horizontal Scroll
+          BlocBuilder<UnitBloc, UnitState>(
+            builder: (context, state) {
+              if (state is UnitLoading) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(48),
+                    child: CircularProgressIndicator(
+                      color: AppColors.mainColor,
+                    ),
+                  ),
+                );
+              }
+
+              if (state is UnitSuccess) {
+                final units = state.response.data;
+
+                if (units.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(48),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.home_outlined,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'No units available',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return SizedBox(
+                  height: 380,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    physics: BouncingScrollPhysics(),
+                    itemCount: units.length,
+                    itemBuilder: (context, index) {
+                      final unit = units[index];
+                      return Container(
+                        width: 350,
+                        margin: EdgeInsets.only(right: index < units.length - 1 ? 16 : 0),
+                        child: WebUnitCard(unit: unit),
+                      );
+                    },
+                  ),
+                );
+              }
+
+              if (state is UnitError) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(48),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red[400],
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Error loading units',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.red[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          state.message,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return SizedBox.shrink();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Build Units Section - Display all units in the compound
+  Widget _buildUnitsSection(AppLocalizations l10n) {
+    return SingleChildScrollView(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 12,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        padding: EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+          // Section Header
+          Row(
+            children: [
+              Icon(Icons.home_work, color: AppColors.mainColor, size: 28),
+              SizedBox(width: 12),
+              Text(
+                'Available Units',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.black,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 24),
+
+          // Units Grid
+          BlocBuilder<UnitBloc, UnitState>(
+            builder: (context, state) {
+              if (state is UnitLoading) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(48),
+                    child: CircularProgressIndicator(
+                      color: AppColors.mainColor,
+                    ),
+                  ),
+                );
+              }
+
+              if (state is UnitSuccess) {
+                final units = state.response.data;
+
+                if (units.isEmpty) {
+                  return Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(48),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.home_outlined,
+                            size: 64,
+                            color: Colors.grey[400],
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'No units available',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 400,
+                    crossAxisSpacing: 24,
+                    mainAxisSpacing: 24,
+                    childAspectRatio: 0.85,
+                  ),
+                  itemCount: units.length > 12 ? 12 : units.length,
+                  itemBuilder: (context, index) {
+                    final unit = units[index];
+                    return WebUnitCard(unit: unit);
+                  },
+                );
+              }
+
+              if (state is UnitError) {
+                return Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(48),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.red[400],
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Error loading units',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: Colors.red[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          state.message,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return SizedBox.shrink();
+            },
+          ),
+        ],
+        ),
       ),
     );
   }

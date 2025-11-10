@@ -58,15 +58,17 @@ class UnitFavoriteBloc extends Bloc<UnitFavoriteEvent, UnitFavoriteState> {
 
       // Then load from API in the background (non-blocking)
       print('[UnitFavoriteBloc] Syncing favorites from API in background...');
-      _syncFromAPI(emit);
+      // Note: We don't await this to keep UI responsive with cached data
+      _syncFromAPIInBackground();
     } catch (e) {
       print('[UnitFavoriteBloc] Error loading favorites: $e');
       emit(UnitFavoriteError('Failed to load favorites: $e'));
     }
   }
 
-  // Sync from API in the background without blocking the UI
-  Future<void> _syncFromAPI(Emitter<UnitFavoriteState> emit) async {
+  // Sync from API in the background without emitting
+  // Instead, dispatch a new event to update state
+  Future<void> _syncFromAPIInBackground() async {
     try {
       // Only sync if user is authenticated
       if (token == null || token!.isEmpty) {
@@ -106,8 +108,13 @@ class UnitFavoriteBloc extends Bloc<UnitFavoriteEvent, UnitFavoriteState> {
               // Check if this is a unit favorite (unit_id is not null)
               if (fav['unit_id'] != null && fav['unit'] != null) {
                 print('[UnitFavoriteBloc] Found unit favorite: ${fav['unit_id']}');
-                // Structure: {id, user_id, unit_id, unit: {...}}
-                apiUnits.add(Unit.fromJson(fav['unit'] as Map<String, dynamic>));
+                // Structure: {id, user_id, unit_id, notes, unit: {...}}
+                final unitData = Map<String, dynamic>.from(fav['unit'] as Map<String, dynamic>);
+                // Add favorite-specific fields
+                unitData['favorite_id'] = fav['id'];
+                unitData['notes'] = fav['notes'];
+                unitData['note_id'] = fav['note_id']; // Add note_id from favorites
+                apiUnits.add(Unit.fromJson(unitData));
               } else if (fav['compound_id'] != null) {
                 print('[UnitFavoriteBloc] Skipping compound favorite: ${fav['compound_id']}');
               }
@@ -128,8 +135,8 @@ class UnitFavoriteBloc extends Bloc<UnitFavoriteEvent, UnitFavoriteState> {
           // Cache the favorites locally for offline access
           await _saveFavoritesToCache();
 
-          // Emit updated state with new data from API
-          emit(UnitFavoriteUpdated(List.from(_favorites)));
+          // Dispatch new event to update state (safe way to emit after async operation)
+          add(LoadFavoriteUnits());
         } else {
           print('[UnitFavoriteBloc] API returned 0 items but cache has ${_favorites.length} - keeping cache');
         }

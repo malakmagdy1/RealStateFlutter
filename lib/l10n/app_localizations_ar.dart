@@ -302,6 +302,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noUnits => 'لا توجد وحدات';
 
   @override
+  String get recommendedForYou => 'موصى به لك';
+
+  @override
   String get personalInformation => 'المعلومات الشخصية';
 
   @override
@@ -800,4 +803,121 @@ class AppLocalizationsAr extends AppLocalizations {
   String leadingDeveloper(String companyName) {
     return '$companyName هي شركة رائدة في مجال التطوير العقاري في مصر، معروفة بإنشاء عقارات سكنية وتجارية استثنائية.';
   }
+
+  @override
+  String get verifiedAccount => 'حساب موثق';
+
+  @override
+  String get updateYourDisplayName => 'تحديث اسم العرض الخاص بك';
+
+  @override
+  String get editPhoneNumber => 'تعديل رقم الهاتف';
+
+  @override
+  String get updateYourContactNumber => 'تحديث رقم الاتصال الخاص بك';
+
+  @override
+  String get viewYourEmailAddress => 'عرض عنوان بريدك الإلكتروني';
+
+  @override
+  String get updateYourPassword => 'تحديث كلمة المرور الخاصة بك';
+
+  @override
+  String get twoFactorAuthentication => 'المصادقة الثنائية';
+
+  @override
+  String get addExtraSecurity => 'إضافة أمان إضافي';
+
+  @override
+  String get manageNotificationSettings => 'إدارة إعدادات الإشعارات';
+
+  @override
+  String get subscriptionPlan => 'خطة الاشتراك';
+
+  @override
+  String get active => 'نشط';
+
+  @override
+  String get inactive => 'غير نشط';
+
+  @override
+  String get searchQuota => 'حصة البحث';
+
+  @override
+  String get unlimitedSearches => 'عمليات بحث غير محدودة';
+
+  @override
+  String searchesUsed(int used, int limit) {
+    return '$used / $limit عملية بحث';
+  }
+
+  @override
+  String searchesRemaining(int count) {
+    return '$count عملية بحث متبقية';
+  }
+
+  @override
+  String get noSearchesRemaining => 'لا توجد عمليات بحث متبقية';
+
+  @override
+  String get expiresOn => 'ينتهي في';
+
+  @override
+  String get manageSubscription => 'إدارة الاشتراك';
+
+  @override
+  String get termsOfService => 'شروط الخدمة';
+
+  @override
+  String get viewOurPrivacyPolicy => 'عرض سياسة الخصوصية الخاصة بنا';
+
+  @override
+  String get readOurTerms => 'اقرأ شروطنا';
+
+  @override
+  String get getHelpWithYourAccount => 'احصل على مساعدة بشأن حسابك';
+
+  @override
+  String get appVersion => 'إصدار التطبيق 1.0.0';
+
+  @override
+  String get developerTools => 'أدوات المطورين';
+
+  @override
+  String get dev => 'DEV';
+
+  @override
+  String get apiTokenDescription =>
+      'استخدم هذا الرمز لاختبار نقاط نهاية API في Postman أو أدوات API الأخرى.';
+
+  @override
+  String get authenticationToken => 'رمز المصادقة:';
+
+  @override
+  String get copyToken => 'نسخ الرمز';
+
+  @override
+  String get noTokenFound => 'لم يتم العثور على رمز. يرجى تسجيل الدخول أولاً.';
+
+  @override
+  String get tokenCopied => 'تم نسخ الرمز إلى الحافظة!';
+
+  @override
+  String get bearerTokenInstructions =>
+      'أضف هذا الرمز كرمز Bearer في طلبات API الخاصة بك:\nAuthorization: Bearer <token>';
+
+  @override
+  String get uploadingProfileImage => 'جاري تحميل صورة الملف الشخصي...';
+
+  @override
+  String get profileImageUpdated => 'تم تحديث صورة الملف الشخصي بنجاح!';
+
+  @override
+  String errorUploadingImage(String error) {
+    return 'خطأ في تحميل الصورة: $error';
+  }
+
+  @override
+  String get noLoginMessage =>
+      'لم يتم العثور على رمز. يرجى تسجيل الدخول أولاً.';
 }

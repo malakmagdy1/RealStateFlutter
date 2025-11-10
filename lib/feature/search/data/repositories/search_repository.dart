@@ -51,7 +51,7 @@ class SearchRepository {
   Future<SearchResponse> search({
     required String query,
     String? type,
-    int perPage = 20,
+    int perPage = 1000,
     SearchFilter? filter,
   }) async {
     try {
@@ -86,10 +86,25 @@ class SearchRepository {
       ).replace(queryParameters: queryParams);
 
       print('===========================================');
-      print('[SEARCH] Fetching: $uri');
-      print('[SEARCH] Query: "$query"');
-      print('[SEARCH] Type: $type');
-      print('[SEARCH] Has Filter: ${filter != null}');
+      print('[SEARCH API] Endpoint: GET /api/search');
+      print('[SEARCH API] Full URL: $uri');
+      print('[SEARCH API] Query: "$query"');
+      print('[SEARCH API] Type: $type');
+      print('[SEARCH API] Per Page: $perPage');
+      print('[SEARCH API] Language: $currentLang');
+      print('[SEARCH API] Has Filter: ${filter != null}');
+      if (filter != null) {
+        print('[SEARCH API] Filter Details:');
+        print('[SEARCH API]   - Location: ${filter.location}');
+        print('[SEARCH API]   - Property Type: ${filter.propertyType}');
+        print('[SEARCH API]   - Min Price: ${filter.minPrice}');
+        print('[SEARCH API]   - Max Price: ${filter.maxPrice}');
+        print('[SEARCH API]   - Bedrooms: ${filter.bedrooms}');
+        print('[SEARCH API]   - Min Area: ${filter.minArea}');
+        print('[SEARCH API]   - Max Area: ${filter.maxArea}');
+        print('[SEARCH API]   - Active Filters Count: ${filter.activeFiltersCount}');
+        print('[SEARCH API] Query Parameters: $queryParams');
+      }
       print('===========================================');
 
       // Make API request
@@ -154,10 +169,23 @@ class SearchRepository {
         print('[SEARCH] Error: ${response.body}');
         try {
           final errorData = json.decode(response.body);
-          final errorMessage =
-              errorData['message'] ?? 'Failed to search: ${response.statusCode}';
+
+          // Check for subscription requirement
+          if (errorData['subscription_required'] == true) {
+            print('[SEARCH] Subscription required error detected');
+          }
+
+          // Use localized error message based on current language
+          final errorMessage = currentLang == 'en'
+              ? (errorData['message_en'] ?? errorData['message'] ?? 'Failed to search: ${response.statusCode}')
+              : (errorData['message'] ?? errorData['message_en'] ?? 'Failed to search: ${response.statusCode}');
+
+          print('[SEARCH] Error message to display: $errorMessage');
           throw Exception(errorMessage);
         } catch (e) {
+          if (e is Exception && e.toString().contains('Exception:')) {
+            rethrow; // Re-throw our custom exception
+          }
           throw Exception('Failed to search: ${response.statusCode}');
         }
       }
@@ -168,24 +196,24 @@ class SearchRepository {
   }
 
   /// Get all companies
-  Future<SearchResponse> getAllCompanies({int perPage = 50}) async {
+  Future<SearchResponse> getAllCompanies({int perPage = 1000}) async {
     return search(query: '', type: 'company', perPage: perPage);
   }
 
   /// Get all compounds
-  Future<SearchResponse> getAllCompounds({int perPage = 50}) async {
+  Future<SearchResponse> getAllCompounds({int perPage = 1000}) async {
     return search(query: '', type: 'compound', perPage: perPage);
   }
 
   /// Get all units
-  Future<SearchResponse> getAllUnits({int perPage = 50}) async {
+  Future<SearchResponse> getAllUnits({int perPage = 1000}) async {
     return search(query: '', type: 'unit', perPage: perPage);
   }
 
   /// Search only companies
   Future<SearchResponse> searchCompanies({
     required String query,
-    int perPage = 20,
+    int perPage = 1000,
   }) async {
     return search(query: query, type: 'company', perPage: perPage);
   }
@@ -193,7 +221,7 @@ class SearchRepository {
   /// Search only compounds
   Future<SearchResponse> searchCompounds({
     required String query,
-    int perPage = 20,
+    int perPage = 1000,
   }) async {
     return search(query: query, type: 'compound', perPage: perPage);
   }
@@ -201,7 +229,7 @@ class SearchRepository {
   /// Search only units
   Future<SearchResponse> searchUnits({
     required String query,
-    int perPage = 20,
+    int perPage = 1000,
   }) async {
     return search(query: query, type: 'unit', perPage: perPage);
   }
@@ -210,6 +238,8 @@ class SearchRepository {
   Future<FilterUnitsResponse> filterUnits(
     SearchFilter filter, {
     String? token,
+    int page = 1,
+    int limit = 1000,
   }) async {
     try {
       // Use provided token parameter, or fall back to global token
@@ -219,8 +249,10 @@ class SearchRepository {
       // Convert filter to query parameters
       final queryParams = filter.toQueryParameters();
 
-      // Add language parameter
+      // Add language, page, and limit parameters
       queryParams['lang'] = currentLang;
+      queryParams['page'] = page;
+      queryParams['limit'] = limit;
 
       // Build URL with query parameters (convert to string)
       final stringParams = queryParams.map(
@@ -230,8 +262,22 @@ class SearchRepository {
         '$baseUrl/filter-units',
       ).replace(queryParameters: stringParams);
 
-      print('[FILTER API GET] Fetching: $uri');
-      print('[FILTER API GET] Query params: $queryParams');
+      print('===========================================');
+      print('[FILTER API GET] Endpoint: GET /api/filter-units');
+      print('[FILTER API GET] Full URL: $uri');
+      print('[FILTER API GET] Language: $currentLang');
+      print('[FILTER API GET] Pagination: Page $page, Limit $limit per page');
+      print('[FILTER API GET] Filter Details:');
+      print('[FILTER API GET]   - Location: ${filter.location}');
+      print('[FILTER API GET]   - Property Type: ${filter.propertyType}');
+      print('[FILTER API GET]   - Min Price: ${filter.minPrice}');
+      print('[FILTER API GET]   - Max Price: ${filter.maxPrice}');
+      print('[FILTER API GET]   - Bedrooms: ${filter.bedrooms}');
+      print('[FILTER API GET]   - Min Area: ${filter.minArea}');
+      print('[FILTER API GET]   - Max Area: ${filter.maxArea}');
+      print('[FILTER API GET]   - Active Filters: ${filter.activeFiltersCount}');
+      print('[FILTER API GET] All Query Parameters: $queryParams');
+      print('===========================================');
 
       // Make API request
       final response = await http
@@ -265,11 +311,23 @@ class SearchRepository {
         print('[FILTER API GET] Error: ${response.body}');
         try {
           final errorData = json.decode(response.body);
-          final errorMessage =
-              errorData['message'] ??
-              'Failed to filter units: ${response.statusCode}';
+
+          // Check for subscription requirement
+          if (errorData['subscription_required'] == true) {
+            print('[FILTER API GET] Subscription required error detected');
+          }
+
+          // Use localized error message based on current language
+          final errorMessage = currentLang == 'en'
+              ? (errorData['message_en'] ?? errorData['message'] ?? 'Failed to filter units: ${response.statusCode}')
+              : (errorData['message'] ?? errorData['message_en'] ?? 'Failed to filter units: ${response.statusCode}');
+
+          print('[FILTER API GET] Error message to display: $errorMessage');
           throw Exception(errorMessage);
         } catch (e) {
+          if (e is Exception && e.toString().contains('Exception:')) {
+            rethrow; // Re-throw our custom exception
+          }
           throw Exception('Failed to filter units: ${response.statusCode}');
         }
       }
@@ -297,8 +355,21 @@ class SearchRepository {
 
       final uri = Uri.parse('$baseUrl/filter-units');
 
-      print('[FILTER API POST] Posting to: $uri');
-      print('[FILTER API POST] Body: $body');
+      print('===========================================');
+      print('[FILTER API POST] Endpoint: POST /api/filter-units');
+      print('[FILTER API POST] Full URL: $uri');
+      print('[FILTER API POST] Language: $currentLang');
+      print('[FILTER API POST] Filter Details:');
+      print('[FILTER API POST]   - Location: ${filter.location}');
+      print('[FILTER API POST]   - Property Type: ${filter.propertyType}');
+      print('[FILTER API POST]   - Min Price: ${filter.minPrice}');
+      print('[FILTER API POST]   - Max Price: ${filter.maxPrice}');
+      print('[FILTER API POST]   - Bedrooms: ${filter.bedrooms}');
+      print('[FILTER API POST]   - Min Area: ${filter.minArea}');
+      print('[FILTER API POST]   - Max Area: ${filter.maxArea}');
+      print('[FILTER API POST]   - Active Filters: ${filter.activeFiltersCount}');
+      print('[FILTER API POST] Request Body: $body');
+      print('===========================================');
 
       // Make API request
       final response = await http
@@ -333,11 +404,23 @@ class SearchRepository {
         print('[FILTER API POST] Error: ${response.body}');
         try {
           final errorData = json.decode(response.body);
-          final errorMessage =
-              errorData['message'] ??
-              'Failed to filter units: ${response.statusCode}';
+
+          // Check for subscription requirement
+          if (errorData['subscription_required'] == true) {
+            print('[FILTER API POST] Subscription required error detected');
+          }
+
+          // Use localized error message based on current language
+          final errorMessage = currentLang == 'en'
+              ? (errorData['message_en'] ?? errorData['message'] ?? 'Failed to filter units: ${response.statusCode}')
+              : (errorData['message'] ?? errorData['message_en'] ?? 'Failed to filter units: ${response.statusCode}');
+
+          print('[FILTER API POST] Error message to display: $errorMessage');
           throw Exception(errorMessage);
         } catch (e) {
+          if (e is Exception && e.toString().contains('Exception:')) {
+            rethrow; // Re-throw our custom exception
+          }
           throw Exception('Failed to filter units: ${response.statusCode}');
         }
       }

@@ -31,6 +31,17 @@ class Compound extends Equatable {
   final String availableUnits;
   final List<Sales> sales;
 
+  // Favorite fields
+  final int? favoriteId;
+  final String? notes;
+  final int? noteId; // ID of the note in the notes table
+
+  // Update tracking fields
+  final int updatedUnitsCount;
+  final String? latestUpdateNote;
+  final String? latestUpdateTitle;
+  final String? latestUpdateDate;
+
   Compound({
     required this.id,
     required this.companyId,
@@ -60,6 +71,15 @@ class Compound extends Equatable {
     required this.soldUnits,
     required this.availableUnits,
     required this.sales ,
+    // Favorite fields
+    this.favoriteId,
+    this.notes,
+    this.noteId,
+    // Update tracking fields
+    this.updatedUnitsCount = 0,
+    this.latestUpdateNote,
+    this.latestUpdateTitle,
+    this.latestUpdateDate,
   });
 
   factory Compound.fromJson(Map<String, dynamic> json) {
@@ -122,6 +142,15 @@ class Compound extends Equatable {
       soldUnits: json['sold_units']?.toString() ?? '0',
       availableUnits: json['available_units']?.toString() ?? '0',
       sales: salesList,
+      // Favorite fields
+      favoriteId: json['favorite_id'] as int?,
+      notes: json['notes']?.toString(),
+      noteId: json['note_id'] as int?,
+      // Update tracking fields
+      updatedUnitsCount: json['updated_units_count'] as int? ?? 0,
+      latestUpdateNote: json['latest_update_note']?.toString(),
+      latestUpdateTitle: json['latest_update_title']?.toString(),
+      latestUpdateDate: json['latest_update_date']?.toString(),
     );
   }
 
@@ -156,6 +185,14 @@ class Compound extends Equatable {
       'sold_units': soldUnits,
       'available_units': availableUnits,
       'sales': sales.map((sale) => sale.toJson()).toList(),
+      // Favorite fields
+      'favorite_id': favoriteId,
+      'notes': notes,
+      // Update tracking fields
+      'updated_units_count': updatedUnitsCount,
+      'latest_update_note': latestUpdateNote,
+      'latest_update_title': latestUpdateTitle,
+      'latest_update_date': latestUpdateDate,
     };
   }
 
@@ -189,6 +226,15 @@ class Compound extends Equatable {
         soldUnits,
         availableUnits,
         sales,
+        // Favorite fields
+        favoriteId,
+        notes,
+        noteId,
+        // Update tracking fields
+        updatedUnitsCount,
+        latestUpdateNote,
+        latestUpdateTitle,
+        latestUpdateDate,
       ];
 
   @override

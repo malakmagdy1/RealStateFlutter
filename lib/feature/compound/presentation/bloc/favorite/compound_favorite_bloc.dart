@@ -100,8 +100,13 @@ class CompoundFavoriteBloc extends Bloc<CompoundFavoriteEvent, CompoundFavoriteS
               // Check if this is a compound favorite (compound_id is not null)
               if (fav['compound_id'] != null && fav['compound'] != null) {
                 print('[CompoundFavoriteBloc] Found compound favorite: ${fav['compound_id']}');
-                // Structure: {id, user_id, compound_id, compound: {...}}
-                apiCompounds.add(Compound.fromJson(fav['compound'] as Map<String, dynamic>));
+                // Structure: {id, user_id, compound_id, notes, compound: {...}}
+                final compoundData = Map<String, dynamic>.from(fav['compound'] as Map<String, dynamic>);
+                // Add favorite-specific fields
+                compoundData['favorite_id'] = fav['id'];
+                compoundData['notes'] = fav['notes'];
+                compoundData['note_id'] = fav['note_id']; // Add note_id from favorites
+                apiCompounds.add(Compound.fromJson(compoundData));
               } else if (fav['unit_id'] != null) {
                 print('[CompoundFavoriteBloc] Skipping unit favorite: ${fav['unit_id']}');
               }

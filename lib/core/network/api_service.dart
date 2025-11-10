@@ -8,6 +8,8 @@ import 'package:real/feature/compound/data/web_services/compound_web_services.da
 import 'package:real/feature/compound/data/web_services/unit_web_services.dart';
 import 'package:real/feature/sale/data/repositories/sale_repository.dart';
 import 'package:real/feature/sale/data/services/sale_web_services.dart';
+import 'package:real/feature/subscription/data/repositories/subscription_repository.dart';
+import 'package:real/feature/subscription/data/web_services/subscription_web_services.dart';
 
 class ApiService {
   late final AuthWebServices authWebServices;
@@ -20,6 +22,8 @@ class ApiService {
   late final UnitRepository unitRepository;
   late final SaleWebServices saleWebServices;
   late final SaleRepository saleRepository;
+  late final SubscriptionWebServices subscriptionWebServices;
+  late final SubscriptionRepository subscriptionRepository;
 
   ApiService() {
     authWebServices = AuthWebServices();
@@ -36,5 +40,9 @@ class ApiService {
     unitRepository = UnitRepository(webServices: unitWebServices);
     saleWebServices = SaleWebServices();
     saleRepository = SaleRepository(webServices: saleWebServices);
+    subscriptionWebServices = SubscriptionWebServices();
+    subscriptionRepository = SubscriptionRepository(
+      webServices: subscriptionWebServices,
+    );
   }
 }

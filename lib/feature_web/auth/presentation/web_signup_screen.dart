@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
-import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/utils/validators.dart';
 import 'package:real/core/utils/constant.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/feature/auth/data/models/register_request.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/feature/auth/presentation/bloc/register_bloc.dart';
@@ -11,10 +11,6 @@ import 'package:real/feature/auth/presentation/bloc/register_event.dart';
 import 'package:real/feature/auth/presentation/bloc/register_state.dart';
 import 'package:real/feature/auth/presentation/screen/email_verification_screen.dart';
 import 'package:real/feature_web/auth/presentation/web_login_screen.dart';
-
-import '../../../../core/widget/button/authButton.dart';
-import '../../../../feature/auth/presentation/widget/authToggle.dart';
-import '../../../../feature/auth/presentation/widget/textFormField.dart';
 
 class WebSignUpScreen extends StatefulWidget {
   static String routeName = '/web-signup';
@@ -112,12 +108,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
               print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
             }
 
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.response.message),
-                backgroundColor: Colors.green,
-              ),
-            );
+            MessageHelper.showSuccess(context, state.response.message);
 
             // Navigate to email verification screen after successful registration
             Navigator.pushReplacement(
@@ -129,12 +120,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
               ),
             );
           } else if (state is RegisterError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            MessageHelper.showError(context, state.message);
           }
         },
         child: Center(

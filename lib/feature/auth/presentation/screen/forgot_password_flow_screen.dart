@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/utils/validators.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/core/widget/button/authButton.dart';
 import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
 import 'package:real/feature/auth/data/models/forgot_password_step1_request.dart';
@@ -100,20 +101,10 @@ class _ForgotPasswordFlowScreenState extends State<ForgotPasswordFlowScreen> {
         setState(() {
           currentStep = 1;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response.message),
-            backgroundColor: Colors.green,
-          ),
-        );
+        MessageHelper.showSuccess(context, response.message);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      MessageHelper.showError(context, e.toString().replaceAll('Exception: ', ''));
     } finally {
       setState(() {
         isLoading = false;
@@ -124,12 +115,7 @@ class _ForgotPasswordFlowScreenState extends State<ForgotPasswordFlowScreen> {
   Future<void> _submitStep2() async {
     final code = codeControllers.map((c) => c.text).join();
     if (code.length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter the complete 6-digit code'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      MessageHelper.showError(context, 'Please enter the complete 6-digit code');
       return;
     }
 
@@ -155,20 +141,10 @@ class _ForgotPasswordFlowScreenState extends State<ForgotPasswordFlowScreen> {
         setState(() {
           currentStep = 2;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response.message),
-            backgroundColor: Colors.green,
-          ),
-        );
+        MessageHelper.showSuccess(context, response.message);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      MessageHelper.showError(context, e.toString().replaceAll('Exception: ', ''));
     } finally {
       setState(() {
         isLoading = false;
@@ -176,7 +152,7 @@ class _ForgotPasswordFlowScreenState extends State<ForgotPasswordFlowScreen> {
     }
   }
 
-  Future<void> _submitStep3() async {
+  Future<void> _submitStep3() async{
     if (!step3FormKey.currentState!.validate()) return;
 
     setState(() {
@@ -196,23 +172,13 @@ class _ForgotPasswordFlowScreenState extends State<ForgotPasswordFlowScreen> {
         // Auto-login: Save token
         await CasheNetwork.insertToCashe(key: 'token', value: response.token!);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(response.message),
-            backgroundColor: Colors.green,
-          ),
-        );
+        MessageHelper.showSuccess(context, response.message);
 
         // Navigate to login or home screen
         Navigator.pushReplacementNamed(context, LoginScreen.routeName);
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      MessageHelper.showError(context, e.toString().replaceAll('Exception: ', ''));
     } finally {
       setState(() {
         isLoading = false;
@@ -239,20 +205,10 @@ class _ForgotPasswordFlowScreenState extends State<ForgotPasswordFlowScreen> {
         }
         codeFocusNodes[0].requestFocus();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Verification code sent successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        MessageHelper.showSuccess(context, 'Verification code sent successfully');
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString().replaceAll('Exception: ', '')),
-          backgroundColor: Colors.red,
-        ),
-      );
+      MessageHelper.showError(context, e.toString().replaceAll('Exception: ', ''));
     } finally {
       setState(() {
         isLoading = false;

@@ -309,6 +309,48 @@ class CompoundWebServices {
     }
   }
 
+  // Get units updated in last 24 hours with activity log
+  Future<Map<String, dynamic>> getUpdated24Hours({int hours = 24, int limit = 20}) async {
+    try {
+      final authToken = token ?? '';
+      final currentLang = LanguageService.currentLanguage;
+
+      print('[API] Fetching units updated in last $hours hours');
+      Response response = await dio.get(
+        '/units/updated',
+        queryParameters: {
+          'hours': hours,
+          'limit': limit,
+          'lang': currentLang,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $authToken'}),
+      );
+      print('[API] Updated Units Response: ${response.statusCode}');
+      print('[API] Units found: ${response.data['data']?['units']?.length ?? 0}');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('[API] Get Updated 24h DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('[API] Get Updated 24h Error: ${e.toString()}');
+      throw Exception('Failed to fetch updated units: $e');
+    }
+  }
+
   // Get recently updated units
   Future<Map<String, dynamic>> getRecentlyUpdated({int limit = 10}) async {
     try {

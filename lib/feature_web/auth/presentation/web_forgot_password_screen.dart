@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/validators.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
 import 'package:real/feature/auth/data/models/forgot_password_step1_request.dart';
 import 'package:real/feature/auth/data/models/verify_reset_code_request.dart';
@@ -158,7 +160,7 @@ class _WebForgotPasswordScreenState extends State<WebForgotPasswordScreen> {
 
         // Navigate back to login
         Future.delayed(const Duration(seconds: 2), () {
-          Navigator.pop(context);
+          context.pop();
         });
       }
     } catch (e) {
@@ -201,14 +203,11 @@ class _WebForgotPasswordScreenState extends State<WebForgotPasswordScreen> {
   }
 
   void _showSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(20),
-      ),
-    );
+    if (color == Colors.green) {
+      MessageHelper.showSuccess(context, message);
+    } else {
+      MessageHelper.showError(context, message);
+    }
   }
 
   @override
@@ -362,7 +361,7 @@ class _WebForgotPasswordScreenState extends State<WebForgotPasswordScreen> {
           ),
           const SizedBox(height: 16),
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => context.pop(),
             child: const Text('Back to Login'),
           ),
         ],

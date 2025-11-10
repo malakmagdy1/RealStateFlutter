@@ -6,6 +6,7 @@ import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/constant.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/utils/validators.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/feature/auth/data/models/login_request.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/feature/auth/presentation/bloc/login_bloc.dart';
@@ -137,13 +138,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
           // Check 1: Only buyers allowed
           if (user.role.toLowerCase() != 'buyer') {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Access denied. Only buyers can access this app.'),
-                backgroundColor: Colors.red,
-                duration: Duration(seconds: 5),
-              ),
-            );
+            MessageHelper.showError(context, 'Access denied. Only buyers can access this app.');
             await CasheNetwork.deletecasheItem(key: "token");
             await CasheNetwork.deletecasheItem(key: "user_id");
             token = null;
@@ -153,12 +148,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
           // Check 2: User must be verified
           if (!user.isVerified) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Please verify your email address to continue.'),
-                backgroundColor: Colors.orange,
-                duration: Duration(seconds: 5),
-              ),
+            MessageHelper.showMessage(
+              context: context,
+              message: 'Please verify your email address to continue.',
+              isSuccess: false,
             );
             await CasheNetwork.deletecasheItem(key: "token");
             await CasheNetwork.deletecasheItem(key: "user_id");
@@ -264,26 +257,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             ),
           );
 
-          // Also show SnackBar for quick reference
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Backend authentication failed - see error dialog'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 5),
-            ),
-          );
+          // Also show error message for quick reference
+          MessageHelper.showError(context, 'Backend authentication failed - see error dialog');
         }
       }
     } catch (error) {
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
       print('GOOGLE SIGN-IN ERROR: $error');
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Sign-in error: $error'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      MessageHelper.showError(context, 'Sign-in error: $error');
     }
   }
 
@@ -309,13 +291,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     print('Token AFTER clearing: $tokenAfter');
     print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Token cleared! STOP the app completely and start again.'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 5),
-      ),
-    );
+    MessageHelper.showSuccess(context, 'Token cleared! STOP the app completely and start again.');
   }
 
   // Check subscription status after login
@@ -348,104 +324,309 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
           if (state is SubscriptionStatusLoaded) {
             final status = state.status;
-            return AlertDialog(
+            return Dialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(24),
               ),
-              title: Row(
-                children: [
-                  Icon(
-                    status.hasActiveSubscription ? Icons.check_circle : Icons.info_outline,
-                    color: status.hasActiveSubscription ? Colors.green : AppColors.mainColor,
+              child: Container(
+                constraints: BoxConstraints(maxWidth: 400),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: status.hasActiveSubscription
+                        ? [
+                            AppColors.mainColor,
+                            AppColors.mainColor.withOpacity(0.8),
+                          ]
+                        : [
+                            Colors.grey[800]!,
+                            Colors.grey[700]!,
+                          ],
                   ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      status.hasActiveSubscription ? 'Active Subscription' : 'Choose Your Plan',
-                      style: TextStyle(fontSize: 20),
-                    ),
-                  ),
-                ],
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (status.hasActiveSubscription) ...[
-                    Text(
-                      'Plan: ${status.planName ?? "N/A"}',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    SizedBox(height: 8),
-                    Container(
-                      padding: EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[50],
-                        borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Stack(
+                  children: [
+                    // Background pattern
+                    Positioned(
+                      right: -30,
+                      top: -30,
+                      child: Icon(
+                        Icons.stars_rounded,
+                        size: 150,
+                        color: Colors.white.withOpacity(0.1),
                       ),
-                      child: Row(
+                    ),
+
+                    // Content
+                    Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.search, color: AppColors.mainColor),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              status.isUnlimited
-                                  ? 'Unlimited searches'
-                                  : 'Searches: ${status.searchesUsed}/${status.searchesAllowed}',
-                              style: TextStyle(fontWeight: FontWeight.w600),
+                          // Icon
+                          Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              shape: BoxShape.circle,
                             ),
+                            child: Icon(
+                              status.hasActiveSubscription
+                                  ? Icons.workspace_premium
+                                  : Icons.rocket_launch,
+                              size: 40,
+                              color: Colors.white,
+                            ),
+                          ),
+
+                          SizedBox(height: 20),
+
+                          // Status badge
+                          if (status.hasActiveSubscription)
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.2),
+                                    blurRadius: 8,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.check_circle, color: Colors.white, size: 16),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'ACTIVE',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                          SizedBox(height: 16),
+
+                          // Title
+                          Text(
+                            status.hasActiveSubscription
+                                ? 'Welcome Back!'
+                                : 'Unlock Premium Features',
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              height: 1.2,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+
+                          SizedBox(height: 12),
+
+                          // Subtitle/Description
+                          if (status.hasActiveSubscription) ...[
+                            Text(
+                              status.planNameEn ?? status.planName ?? 'Premium Plan',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white.withOpacity(0.95),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 20),
+
+                            // Search usage info
+                            Container(
+                              padding: EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.search_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Search Access',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.white.withOpacity(0.8),
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          status.isUnlimited
+                                              ? 'Unlimited Searches'
+                                              : '${status.searchesUsed}/${status.searchesAllowed} Used',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (status.isUnlimited)
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.amber[600],
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        Icons.all_inclusive,
+                                        color: Colors.white,
+                                        size: 18,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ] else ...[
+                            Text(
+                              'Get unlimited searches and access to exclusive property listings',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.white.withOpacity(0.9),
+                                height: 1.5,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 20),
+
+                            // Features list
+                            ...[
+                              'Unlimited property searches',
+                              'Advanced filters & sorting',
+                              'Priority customer support',
+                              'Exclusive premium listings',
+                            ].map((feature) => Padding(
+                              padding: EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Colors.green[300],
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      feature,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.white.withOpacity(0.95),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            )),
+                          ],
+
+                          SizedBox(height: 24),
+
+                          // Buttons
+                          Column(
+                            children: [
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: () async {
+                                    Navigator.of(dialogContext).pop();
+                                    if (!status.hasActiveSubscription) {
+                                      await Navigator.pushNamed(
+                                        context,
+                                        SubscriptionPlansScreen.routeName,
+                                      );
+                                    }
+                                    Navigator.pushReplacementNamed(context, CustomNav.routeName);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: status.hasActiveSubscription
+                                        ? AppColors.mainColor
+                                        : Colors.grey[800],
+                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        status.hasActiveSubscription
+                                            ? Icons.arrow_forward
+                                            : Icons.star,
+                                        size: 20,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        status.hasActiveSubscription
+                                            ? 'Continue to App'
+                                            : 'View Plans',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              SizedBox(height: 12),
+
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.of(dialogContext).pop();
+                                  Navigator.pushReplacementNamed(context, CustomNav.routeName);
+                                },
+                                child: Text(
+                                  status.hasActiveSubscription ? 'View My Plan' : 'Maybe Later',
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
-                  ] else ...[
-                    Text(
-                      'You don\'t have an active subscription yet. Choose a plan to unlock unlimited searches and premium features!',
-                      style: TextStyle(fontSize: 15, height: 1.4),
-                    ),
                   ],
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(dialogContext).pop();
-                    Navigator.pushReplacementNamed(context, CustomNav.routeName);
-                  },
-                  child: Text(status.hasActiveSubscription ? 'Continue' : 'Maybe Later'),
                 ),
-                if (!status.hasActiveSubscription)
-                  ElevatedButton(
-                    onPressed: () async {
-                      Navigator.of(dialogContext).pop();
-                      final result = await Navigator.pushNamed(
-                        context,
-                        SubscriptionPlansScreen.routeName,
-                      );
-                      // Navigate to home after subscription selection
-                      Navigator.pushReplacementNamed(context, CustomNav.routeName);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.mainColor,
-                    ),
-                    child: Text('View Plans'),
-                  )
-                else
-                  ElevatedButton(
-                    onPressed: () async {
-                      Navigator.of(dialogContext).pop();
-                      await Navigator.pushNamed(
-                        context,
-                        SubscriptionPlansScreen.routeName,
-                      );
-                      Navigator.pushReplacementNamed(context, CustomNav.routeName);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.mainColor,
-                    ),
-                    child: Text('Upgrade Plan'),
-                  ),
-              ],
+              ),
             );
           }
 
@@ -515,13 +696,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
             // Check 1: Only buyers allowed
             if (user.role.toLowerCase() != 'buyer') {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Access denied. Only buyers can access this app.'),
-                  backgroundColor: Colors.red,
-                  duration: Duration(seconds: 5),
-                ),
-              );
+              MessageHelper.showError(context, 'Access denied. Only buyers can access this app.');
               // Clear token and logout
               CasheNetwork.deletecasheItem(key: "token");
               CasheNetwork.deletecasheItem(key: "user_id");
@@ -532,12 +707,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
             // Check 2: User must be verified
             if (!user.isVerified) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Please verify your email address to continue.'),
-                  backgroundColor: Colors.orange,
-                  duration: Duration(seconds: 5),
-                ),
+              MessageHelper.showMessage(
+                context: context,
+                message: 'Please verify your email address to continue.',
+                isSuccess: false,
               );
               // Clear token and logout
               CasheNetwork.deletecasheItem(key: "token");
@@ -583,12 +756,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             }
 
             // All checks passed - proceed with login
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.response.message),
-                backgroundColor: Colors.green,
-              ),
-            );
+            MessageHelper.showSuccess(context, state.response.message);
             // Refresh user data with new token
             context.read<UserBloc>().add(RefreshUserEvent());
 
@@ -599,12 +767,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             // Check subscription status after login
             _checkSubscriptionStatus(context);
           } else if (state is LoginError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: Colors.red,
-              ),
-            );
+            MessageHelper.showError(context, state.message);
           }
         },
         child: SingleChildScrollView(
@@ -618,7 +781,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   child: Column(
                     children: [
                   SizedBox(height: 40),
-                  CustomText24("Welcome Back", color: AppColors.black, bold: true),
+                  Text(
+                    "Welcome Back",
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
               SizedBox(height: 20),
               AuthToggle(
                 isSignUp: false,

@@ -1,39 +1,220 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
+import 'package:real/feature/company/data/web_services/company_web_services.dart';
 import 'package:real/l10n/app_localizations.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../feature_web/widgets/web_compound_card.dart';
 import 'package:real/core/widget/robust_network_image.dart';
+import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sheet.dart';
+import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
+import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
+import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
 
-import '../../compound/presentation/web_compound_detail_screen.dart';
-
-class WebCompanyDetailScreen extends StatelessWidget {
+class WebCompanyDetailScreen extends StatefulWidget {
   static String routeName = '/web-company-detail';
-  final Company company;
+  final String companyId;
+  final Company? company;
 
-  WebCompanyDetailScreen({Key? key, required this.company}) : super(key: key);
+  WebCompanyDetailScreen({
+    Key? key,
+    required this.companyId,
+    this.company,
+  }) : super(key: key);
+
+  @override
+  State<WebCompanyDetailScreen> createState() => _WebCompanyDetailScreenState();
+}
+
+class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
+  final CompanyWebServices _companyWebServices = CompanyWebServices();
+  Company? _currentCompany;
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize company immediately if provided to prevent loading screen flash
+    if (widget.company != null) {
+      _currentCompany = widget.company;
+    }
+    _initializeCompany();
+  }
+
+  Future<void> _initializeCompany() async {
+    print('[WEB COMPANY DETAIL] Initializing company: ${widget.companyId}');
+    print('[WEB COMPANY DETAIL] Has company data: ${widget.company != null}');
+
+    if (widget.company != null) {
+      // Company data provided, already set in initState, just fetch compounds
+      print('[WEB COMPANY DETAIL] Using provided company data: ${widget.company!.name}');
+      _fetchCompounds();
+    } else {
+      // No company data, fetch from API
+      print('[WEB COMPANY DETAIL] Fetching company from API');
+      await _fetchCompany();
+    }
+  }
+
+  Future<void> _fetchCompany() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final companyData = await _companyWebServices.getCompanyById(widget.companyId);
+      final company = Company.fromJson(companyData);
+
+      setState(() {
+        _currentCompany = company;
+        _isLoading = false;
+      });
+
+      _fetchCompounds();
+    } catch (e) {
+      print('[WEB COMPANY DETAIL] Error fetching company: $e');
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
+      });
+    }
+  }
+
+  void _fetchCompounds() {
+    if (_currentCompany != null) {
+      context.read<CompoundBloc>().add(
+        FetchCompoundsByCompanyEvent(companyId: _currentCompany!.id),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+
+    // Show loading state
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Color(0xFFF8F9FA),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 1,
+          automaticallyImplyLeading: false,
+          title: Text(
+            'Loading...',
+            style: TextStyle(
+              color: AppColors.mainColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.mainColor),
+        ),
+      );
+    }
+
+    // Show error state
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: Color(0xFFF8F9FA),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 1,
+          automaticallyImplyLeading: false,
+          title: Text(
+            'Error',
+            style: TextStyle(
+              color: AppColors.mainColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error_outline, size: 64, color: Colors.red),
+              SizedBox(height: 16),
+              Text(
+                _errorMessage!,
+                style: TextStyle(color: Colors.red, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _fetchCompany,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.mainColor,
+                ),
+                child: Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // Company not loaded yet
+    if (_currentCompany == null) {
+      return Scaffold(
+        backgroundColor: Color(0xFFF8F9FA),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.mainColor),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Color(0xFFF8F9FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.mainColor),
-          onPressed: () => Navigator.pop(context),
-        ),
+        automaticallyImplyLeading: false, // Remove back button on web
         title: Text(
-          company.name,
+          _currentCompany!.name,
           style: TextStyle(
             color: AppColors.mainColor,
             fontWeight: FontWeight.w600,
           ),
         ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.share, color: AppColors.mainColor),
+            onPressed: () async {
+              // Fetch compounds for this company to pass to advanced share
+              final compoundState = context.read<CompoundBloc>().state;
+              List<Map<String, dynamic>>? compounds;
+
+              if (compoundState is CompoundSuccess) {
+                compounds = compoundState.response.data.map((compound) {
+                  return {
+                    'id': compound.id,
+                    'project': compound.project,
+                    'location': compound.location,
+                    'totalUnits': compound.totalUnits,
+                  };
+                }).toList();
+              }
+
+              if (context.mounted) {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (context) => AdvancedShareBottomSheet(
+                    type: 'company',
+                    id: _currentCompany!.id.toString(),
+                    compounds: compounds,
+                  ),
+                );
+              }
+            },
+          ),
+          SizedBox(width: 8),
+        ],
       ),
       body: SingleChildScrollView(
         child: Center(
@@ -50,11 +231,14 @@ class WebCompanyDetailScreen extends StatelessWidget {
                   SizedBox(height: 48),
                   _buildContactInfo(l10n),
                   SizedBox(height: 48),
-                  if (company.sales.isNotEmpty) ...[
+                  _buildCompoundsSection(l10n),
+                  SizedBox(height: 48),
+
+
+                  if (_currentCompany!.sales.isNotEmpty) ...[
                     _buildSalespeopleSection(l10n),
                     SizedBox(height: 48),
                   ],
-                  if (company.compounds.isNotEmpty) _buildCompoundsSection(l10n),
                 ],
               ),
             ),
@@ -81,7 +265,7 @@ class WebCompanyDetailScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (company.logo != null)
+          if (_currentCompany!.logo != null)
             Container(
               width: 140,
               height: 140,
@@ -99,7 +283,7 @@ class WebCompanyDetailScreen extends StatelessWidget {
               ),
               padding: EdgeInsets.all(20),
               child: RobustNetworkImage(
-                imageUrl: company.logo!,
+                imageUrl: _currentCompany!.logo!,
                 width: 100,
                 height: 100,
                 fit: BoxFit.contain,
@@ -127,7 +311,7 @@ class WebCompanyDetailScreen extends StatelessWidget {
               ),
               child: Center(
                 child: Text(
-                  company.name[0].toUpperCase(),
+                  _currentCompany!.name[0].toUpperCase(),
                   style: TextStyle(
                     fontSize: 56,
                     fontWeight: FontWeight.w700,
@@ -159,7 +343,7 @@ class WebCompanyDetailScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 12),
                 Text(
-                  company.name,
+                  _currentCompany!.name,
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w700,
@@ -183,7 +367,7 @@ class WebCompanyDetailScreen extends StatelessWidget {
                     ),
                     SizedBox(width: 12),
                     Text(
-                      company.email,
+                      _currentCompany!.email,
                       style: TextStyle(
                         fontSize: 16,
                         color: Color(0xFF666666),
@@ -206,7 +390,7 @@ class WebCompanyDetailScreen extends StatelessWidget {
         Expanded(
           child: _buildStatCard(
             Icons.apartment,
-            company.numberOfCompounds,
+            _currentCompany!.numberOfCompounds,
             l10n.compounds ?? 'Compounds',
             AppColors.mainColor,
           ),
@@ -215,7 +399,7 @@ class WebCompanyDetailScreen extends StatelessWidget {
         Expanded(
           child: _buildStatCard(
             Icons.home_outlined,
-            company.numberOfAvailableUnits,
+            _currentCompany!.numberOfAvailableUnits,
             'Available Units',
             Color(0xFF4CAF50),
           ),
@@ -224,7 +408,7 @@ class WebCompanyDetailScreen extends StatelessWidget {
         Expanded(
           child: _buildStatCard(
             Icons.people_outline,
-            company.salesCount.toString(),
+            _currentCompany!.salesCount.toString(),
             'Sales Team',
             Color(0xFFFF9800),
           ),
@@ -326,7 +510,7 @@ class WebCompanyDetailScreen extends StatelessWidget {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      company.email,
+                      _currentCompany!.email,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -419,9 +603,9 @@ class WebCompanyDetailScreen extends StatelessWidget {
             crossAxisSpacing: 20,
             mainAxisSpacing: 20,
           ),
-          itemCount: company.sales.length,
+          itemCount: _currentCompany!.sales.length,
           itemBuilder: (context, index) {
-            final sales = company.sales[index];
+            final sales = _currentCompany!.sales[index];
             return Container(
               padding: EdgeInsets.all(24),
               decoration: BoxDecoration(
@@ -523,156 +707,203 @@ class WebCompanyDetailScreen extends StatelessWidget {
   }
 
   Widget _buildCompoundsSection(AppLocalizations l10n) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
-            SizedBox(width: 12),
-            Text(
-              'Our Projects',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF333333),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 24),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 1.1,
-            crossAxisSpacing: 24,
-            mainAxisSpacing: 24,
-          ),
-          itemCount: company.compounds.length,
-          itemBuilder: (context, index) {
-            final compoundData = company.compounds[index];
-            return Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => WebCompoundDetailScreen(compoundId: compoundData.id),
+    return BlocBuilder<CompoundBloc, CompoundState>(
+      builder: (context, state) {
+        if (state is CompoundLoading) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
+                  SizedBox(width: 12),
+                  Text(
+                    'Our Projects',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF333333),
                     ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(16),
-                hoverColor: AppColors.mainColor.withOpacity(0.03),
-                child: Container(
+                  ),
+                ],
+              ),
+              SizedBox(height: 24),
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.all(40),
+                  child: CircularProgressIndicator(color: AppColors.mainColor),
+                ),
+              ),
+            ],
+          );
+        }
+
+        if (state is CompoundError) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
+                  SizedBox(width: 12),
+                  Text(
+                    'Our Projects',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 24),
+              Container(
+                padding: EdgeInsets.all(40),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 15,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        size: 64,
+                        color: Colors.red,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        state.message,
+                        style: TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
+                      SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: () {
+                          context.read<CompoundBloc>().add(
+                            FetchCompoundsByCompanyEvent(companyId: _currentCompany!.id),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.mainColor,
+                        ),
+                        child: Text('Retry'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        if (state is CompoundSuccess) {
+          if (state.response.data.isEmpty) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
+                    SizedBox(width: 12),
+                    Text(
+                      'Our Projects',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF333333),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 24),
+                Container(
+                  padding: EdgeInsets.all(40),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
+                        color: Colors.black.withOpacity(0.05),
                         blurRadius: 15,
                         offset: Offset(0, 3),
                       ),
                     ],
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (compoundData.images.isNotEmpty)
-                    Stack(
-                      children: [
-                        RobustNetworkImage(
-                          imageUrl: compoundData.images.first,
-                          height: 140,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, url) => Container(
-                            height: 140,
-                            color: Color(0xFFF8F9FA),
-                            child: Center(
-                              child: Icon(
-                                Icons.apartment,
-                                size: 50,
-                                color: AppColors.mainColor.withOpacity(0.3),
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.mainColor,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              compoundData.status.toUpperCase(),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  Padding(
-                    padding: EdgeInsets.all(16),
+                  child: Center(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          compoundData.project,
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF333333),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        Icon(
+                          Icons.apartment,
+                          size: 64,
+                          color: AppColors.greyText,
                         ),
-                        SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              size: 18,
-                              color: AppColors.mainColor,
-                            ),
-                            SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                compoundData.location,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Color(0xFF666666),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                        SizedBox(height: 16),
+                        Text(
+                          l10n.noCompoundsAvailable,
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: AppColors.greyText,
+                          ),
                         ),
                       ],
                     ),
                   ),
+                ),
+              ],
+            );
+          }
+
+          final compounds = state.response.data;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
+                  SizedBox(width: 12),
+                  Text(
+                    'Our Projects',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
                 ],
               ),
+              SizedBox(height: 24),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 1.1,
+                  crossAxisSpacing: 24,
+                  mainAxisSpacing: 24,
                 ),
+                itemCount: compounds.length,
+                itemBuilder: (context, index) {
+                  final compound = compounds[index];
+                  return WebCompoundCard(compound: compound);
+                },
               ),
-            );
-          },
-        ),
-      ],
+            ],
+          );
+        }
+
+        return SizedBox.shrink();
+      },
     );
   }
 }

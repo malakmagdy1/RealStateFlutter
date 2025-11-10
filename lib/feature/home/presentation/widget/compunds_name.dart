@@ -4,24 +4,72 @@ import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_state.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_event.dart';
 import 'package:real/feature/home/presentation/widget/location.dart';
 import 'package:real/feature/compound/data/web_services/compound_web_services.dart';
 import 'package:real/feature/company/data/web_services/company_web_services.dart';
 import 'package:real/feature/sale/data/models/sale_model.dart';
 import 'package:real/feature/sale/presentation/widgets/sales_person_selector.dart';
-import 'package:real/feature/share/presentation/widgets/share_bottom_sheet.dart';
+import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sheet.dart';
 import 'package:real/l10n/app_localizations.dart';
+import 'package:real/core/animations/hover_scale_animation.dart';
+import 'package:real/core/animations/pulse_animation.dart';
+import 'package:real/core/widgets/note_dialog.dart';
+import 'package:real/feature/compound/data/web_services/favorites_web_services.dart';
+import 'package:real/core/utils/message_helper.dart';
+import 'package:real/core/utils/card_dimensions.dart';
 
 import '../../../../core/utils/colors.dart';
 import '../../../../core/utils/text_style.dart';
 import '../CompoundScreen.dart';
 
-class CompoundsName extends StatelessWidget {
+class CompoundsName extends StatefulWidget {
   final Compound compound;
   final VoidCallback? onTap;
+  final String? heroTagSuffix;
+  final bool showRecommendedBadge;
 
-  CompoundsName({Key? key, required this.compound, this.onTap})
-    : super(key: key);
+  CompoundsName({
+    Key? key,
+    required this.compound,
+    this.onTap,
+    this.heroTagSuffix,
+    this.showRecommendedBadge = false,
+  }) : super(key: key);
+
+  @override
+  State<CompoundsName> createState() => _CompoundsNameState();
+}
+
+class _CompoundsNameState extends State<CompoundsName> {
+  bool _animateFavorite = false;
+  bool _animateShare = false;
+  String? _currentNote;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentNote = widget.compound.notes;
+  }
+
+  @override
+  void didUpdateWidget(CompoundsName oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Update local note when widget is rebuilt with new data
+    print('[COMPOUNDS NAME] didUpdateWidget called');
+    print('[COMPOUNDS NAME] Old notes: ${oldWidget.compound.notes}');
+    print('[COMPOUNDS NAME] New notes: ${widget.compound.notes}');
+    print('[COMPOUNDS NAME] Old note_id: ${oldWidget.compound.noteId}');
+    print('[COMPOUNDS NAME] New note_id: ${widget.compound.noteId}');
+
+    if (widget.compound.notes != oldWidget.compound.notes ||
+        widget.compound.noteId != oldWidget.compound.noteId) {
+      setState(() {
+        _currentNote = widget.compound.notes;
+      });
+      print('[COMPOUNDS NAME] Updated _currentNote to: $_currentNote');
+    }
+  }
 
   String _formatDate(String dateStr) {
     try {
@@ -42,7 +90,7 @@ class CompoundsName extends StatelessWidget {
     final l10n = AppLocalizations.of(context)!;
 
     try {
-      final response = await compoundWebServices.getSalespeopleByCompound(compound.project);
+      final response = await compoundWebServices.getSalespeopleByCompound(widget.compound.project);
 
       if (response['success'] == true && response['salespeople'] != null) {
         final salespeople = (response['salespeople'] as List)
@@ -55,22 +103,16 @@ class CompoundsName extends StatelessWidget {
             salesPersons: salespeople,
           );
         } else if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(l10n.noSalesPersonAvailable),
-              backgroundColor: AppColors.mainColor,
-            ),
+          MessageHelper.showMessage(
+            context: context,
+            message: l10n.noSalesPersonAvailable,
+            isSuccess: true,
           );
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${l10n.error}: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        MessageHelper.showError(context, '${l10n.error}: $e');
       }
     }
   }
@@ -78,32 +120,57 @@ class CompoundsName extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Get the first image from the compound's images array
-    final bool hasImages = compound.images.isNotEmpty;
-    final String? displayImage = hasImages ? compound.images.first : null;
+    final bool hasImages = widget.compound.images.isNotEmpty;
+    final String? displayImage = hasImages ? widget.compound.images.first : null;
+
+    // Use responsive dimensions
+    final screenWidth = MediaQuery.of(context).size.width;
+    final double imageHeight = screenWidth * 0.30; // 30% of screen width for image (matches unit cards)
+    final double borderRadius = 16;
+    final double iconSize = 18.0; // Fixed icon size (matches unit cards)
+    final double buttonSize = 32.0; // Fixed button size (matches unit cards)
+    final double phoneButtonSize = 36.0; // Fixed size for phone button (matches unit cards)
+    final double fontSize = 10.0; // Fixed font size
+    final double titleFontSize = 16.0; // Fixed title font size
 
     // Debug company logo
     print('========================================');
-    print('[COMPOUND CARD] Compound: ${compound.project}');
-    print('[COMPOUND CARD] Company: ${compound.companyName}');
-    print('[COMPOUND CARD] Company Logo URL: ${compound.companyLogo ?? "NULL"}');
-    print('[COMPOUND CARD] Has Logo: ${compound.companyLogo != null && compound.companyLogo!.isNotEmpty}');
+    print('[COMPOUND CARD] Compound: ${widget.compound.project}');
+    print('[COMPOUND CARD] Company: ${widget.compound.companyName}');
+    print('[COMPOUND CARD] Company Logo URL: ${widget.compound.companyLogo ?? "NULL"}');
+    print('[COMPOUND CARD] Has Logo: ${widget.compound.companyLogo != null && widget.compound.companyLogo!.isNotEmpty}');
     print('========================================');
 
-    return InkWell(
-      onTap:
-          onTap ??
-          () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => CompoundScreen(compound: compound),
-              ),
-            );
-          },
-      child: Card(
+    return HoverScaleAnimation(
+      child: Hero(
+        tag: 'compound_${widget.compound.id}${widget.heroTagSuffix != null ? "_${widget.heroTagSuffix}" : ""}',
+        child: GestureDetector(
+          onTap:
+              widget.onTap ??
+              () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CompoundScreen(compound: widget.compound),
+                  ),
+                );
+              },
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+        // No fixed width/height - let parent GridView control sizing
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        elevation: 2,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(borderRadius),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              spreadRadius: 0,
+              offset: Offset(0, 8),
+            ),
+          ],
+        ),
         clipBehavior: Clip.antiAlias,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,206 +182,518 @@ class CompoundsName extends StatelessWidget {
                   RobustNetworkImage(
                     imageUrl: displayImage!,
                     width: double.infinity,
-                    height: 120,
+                    height: imageHeight,
                     fit: BoxFit.cover,
                     loadingBuilder: (context) => Container(
                       width: double.infinity,
-                      height: 120,
-                      color: AppColors.grey,
-                      child: Center(child: CircularProgressIndicator()),
+                      height: imageHeight,
+                      color: Colors.grey[200],
+                      child: Center(child: CircularProgressIndicator(color: AppColors.mainColor)),
                     ),
                     errorBuilder: (context, url) {
                       return Container(
                         width: double.infinity,
-                        height: 120,
-                        color: AppColors.grey,
+                        height: imageHeight,
+                        color: Colors.grey[200],
                         child: Icon(
                           Icons.image_not_supported,
-                          size: 30,
-                          color: AppColors.grey,
+                          size: imageHeight * 0.25,
+                          color: Colors.grey[400],
                         ),
                       );
                     },
                   ),
-                  // Status Badge
-                  Positioned(
-                    top: 4,
-                    right: 4,
-                    child: Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: compound.status == 'delivered'
-                            ? Colors.green
-                            : Colors.orange,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        compound.status.toUpperCase(),
-                        style: TextStyle(
-                          color: AppColors.white,
-                          fontSize: 9,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Favorite Button
-                  Positioned(
-                    top: 4,
-                    left: 4,
-                    child:
-                        BlocBuilder<
-                          CompoundFavoriteBloc,
-                          CompoundFavoriteState
-                        >(
-                          builder: (context, state) {
-                            final bloc = context.read<CompoundFavoriteBloc>();
-                            final isFavorite = bloc.isFavorite(compound);
 
-                            return GestureDetector(
-                              onTap: () => bloc.toggleFavorite(compound),
-                              child: Container(
-                                padding: EdgeInsets.all(4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.white.withOpacity(0.9),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  isFavorite
-                                      ? Icons.favorite
-                                      : Icons.favorite_border,
-                                  color: Colors.red,
-                                  size: 16,
+                  // Recommended Badge - Top Center
+                  if (widget.showRecommendedBadge)
+                    Positioned(
+                      top: 8,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.mainColor,
+                                AppColors.mainColor.withOpacity(0.8),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.mainColor.withOpacity(0.4),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.recommend,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'RECOMMENDED',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 10,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
-                            );
-                          },
-                        ),
-                  ),
-                  // Share Button
-                  Positioned(
-                    top: 4,
-                    left: 32,
-                    child: GestureDetector(
-                      onTap: () {
-                        showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          backgroundColor: Colors.transparent,
-                          builder: (context) => ShareBottomSheet(
-                            type: 'compound',
-                            id: compound.id.toString(),
+                            ],
                           ),
-                        );
-                      },
-                      child: Container(
-                        padding: EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: AppColors.white.withOpacity(0.9),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.share,
-                          color: AppColors.mainColor,
-                          size: 16,
                         ),
                       ),
                     ),
-                  ),
-                  // Phone Button
+
+                  // Top Row: Action Buttons (Left) and Status (Right)
                   Positioned(
-                    bottom: 4,
-                    right: 4,
-                    child: GestureDetector(
-                      onTap: () => _showSalespeople(context),
-                      child: Container(
-                        padding: EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: AppColors.mainColor,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.black.withOpacity(0.2),
-                              blurRadius: 3,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
+                    top: widget.showRecommendedBadge ? 38 : 6, // Push down if recommended badge is showing (matches unit cards)
+                    left: 6,
+                    right: 6,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Action Buttons Row - Wrapped in Flexible to prevent overflow
+                        Flexible(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Favorite Button
+                              BlocBuilder<
+                                CompoundFavoriteBloc,
+                                CompoundFavoriteState
+                              >(
+                                builder: (context, state) {
+                                  final bloc = context.read<CompoundFavoriteBloc>();
+                                  final isFavorite = bloc.isFavorite(widget.compound);
+
+                                  return PulseAnimation(
+                                    animate: _animateFavorite,
+                                    child: _actionButton(
+                                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                                      () {
+                                        bloc.toggleFavorite(widget.compound);
+                                        setState(() {
+                                          _animateFavorite = true;
+                                        });
+                                        Future.delayed(Duration(milliseconds: 600), () {
+                                          if (mounted) {
+                                            setState(() {
+                                              _animateFavorite = false;
+                                            });
+                                          }
+                                        });
+                                      },
+                                      buttonSize,
+                                      iconSize,
+                                      color: isFavorite ? Colors.red : null,
+                                    ),
+                                  );
+                                },
+                              ),
+                              SizedBox(width: 4), // Matches unit cards
+                              // Share Button
+                              PulseAnimation(
+                                animate: _animateShare,
+                                child: _actionButton(Icons.share, () async {
+                                  setState(() {
+                                    _animateShare = true;
+                                  });
+                                  Future.delayed(Duration(milliseconds: 600), () {
+                                    if (mounted) {
+                                      setState(() {
+                                        _animateShare = false;
+                                      });
+                                    }
+                                  });
+
+                                  // Fetch compound units for advanced share
+                                  final compoundWebServices = CompoundWebServices();
+                                  List<Map<String, dynamic>>? units;
+
+                                  try {
+                                    final response = await compoundWebServices.getUnitsForCompound(widget.compound.project);
+                                    if (response['success'] == true && response['units'] != null) {
+                                      units = (response['units'] as List).map((unit) => unit as Map<String, dynamic>).toList();
+                                    }
+                                  } catch (e) {
+                                    print('[COMPOUND CARD] Error fetching units: $e');
+                                  }
+
+                                  if (context.mounted) {
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (context) => AdvancedShareBottomSheet(
+                                        type: 'compound',
+                                        id: widget.compound.id.toString(),
+                                      units: units,
+                                    ),
+                                  );
+                                }
+                                }, buttonSize, iconSize),
+                              ),
+                              SizedBox(width: 4), // Matches unit cards
+                              // Note Button
+                              _actionButton(
+                                _currentNote != null && _currentNote!.isNotEmpty
+                                    ? Icons.note
+                                    : Icons.note_add_outlined,
+                                () => _showNoteDialog(context),
+                                buttonSize,
+                                iconSize,
+                                color: _currentNote != null && _currentNote!.isNotEmpty
+                                    ? AppColors.mainColor
+                                    : null,
+                              ),
+                              // Update Badge (NEW)
+                              if (widget.compound.updatedUnitsCount > 0) ...[
+                                SizedBox(width: 2), // Reduced from 4
+                                Container(
+                                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2), // Reduced padding
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [Color(0xFFFF3B30), Color(0xFFFF6B6B)],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Color(0xFFFF3B30).withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.fiber_new,
+                                        color: Colors.white,
+                                        size: 9, // Reduced from 10
+                                      ),
+                                      SizedBox(width: 1), // Reduced from 2
+                                      Text(
+                                        '${widget.compound.updatedUnitsCount}',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 8, // Reduced from 9
+                                          letterSpacing: 0.2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                        child: Icon(
-                          Icons.phone,
-                          color: AppColors.white,
-                          size: 14,
-                        ),
-                      ),
+                        SizedBox(width: 2), // Small spacer (reduced from 3)
+                        // Status Badge - Also wrapped in Flexible
+                        // Flexible(
+                        //   child: Container(
+                        //     padding: EdgeInsets.symmetric(
+                        //       horizontal: 5, // Reduced from 6
+                        //       vertical: 2,
+                        //     ),
+                        //     decoration: BoxDecoration(
+                        //       color: widget.compound.status == 'delivered'
+                        //           ? Color(0xFF4CAF50)
+                        //           : Color(0xFFFF9800),
+                        //       borderRadius: BorderRadius.circular(20),
+                        //       boxShadow: [
+                        //         BoxShadow(
+                        //           color: (widget.compound.status == 'delivered'
+                        //               ? Color(0xFF4CAF50)
+                        //               : Color(0xFFFF9800)).withOpacity(0.3),
+                        //           blurRadius: 8,
+                        //           offset: Offset(0, 2),
+                        //         ),
+                        //       ],
+                        //     ),
+                        //     child: Text(
+                        //       widget.compound.status.toUpperCase(),
+                        //       style: TextStyle(
+                        //         color: Colors.white,
+                        //         fontSize: 7, // Reduced from 8
+                        //         fontWeight: FontWeight.bold,
+                        //         letterSpacing: 0.3,
+                        //       ),
+                        //       maxLines: 1,
+                        //       overflow: TextOverflow.ellipsis,
+                        //     ),
+                        //   ),
+                        // ),
+                      ],
                     ),
                   ),
                 ],
               ),
 
-            // Content Section
-            Padding(
-              padding: EdgeInsets.all(8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
+            // Content Section - Flexible to fill remaining space
+            Expanded(
+              child: Padding(
+                padding: EdgeInsets.all(3), // Further reduced to minimize white area
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                  // Compound Title + Status Row
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      _CompanyLogo(
-                        companyId: compound.companyId,
-                        companyName: compound.companyName,
-                        companyLogo: compound.companyLogo,
-                      ),
-                      SizedBox(width: 6),
                       Expanded(
-                        child: CustomText14(
-                          compound.project,
-                          bold: true,
-                          color: AppColors.black,
+                        child: Text(
+                          widget.compound.project,
+                          style: TextStyle(
+                            fontSize: 13, // Reduced for compact look
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                            height: 1.2,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: 0.5),
 
-                  // Location
-                  Location(compound: compound),
-                  SizedBox(height: 4),
+                  // Company Name
+                  Text(
+                    widget.compound.companyName.isNotEmpty ? widget.compound.companyName : 'N/A',
+                    style: TextStyle(
+                      fontSize: 10, // Reduced for compact look
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[600],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 0.5), // Minimized spacing
 
-                  // Additional Info Chips - Show only top 2 most important
-                  Wrap(
-                    spacing: 4,
-                    runSpacing: 4,
+                  // Location and Phone Button Row
+                  Row(
                     children: [
-                      // Total Units
-                      if (compound.totalUnits != '0')
-                        _buildInfoChip(
-                          icon: Icons.apartment,
-                          label: '${compound.totalUnits} Units',
+                      Icon(Icons.location_on_outlined, size: 11, color: Colors.grey[600]),
+                      SizedBox(width: 2),
+                      Expanded(
+                        child: Text(
+                          widget.compound.location.isNotEmpty ? widget.compound.location : 'N/A',
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: Colors.grey[600],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
+                      ),
+                      SizedBox(width: 4),
+                      // Phone Button with CircleAvatar
+                      GestureDetector(
+                        onTap: () => _showSalespeople(context),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0xFF26A69A).withOpacity(0.3),
+                                blurRadius: 6,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: CircleAvatar(
+                            radius: 14, // 28 diameter - slightly smaller
+                            backgroundColor: Color(0xFF26A69A),
+                            child: Icon(
+                              Icons.phone,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
 
-                      // Available Units
-                      if (compound.availableUnits != '0')
-                        _buildInfoChip(
-                          icon: Icons.check_circle_outline,
-                          label: '${compound.availableUnits} Available',
-                        ),
+                  SizedBox(height: 1), // Minimized spacing
 
-                      // Completion Progress
-                      if (compound.completionProgress != null && compound.completionProgress != '0.00')
-                        _buildInfoChip(
-                          icon: Icons.trending_up,
-                          label: '${compound.completionProgress}%',
-                          color: Colors.green,
+                  // Row 1: Units, Available, Floors (3 items in grey containers)
+                  Row(
+                    children: [
+                      _detailChip(Icons.home_work, '${widget.compound.totalUnits ?? "0"}'),
+                      SizedBox(width: 2),
+                      _detailChip(Icons.check_circle_outline, '${widget.compound.availableUnits ?? "0"}', color: Colors.green),
+                      SizedBox(width: 2),
+                      _detailChip(Icons.layers, '${widget.compound.howManyFloors ?? "N/A"}'),
+                    ],
+                  ),
+
+                  SizedBox(height: 1), // Minimized spacing
+
+                  // Row 2: Area, Progress, Delivery (3 items in grey containers)
+                  Row(
+                    children: [
+                      _detailChip(
+                        Icons.square_foot,
+                        widget.compound.builtUpArea.isNotEmpty && widget.compound.builtUpArea != '0'
+                            ? '${widget.compound.builtUpArea}m²'
+                            : 'N/A',
+                      ),
+                      SizedBox(width: 2),
+                      if (widget.compound.completionProgress != null && widget.compound.completionProgress!.isNotEmpty)
+                        _detailChip(Icons.trending_up, '${widget.compound.completionProgress}%', color: AppColors.mainColor)
+                      else if (widget.compound.status.toLowerCase().contains('progress'))
+                        _detailChip(Icons.pending, 'Progress', color: Colors.orange)
+                      else
+                        _detailChip(Icons.trending_up, 'N/A'),
+                      SizedBox(width: 2),
+                      _detailChip(
+                        Icons.calendar_today,
+                        widget.compound.plannedDeliveryDate != null && widget.compound.plannedDeliveryDate!.isNotEmpty
+                            ? _formatDate(widget.compound.plannedDeliveryDate!)
+                            : 'N/A',
+                      ),
+                    ],
+                  ),
+
+                  // Latest Update Note (if exists)
+                  if (widget.compound.latestUpdateNote != null &&
+                      widget.compound.latestUpdateNote!.isNotEmpty) ...[
+                    SizedBox(height: 8),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFFF3B30).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Color(0xFFFF3B30).withOpacity(0.3),
+                          width: 1,
                         ),
-                    ].take(2).toList(), // Only show first 2 chips
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            size: 12,
+                            color: Color(0xFFFF3B30),
+                          ),
+                          SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              widget.compound.latestUpdateNote!,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFFFF3B30),
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 3, // more room for text
+                              overflow: TextOverflow.ellipsis,
+                              softWrap: true,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  SizedBox(height: 8),
+
+                  // Additional Info Chips - Always show
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: [
+                      _buildInfoChip(
+                        icon: Icons.apartment,
+                        label: widget.compound.totalUnits ?? '0',
+                      ),
+                      _buildInfoChip(
+                        icon: Icons.check_circle_outline,
+                        label: widget.compound.availableUnits ?? '0',
+                        color: Color(0xFF4CAF50),
+                      ),
+                    ],
                   ),
                 ],
+              ),
+            ),
+            ),
+
+          ],
+        ),
+          ), // Container
+        ), // GestureDetector
+      ), // Hero
+    ); // HoverScaleAnimation
+  }
+
+  Widget _actionButton(IconData icon, VoidCallback onTap, double size, double iconSize, {Color? color}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: color != null ? color.withOpacity(0.1) : Colors.white.withOpacity(0.95),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          size: iconSize,
+          color: color ?? Colors.grey[700],
+        ),
+      ),
+    );
+  }
+
+  Widget _detailChip(IconData icon, String value, {Color? color}) {
+    final chipColor = color ?? Colors.grey[700]!;
+    return Flexible(
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+        decoration: BoxDecoration(
+          color: color != null ? color.withOpacity(0.1) : Colors.grey[100],
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 9, color: chipColor),
+            SizedBox(width: 1.5),
+            Flexible(
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w600,
+                  color: chipColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -330,21 +709,21 @@ class CompoundsName extends StatelessWidget {
   }) {
     final chipColor = color ?? AppColors.mainColor;
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: chipColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: chipColor.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 10, color: chipColor),
-          SizedBox(width: 3),
+          Icon(icon, size: 14, color: chipColor),
+          SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 9,
+              fontSize: 11,
               fontWeight: FontWeight.bold,
               color: chipColor,
             ),
@@ -352,6 +731,55 @@ class CompoundsName extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _showNoteDialog(BuildContext context) async {
+    final result = await NoteDialog.show(
+      context,
+      initialNote: _currentNote,
+      title: _currentNote != null && _currentNote!.isNotEmpty
+          ? 'Edit Note'
+          : 'Add Note',
+    );
+
+    if (result != null && context.mounted) {
+      final webServices = FavoritesWebServices();
+      final bloc = context.read<CompoundFavoriteBloc>();
+
+      try {
+        if (widget.compound.noteId != null) {
+          // Update existing note using new Notes API
+          await webServices.updateNote(
+            noteId: widget.compound.noteId!,
+            content: result,
+            title: 'Compound Note',
+          );
+        } else {
+          // Create new note using new Notes API
+          await webServices.createNote(
+            content: result,
+            title: 'Compound Note',
+            compoundId: int.tryParse(widget.compound.id),
+          );
+        }
+
+        // Update local state immediately
+        setState(() {
+          _currentNote = result;
+        });
+
+        // Trigger bloc refresh to reload favorites with updated noteId
+        bloc.add(LoadFavoriteCompounds());
+
+        if (context.mounted) {
+          MessageHelper.showSuccess(context, 'Note saved successfully');
+        }
+      } catch (e) {
+        if (context.mounted) {
+          MessageHelper.showError(context, 'Failed to save note: $e');
+        }
+      }
+    }
   }
 }
 
@@ -398,8 +826,7 @@ class _CompanyLogoState extends State<_CompanyLogo> {
 
       print('[COMPANY LOGO] Fetched company data: $companyData');
 
-      if (mounted) {
-        setState(() {
+      if (mounted) {setState(() {
           _fetchedLogo = companyData['logo']?.toString();
           _isLoading = false;
           _hasFetched = true;
