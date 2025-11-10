@@ -10,6 +10,7 @@ import 'package:real/feature/home/presentation/widget/rete_review.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/widget/button/showAll.dart';
+import '../../compound/presentation/bloc/favorite/compound_favorite_event.dart';
 import '../../compound/presentation/bloc/unit/unit_bloc.dart';
 import '../../compound/presentation/bloc/unit/unit_event.dart';
 import '../../compound/presentation/bloc/unit/unit_state.dart';
@@ -27,6 +28,9 @@ import '../../../core/animations/animated_list_item.dart';
 import 'package:real/feature/share/presentation/widgets/share_bottom_sheet.dart';
 import 'package:real/core/utils/message_helper.dart';
 import '../../../core/widgets/zoomable_image_viewer.dart';
+import '../../compound/data/web_services/favorites_web_services.dart';
+import '../../../core/widgets/note_dialog.dart';
+import '../../compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 
 class CompoundScreen extends StatefulWidget {
   static String routeName = '/compund';
@@ -52,10 +56,12 @@ class _CompoundScreenState extends State<CompoundScreen>
 
   final CompoundWebServices _compoundWebServices = CompoundWebServices();
   final CompanyWebServices _companyWebServices = CompanyWebServices();
+  final FavoritesWebServices _favoritesWebServices = FavoritesWebServices();
 
   late TabController _tabController;
   List<CompanyUser> _salesPeople = [];
   bool _isLoadingSalesPeople = false;
+  String? _currentNote;
 
   // Tutorial keys
   final GlobalKey _galleryKey = GlobalKey();
@@ -69,8 +75,8 @@ class _CompoundScreenState extends State<CompoundScreen>
     // Track view history
     ViewHistoryService().addViewedCompound(widget.compound);
 
-    // Initialize TabController with 5 tabs (including Units)
-    _tabController = TabController(length: 5, vsync: this);
+    // Initialize TabController with 6 tabs (including Units and Notes)
+    _tabController = TabController(length: 6, vsync: this);
 
     // Add animation listener for tab changes
     _tabController.addListener(() {
@@ -102,6 +108,9 @@ class _CompoundScreenState extends State<CompoundScreen>
 
     // Fetch sales people from company
     _fetchSalesPeople();
+
+    // Fetch compound notes
+    _fetchCompoundNote();
 
     // Start auto-slider if there are multiple images
     if (widget.compound.images.length > 1) {
@@ -947,6 +956,192 @@ class _CompoundScreenState extends State<CompoundScreen>
     );
   }
 
+  // Notes Tab
+  Widget _buildNotesTab() {
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    _currentNote != null && _currentNote!.isNotEmpty
+                        ? Icons.note
+                        : Icons.note_add_outlined,
+                    color: AppColors.mainColor,
+                    size: 20,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'My Notes',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+              TextButton.icon(
+                onPressed: _showNoteDialog,
+                icon: Icon(
+                  _currentNote != null && _currentNote!.isNotEmpty
+                      ? Icons.edit
+                      : Icons.add,
+                  size: 16,
+                ),
+                label: Text(
+                  _currentNote != null && _currentNote!.isNotEmpty
+                      ? 'Edit Note'
+                      : 'Add Note',
+                ),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.mainColor,
+                ),
+              ),
+            ],
+          ),
+          if (_currentNote != null && _currentNote!.isNotEmpty) ...[
+            SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.mainColor.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.mainColor.withOpacity(0.2),
+                ),
+              ),
+              child: Text(
+                _currentNote!,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.black87,
+                  height: 1.5,
+                ),
+              ),
+            ),
+          ] else ...[
+            SizedBox(height: 8),
+            Text(
+              'Add your personal notes about this compound. Your notes are private and only visible to you.',
+              style: TextStyle(
+                fontSize: 13,
+                color: Colors.grey.shade600,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _fetchCompoundNote() async {
+    try {
+      print('[COMPOUND SCREEN] Fetching note for compound ${widget.compound.id}');
+      final response = await _favoritesWebServices.getNotes(
+        compoundId: int.parse(widget.compound.id),
+      );
+
+      print('[COMPOUND SCREEN] getNotes response: $response');
+
+      // New API structure: response['data']['notes']
+      if (response['success'] == true && response['data'] != null) {
+        final data = response['data'] as Map<String, dynamic>;
+        if (data['notes'] != null) {
+          final notes = data['notes'] as List;
+          print('[COMPOUND SCREEN] Found ${notes.length} notes');
+          if (notes.isNotEmpty) {
+            final note = notes.first as Map<String, dynamic>;
+            final noteContent = note['content'] as String?;
+            print('[COMPOUND SCREEN] Note content from API: $noteContent');
+            if (mounted) {
+              setState(() {
+                _currentNote = noteContent;
+              });
+            }
+            print('[COMPOUND SCREEN] Updated _currentNote: $_currentNote');
+          } else {
+            print('[COMPOUND SCREEN] Notes array is empty');
+          }
+        }
+      } else {
+        print('[COMPOUND SCREEN] No notes in response or success=false');
+      }
+    } catch (e) {
+      print('[COMPOUND SCREEN] Error fetching compound note: $e');
+    }
+  }
+
+  Future<void> _showNoteDialog() async {
+    final result = await NoteDialog.show(
+      context,
+      initialNote: _currentNote,
+      title: _currentNote != null && _currentNote!.isNotEmpty
+          ? 'Edit Note'
+          : 'Add Note',
+    );
+
+    if (result != null && mounted) {
+      try {
+        Map<String, dynamic> response;
+
+        if (widget.compound.noteId != null) {
+          // Update existing note
+          print('[COMPOUND SCREEN] Updating note ${widget.compound.noteId}');
+          response = await _favoritesWebServices.updateNote(
+            noteId: widget.compound.noteId!,
+            content: result,
+            title: 'Compound Note',
+          );
+        } else {
+          // Create new note
+          print('[COMPOUND SCREEN] Creating new note for compound ${widget.compound.id}');
+          response = await _favoritesWebServices.createNote(
+            content: result,
+            title: 'Compound Note',
+            compoundId: int.tryParse(widget.compound.id),
+          );
+        }
+
+        print('[COMPOUND SCREEN] Note save response: $response');
+
+        // Update local state
+        setState(() {
+          _currentNote = result;
+        });
+
+        if (mounted) {
+          MessageHelper.showMessage(
+            context: context,
+            message: 'Note saved successfully',
+            isSuccess: true,
+          );
+        }
+
+        // Trigger bloc refresh to reload favorites
+        if (mounted) {
+          context.read<CompoundFavoriteBloc>().add(LoadFavoriteCompounds());
+        }
+      } catch (e) {
+        print('[COMPOUND SCREEN] Error saving note: $e');
+        if (mounted) {
+          MessageHelper.showMessage(
+            context: context,
+            message: 'Failed to save note',
+            isSuccess: false,
+          );
+        }
+      }
+    }
+  }
+
   // Animated Corner Tab Bar
   Widget _buildCornerTabBar() {
     return LayoutBuilder(
@@ -958,23 +1153,27 @@ class _CompoundScreenState extends State<CompoundScreen>
         return AnimatedContainer(
           duration: Duration(milliseconds: 300),
           curve: Curves.easeInOut,
-          margin: EdgeInsets.only(right: 16, bottom: 16),
+          margin: EdgeInsets.only(right: 16, bottom: 16, left: 16),
           constraints: BoxConstraints(
             maxWidth: maxTabBarWidth,
           ),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.mainColor.withOpacity(0.3),
+              width: 2,
+            ),
             boxShadow: [
               BoxShadow(
-                color: AppColors.mainColor.withOpacity(0.2),
+                color: AppColors.mainColor.withOpacity(0.15),
                 blurRadius: 12,
                 offset: Offset(0, 4),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(30),
+            borderRadius: BorderRadius.circular(10),
             child: TabBar(
               controller: _tabController,
               isScrollable: true,
@@ -982,17 +1181,17 @@ class _CompoundScreenState extends State<CompoundScreen>
               unselectedLabelColor: AppColors.mainColor,
               indicator: BoxDecoration(
                 color: AppColors.mainColor,
-                borderRadius: BorderRadius.circular(25),
+                borderRadius: BorderRadius.circular(8),
               ),
               indicatorSize: TabBarIndicatorSize.tab,
               dividerColor: Colors.transparent,
-              labelPadding: EdgeInsets.symmetric(horizontal: 16),
+              labelPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               labelStyle: TextStyle(
-                fontSize: 11,
+                fontSize: 14,
                 fontWeight: FontWeight.bold,
               ),
               unselectedLabelStyle: TextStyle(
-                fontSize: 11,
+                fontSize: 14,
                 fontWeight: FontWeight.normal,
               ),
               tabAlignment: TabAlignment.start,
@@ -1044,6 +1243,16 @@ class _CompoundScreenState extends State<CompoundScreen>
                   Icon(Icons.home_work, size: 14),
                   SizedBox(width: 4),
                   Text('Units'),
+                ],
+              ),
+            ),
+            Tab(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.note, size: 14),
+                  SizedBox(width: 4),
+                  Text('Notes'),
                 ],
               ),
             ),
@@ -1396,7 +1605,9 @@ class _CompoundScreenState extends State<CompoundScreen>
                           ? _buildMapTab(l10n)
                           : _tabController.index == 3
                           ? _buildMasterPlanTab(l10n)
-                          : _buildUnitsTab(l10n),
+                          : _tabController.index == 4
+                          ? _buildUnitsTab(l10n)
+                          : _buildNotesTab(),
                     ),
                   ),
                 ),
