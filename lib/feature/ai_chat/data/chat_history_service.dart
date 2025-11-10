@@ -57,8 +57,10 @@ class ChatHistoryService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_historyKey);
+      print('[ChatHistory] Successfully cleared chat history');
     } catch (e) {
-      print('Failed to clear chat history: $e');
+      print('[ChatHistory] Failed to clear chat history: $e');
+      rethrow; // Rethrow so the bloc can handle it properly
     }
   }
 

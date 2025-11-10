@@ -18,6 +18,7 @@ import '../favorites/presentation/web_favorites_screen.dart';
 import '../history/presentation/web_history_screen.dart';
 import '../profile/presentation/web_profile_screen.dart';
 import '../notifications/presentation/web_notifications_screen.dart';
+import '../ai_chat/presentation/web_ai_chat_screen.dart';
 import 'package:real/core/utils/web_utils_stub.dart' if (dart.library.html) 'package:real/core/utils/web_utils_web.dart';
 
 class WebMainScreen extends StatefulWidget {
@@ -40,6 +41,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
     const WebCompoundsScreen(),
     WebFavoritesScreen(),
     WebHistoryScreen(),
+    const WebAiChatScreen(),
     WebNotificationsScreen(),
     WebProfileScreen(),
   ];
@@ -323,9 +325,11 @@ class _WebMainScreenState extends State<WebMainScreen> {
                   const SizedBox(width: 24),
                   _buildNavItem('History', 3, Icons.history_outlined, Icons.history),
                   const SizedBox(width: 24),
-                  _buildNavItemWithBadge('Notifications', 4, Icons.notifications_outlined, Icons.notifications, _unreadNotifications),
+                  _buildNavItem('AI Chat', 4, Icons.smart_toy_outlined, Icons.smart_toy),
                   const SizedBox(width: 24),
-                  _buildNavItem('Profile', 5, Icons.person_outline, Icons.person),
+                  _buildNavItemWithBadge('Notifications', 5, Icons.notifications_outlined, Icons.notifications, _unreadNotifications),
+                  const SizedBox(width: 24),
+                  _buildNavItem('Profile', 6, Icons.person_outline, Icons.person),
                 ],
               ),
             ),
@@ -343,7 +347,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
         setState(() {
           _selectedIndex = index;
         });
-        if (index == 4) {
+        if (index == 5) {
           _loadUnreadCount(); // Reload count when notifications screen is opened
         }
       },

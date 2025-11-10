@@ -30,6 +30,7 @@ import 'package:real/feature/compound/presentation/bloc/unit/unit_bloc.dart';
 import 'package:real/feature/sale/presentation/bloc/sale_bloc.dart';
 import 'package:real/feature/sale/presentation/bloc/sale_event.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
+import 'package:real/feature/ai_chat/presentation/bloc/chat_bloc.dart';
 import 'package:real/feature/auth/presentation/screen/forgetPasswordScreen.dart';
 import 'package:real/feature/auth/presentation/screen/forgot_password_flow_screen.dart';
 import 'package:real/feature/auth/presentation/screen/changePasswordScreen.dart';
@@ -237,6 +238,9 @@ class _MyAppState extends State<MyApp> {
         BlocProvider(
           create: (context) =>
               SubscriptionBloc(repository: apiService.subscriptionRepository),
+        ),
+        BlocProvider(
+          create: (context) => ChatBloc(),
         ),
       ],
       child: BlocBuilder<LocaleCubit, Locale>(

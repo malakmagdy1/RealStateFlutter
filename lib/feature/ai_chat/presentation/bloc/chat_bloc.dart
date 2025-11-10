@@ -102,12 +102,18 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     Emitter<ChatState> emit,
   ) async {
     try {
+      print('[ChatBloc] Clearing chat history...');
       await _historyService.clearChatHistory();
+      print('[ChatBloc] History cleared, resetting chat session...');
       _remoteDataSource.resetChat();
+      print('[ChatBloc] Chat session reset, emitting empty state');
       emit(const ChatLoaded(messages: []));
+      print('[ChatBloc] ✅ Clear history completed successfully');
     } catch (e) {
+      print('[ChatBloc] ❌ Error clearing history: $e');
       emit(ChatError(
         message: 'Failed to clear chat history: ${e.toString()}',
+        previousMessages: const [],
       ));
     }
   }

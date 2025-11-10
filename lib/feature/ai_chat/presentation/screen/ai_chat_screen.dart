@@ -18,6 +18,7 @@ class AiChatScreen extends StatefulWidget {
 class _AiChatScreenState extends State<AiChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  String _debugInfo = 'Waiting for AI chat...'; // Debug info to display
 
   @override
   void initState() {
@@ -123,12 +124,19 @@ class _AiChatScreenState extends State<AiChatScreen> {
       ),
       body: Column(
         children: [
-          // Messages list
           Expanded(
             child: BlocConsumer<ChatBloc, ChatState>(
               listener: (context, state) {
                 // Scroll to bottom when new messages arrive
                 if (state is ChatLoaded && state.messages.isNotEmpty) {
+                  // Update debug info from the latest AI message
+                  final latestMessage = state.messages.last;
+                  if (!latestMessage.isUser && latestMessage.debugInfo.isNotEmpty) {
+                    setState(() {
+                      _debugInfo = latestMessage.debugInfo;
+                    });
+                  }
+
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     _scrollToBottom();
                   });
@@ -332,14 +340,18 @@ class _AiChatScreenState extends State<AiChatScreen> {
   }
 
   Widget _buildMessageBubble(ChatMessage message) {
-    print('💬 Building message bubble - isUser: ${message.isUser}, hasProduct: ${message.product != null}');
+    print('💬 Building message bubble - isUser: ${message.isUser}, hasUnit: ${message.unit != null}, hasCompound: ${message.compound != null}');
 
     Widget messageContent;
     if (message.isUser) {
       messageContent = _buildUserMessage(message);
-    } else if (message.product != null) {
+    } else if (message.unit != null) {
       messageContent = IntrinsicHeight(
-        child: PropertyCardWidget(product: message.product!),
+        child: PropertyCardWidget(unit: message.unit!),
+      );
+    } else if (message.compound != null) {
+      messageContent = IntrinsicHeight(
+        child: PropertyCardWidget(compound: message.compound!),
       );
     } else {
       messageContent = _buildAiMessage(message);

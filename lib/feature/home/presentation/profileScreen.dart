@@ -731,20 +731,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
               ),
-
-              SizedBox(height: screenHeight * 0.02),
-
-              // App Version
-              Center(
-                child: Text(
-                  'App Version 1.0.0',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
-                ),
-              ),
-
               SizedBox(height: screenHeight * 0.03),
             ],
           ),

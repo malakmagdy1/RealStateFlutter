@@ -23,22 +23,26 @@ class ChatHistoryLoading extends ChatState {
 class ChatLoaded extends ChatState {
   final List<ChatMessage> messages;
   final bool isLoading;
+  final String debugInfo;
 
   const ChatLoaded({
     required this.messages,
     this.isLoading = false,
+    this.debugInfo = '',
   });
 
   @override
-  List<Object?> get props => [messages, isLoading];
+  List<Object?> get props => [messages, isLoading, debugInfo];
 
   ChatLoaded copyWith({
     List<ChatMessage>? messages,
     bool? isLoading,
+    String? debugInfo,
   }) {
     return ChatLoaded(
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
+      debugInfo: debugInfo ?? this.debugInfo,
     );
   }
 }

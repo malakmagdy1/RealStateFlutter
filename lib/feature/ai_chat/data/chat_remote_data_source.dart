@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import '../domain/chat_message.dart';
 import '../domain/config.dart';
-import '../domain/real_estate_product.dart';
 import '../../search/data/repositories/search_repository.dart';
 import '../../search/data/models/search_result_model.dart';
+import '../../search/data/models/search_filter_model.dart';
 import '../../compound/data/models/unit_model.dart';
+import '../../compound/data/models/compound_model.dart';
 
 /// Handles communication with Google's Gemini AI
 class ChatRemoteDataSource {
@@ -33,24 +34,7 @@ class ChatRemoteDataSource {
     _chatSession = _model.startChat();
   }
 
-  /// Convert Unit model to RealEstateProduct
-  RealEstateProduct _convertUnitToProduct(Unit unit) {
-    return RealEstateProduct(
-      type: 'unit',
-      id: int.tryParse(unit.id),
-      name: unit.unitNumber?.isNotEmpty == true ? unit.unitNumber! : unit.usageType ?? 'Unit',
-      location: unit.compoundName ?? 'Unknown Location',
-      propertyType: unit.usageType ?? unit.unitType ?? 'Unit',
-      price: _formatPrice(unit),
-      area: unit.area,
-      bedrooms: unit.bedrooms,
-      bathrooms: unit.bathrooms,
-      features: _extractFeatures(unit),
-      description: '${unit.usageType ?? 'Unit'} in ${unit.compoundName ?? 'compound'}',
-      originalUnit: unit, // Pass the original Unit object
-    );
-  }
-
+  /// Format unit price for display
   String _formatPrice(Unit unit) {
     final price = unit.discountedPrice ?? unit.totalPrice ?? unit.normalPrice ?? unit.price;
     if (price == null || price.isEmpty || price == '0') return 'Contact for Price';
@@ -65,20 +49,6 @@ class ChatRemoteDataSource {
     } catch (e) {
       return price;
     }
-  }
-
-  List<String> _extractFeatures(Unit unit) {
-    List<String> features = [];
-    if (unit.status != null && unit.status!.toLowerCase() == 'available') {
-      features.add('Available');
-    }
-    if (unit.deliveryDate != null && unit.deliveryDate!.isNotEmpty) {
-      features.add('Delivery: ${unit.deliveryDate}');
-    }
-    if (unit.companyName != null && unit.companyName!.isNotEmpty) {
-      features.add('By ${unit.companyName}');
-    }
-    return features;
   }
 
   /// Convert UnitSearchData to Unit model
@@ -138,13 +108,33 @@ You are an AI assistant specialized in Egyptian real estate properties.
 IMPORTANT RULES:
 1. You have access to REAL property data from the database
 2. ONLY respond to questions about real estate, properties, housing, or related topics
-3. For ANY other topic, respond: "I can only help with real estate and property questions. Please ask me about properties, units, or compounds."
+3. For ANY other topic (like weather, sports, politics, etc.), respond: "I can only help with real estate and property questions. Please ask me about properties, units, or compounds."
 4. When user asks about properties, I will provide you with real property data from the database
 5. Analyze the real data and recommend the best matches based on user requirements
 6. When describing properties, ALWAYS respond with valid JSON in this EXACT format:
+7. CRITICAL: When I provide you with database properties, you MUST include the "id" field from the database in your response
+
+RECOGNIZE THESE AS VALID REAL ESTATE QUERIES:
+- Property type keywords: villa, apartment, duplex, studio, penthouse, townhouse, chalet, unit
+- Bedroom queries: "3 bedroom", "5 bedrooms", "2BR", "4 bed"
+- Location queries: area names, city names, compound names
+- Budget queries: price ranges, "under 5M", "budget 2 million"
+- Feature queries: "with pool", "garden", "parking", "gym"
+- ANY combination of the above
+
+RECOGNIZE THESE AS VALID CONVERSATIONAL RESPONSES (DO NOT REJECT):
+- Affirmative: "yes", "yeah", "sure", "okay", "ok", "yep", "yup"
+- Negative: "no", "nope", "not really", "no thanks"
+- Requests: "show me", "find", "search", "looking for", "I want", "I need"
+- Follow-ups: "more options", "anything else", "what about", "tell me more"
+- Clarifications: "what", "which", "how", "where", "when"
+- Generic real estate: "properties", "units", "compounds", "houses", "homes"
+
+IMPORTANT: If user says "no", "yes", "okay" etc. in conversation, treat it as part of the chat flow, NOT as an off-topic query!
 
 For SINGLE property:
 {
+  "id": "database_unit_id",
   "type": "unit",
   "name": "Property Name",
   "location": "City/Area",
@@ -161,6 +151,7 @@ For MULTIPLE properties (use when showing several options):
 {
   "properties": [
     {
+      "id": "database_unit_id_1",
       "type": "unit",
       "name": "Spacious Villa in Palm Hills",
       "location": "6th of October",
@@ -173,6 +164,7 @@ For MULTIPLE properties (use when showing several options):
       "description": "Luxury villa with modern amenities"
     },
     {
+      "id": "database_unit_id_2",
       "type": "unit",
       "name": "Modern 3BR Apartment",
       "location": "New Cairo",
@@ -240,6 +232,7 @@ EXAMPLES:
 
 User: "Show me a villa in New Cairo"
 You: {
+  "id": "5504",
   "type": "unit",
   "name": "Luxury Villa in New Cairo",
   "location": "New Cairo",
@@ -254,6 +247,7 @@ You: {
 
 User: "I need a 3 bedroom apartment under 3 million"
 You: {
+  "id": "24",
   "type": "unit",
   "name": "Modern 3BR Apartment",
   "location": "6th of October",
@@ -271,6 +265,7 @@ You: I can only help with real estate and property questions. Please ask me abou
 
 User: "Tell me about compounds with swimming pools"
 You: {
+  "id": "1314",
   "type": "compound",
   "name": "Al Maqsad Residences",
   "location": "New Administrative Capital",
@@ -284,6 +279,7 @@ You: {
 }
 
 IMPORTANT:
+- When I provide database properties, ALWAYS include the exact "id" from the database in your JSON response
 - Always respond with ONLY the JSON object, no additional text
 - Ensure all JSON is valid and properly formatted
 - Use realistic Egyptian prices
@@ -291,30 +287,186 @@ IMPORTANT:
 - Keep descriptions concise and appealing
 ''';
 
+  /// Check if query is a conversational response
+  bool _isConversationalResponse(String query) {
+    final lowerQuery = query.toLowerCase().trim();
+    const conversationalWords = [
+      'yes', 'yeah', 'yep', 'yup', 'sure', 'okay', 'ok', 'fine',
+      'no', 'nope', 'not really', 'no thanks', 'nothing',
+      'more', 'another', 'else', 'different', 'thanks', 'thank you'
+    ];
+
+    // Check if the query is just a conversational word (or very short)
+    if (lowerQuery.length <= 15) {
+      for (var word in conversationalWords) {
+        if (lowerQuery == word || lowerQuery.contains(' $word') || lowerQuery.startsWith('$word ')) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /// Parse user query to extract search parameters
+  SearchFilter? _parseQueryToFilter(String query) {
+    final lowerQuery = query.toLowerCase();
+
+    // Extract bedrooms (e.g., "5 bedroom", "3 bedrooms", "2BR", "4 bed")
+    int? bedrooms;
+    final bedroomPatterns = [
+      RegExp(r'(\d+)\s*(?:bedroom|bedrooms|bed|beds|br)', caseSensitive: false),
+    ];
+    for (var pattern in bedroomPatterns) {
+      final match = pattern.firstMatch(lowerQuery);
+      if (match != null) {
+        bedrooms = int.tryParse(match.group(1)!);
+        break;
+      }
+    }
+
+    // Extract property type
+    String? propertyType;
+    const propertyTypes = ['villa', 'apartment', 'duplex', 'studio', 'penthouse', 'townhouse', 'chalet'];
+    for (var type in propertyTypes) {
+      if (lowerQuery.contains(type)) {
+        propertyType = type;
+        break;
+      }
+    }
+
+    // Extract location
+    String? location;
+    const locations = [
+      'new cairo', 'new administrative capital', '6th of october', 'october',
+      'sheikh zayed', 'zayed', 'el shorouk', 'shorouk', 'maadi', 'nasr city',
+      'heliopolis', 'north coast', 'ain sokhna', 'sokhna'
+    ];
+    for (var loc in locations) {
+      if (lowerQuery.contains(loc)) {
+        location = loc;
+        break;
+      }
+    }
+
+    // If we found any structured parameters, return a filter
+    if (bedrooms != null || propertyType != null || location != null) {
+      return SearchFilter(
+        bedrooms: bedrooms,
+        propertyType: propertyType,
+        location: location,
+      );
+    }
+
+    return null;
+  }
+
+  /// Convert FilteredUnit to Unit model
+  Unit _convertFilteredUnitToUnit(dynamic filteredUnit) {
+    return Unit(
+      id: filteredUnit.id,
+      compoundId: filteredUnit.compoundId,
+      unitType: filteredUnit.unitType,
+      area: filteredUnit.totalArea.toString(),
+      price: filteredUnit.normalPrice,
+      bedrooms: filteredUnit.numberOfBeds.toString(),
+      bathrooms: '0', // Not available in FilteredUnit
+      floor: filteredUnit.floorNumber.toString(),
+      status: filteredUnit.status,
+      unitNumber: filteredUnit.unitNumber,
+      deliveryDate: filteredUnit.deliveredAt,
+      view: null,
+      finishing: null,
+      createdAt: filteredUnit.createdAt,
+      updatedAt: filteredUnit.updatedAt,
+      images: filteredUnit.images,
+      buildingName: filteredUnit.buildingName,
+      gardenArea: null,
+      roofArea: null,
+      usageType: filteredUnit.usageType,
+      salesNumber: null,
+      companyLogo: filteredUnit.companyLogo,
+      companyName: filteredUnit.companyName,
+      companyId: filteredUnit.companyId,
+      compoundName: filteredUnit.compoundName,
+      code: filteredUnit.code,
+      originalPrice: null,
+      discountedPrice: null,
+      discountPercentage: null,
+      available: filteredUnit.available,
+      isSold: filteredUnit.isSold,
+      totalPrice: filteredUnit.totalPricing,
+      normalPrice: filteredUnit.normalPrice,
+      builtUpArea: filteredUnit.totalArea.toString(),
+      landArea: null,
+      favoriteId: null,
+      notes: null,
+      noteId: null,
+      isUpdated: null,
+      lastChangedAt: null,
+      changeType: null,
+      changedFields: null,
+      hasActiveSale: false,
+      sale: null,
+    );
+  }
+
   /// Send a message to the AI and get a response
   Future<ChatMessage> sendMessage(String userMessage) async {
+    final debugBuffer = StringBuffer();
+    debugBuffer.writeln('🔍 Query: "$userMessage"');
+
     try {
       // Fetch real properties from database based on user query
       List<Unit> realUnits = [];
       try {
         print('[AI CHAT] Fetching real properties from database...');
-        final searchResponse = await _searchRepository.search(
-          query: userMessage,
-          type: 'unit',
-          perPage: 20,
-        );
+        debugBuffer.writeln('📡 Searching database...');
 
-        // Convert search results to Unit models
-        for (var result in searchResponse.results) {
-          if (result.type == 'unit' && result.data is UnitSearchData) {
-            final unitData = result.data as UnitSearchData;
-            realUnits.add(_convertSearchDataToUnit(unitData));
+        // Try to parse query into structured filter
+        final filter = _parseQueryToFilter(userMessage);
+
+        if (filter != null) {
+          // Use filter API for structured queries
+          print('[AI CHAT] Using FILTER API with: bedrooms=${filter.bedrooms}, type=${filter.propertyType}, location=${filter.location}');
+          debugBuffer.writeln('🔧 Using filter: bedrooms=${filter.bedrooms}, type=${filter.propertyType}, location=${filter.location}');
+
+          final filterResponse = await _searchRepository.filterUnits(filter, limit: 20);
+
+          // Convert filter results (FilteredUnit) to Unit models
+          realUnits = filterResponse.units.map((filteredUnit) => _convertFilteredUnitToUnit(filteredUnit)).toList();
+
+          print('[AI CHAT] Found ${realUnits.length} units using filter API');
+          debugBuffer.writeln('✅ Filter API found ${realUnits.length} units');
+        } else {
+          // Use search API for unstructured queries
+          print('[AI CHAT] Using SEARCH API with query: "$userMessage"');
+          debugBuffer.writeln('🔍 Using search API');
+
+          final searchResponse = await _searchRepository.search(
+            query: userMessage,
+            type: 'unit',
+            perPage: 20,
+          );
+
+          // Convert search results to Unit models
+          for (var result in searchResponse.results) {
+            if (result.type == 'unit' && result.data is UnitSearchData) {
+              final unitData = result.data as UnitSearchData;
+              realUnits.add(_convertSearchDataToUnit(unitData));
+            }
           }
+
+          print('[AI CHAT] Found ${realUnits.length} units using search API');
+          debugBuffer.writeln('✅ Search API found ${realUnits.length} units');
         }
 
-        print('[AI CHAT] Found ${realUnits.length} units from database');
+        if (realUnits.isNotEmpty) {
+          debugBuffer.writeln('📋 Unit IDs: ${realUnits.take(5).map((u) => u.id).join(", ")}${realUnits.length > 5 ? "..." : ""}');
+        }
       } catch (e) {
         print('[AI CHAT] Error fetching units: $e');
+        debugBuffer.writeln('❌ Database error: $e');
         // Continue without real data if search fails
       }
 
@@ -343,16 +495,48 @@ IMPORTANT:
         enhancedMessage = '''
 User Query: $userMessage
 
-Available Properties from Database:
+REAL PROPERTIES FROM DATABASE (Use these, NOT fictional ones):
 ${jsonEncode(unitsData)}
 
-IMPORTANT: You MUST include the 'id' field from the database in your JSON response.
-Please analyze these REAL properties and recommend the best matches for the user's requirements.
-Return only the properties from this list that match the user's needs, preserving their 'id' field.
+CRITICAL INSTRUCTIONS:
+1. These are REAL properties from our database - you MUST use them
+2. You MUST include the exact 'id' field from above in your JSON response
+3. Select the best matching properties from this list for the user
+4. DO NOT create fictional properties
+5. If none match perfectly, select the closest matches from this list
+6. ALWAYS preserve the 'id' field in your response
+
+Example: If the database has {"id": "5504", "name": "Villa", ...}, your response must include "id": "5504"
 ''';
       } else {
         print('[AI CHAT] No units found in database for query: "$userMessage"');
-        print('[AI CHAT] AI will provide general real estate guidance without specific listings');
+
+        // Check if this is a conversational response
+        if (_isConversationalResponse(userMessage)) {
+          print('[AI CHAT] Detected conversational response, letting AI handle naturally');
+          debugBuffer.writeln('💬 Conversational response detected');
+
+          // Don't modify the message, just let the AI respond naturally
+          enhancedMessage = userMessage;
+        } else {
+          print('[AI CHAT] AI will provide general real estate guidance without specific listings');
+
+          // Add context even when no results found to help AI understand the query
+          enhancedMessage = '''
+User Query: $userMessage
+
+NOTE: No properties found in database matching this exact query.
+
+If this is a valid real estate query (property type, bedrooms, location, etc.), respond with:
+"I searched our database but couldn't find properties matching '$userMessage'. You can try:
+- Adjusting the search terms slightly
+- Searching for similar properties
+- Or let me know if you'd like to see available properties in a specific area"
+
+If this is NOT a real estate query, respond with:
+"I can only help with real estate and property questions. Please ask me about properties, units, or compounds."
+''';
+        }
       }
 
       // Send message to Gemini with real data context
@@ -367,6 +551,8 @@ Return only the properties from this list that match the user's needs, preservin
       }
 
       print('[AI CHAT] Received response from Gemini (length: ${responseText.length} chars)');
+      print('[AI CHAT] Raw response preview: ${responseText.substring(0, responseText.length > 200 ? 200 : responseText.length)}...');
+      debugBuffer.writeln('🤖 AI responded (${responseText.length} chars)');
 
       // Try to parse as JSON for property data
       try {
@@ -379,57 +565,68 @@ Return only the properties from this list that match the user's needs, preservin
         final jsonData = jsonDecode(cleanedResponse) as Map<String, dynamic>;
         print('[AI CHAT] Successfully parsed JSON response');
         print('[AI CHAT] Response contains properties: ${jsonData.containsKey('properties')}');
+        print('[AI CHAT] Full JSON: ${jsonEncode(jsonData)}');
 
         // Check if it's a list of properties
         if (jsonData.containsKey('properties')) {
           print('[AI CHAT] Processing multiple properties from response');
-          final propertiesList = (jsonData['properties'] as List)
-              .map((p) {
-                final productJson = p as Map<String, dynamic>;
-                // Try to match with real unit by ID or index
-                Unit? matchedUnit;
-                if (realUnits.isNotEmpty) {
-                  if (productJson['id'] != null) {
-                    // Try to match by ID
-                    final productId = productJson['id'].toString();
-                    try {
-                      matchedUnit = realUnits.firstWhere(
-                        (unit) => unit.id == productId,
-                      );
-                      print('[AI CHAT] ✓ Matched database unit by ID: ${matchedUnit.id}');
-                    } catch (e) {
-                      // ID not found, use first available unit
-                      print('[AI CHAT] ! ID not found ($productId), using first available unit');
-                      matchedUnit = realUnits.first;
-                    }
-                  } else {
-                    // No ID provided, use first available unit
-                    print('[AI CHAT] ! No ID in response, using database unit: ${realUnits.first.id}');
-                    matchedUnit = realUnits.first;
-                  }
-                }
-                // Always prefer database units over generated data
-                if (matchedUnit != null) {
-                  return _convertUnitToProduct(matchedUnit);
-                } else {
-                  print('[AI CHAT] ⚠ No database units available, using AI-generated data');
-                  return RealEstateProduct.fromJson(productJson);
-                }
-              })
-              .toList();
-          print('[AI CHAT] Converted ${propertiesList.length} properties');
+          print('[AI CHAT] Available database unit IDs: ${realUnits.map((u) => u.id).join(", ")}');
+          debugBuffer.writeln('📦 Multiple properties in response');
 
-          // Return message with first property but include full list for rendering
+          // Get first matched unit
+          Unit? firstMatchedUnit;
+          if (realUnits.isNotEmpty) {
+            final firstProductJson = (jsonData['properties'] as List).first as Map<String, dynamic>;
+            print('[AI CHAT] First property from AI: id=${firstProductJson['id']}, name=${firstProductJson['name']}');
+
+            if (firstProductJson['id'] != null) {
+              // Try to match by ID
+              final productId = firstProductJson['id'].toString();
+              try {
+                firstMatchedUnit = realUnits.firstWhere(
+                  (unit) => unit.id == productId,
+                );
+                print('[AI CHAT] ✅ MATCHED database unit by ID: ${firstMatchedUnit.id} (${firstMatchedUnit.unitNumber ?? firstMatchedUnit.usageType})');
+                debugBuffer.writeln('✅ Matched DB unit: ${firstMatchedUnit.id}');
+              } catch (e) {
+                // ID not found, use first available unit
+                print('[AI CHAT] ❌ ID NOT FOUND in database: $productId');
+                print('[AI CHAT] ⚠️  Falling back to first available unit: ${realUnits.first.id}');
+                debugBuffer.writeln('❌ AI ID "$productId" not found!');
+                debugBuffer.writeln('⚠️  Fallback to unit: ${realUnits.first.id}');
+                firstMatchedUnit = realUnits.first;
+              }
+            } else {
+              // No ID provided, use first available unit
+              print('[AI CHAT] ⚠️  AI did not provide ID! Using first database unit: ${realUnits.first.id}');
+              debugBuffer.writeln('⚠️  AI missing ID field!');
+              debugBuffer.writeln('Using fallback unit: ${realUnits.first.id}');
+              firstMatchedUnit = realUnits.first;
+            }
+          }
+
+          if (firstMatchedUnit == null) {
+            debugBuffer.writeln('⚠️  No database units available');
+          }
+
+          // Return message with first unit
           return ChatMessage(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
-            content: _generateMultiplePropertiesMessage(propertiesList),
+            content: firstMatchedUnit != null
+                ? _generateUnitMessage(firstMatchedUnit)
+                : 'I found some properties for you',
             isUser: false,
             timestamp: DateTime.now(),
-            product: propertiesList.isNotEmpty ? propertiesList.first : null,
+            unit: firstMatchedUnit,
+            debugInfo: debugBuffer.toString(),
           );
         } else {
           // Single property
           print('[AI CHAT] Processing single property from response');
+          print('[AI CHAT] Available database unit IDs: ${realUnits.map((u) => u.id).join(", ")}');
+          print('[AI CHAT] Property from AI: id=${jsonData['id']}, name=${jsonData['name']}');
+          debugBuffer.writeln('📦 Single property in response');
+
           Unit? matchedUnit;
           if (realUnits.isNotEmpty) {
             if (jsonData['id'] != null) {
@@ -439,88 +636,71 @@ Return only the properties from this list that match the user's needs, preservin
                 matchedUnit = realUnits.firstWhere(
                   (unit) => unit.id == productId,
                 );
-                print('[AI CHAT] ✓ Matched database unit by ID: ${matchedUnit.id}');
+                print('[AI CHAT] ✅ MATCHED database unit by ID: ${matchedUnit.id} (${matchedUnit.unitNumber ?? matchedUnit.usageType})');
+                debugBuffer.writeln('✅ Matched DB unit: ${matchedUnit.id}');
               } catch (e) {
                 // ID not found, use first available unit
-                print('[AI CHAT] ! ID not found ($productId), using first available unit');
+                print('[AI CHAT] ❌ ID NOT FOUND in database: $productId');
+                print('[AI CHAT] ⚠️  Falling back to first available unit: ${realUnits.first.id}');
+                debugBuffer.writeln('❌ AI ID "$productId" not found!');
+                debugBuffer.writeln('⚠️  Fallback to unit: ${realUnits.first.id}');
                 matchedUnit = realUnits.first;
               }
             } else {
               // No ID provided, use first available unit
-              print('[AI CHAT] ! No ID in response, using database unit: ${realUnits.first.id}');
+              print('[AI CHAT] ⚠️  AI did not provide ID! Using first database unit: ${realUnits.first.id}');
+              debugBuffer.writeln('⚠️  AI missing ID field!');
+              debugBuffer.writeln('Using fallback unit: ${realUnits.first.id}');
               matchedUnit = realUnits.first;
             }
           }
 
-          // Always prefer database units over generated data
-          final product = matchedUnit != null
-              ? _convertUnitToProduct(matchedUnit)
-              : RealEstateProduct.fromJson(jsonData);
           if (matchedUnit == null) {
-            print('[AI CHAT] ⚠ No database units available, using AI-generated data');
+            print('[AI CHAT] ⚠️  No database units available');
+            debugBuffer.writeln('⚠️  No database units available');
+          } else {
+            print('[AI CHAT] 📦 Using database unit: ${matchedUnit.id}');
           }
 
           return ChatMessage(
             id: DateTime.now().millisecondsSinceEpoch.toString(),
-            content: _generatePropertyMessage(product),
+            content: matchedUnit != null
+                ? _generateUnitMessage(matchedUnit)
+                : 'I found a property for you',
             isUser: false,
             timestamp: DateTime.now(),
-            product: product,
+            unit: matchedUnit,
+            debugInfo: debugBuffer.toString(),
           );
         }
       } catch (e) {
         // Not JSON, return as regular text message
+        debugBuffer.writeln('ℹ️  Text response (not JSON property data)');
         return ChatMessage(
           id: DateTime.now().millisecondsSinceEpoch.toString(),
           content: responseText,
           isUser: false,
           timestamp: DateTime.now(),
+          debugInfo: debugBuffer.toString(),
         );
       }
     } catch (e) {
+      debugBuffer.writeln('❌ ERROR: ${e.toString()}');
       throw Exception('Failed to send message: ${e.toString()}');
     }
   }
 
-  /// Generate a user-friendly message from product data
-  String _generatePropertyMessage(RealEstateProduct product) {
+  /// Generate a user-friendly message from Unit data
+  String _generateUnitMessage(Unit unit) {
     final buffer = StringBuffer();
-    buffer.writeln('Here\'s a ${product.propertyType} I found for you:');
+    final type = unit.usageType ?? unit.unitType ?? 'Unit';
+    buffer.writeln('Here\'s a $type I found for you:');
     buffer.writeln();
-    buffer.writeln('📍 Location: ${product.location}');
-    buffer.writeln('💰 Price: ${product.price} EGP');
-    if (product.area != null) buffer.writeln('📏 Area: ${product.area} sqm');
-    if (product.bedrooms != null) buffer.writeln('🛏️ Bedrooms: ${product.bedrooms}');
-    if (product.bathrooms != null) buffer.writeln('🚿 Bathrooms: ${product.bathrooms}');
-
-    if (product.features.isNotEmpty) {
-      buffer.writeln();
-      buffer.writeln('✨ Features:');
-      for (var feature in product.features.take(3)) {
-        buffer.writeln('  • $feature');
-      }
-    }
-
-    return buffer.toString();
-  }
-
-  /// Generate message for multiple properties
-  String _generateMultiplePropertiesMessage(List<RealEstateProduct> properties) {
-    if (properties.isEmpty) {
-      return 'I couldn\'t find any properties matching your criteria.';
-    }
-
-    final buffer = StringBuffer();
-    buffer.writeln('I found ${properties.length} ${properties.length == 1 ? 'property' : 'properties'} for you:');
-    buffer.writeln();
-
-    for (int i = 0; i < properties.length; i++) {
-      final product = properties[i];
-      buffer.writeln('${i + 1}');
-      buffer.writeln('${product.name}');
-      buffer.writeln('📍 ${product.location} • 💰 ${product.price} EGP');
-      if (i < properties.length - 1) buffer.writeln();
-    }
+    if (unit.compoundName != null) buffer.writeln('📍 Location: ${unit.compoundName}');
+    buffer.writeln('💰 Price: ${_formatPrice(unit)}');
+    if (unit.area != null && unit.area!.isNotEmpty) buffer.writeln('📏 Area: ${unit.area} sqm');
+    if (unit.bedrooms != null && unit.bedrooms!.isNotEmpty) buffer.writeln('🛏️ Bedrooms: ${unit.bedrooms}');
+    if (unit.bathrooms != null && unit.bathrooms!.isNotEmpty) buffer.writeln('🚿 Bathrooms: ${unit.bathrooms}');
 
     return buffer.toString();
   }
