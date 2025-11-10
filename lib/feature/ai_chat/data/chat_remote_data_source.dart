@@ -377,8 +377,9 @@ Return only the properties from this list that match the user's needs.
                 // Try to match with real unit by ID
                 Unit? matchedUnit;
                 if (productJson['id'] != null && realUnits.isNotEmpty) {
+                  final productId = productJson['id'].toString();
                   matchedUnit = realUnits.firstWhere(
-                    (unit) => unit.id == productJson['id'],
+                    (unit) => unit.id == productId,
                     orElse: () => realUnits.first,
                   );
                 }
@@ -401,8 +402,9 @@ Return only the properties from this list that match the user's needs.
           // Single property
           Unit? matchedUnit;
           if (jsonData['id'] != null && realUnits.isNotEmpty) {
+            final productId = jsonData['id'].toString();
             matchedUnit = realUnits.firstWhere(
-              (unit) => unit.id == jsonData['id'],
+              (unit) => unit.id == productId,
               orElse: () => realUnits.first,
             );
           }
