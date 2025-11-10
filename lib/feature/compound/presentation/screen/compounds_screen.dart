@@ -25,7 +25,6 @@ import 'package:real/feature/search/presentation/widget/search_filter_bottom_she
 import 'package:real/feature/home/presentation/widget/compunds_name.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/company/presentation/screen/company_detail_screen.dart';
-import 'package:real/core/utils/card_dimensions.dart';
 
 class CompoundsScreen extends StatefulWidget {
   static String routeName = '/compounds';

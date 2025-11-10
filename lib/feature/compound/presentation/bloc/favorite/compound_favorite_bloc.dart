@@ -56,15 +56,17 @@ class CompoundFavoriteBloc extends Bloc<CompoundFavoriteEvent, CompoundFavoriteS
 
       // Then load from API in the background (non-blocking)
       print('[CompoundFavoriteBloc] Syncing favorites from API in background...');
-      _syncFromAPI(emit);
+      // Note: We don't await this to keep UI responsive with cached data
+      _syncFromAPIInBackground();
     } catch (e) {
       print('[CompoundFavoriteBloc] Error loading favorites: $e');
       emit(CompoundFavoriteError('Failed to load favorites: $e'));
     }
   }
 
-  // Sync from API in the background without blocking the UI
-  Future<void> _syncFromAPI(Emitter<CompoundFavoriteState> emit) async {
+  // Sync from API in the background without emitting
+  // Instead, dispatch a new event to update state
+  Future<void> _syncFromAPIInBackground() async {
     try {
       // Only sync if user is authenticated
       if (token == null || token!.isEmpty) {
@@ -127,8 +129,8 @@ class CompoundFavoriteBloc extends Bloc<CompoundFavoriteEvent, CompoundFavoriteS
           // Cache the favorites locally for offline access
           await _saveFavorites();
 
-          // Emit updated state with new data from API
-          emit(CompoundFavoriteUpdated(List.from(_favorites)));
+          // Dispatch new event to update state (safe way to emit after async operation)
+          add(LoadFavoriteCompounds());
         } else {
           print('[CompoundFavoriteBloc] API returned 0 items but cache has ${_favorites.length} - keeping cache');
         }

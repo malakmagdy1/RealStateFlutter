@@ -6,7 +6,6 @@ import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/sale/data/models/sale_model.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
-import 'package:real/feature_web/compound/presentation/web_compound_detail_screen.dart';
 import 'package:go_router/go_router.dart';
 
 class SaleCarouselSlider extends StatefulWidget {
@@ -264,7 +263,7 @@ class _SaleCarouselSliderState extends State<SaleCarouselSlider> {
                                 SizedBox(height: 4),
                                 // Item Name & Compound
                                 Text(
-                                  sale.compoundName != null && sale.compoundName!.isNotEmpty
+                                  sale.compoundName.isNotEmpty
                                       ? '${sale.itemName} • ${sale.compoundName}'
                                       : sale.itemName,
                                   style: TextStyle(

@@ -13,7 +13,6 @@ import '../../../sale/presentation/widgets/sales_person_selector.dart';
 import '../../../share/presentation/widgets/advanced_share_bottom_sheet.dart';
 import '../../../company/data/web_services/company_web_services.dart';
 import '../../../company/data/models/company_user_model.dart';
-import '../../data/models/compound_model.dart';
 import '../bloc/favorite/unit_favorite_bloc.dart';
 import '../bloc/favorite/unit_favorite_state.dart';
 import '../bloc/favorite/unit_favorite_event.dart';
