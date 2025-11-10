@@ -2151,5 +2151,4 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
       ),
     );
   }
-
 }
