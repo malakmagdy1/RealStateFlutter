@@ -500,24 +500,12 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
         // Check if data has nested 'data' property (pagination structure)
         if (data is Map && data['data'] != null) {
           units = (data['data'] as List)
-              .map((unit) {
-                final unitJson = Map<String, dynamic>.from(unit as Map<String, dynamic>);
-                // Mark as new for badge display
-                unitJson['change_type'] = 'new';
-                unitJson['is_updated'] = true;
-                return Unit.fromJson(unitJson);
-              })
+              .map((unit) => Unit.fromJson(unit as Map<String, dynamic>))
               .toList();
         } else if (data is List) {
           // Fallback: if data is directly a list
           units = data
-              .map((unit) {
-                final unitJson = Map<String, dynamic>.from(unit as Map<String, dynamic>);
-                // Mark as new for badge display
-                unitJson['change_type'] = 'new';
-                unitJson['is_updated'] = true;
-                return Unit.fromJson(unitJson);
-              })
+              .map((unit) => Unit.fromJson(unit as Map<String, dynamic>))
               .toList();
         }
 

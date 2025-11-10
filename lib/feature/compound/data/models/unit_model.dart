@@ -148,33 +148,13 @@ class Unit extends Equatable {
       price = json['price'].toString();
     }
 
-    // TEMPORARY TEST: Force first 3 units to show update badges for testing
+    // Parse update tracking fields from API
     bool isUpdated = json['is_updated'] == true || json['is_updated'] == 1;
     String? changeType = json['change_type']?.toString();
     String? lastChangedAt = json['last_changed_at']?.toString();
     List<String>? changedFields = json['changed_fields'] != null
         ? (json['changed_fields'] as List).map((e) => e.toString()).toList()
         : null;
-
-    // TEST DATA - Remove this after testing
-    final unitId = json['id']?.toString() ?? '';
-    if (unitId.isNotEmpty) {
-      final idNum = int.tryParse(unitId) ?? 0;
-      if (idNum % 3 == 1) {
-        // Every 3rd unit starting from 1: NEW
-        isUpdated = true;
-        changeType = 'new';
-        lastChangedAt = DateTime.now().subtract(Duration(hours: 2)).toIso8601String();
-        changedFields = ['price', 'status'];
-      } else if (idNum % 3 == 2) {
-        // Every 3rd unit starting from 2: UPDATED
-        isUpdated = true;
-        changeType = 'updated';
-        lastChangedAt = DateTime.now().subtract(Duration(days: 1)).toIso8601String();
-        changedFields = ['price'];
-      }
-    }
-    // END TEST DATA
 
     // Parse sale data if available
     Sale? sale;
