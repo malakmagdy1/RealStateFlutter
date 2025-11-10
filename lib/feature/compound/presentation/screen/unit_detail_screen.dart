@@ -613,7 +613,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.green,
+                  color: AppColors.mainColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: CustomText12(
@@ -736,12 +736,12 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: Colors.green.withOpacity(0.5),
+              color: AppColors.mainColor.withOpacity(0.5),
               width: 2,
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.green.withOpacity(0.2),
+                color: AppColors.mainColor.withOpacity(0.2),
                 blurRadius: 12,
                 offset: Offset(0, 4),
               ),
@@ -753,9 +753,9 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
               controller: _tabController,
               isScrollable: true,
               labelColor: AppColors.white,
-              unselectedLabelColor: Colors.green.shade700,
+              unselectedLabelColor: AppColors.mainColor ,
               indicator: BoxDecoration(
-                color: Colors.green,
+                color: AppColors.mainColor ,
                 borderRadius: BorderRadius.circular(8),
               ),
               indicatorSize: TabBarIndicatorSize.tab,
@@ -847,12 +847,12 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.green.withOpacity(0.5),
+          color: AppColors.mainColor.withOpacity(0.5),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.green.withOpacity(0.1),
+            color: AppColors.mainColor.withOpacity(0.1),
             blurRadius: 8,
             offset: Offset(0, 2),
           ),
