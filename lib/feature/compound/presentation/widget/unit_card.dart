@@ -15,6 +15,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_event.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_state.dart';
+import 'package:real/core/animations/pulse_animation.dart';
 
 class UnitCard extends StatefulWidget {
   final Unit unit;
@@ -30,6 +31,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
   late Animation<double> _scaleAnimation;
   late Animation<double> _elevationAnimation;
   String? _currentNote;
+  bool _animateFavorite = false;
 
   @override
   void initState() {
@@ -215,29 +217,44 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                         isFavorite = state.favorites.any((u) => u.id == widget.unit.id);
                                       }
                                       print('[UNIT CARD] Favorite button state - Unit ${widget.unit.id}: isFavorite=$isFavorite');
-                                      return _actionButton(
-                                        isFavorite ? Icons.favorite : Icons.favorite_border,
-                                        () {
-                                          print('[UNIT CARD] Favorite button clicked - Unit ${widget.unit.id}, current state: $isFavorite');
-                                          try {
-                                            if (isFavorite) {
-                                              print('[UNIT CARD] Removing from favorites');
-                                              context.read<UnitFavoriteBloc>().add(
-                                                RemoveFavoriteUnit(widget.unit),
-                                              );
-                                            } else {
-                                              print('[UNIT CARD] Adding to favorites');
-                                              context.read<UnitFavoriteBloc>().add(
-                                                AddFavoriteUnit(widget.unit),
-                                              );
+                                      return PulseAnimation(
+                                        animate: _animateFavorite,
+                                        child: _actionButton(
+                                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                                          () {
+                                            print('[UNIT CARD] Favorite button clicked - Unit ${widget.unit.id}, current state: $isFavorite');
+                                            try {
+                                              if (isFavorite) {
+                                                print('[UNIT CARD] Removing from favorites');
+                                                context.read<UnitFavoriteBloc>().add(
+                                                  RemoveFavoriteUnit(widget.unit),
+                                                );
+                                              } else {
+                                                print('[UNIT CARD] Adding to favorites');
+                                                context.read<UnitFavoriteBloc>().add(
+                                                  AddFavoriteUnit(widget.unit),
+                                                );
+                                              }
+
+                                              // Trigger pulse animation
+                                              setState(() {
+                                                _animateFavorite = true;
+                                              });
+                                              Future.delayed(Duration(milliseconds: 600), () {
+                                                if (mounted) {
+                                                  setState(() {
+                                                    _animateFavorite = false;
+                                                  });
+                                                }
+                                              });
+                                            } catch (e) {
+                                              print('[UNIT CARD] Error toggling favorite: $e');
                                             }
-                                          } catch (e) {
-                                            print('[UNIT CARD] Error toggling favorite: $e');
-                                          }
-                                        },
-                                        actionButtonSize,
-                                        actionIconSize,
-                                        color: isFavorite ? Colors.red : null,
+                                          },
+                                          actionButtonSize,
+                                          actionIconSize,
+                                          color: isFavorite ? Colors.red : null,
+                                        ),
                                       );
                                     },
                                   ),

@@ -62,7 +62,7 @@ class _CompoundScreenState extends State<CompoundScreen>
   late TabController _tabController;
   List<CompanyUser> _salesPeople = [];
   bool _isLoadingSalesPeople = false;
-  String? _currentNote;
+  List<Map<String, dynamic>> _notes = [];
 
   // Tutorial keys
   final GlobalKey _galleryKey = GlobalKey();
@@ -1018,15 +1018,13 @@ class _CompoundScreenState extends State<CompoundScreen>
               Row(
                 children: [
                   Icon(
-                    _currentNote != null && _currentNote!.isNotEmpty
-                        ? Icons.note
-                        : Icons.note_add_outlined,
+                    _notes.isNotEmpty ? Icons.note : Icons.note_add_outlined,
                     color: AppColors.mainColor,
                     size: 20,
                   ),
                   SizedBox(width: 8),
                   Text(
-                    'My Notes',
+                    'My Notes (${_notes.length})',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -1036,54 +1034,107 @@ class _CompoundScreenState extends State<CompoundScreen>
                 ],
               ),
               TextButton.icon(
-                onPressed: _showNoteDialog,
-                icon: Icon(
-                  _currentNote != null && _currentNote!.isNotEmpty
-                      ? Icons.edit
-                      : Icons.add,
-                  size: 16,
-                ),
-                label: Text(
-                  _currentNote != null && _currentNote!.isNotEmpty
-                      ? 'Edit Note'
-                      : 'Add Note',
-                ),
+                onPressed: () => _showNoteDialog(),
+                icon: Icon(Icons.add, size: 16),
+                label: Text('Add Note'),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.mainColor,
                 ),
               ),
             ],
           ),
-          if (_currentNote != null && _currentNote!.isNotEmpty) ...[
-            SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.mainColor.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppColors.mainColor.withOpacity(0.2),
-                ),
-              ),
-              child: Text(
-                _currentNote!,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.black87,
-                  height: 1.5,
-                ),
-              ),
-            ),
-          ] else ...[
-            SizedBox(height: 8),
+          SizedBox(height: 12),
+          if (_notes.isEmpty) ...[
             Text(
               'Add your personal notes about this compound. Your notes are private and only visible to you.',
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey.shade600,
+                color: Colors.grey[600],
                 fontStyle: FontStyle.italic,
               ),
+            ),
+          ] else ...[
+            ListView.separated(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: _notes.length,
+              separatorBuilder: (context, index) => SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final note = _notes[index];
+                return Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.mainColor.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.mainColor.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              note['title'] ?? 'Note',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.mainColor,
+                              ),
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit, size: 18),
+                                color: Colors.blue,
+                                onPressed: () => _showNoteDialog(
+                                  noteId: note['id'],
+                                  initialContent: note['content'],
+                                  initialTitle: note['title'],
+                                ),
+                                padding: EdgeInsets.zero,
+                                constraints: BoxConstraints(),
+                              ),
+                              SizedBox(width: 8),
+                              IconButton(
+                                icon: Icon(Icons.delete, size: 18),
+                                color: Colors.red,
+                                onPressed: () => _deleteNote(note['id']),
+                                padding: EdgeInsets.zero,
+                                constraints: BoxConstraints(),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        note['content'] ?? '',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                          height: 1.5,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Updated: ${_formatDate(note['updated_at'])}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ],
@@ -1091,9 +1142,19 @@ class _CompoundScreenState extends State<CompoundScreen>
     );
   }
 
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return 'Unknown';
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
   Future<void> _fetchCompoundNote() async {
     try {
-      print('[COMPOUND SCREEN] Fetching note for compound ${widget.compound.id}');
+      print('[COMPOUND SCREEN] Fetching notes for compound ${widget.compound.id}');
       final response = await _favoritesWebServices.getNotes(
         compoundId: int.parse(widget.compound.id),
       );
@@ -1106,48 +1167,53 @@ class _CompoundScreenState extends State<CompoundScreen>
         if (data['notes'] != null) {
           final notes = data['notes'] as List;
           print('[COMPOUND SCREEN] Found ${notes.length} notes');
-          if (notes.isNotEmpty) {
-            final note = notes.first as Map<String, dynamic>;
-            final noteContent = note['content'] as String?;
-            print('[COMPOUND SCREEN] Note content from API: $noteContent');
-            if (mounted) {
-              setState(() {
-                _currentNote = noteContent;
-              });
-            }
-            print('[COMPOUND SCREEN] Updated _currentNote: $_currentNote');
-          } else {
-            print('[COMPOUND SCREEN] Notes array is empty');
+          if (mounted) {
+            setState(() {
+              _notes = notes.map((note) {
+                return {
+                  'id': note['id'],
+                  'content': note['content'],
+                  'title': note['title'] ?? 'Note',
+                  'created_at': note['created_at'],
+                  'updated_at': note['updated_at'],
+                };
+              }).toList();
+            });
           }
+          print('[COMPOUND SCREEN] Loaded ${_notes.length} notes');
+        } else {
+          print('[COMPOUND SCREEN] Notes field is null');
         }
       } else {
         print('[COMPOUND SCREEN] No notes in response or success=false');
       }
     } catch (e) {
-      print('[COMPOUND SCREEN] Error fetching compound note: $e');
+      print('[COMPOUND SCREEN] Error fetching compound notes: $e');
     }
   }
 
-  Future<void> _showNoteDialog() async {
+  Future<void> _showNoteDialog({
+    int? noteId,
+    String? initialContent,
+    String? initialTitle,
+  }) async {
     final result = await NoteDialog.show(
       context,
-      initialNote: _currentNote,
-      title: _currentNote != null && _currentNote!.isNotEmpty
-          ? 'Edit Note'
-          : 'Add Note',
+      initialNote: initialContent,
+      title: noteId != null ? 'Edit Note' : 'Add Note',
     );
 
     if (result != null && mounted) {
       try {
         Map<String, dynamic> response;
 
-        if (widget.compound.noteId != null) {
+        if (noteId != null) {
           // Update existing note
-          print('[COMPOUND SCREEN] Updating note ${widget.compound.noteId}');
+          print('[COMPOUND SCREEN] Updating note $noteId');
           response = await _favoritesWebServices.updateNote(
-            noteId: widget.compound.noteId!,
+            noteId: noteId,
             content: result,
-            title: 'Compound Note',
+            title: initialTitle ?? 'Compound Note',
           );
         } else {
           // Create new note
@@ -1161,17 +1227,15 @@ class _CompoundScreenState extends State<CompoundScreen>
 
         print('[COMPOUND SCREEN] Note save response: $response');
 
-        // Update local state
-        setState(() {
-          _currentNote = result;
-        });
-
         if (mounted) {
           MessageHelper.showMessage(
             context: context,
             message: 'Note saved successfully',
             isSuccess: true,
           );
+
+          // Reload notes to show updated list
+          await _fetchCompoundNote();
         }
 
         // Trigger bloc refresh to reload favorites
@@ -1184,6 +1248,61 @@ class _CompoundScreenState extends State<CompoundScreen>
           MessageHelper.showMessage(
             context: context,
             message: 'Failed to save note',
+            isSuccess: false,
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteNote(int noteId) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Note'),
+        content: Text('Are you sure you want to delete this note?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        print('[COMPOUND SCREEN] Deleting note $noteId');
+        final response = await _favoritesWebServices.deleteNote(noteId: noteId);
+
+        print('[COMPOUND SCREEN] Delete note response: $response');
+
+        if (mounted) {
+          MessageHelper.showMessage(
+            context: context,
+            message: 'Note deleted successfully',
+            isSuccess: true,
+          );
+
+          // Reload notes to show updated list
+          await _fetchCompoundNote();
+        }
+
+        // Trigger bloc refresh
+        if (mounted) {
+          context.read<CompoundFavoriteBloc>().add(LoadFavoriteCompounds());
+        }
+      } catch (e) {
+        print('[COMPOUND SCREEN] Error deleting note: $e');
+        if (mounted) {
+          MessageHelper.showMessage(
+            context: context,
+            message: 'Failed to delete note',
             isSuccess: false,
           );
         }

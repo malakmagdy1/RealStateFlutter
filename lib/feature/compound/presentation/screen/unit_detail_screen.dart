@@ -59,7 +59,6 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     ViewHistoryService().addViewedUnit(widget.unit);
     _imagePageController = PageController();
     _tabController = TabController(length: 6, vsync: this);
-    print('[UNIT DETAIL] Initial note from widget.unit.notes: $_currentNote');
     print('[UNIT DETAIL] Unit ID: ${widget.unit.id}');
     print('[UNIT DETAIL] Note ID: ${widget.unit.noteId}');
     // Sale is now included in unit data, no need to fetch separately
@@ -931,15 +930,13 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
               Row(
                 children: [
                   Icon(
-                    _currentNote != null && _currentNote!.isNotEmpty
-                        ? Icons.note
-                        : Icons.note_add_outlined,
+                    _notes.isNotEmpty ? Icons.note : Icons.note_add_outlined,
                     color: AppColors.mainColor,
                     size: 20,
                   ),
                   SizedBox(width: 8),
                   Text(
-                    'My Notes',
+                    'My Notes (${_notes.length})',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -949,59 +946,122 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                 ],
               ),
               TextButton.icon(
-                onPressed: _showNoteDialog,
-                icon: Icon(
-                  _currentNote != null && _currentNote!.isNotEmpty
-                      ? Icons.edit
-                      : Icons.add,
-                  size: 16,
-                ),
-                label: Text(
-                  _currentNote != null && _currentNote!.isNotEmpty
-                      ? 'Edit Note'
-                      : 'Add Note',
-                ),
+                onPressed: () => _showNoteDialog(),
+                icon: Icon(Icons.add, size: 16),
+                label: Text('Add Note'),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.mainColor,
                 ),
               ),
             ],
           ),
-          if (_currentNote != null && _currentNote!.isNotEmpty) ...[
-            SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.mainColor.withOpacity(0.05),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: AppColors.mainColor.withOpacity(0.2),
-                ),
-              ),
-              child: Text(
-                _currentNote!,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.black,
-                  height: 1.5,
-                ),
-              ),
-            ),
-          ] else ...[
-            SizedBox(height: 8),
+          SizedBox(height: 12),
+          if (_notes.isEmpty) ...[
             Text(
               'Add your personal notes about this unit. Your notes are private and only visible to you.',
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.black,
+                color: Colors.grey[600],
                 fontStyle: FontStyle.italic,
               ),
+            ),
+          ] else ...[
+            ListView.separated(
+              shrinkWrap: true,
+              physics: NeverScrollableScrollPhysics(),
+              itemCount: _notes.length,
+              separatorBuilder: (context, index) => SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final note = _notes[index];
+                return Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.mainColor.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.mainColor.withOpacity(0.2),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              note['title'] ?? 'Note',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.mainColor,
+                              ),
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(Icons.edit, size: 18),
+                                color: Colors.blue,
+                                onPressed: () => _showNoteDialog(
+                                  noteId: note['id'],
+                                  initialContent: note['content'],
+                                  initialTitle: note['title'],
+                                ),
+                                padding: EdgeInsets.zero,
+                                constraints: BoxConstraints(),
+                              ),
+                              SizedBox(width: 8),
+                              IconButton(
+                                icon: Icon(Icons.delete, size: 18),
+                                color: Colors.red,
+                                onPressed: () => _deleteNote(note['id']),
+                                padding: EdgeInsets.zero,
+                                constraints: BoxConstraints(),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        note['content'] ?? '',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.black87,
+                          height: 1.5,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      Text(
+                        'Updated: ${_formatDate(note['updated_at'])}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey[600],
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ],
         ],
       ),
     );
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null) return 'Unknown';
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day}/${date.month}/${date.year} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return dateStr;
+    }
   }
 
   Widget _buildPaymentPlansTab(AppLocalizations l10n) {
@@ -1425,26 +1485,28 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     );
   }
 
-  Future<void> _showNoteDialog() async {
+  Future<void> _showNoteDialog({
+    int? noteId,
+    String? initialContent,
+    String? initialTitle,
+  }) async {
     final result = await NoteDialog.show(
       context,
-      initialNote: _currentNote,
-      title: _currentNote != null && _currentNote!.isNotEmpty
-          ? 'Edit Note'
-          : 'Add Note',
+      initialNote: initialContent,
+      title: noteId != null ? 'Edit Note' : 'Add Note',
     );
 
     if (result != null && mounted) {
       try {
         Map<String, dynamic> response;
 
-        if (widget.unit.noteId != null) {
+        if (noteId != null) {
           // Update existing note
-          print('[UNIT DETAIL] Updating note ${widget.unit.noteId}');
+          print('[UNIT DETAIL] Updating note $noteId');
           response = await _favoritesWebServices.updateNote(
-            noteId: widget.unit.noteId!,
+            noteId: noteId,
             content: result,
-            title: 'Unit Note',
+            title: initialTitle ?? 'Unit Note',
           );
         } else {
           // Create new note
@@ -1458,28 +1520,15 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
 
         print('[UNIT DETAIL] Note save response: $response');
 
-        // Extract note ID from response: response['data']['note']['id']
-        if (response['success'] == true && response['data'] != null) {
-          final data = response['data'] as Map<String, dynamic>;
-          if (data['note'] != null) {
-            final note = data['note'] as Map<String, dynamic>;
-            final noteId = note['id'] as int?;
-            print('[UNIT DETAIL] Note saved with ID: $noteId');
-
-            // Update local state
-            setState(() {
-              _currentNote = result;
-              // Note: noteId will be updated when favorites reload from bloc
-            });
-          }
-        }
-
         if (mounted) {
           _showCenteredMessage(
             context: context,
             message: 'Note saved successfully',
             isSuccess: true,
           );
+
+          // Reload notes to show updated list
+          await _fetchUnitNote();
         }
 
         // Trigger bloc refresh to reload favorites with updated noteId
@@ -1492,6 +1541,61 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           _showCenteredMessage(
             context: context,
             message: 'Failed to save note',
+            isSuccess: false,
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteNote(int noteId) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Note'),
+        content: Text('Are you sure you want to delete this note?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        print('[UNIT DETAIL] Deleting note $noteId');
+        final response = await _favoritesWebServices.deleteNote(noteId: noteId);
+
+        print('[UNIT DETAIL] Delete note response: $response');
+
+        if (mounted) {
+          _showCenteredMessage(
+            context: context,
+            message: 'Note deleted successfully',
+            isSuccess: true,
+          );
+
+          // Reload notes to show updated list
+          await _fetchUnitNote();
+        }
+
+        // Trigger bloc refresh
+        if (mounted) {
+          context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
+        }
+      } catch (e) {
+        print('Error deleting note: $e');
+        if (mounted) {
+          _showCenteredMessage(
+            context: context,
+            message: 'Failed to delete note',
             isSuccess: false,
           );
         }
