@@ -36,7 +36,7 @@ class ChatRemoteDataSource {
   RealEstateProduct _convertUnitToProduct(Unit unit) {
     return RealEstateProduct(
       type: 'unit',
-      id: unit.id,
+      id: int.tryParse(unit.id),
       name: unit.unitNumber?.isNotEmpty == true ? unit.unitNumber! : unit.usageType ?? 'Unit',
       location: unit.compoundName ?? 'Unknown Location',
       propertyType: unit.usageType ?? unit.unitType ?? 'Unit',
@@ -46,6 +46,7 @@ class ChatRemoteDataSource {
       bathrooms: unit.bathrooms,
       features: _extractFeatures(unit),
       description: '${unit.usageType ?? 'Unit'} in ${unit.compoundName ?? 'compound'}',
+      originalUnit: unit, // Pass the original Unit object
     );
   }
 

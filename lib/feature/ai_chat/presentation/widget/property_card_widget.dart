@@ -80,6 +80,7 @@ class PropertyCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     print('🏠 PropertyCardWidget building for type: ${product.type}');
+    print('🏠 Has original unit: ${product.originalUnit != null}');
 
     try {
       // Wrap cards with necessary BLoC providers for icons to work
@@ -99,10 +100,16 @@ class PropertyCardWidget extends StatelessWidget {
         final unitBloc = context.read<UnitFavoriteBloc>();
         print('✅ UnitFavoriteBloc found in context');
 
+        // Use original Unit if available, otherwise convert from product
+        final unit = product.originalUnit is Unit
+            ? product.originalUnit as Unit
+            : _toUnitModel();
+        print('✅ Using ${product.originalUnit is Unit ? "original" : "converted"} unit: ${unit.id}');
+
         return BlocProvider.value(
           value: unitBloc,
           child: UnitCard(
-            unit: _toUnitModel(),
+            unit: unit,
           ),
         );
       }
@@ -115,8 +122,11 @@ class PropertyCardWidget extends StatelessWidget {
           showRecommendedBadge: true,
         );
       } else {
+        final unit = product.originalUnit is Unit
+            ? product.originalUnit as Unit
+            : _toUnitModel();
         return UnitCard(
-          unit: _toUnitModel(),
+          unit: unit,
         );
       }
     }

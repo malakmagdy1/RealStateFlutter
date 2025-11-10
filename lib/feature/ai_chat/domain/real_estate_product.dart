@@ -14,6 +14,7 @@ class RealEstateProduct extends Equatable {
   final List<String> features;
   final String? imagePath;
   final String? description;
+  final dynamic originalUnit; // Store original Unit object from database
 
   const RealEstateProduct({
     required this.type,
@@ -28,6 +29,7 @@ class RealEstateProduct extends Equatable {
     required this.features,
     this.imagePath,
     this.description,
+    this.originalUnit,
   });
 
   @override
@@ -44,6 +46,7 @@ class RealEstateProduct extends Equatable {
         features,
         imagePath,
         description,
+        originalUnit,
       ];
 
   factory RealEstateProduct.fromJson(Map<String, dynamic> json) {
