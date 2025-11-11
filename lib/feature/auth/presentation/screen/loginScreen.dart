@@ -273,25 +273,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _user = null);
   }
 
-  // Temporary method to clear token for testing
-  Future<void> _clearToken() async {
-    print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-    // Check token before deleting
-    final tokenBefore = CasheNetwork.getCasheData(key: "token");
-    print('Token BEFORE clearing: $tokenBefore');
-
-    // Delete token
-    final deleted = await CasheNetwork.deletecasheItem(key: "token");
-    print('Token deleted successfully: $deleted');
-
-    // Check token after deleting
-    final tokenAfter = CasheNetwork.getCasheData(key: "token");
-    print('Token AFTER clearing: $tokenAfter');
-    print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-
-    MessageHelper.showSuccess(context, 'Token cleared! STOP the app completely and start again.');
-  }
-
   // Check subscription status after login
   void _checkSubscriptionStatus(BuildContext context) {
     context.read<SubscriptionBloc>().add(LoadSubscriptionStatusEvent());
@@ -322,6 +303,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
           if (state is SubscriptionStatusLoaded) {
             final status = state.status;
+
+            // If user already has active subscription, just navigate to home
+            if (status.hasActiveSubscription) {
+              Future.microtask(() {
+                Navigator.of(dialogContext).pop();
+                Navigator.pushReplacementNamed(context, CustomNav.routeName);
+              });
+              return SizedBox.shrink();
+            }
             return Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
@@ -332,15 +322,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: status.hasActiveSubscription
-                        ? [
-                            AppColors.mainColor,
-                            AppColors.mainColor.withOpacity(0.8),
-                          ]
-                        : [
-                            Colors.grey[800]!,
-                            Colors.grey[700]!,
-                          ],
+                    colors: [
+                      Colors.grey[800]!,
+                      Colors.grey[700]!,
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(24),
                 ),
@@ -372,9 +357,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
-                              status.hasActiveSubscription
-                                  ? Icons.workspace_premium
-                                  : Icons.rocket_launch,
+                              Icons.rocket_launch,
                               size: 40,
                               color: Colors.white,
                             ),
@@ -382,46 +365,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
                           SizedBox(height: 20),
 
-                          // Status badge
-                          if (status.hasActiveSubscription)
-                            Container(
-                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Colors.green,
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.2),
-                                    blurRadius: 8,
-                                    offset: Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.check_circle, color: Colors.white, size: 16),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'ACTIVE',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                          SizedBox(height: 16),
-
                           // Title
                           Text(
-                            status.hasActiveSubscription
-                                ? 'Welcome Back!'
-                                : 'Unlock Premium Features',
+                            'Unlock Premium Features',
                             style: TextStyle(
                               fontSize: 26,
                               fontWeight: FontWeight.bold,
@@ -434,119 +380,45 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           SizedBox(height: 12),
 
                           // Subtitle/Description
-                          if (status.hasActiveSubscription) ...[
-                            Text(
-                              status.planNameEn ?? status.planName ?? 'Premium Plan',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white.withOpacity(0.95),
-                              ),
-                              textAlign: TextAlign.center,
+                          Text(
+                            'Get unlimited searches and access to exclusive property listings',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: Colors.white.withOpacity(0.9),
+                              height: 1.5,
                             ),
-                            SizedBox(height: 20),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 20),
 
-                            // Search usage info
-                            Container(
-                              padding: EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
-                                  width: 1,
+                          // Features list
+                          ...[
+                            'Unlimited property searches',
+                            'Advanced filters & sorting',
+                            'Priority customer support',
+                            'Exclusive premium listings',
+                          ].map((feature) => Padding(
+                            padding: EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Colors.green[300],
+                                  size: 20,
                                 ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.search_rounded,
-                                    color: Colors.white,
-                                    size: 24,
-                                  ),
-                                  SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Search Access',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.white.withOpacity(0.8),
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          status.isUnlimited
-                                              ? 'Unlimited Searches'
-                                              : '${status.searchesUsed}/${status.searchesAllowed} Used',
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ],
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    feature,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white.withOpacity(0.95),
                                     ),
                                   ),
-                                  if (status.isUnlimited)
-                                    Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: Colors.amber[600],
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Icon(
-                                        Icons.all_inclusive,
-                                        color: Colors.white,
-                                        size: 18,
-                                      ),
-                                    ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                          ] else ...[
-                            Text(
-                              'Get unlimited searches and access to exclusive property listings',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Colors.white.withOpacity(0.9),
-                                height: 1.5,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(height: 20),
-
-                            // Features list
-                            ...[
-                              'Unlimited property searches',
-                              'Advanced filters & sorting',
-                              'Priority customer support',
-                              'Exclusive premium listings',
-                            ].map((feature) => Padding(
-                              padding: EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.check_circle_rounded,
-                                    color: Colors.green[300],
-                                    size: 20,
-                                  ),
-                                  SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      feature,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.white.withOpacity(0.95),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )),
-                          ],
+                          )),
 
                           SizedBox(height: 24),
 
@@ -558,19 +430,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 child: ElevatedButton(
                                   onPressed: () async {
                                     Navigator.of(dialogContext).pop();
-                                    if (!status.hasActiveSubscription) {
-                                      await Navigator.pushNamed(
-                                        context,
-                                        SubscriptionPlansScreen.routeName,
-                                      );
-                                    }
+                                    await Navigator.pushNamed(
+                                      context,
+                                      SubscriptionPlansScreen.routeName,
+                                    );
                                     Navigator.pushReplacementNamed(context, CustomNav.routeName);
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,
-                                    foregroundColor: status.hasActiveSubscription
-                                        ? AppColors.mainColor
-                                        : Colors.grey[800],
+                                    foregroundColor: Colors.grey[800],
                                     padding: EdgeInsets.symmetric(vertical: 16),
                                     elevation: 0,
                                     shape: RoundedRectangleBorder(
@@ -581,16 +449,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Icon(
-                                        status.hasActiveSubscription
-                                            ? Icons.arrow_forward
-                                            : Icons.star,
+                                        Icons.star,
                                         size: 20,
                                       ),
                                       SizedBox(width: 8),
                                       Text(
-                                        status.hasActiveSubscription
-                                            ? 'Continue to App'
-                                            : 'View Plans',
+                                        'View Plans',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -609,7 +473,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   Navigator.pushReplacementNamed(context, CustomNav.routeName);
                                 },
                                 child: Text(
-                                  status.hasActiveSubscription ? 'View My Plan' : 'Maybe Later',
+                                  'Maybe Later',
                                   style: TextStyle(
                                     color: Colors.white.withOpacity(0.9),
                                     fontSize: 15,
@@ -768,16 +632,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             MessageHelper.showError(context, state.message);
           }
         },
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.all(10.0),
-            child: Form(key: _formKey,
-              child: FadeTransition(
-                opacity: _fadeAnimation,
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: Column(
-                    children: [
+        child: Center(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.all(10.0),
+              child: Form(key: _formKey,
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: SlideTransition(
+                    position: _slideAnimation,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
                   SizedBox(height: 40),
                   Text(
                     "Welcome Back",
@@ -836,67 +703,71 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 ),
               ),
               SizedBox(height: 16),
-              BlocBuilder<LoginBloc, LoginState>(
-                builder: (context, state) {
-                  final isLoading = state is LoginLoading;
-                  return AuthButton(
-                    action: () {
-                      if (_formKey.currentState!.validate()) {
-                        final request = LoginRequest(
-                          email: emailController.text,
-                          password: passwordController.text,
-                        );
-                        context.read<LoginBloc>().add(
-                          LoginSubmitEvent(request),
-                        );
-                      }
-                    },
-                    text: isLoading ? 'Logging in...' : 'Login',
-                    isLoading: isLoading,
-                  );
-                },
+              Center(
+                child: BlocBuilder<LoginBloc, LoginState>(
+                  builder: (context, state) {
+                    final isLoading = state is LoginLoading;
+                    return SizedBox(
+                      width: 280,
+                      child: AuthButton(
+                        action: () {
+                          if (_formKey.currentState!.validate()) {
+                            final request = LoginRequest(
+                              email: emailController.text,
+                              password: passwordController.text,
+                            );
+                            context.read<LoginBloc>().add(
+                              LoginSubmitEvent(request),
+                            );
+                          }
+                        },
+                        text: isLoading ? 'Logging in...' : 'Login',
+                        isLoading: isLoading,
+                      ),
+                    );
+                  },
+                ),
               ),
               SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(child: Divider(color: Colors.grey[400])),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    child: CustomText16('OR', color: AppColors.greyText),
+              SizedBox(
+                width: 280,
+                child: Row(
+                  children: [
+                    Expanded(child: Divider(color: Colors.grey[400])),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: CustomText16('OR', color: AppColors.greyText),
+                    ),
+                    Expanded(child: Divider(color: Colors.grey[400])),
+                  ],
+                ),
+              ),
+              SizedBox(height: 20),
+              SizedBox(
+                width: 280,
+                child: OutlinedButton.icon(
+                  onPressed: _handleSignIn,
+                  style: OutlinedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    side: BorderSide(color: Colors.grey[400]!),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
-                  Expanded(child: Divider(color: Colors.grey[400])),
-                ],
-              ),
-              SizedBox(height: 20),
-              OutlinedButton.icon(
-                onPressed: _handleSignIn,
-                style: OutlinedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                  side: BorderSide(color: Colors.grey[400]!),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  icon: Image.asset(
+                    'assets/images/google.png',
+                    height: 24,
+                    width: 24,
+                  ),
+                  label: CustomText16(
+                    'Continue with Google',
+                    color: AppColors.black,
                   ),
                 ),
-                icon: Image.asset(
-                  'assets/images/google.png',
-                  height: 24,
-                  width: 24,
-                ),
-                label: CustomText16(
-                  'Continue with Google',
-                  color: AppColors.black,
-                ),
               ),
               SizedBox(height: 20),
-              // Temporary button for testing - DELETE THIS AFTER TESTING
-              TextButton(
-                onPressed: _clearToken,
-                child: CustomText16(
-                  'Clear Token (For Testing)',
-                  color: Colors.red,
-                ),
-              ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),

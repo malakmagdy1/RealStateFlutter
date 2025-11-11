@@ -33,6 +33,51 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:832433207149:android:dc6bb2219c4f2219e0cc64",
+        "android_client_info": {
+          "package_name": "com.realestate.aqar"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "832433207149-1ub8e95hl9ug20e3n6ch3hgk6queasu1.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.realestate.aqar",
+            "certificate_hash": "eefe4cc4ba7ede1d551a208ffe5af99b5b50e80c"
+          }
+        },
+        {
+          "client_id": "832433207149-vn9r1na57p83k6kna24a1h4lq70n2ug5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.realestate.aqar",
+            "certificate_hash": "957e147f42393800f4da2fc45ba99a055a9b05a9"
+          }
+        },
+        {
+          "client_id": "832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBrMELCDISDehQ9KVP6RVekwwRHqTrJGZQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

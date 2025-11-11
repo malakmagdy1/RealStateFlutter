@@ -53,7 +53,19 @@
       "Bash(awk:*)",
       "Bash(find:*)",
       "Bash(flutter logs:*)",
-      "Bash(/dev/tcp/localhost/8181)"
+      "Bash(/dev/tcp/localhost/8181)",
+      "Bash(powershell -Command:*)",
+      "Bash(keytool:*)",
+      "Bash(jarsigner:*)",
+      "Bash(gradlew.bat signingReport)",
+      "Bash(./gradlew signingReport:*)",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.97.46.103 \"cat /etc/issue && which nginx && which apache2\")",
+      "Bash(cmd /c \"dir build\\web /b\")",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.97.46.103 \"mkdir -p /var/www/aqar.bdcbiz.com && ls -la /var/www/\")",
+      "Bash(scp:*)",
+      "Bash(ssh -o StrictHostKeyChecking=no root@31.97.46.103 \"ls -lah /var/www/aqar.bdcbiz.com/\")",
+      "Bash(ssh:*)",
+      "Bash(tar:*)"
     ],
     "deny": [],
     "ask": []

@@ -26,6 +26,9 @@ class AuthButton extends StatelessWidget {
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         ),
+        padding: WidgetStateProperty.all(
+          EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        ),
       ),
       onPressed: isLoading ? null : action,
       child: isLoading
