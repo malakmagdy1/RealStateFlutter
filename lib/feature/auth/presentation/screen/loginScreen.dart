@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/constant.dart';
@@ -545,7 +546,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     passwordController.dispose();
     super.dispose();
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -645,7 +645,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                  SizedBox(height: 40),
+                  SizedBox(height: 20),
+                  // Logo
+                  Center(
+                    child: SvgPicture.asset(
+                      'assets/images/logos/logo_with_background.svg',
+                      width: 120,
+                      height: 120,
+                      placeholderBuilder: (context) => Container(
+                        width: 120,
+                        height: 120,
+                        color: Colors.grey[300],
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 24),
                   Text(
                     "Welcome Back",
                     style: TextStyle(

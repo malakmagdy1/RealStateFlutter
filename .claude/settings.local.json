@@ -65,7 +65,10 @@
       "Bash(scp:*)",
       "Bash(ssh -o StrictHostKeyChecking=no root@31.97.46.103 \"ls -lah /var/www/aqar.bdcbiz.com/\")",
       "Bash(ssh:*)",
-      "Bash(tar:*)"
+      "Bash(tar:*)",
+      "Bash(curl:*)",
+      "Bash(git pull:*)",
+      "Bash(exit 0)"
     ],
     "deny": [],
     "ask": []

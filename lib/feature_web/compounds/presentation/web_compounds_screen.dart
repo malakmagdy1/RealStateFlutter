@@ -72,11 +72,16 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   final List<String> propertyTypes = ['Villa', 'Apartment', 'Studio', 'Duplex', 'Penthouse'];
   final List<int> bedroomOptions = [1, 2, 3, 4, 5];
   final List<String> finishingOptions = ['Finished', 'Semi-Finished', 'Core & Shell'];
-  final Map<String, String> sortOptions = {
-    'price_asc': 'Price: Low to High',
-    'price_desc': 'Price: High to Low',
-    'newest': 'Newest First',
-  };
+
+  // Sort options - will be populated with localized values
+  Map<String, String> get sortOptions {
+    final l10n = AppLocalizations.of(context)!;
+    return {
+      'price_asc': l10n.priceAsc,
+      'price_desc': l10n.priceDesc,
+      'newest': l10n.newestFirst,
+    };
+  }
 
   // Track expanded state for search results
 
@@ -390,8 +395,8 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                     },
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Browse all available compounds',
+                  Text(
+                    l10n.browseAllCompounds,
                     style: TextStyle(
                       fontSize: 16,
                       color: Color(0xFF666666),
@@ -407,7 +412,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                       focusNode: _searchFocusNode,
                       onChanged: _performSearch,
                       decoration: InputDecoration(
-                        hintText: 'Search for compounds...',
+                        hintText: l10n.searchForCompounds,
                         prefixIcon: Icon(Icons.search, size: 24, color: AppColors.mainColor),
                         suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(
@@ -601,10 +606,10 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                CustomText20('Filters', bold: true, color: AppColors.black),
+                CustomText20(l10n.filters, bold: true, color: AppColors.black),
                 TextButton(
                   onPressed: _clearAllFilters,
-                  child: CustomText14('Clear All', color: Colors.red),
+                  child: CustomText14(l10n.clearAll, color: Colors.red),
                 ),
               ],
             ),
@@ -612,7 +617,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Location Dropdown
             _buildFilterCard(
-              title: 'Location',
+              title: l10n.location,
               icon: Icons.location_on,
               child: DropdownButtonFormField<String>(
                 value: _selectedLocation,
@@ -710,7 +715,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Property Type Card
             _buildFilterCard(
-              title: 'Property Type',
+              title: l10n.propertyType,
               icon: Icons.home_work,
               child: Wrap(
                 spacing: 6,
@@ -742,7 +747,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Bedrooms Card
             _buildFilterCard(
-              title: 'Bedrooms',
+              title: l10n.bedrooms,
               icon: Icons.bed,
               child: Wrap(
                 spacing: 6,
@@ -774,7 +779,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Finishing Card
             _buildFilterCard(
-              title: 'Finishing',
+              title: l10n.finishing,
               icon: Icons.format_paint,
               child: Column(
                 children: finishingOptions.map((finishing) {
@@ -832,7 +837,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Delivery Date Calendar Picker
             _buildFilterCard(
-              title: 'Delivery Date',
+              title: l10n.deliveryDate,
               icon: Icons.calendar_today,
               child: InkWell(
                 onTap: () async {
@@ -864,7 +869,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                         child: Text(
                           _selectedDeliveryDate != null
                               ? DateFormat('dd MMM yyyy').format(_selectedDeliveryDate!)
-                              : 'Select delivery date',
+                              : l10n.selectDeliveryDate,
                           style: TextStyle(
                             fontSize: 13,
                             color: _selectedDeliveryDate != null
@@ -893,25 +898,25 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Amenities Card
             _buildFilterCard(
-              title: 'Amenities',
+              title: l10n.amenities,
               icon: Icons.star,
               child: Column(
                 children: [
-                  _buildAmenityCheckbox('Has Club', _hasClub, Icons.sports_tennis, (value) {
+                  _buildAmenityCheckbox(l10n.hasClubAmenity, _hasClub, Icons.sports_tennis, (value) {
                     setState(() {
                       _hasClub = value ?? false;
                     });
                     _applyFilters();
                   }),
                   const SizedBox(height: 8),
-                  _buildAmenityCheckbox('Has Roof', _hasRoof, Icons.roofing, (value) {
+                  _buildAmenityCheckbox(l10n.hasRoofAmenity, _hasRoof, Icons.roofing, (value) {
                     setState(() {
                       _hasRoof = value ?? false;
                     });
                     _applyFilters();
                   }),
                   const SizedBox(height: 8),
-                  _buildAmenityCheckbox('Has Garden', _hasGarden, Icons.yard, (value) {
+                  _buildAmenityCheckbox(l10n.hasGardenAmenity, _hasGarden, Icons.yard, (value) {
                     setState(() {
                       _hasGarden = value ?? false;
                     });
@@ -925,7 +930,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Sort By Card
             _buildFilterCard(
-              title: 'Sort By',
+              title: l10n.sortBy,
               icon: Icons.sort,
               child: Column(
                 children: sortOptions.entries.map((entry) {
@@ -1264,12 +1269,12 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Found ${response.totalResults} results',
+                    l10n.foundResults(response.totalResults),
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   if (hasMorePages)
                     Text(
-                      'Showing ${results.length} of ${response.totalResults}',
+                      l10n.showingResults(results.length, response.totalResults),
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],
@@ -1287,7 +1292,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                     Icon(Icons.business, size: 20, color: AppColors.mainColor),
                     const SizedBox(width: 8),
                     Text(
-                      'Companies (${companyResults.length})',
+                      l10n.companiesCount(companyResults.length),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -1346,7 +1351,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                     Icon(Icons.apartment, size: 20, color: AppColors.mainColor),
                     const SizedBox(width: 8),
                     Text(
-                      'Compounds (${compoundResults.length})',
+                      l10n.compoundsCount(compoundResults.length),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -1387,7 +1392,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                     Icon(Icons.home, size: 20, color: AppColors.mainColor),
                     const SizedBox(width: 8),
                     Text(
-                      'Properties (${response.totalResults})',
+                      l10n.propertiesCount(response.totalResults),
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -1396,7 +1401,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                     if (hasMorePages) ...[
                       const SizedBox(width: 12),
                       CustomText14(
-                        'Page $currentPage/$totalPages',
+                        l10n.pageOf(currentPage, totalPages),
                         color: Colors.grey,
                       ),
                     ],
@@ -1428,7 +1433,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                 // Loading indicator when loading more
                 if (isLoadingMore) ...[
                   const SizedBox(height: 24),
-                  const Center(
+                  Center(
                     child: Padding(
                       padding: EdgeInsets.all(24.0),
                       child: Column(
@@ -1437,7 +1442,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                           CircularProgressIndicator(),
                           SizedBox(height: 12),
                           Text(
-                            'Loading more results...',
+                            l10n.loadingMoreResults,
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey,
@@ -1453,7 +1458,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                   const SizedBox(height: 24),
                   Center(
                     child: Text(
-                      '${response.totalResults - unitResults.length} more results available - Scroll to load',
+                      l10n.moreResultsAvailableScrollToLoad(response.totalResults - unitResults.length),
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.grey[600],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/utils/validators.dart';
@@ -141,7 +142,22 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                  SizedBox(height: 40),
+                  SizedBox(height: 20),
+                  // Logo
+                  Center(
+                    child: SvgPicture.asset(
+                      'assets/images/logos/logo_with_background.svg',
+                      width: 120,
+                      height: 120,
+                      placeholderBuilder: (context) => Container(
+                        width: 120,
+                        height: 120,
+                        color: Colors.grey[300],
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 24),
                   CustomText24(
                     "Get Started Now",
                     color: AppColors.black,

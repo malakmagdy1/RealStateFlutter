@@ -1973,8 +1973,8 @@ abstract class AppLocalizations {
   /// No description provided for @compoundsCount.
   ///
   /// In en, this message translates to:
-  /// **'{count} compounds'**
-  String compoundsCount(String count);
+  /// **'Compounds ({count})'**
+  String compoundsCount(int count);
 
   /// No description provided for @priceRange.
   ///
@@ -2107,6 +2107,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close'**
   String get close;
+
+  /// No description provided for @updatedInLast24Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated in Last 24 Hours'**
+  String get updatedInLast24Hours;
+
+  /// No description provided for @noUnitsUpdatedLast24Hours.
+  ///
+  /// In en, this message translates to:
+  /// **'No units updated in the last 24 hours'**
+  String get noUnitsUpdatedLast24Hours;
+
+  /// No description provided for @newArrivals.
+  ///
+  /// In en, this message translates to:
+  /// **'New Arrivals'**
+  String get newArrivals;
+
+  /// No description provided for @noNewArrivals.
+  ///
+  /// In en, this message translates to:
+  /// **'No new arrivals at the moment'**
+  String get noNewArrivals;
+
+  /// No description provided for @searchForCompounds.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for compounds...'**
+  String get searchForCompounds;
+
+  /// No description provided for @propertyType.
+  ///
+  /// In en, this message translates to:
+  /// **'Property Type'**
+  String get propertyType;
+
+  /// No description provided for @selectDeliveryDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Select delivery date'**
+  String get selectDeliveryDate;
+
+  /// No description provided for @hasClubAmenity.
+  ///
+  /// In en, this message translates to:
+  /// **'Has Club'**
+  String get hasClubAmenity;
+
+  /// No description provided for @hasRoofAmenity.
+  ///
+  /// In en, this message translates to:
+  /// **'Has Roof'**
+  String get hasRoofAmenity;
+
+  /// No description provided for @hasGardenAmenity.
+  ///
+  /// In en, this message translates to:
+  /// **'Has Garden'**
+  String get hasGardenAmenity;
+
+  /// No description provided for @newestFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest First'**
+  String get newestFirst;
+
+  /// No description provided for @yourRecentlyViewedPropertiesAndCompounds.
+  ///
+  /// In en, this message translates to:
+  /// **'Your recently viewed properties and compounds'**
+  String get yourRecentlyViewedPropertiesAndCompounds;
+
+  /// No description provided for @searchInHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Search in history...'**
+  String get searchInHistory;
+
+  /// No description provided for @justNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Just now'**
+  String get justNow;
+
+  /// No description provided for @minutesAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes}m ago'**
+  String minutesAgo(int minutes);
+
+  /// No description provided for @hoursAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{hours}h ago'**
+  String hoursAgo(int hours);
+
+  /// No description provided for @daysAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{days}d ago'**
+  String daysAgo(int days);
+
+  /// No description provided for @weeksAgo.
+  ///
+  /// In en, this message translates to:
+  /// **'{weeks}w ago'**
+  String weeksAgo(int weeks);
+
+  /// No description provided for @noResultsFoundInHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No results found'**
+  String get noResultsFoundInHistory;
+
+  /// No description provided for @noViewingHistoryYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No viewing history yet'**
+  String get noViewingHistoryYet;
+
+  /// No description provided for @noCompoundViewsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No compound views yet'**
+  String get noCompoundViewsYet;
+
+  /// No description provided for @noUnitViewsYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No unit views yet'**
+  String get noUnitViewsYet;
+
+  /// No description provided for @tryAdjustingSearchTerms.
+  ///
+  /// In en, this message translates to:
+  /// **'Try adjusting your search terms'**
+  String get tryAdjustingSearchTerms;
+
+  /// No description provided for @propertiesYouViewWillAppearHere.
+  ///
+  /// In en, this message translates to:
+  /// **'Properties you view will appear here'**
+  String get propertiesYouViewWillAppearHere;
+
+  /// No description provided for @totalNotificationsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} total notifications'**
+  String totalNotificationsCount(int count);
+
+  /// No description provided for @unread.
+  ///
+  /// In en, this message translates to:
+  /// **'Unread'**
+  String get unread;
+
+  /// No description provided for @noUnreadNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'No unread notifications'**
+  String get noUnreadNotifications;
+
+  /// No description provided for @loadingMoreResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading more results...'**
+  String get loadingMoreResults;
+
+  /// No description provided for @moreResultsAvailableScrollToLoad.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} more results available - Scroll to load'**
+  String moreResultsAvailableScrollToLoad(int count);
+
+  /// No description provided for @companiesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Companies ({count})'**
+  String companiesCount(int count);
+
+  /// No description provided for @propertiesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Properties ({count})'**
+  String propertiesCount(int count);
+
+  /// No description provided for @pageOf.
+  ///
+  /// In en, this message translates to:
+  /// **'Page {current}/{total}'**
+  String pageOf(int current, int total);
+
+  /// No description provided for @compoundsWithCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} compounds'**
+  String compoundsWithCount(String count);
 }
 
 class _AppLocalizationsDelegate

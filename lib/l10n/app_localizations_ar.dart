@@ -971,8 +971,8 @@ class AppLocalizationsAr extends AppLocalizations {
   String get hasGardenFilter => 'يحتوي على حديقة';
 
   @override
-  String compoundsCount(String count) {
-    return '$count كمبوند';
+  String compoundsCount(int count) {
+    return 'الكمبوندات ($count)';
   }
 
   @override
@@ -1041,4 +1041,125 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get close => 'إغلاق';
+
+  @override
+  String get updatedInLast24Hours => 'التحديثات في آخر 24 ساعة';
+
+  @override
+  String get noUnitsUpdatedLast24Hours => 'لا توجد وحدات محدثة في آخر 24 ساعة';
+
+  @override
+  String get newArrivals => 'وصل حديثاً';
+
+  @override
+  String get noNewArrivals => 'لا توجد وصول حديثة في الوقت الحالي';
+
+  @override
+  String get searchForCompounds => 'ابحث عن الكمبوندات...';
+
+  @override
+  String get propertyType => 'نوع العقار';
+
+  @override
+  String get selectDeliveryDate => 'اختر تاريخ التسليم';
+
+  @override
+  String get hasClubAmenity => 'يحتوي على نادي';
+
+  @override
+  String get hasRoofAmenity => 'يحتوي على سطح';
+
+  @override
+  String get hasGardenAmenity => 'يحتوي على حديقة';
+
+  @override
+  String get newestFirst => 'الأحدث أولاً';
+
+  @override
+  String get yourRecentlyViewedPropertiesAndCompounds =>
+      'العقارات والكمبوندات التي شاهدتها مؤخراً';
+
+  @override
+  String get searchInHistory => 'ابحث في السجل...';
+
+  @override
+  String get justNow => 'الآن';
+
+  @override
+  String minutesAgo(int minutes) {
+    return 'منذ $minutes دقيقة';
+  }
+
+  @override
+  String hoursAgo(int hours) {
+    return 'منذ $hours ساعة';
+  }
+
+  @override
+  String daysAgo(int days) {
+    return 'منذ $days يوم';
+  }
+
+  @override
+  String weeksAgo(int weeks) {
+    return 'منذ $weeks أسبوع';
+  }
+
+  @override
+  String get noResultsFoundInHistory => 'لا توجد نتائج';
+
+  @override
+  String get noViewingHistoryYet => 'لا يوجد سجل مشاهدة بعد';
+
+  @override
+  String get noCompoundViewsYet => 'لا توجد مشاهدات كمبوندات بعد';
+
+  @override
+  String get noUnitViewsYet => 'لا توجد مشاهدات وحدات بعد';
+
+  @override
+  String get tryAdjustingSearchTerms => 'حاول تعديل مصطلحات البحث';
+
+  @override
+  String get propertiesYouViewWillAppearHere =>
+      'العقارات التي تشاهدها ستظهر هنا';
+
+  @override
+  String totalNotificationsCount(int count) {
+    return '$count إشعار إجمالي';
+  }
+
+  @override
+  String get unread => 'غير مقروءة';
+
+  @override
+  String get noUnreadNotifications => 'لا توجد إشعارات غير مقروءة';
+
+  @override
+  String get loadingMoreResults => 'جاري تحميل المزيد من النتائج...';
+
+  @override
+  String moreResultsAvailableScrollToLoad(int count) {
+    return '$count نتيجة إضافية متاحة - قم بالتمرير للتحميل';
+  }
+
+  @override
+  String companiesCount(int count) {
+    return 'الشركات ($count)';
+  }
+
+  @override
+  String propertiesCount(int count) {
+    return 'الوحدات ($count)';
+  }
+
+  @override
+  String pageOf(int current, int total) {
+    return 'صفحة $current/$total';
+  }
+
+  @override
+  String compoundsWithCount(String count) {
+    return '$count كمبوند';
+  }
 }

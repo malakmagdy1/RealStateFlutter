@@ -451,5 +451,120 @@
   "prioritySupport": "Priority customer support",
   "exclusiveListings": "Exclusive premium listings",
   "viewPlans": "View Plans",
-  "close": "Close"
+  "close": "Close",
+
+  "updatedInLast24Hours": "Updated in Last 24 Hours",
+  "noUnitsUpdatedLast24Hours": "No units updated in the last 24 hours",
+  "newArrivals": "New Arrivals",
+  "noNewArrivals": "No new arrivals at the moment",
+  "searchForCompounds": "Search for compounds...",
+  "propertyType": "Property Type",
+  "selectDeliveryDate": "Select delivery date",
+  "hasClubAmenity": "Has Club",
+  "hasRoofAmenity": "Has Roof",
+  "hasGardenAmenity": "Has Garden",
+  "newestFirst": "Newest First",
+  "yourRecentlyViewedPropertiesAndCompounds": "Your recently viewed properties and compounds",
+  "searchInHistory": "Search in history...",
+  "justNow": "Just now",
+  "minutesAgo": "{minutes}m ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "hoursAgo": "{hours}h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      }
+    }
+  },
+  "daysAgo": "{days}d ago",
+  "@daysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "weeksAgo": "{weeks}w ago",
+  "@weeksAgo": {
+    "placeholders": {
+      "weeks": {
+        "type": "int"
+      }
+    }
+  },
+  "noResultsFoundInHistory": "No results found",
+  "noViewingHistoryYet": "No viewing history yet",
+  "noCompoundViewsYet": "No compound views yet",
+  "noUnitViewsYet": "No unit views yet",
+  "tryAdjustingSearchTerms": "Try adjusting your search terms",
+  "propertiesYouViewWillAppearHere": "Properties you view will appear here",
+  "totalNotificationsCount": "{count} total notifications",
+  "@totalNotificationsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unread": "Unread",
+  "noUnreadNotifications": "No unread notifications",
+  "loadingMoreResults": "Loading more results...",
+  "moreResultsAvailableScrollToLoad": "{count} more results available - Scroll to load",
+  "@moreResultsAvailableScrollToLoad": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "companiesCount": "Companies ({count})",
+  "@companiesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "compoundsCount": "Compounds ({count})",
+  "@compoundsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "propertiesCount": "Properties ({count})",
+  "@propertiesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pageOf": "Page {current}/{total}",
+  "@pageOf": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "compoundsWithCount": "{count} compounds",
+  "@compoundsWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  }
 }

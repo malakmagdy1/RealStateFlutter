@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/constant.dart';
 import 'package:real/core/router/auth_state_notifier.dart';
 import 'package:real/core/services/route_persistence_service.dart';
+import 'package:real/splash_screen.dart';
 import 'package:real/feature_web/auth/presentation/web_login_screen.dart';
 import 'package:real/feature_web/auth/presentation/web_signup_screen.dart';
 import 'package:real/feature_web/auth/presentation/web_forgot_password_screen.dart';
@@ -27,12 +28,19 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     navigatorKey: GlobalKey<NavigatorState>(),
-    initialLocation: _getInitialRoute(),
+    initialLocation: '/splash',
     debugLogDiagnostics: true,
     refreshListenable: _authStateNotifier,
     observers: [RouteObserver<ModalRoute<void>>(), _RouteObserver()],
 
     routes: [
+      // Splash Screen Route (unified for web and mobile)
+      GoRoute(
+        path: '/splash',
+        name: 'splash',
+        builder: (context, state) => const SplashScreen(),
+      ),
+
       // Auth Routes
       GoRoute(
         path: '/login',
@@ -122,6 +130,7 @@ class AppRouter {
       final currentPath = state.matchedLocation;
       final fullPath = state.uri.toString();
       final pathParams = state.pathParameters;
+      final isSplashRoute = currentPath == '/splash';
       final isLoginRoute = currentPath == '/login' ||
           currentPath == '/signup' ||
           currentPath == '/forgot-password';
@@ -135,9 +144,16 @@ class AppRouter {
       print('[ROUTER] Token != null: ${token != null}');
       print('[ROUTER] Token != "": ${token != ""}');
       print('[ROUTER] isLoggedIn: $isLoggedIn');
+      print('[ROUTER] isSplashRoute: $isSplashRoute');
       print('[ROUTER] isLoginRoute: $isLoginRoute');
       print('[ROUTER] Should save route: ${RoutePersistenceService.shouldSaveRoute(currentPath)}');
       print('[ROUTER] ==========================================');
+
+      // Always allow splash screen to show
+      if (isSplashRoute) {
+        print('[ROUTER] ✅ Splash screen - allowing navigation');
+        return null;
+      }
 
       // If not logged in and trying to access protected route
       if (!isLoggedIn && !isLoginRoute) {

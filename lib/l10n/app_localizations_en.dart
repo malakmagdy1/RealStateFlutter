@@ -972,8 +972,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hasGardenFilter => 'Has Garden';
 
   @override
-  String compoundsCount(String count) {
-    return '$count compounds';
+  String compoundsCount(int count) {
+    return 'Compounds ($count)';
   }
 
   @override
@@ -1044,4 +1044,126 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get close => 'Close';
+
+  @override
+  String get updatedInLast24Hours => 'Updated in Last 24 Hours';
+
+  @override
+  String get noUnitsUpdatedLast24Hours =>
+      'No units updated in the last 24 hours';
+
+  @override
+  String get newArrivals => 'New Arrivals';
+
+  @override
+  String get noNewArrivals => 'No new arrivals at the moment';
+
+  @override
+  String get searchForCompounds => 'Search for compounds...';
+
+  @override
+  String get propertyType => 'Property Type';
+
+  @override
+  String get selectDeliveryDate => 'Select delivery date';
+
+  @override
+  String get hasClubAmenity => 'Has Club';
+
+  @override
+  String get hasRoofAmenity => 'Has Roof';
+
+  @override
+  String get hasGardenAmenity => 'Has Garden';
+
+  @override
+  String get newestFirst => 'Newest First';
+
+  @override
+  String get yourRecentlyViewedPropertiesAndCompounds =>
+      'Your recently viewed properties and compounds';
+
+  @override
+  String get searchInHistory => 'Search in history...';
+
+  @override
+  String get justNow => 'Just now';
+
+  @override
+  String minutesAgo(int minutes) {
+    return '${minutes}m ago';
+  }
+
+  @override
+  String hoursAgo(int hours) {
+    return '${hours}h ago';
+  }
+
+  @override
+  String daysAgo(int days) {
+    return '${days}d ago';
+  }
+
+  @override
+  String weeksAgo(int weeks) {
+    return '${weeks}w ago';
+  }
+
+  @override
+  String get noResultsFoundInHistory => 'No results found';
+
+  @override
+  String get noViewingHistoryYet => 'No viewing history yet';
+
+  @override
+  String get noCompoundViewsYet => 'No compound views yet';
+
+  @override
+  String get noUnitViewsYet => 'No unit views yet';
+
+  @override
+  String get tryAdjustingSearchTerms => 'Try adjusting your search terms';
+
+  @override
+  String get propertiesYouViewWillAppearHere =>
+      'Properties you view will appear here';
+
+  @override
+  String totalNotificationsCount(int count) {
+    return '$count total notifications';
+  }
+
+  @override
+  String get unread => 'Unread';
+
+  @override
+  String get noUnreadNotifications => 'No unread notifications';
+
+  @override
+  String get loadingMoreResults => 'Loading more results...';
+
+  @override
+  String moreResultsAvailableScrollToLoad(int count) {
+    return '$count more results available - Scroll to load';
+  }
+
+  @override
+  String companiesCount(int count) {
+    return 'Companies ($count)';
+  }
+
+  @override
+  String propertiesCount(int count) {
+    return 'Properties ($count)';
+  }
+
+  @override
+  String pageOf(int current, int total) {
+    return 'Page $current/$total';
+  }
+
+  @override
+  String compoundsWithCount(String count) {
+    return '$count compounds';
+  }
 }

@@ -168,7 +168,7 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
                       OutlinedButton.icon(
                         onPressed: _clearAllHistory,
                         icon: Icon(Icons.delete_outline, color: Colors.red),
-                        label: Text('Clear All', style: TextStyle(color: Colors.red)),
+                        label: Text(l10n.clearAll, style: TextStyle(color: Colors.red)),
                         style: OutlinedButton.styleFrom(
                           side: BorderSide(color: Colors.red),
                         ),
@@ -177,7 +177,7 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Your recently viewed properties and compounds',
+                  l10n.yourRecentlyViewedPropertiesAndCompounds,
                   style: TextStyle(
                     fontSize: 16,
                     color: Color(0xFF666666),
@@ -197,7 +197,7 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
                           setState(() => _searchQuery = value);
                         },
                         decoration: InputDecoration(
-                          hintText: 'Search in history...',
+                          hintText: l10n.searchInHistory,
                           hintStyle: TextStyle(color: Color(0xFF999999)),
                           prefixIcon: Icon(Icons.search, color: AppColors.mainColor),
                           suffixIcon: _searchQuery.isNotEmpty
@@ -421,24 +421,26 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
     );
   }
   String _getTimeAgo(String dateTimeString) {
+    final l10n = AppLocalizations.of(context)!;
     final viewedAt = DateTime.parse(dateTimeString);
     final now = DateTime.now();
     final difference = now.difference(viewedAt);
 
     if (difference.inMinutes < 1) {
-      return 'Just now';
+      return l10n.justNow;
     } else if (difference.inHours < 1) {
-      return '${difference.inMinutes}m ago';
+      return l10n.minutesAgo(difference.inMinutes);
     } else if (difference.inDays < 1) {
-      return '${difference.inHours}h ago';
+      return l10n.hoursAgo(difference.inHours);
     } else if (difference.inDays < 7) {
-      return '${difference.inDays}d ago';
+      return l10n.daysAgo(difference.inDays);
     } else {
-      return '${(difference.inDays / 7).floor()}w ago';
+      return l10n.weeksAgo((difference.inDays / 7).floor());
     }
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context)!;
     final hasSearch = _searchQuery.isNotEmpty;
     final hasFilter = _filter != 'all';
 
@@ -454,12 +456,12 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
           SizedBox(height: 24),
           Text(
             hasSearch
-                ? 'No results found'
+                ? l10n.noResultsFoundInHistory
                 : _filter == 'all'
-                    ? 'No viewing history yet'
+                    ? l10n.noViewingHistoryYet
                     : _filter == 'compounds'
-                        ? 'No compound views yet'
-                        : 'No unit views yet',
+                        ? l10n.noCompoundViewsYet
+                        : l10n.noUnitViewsYet,
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w600,
@@ -469,8 +471,8 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
           SizedBox(height: 12),
           Text(
             hasSearch
-                ? 'Try adjusting your search terms'
-                : 'Properties you view will appear here',
+                ? l10n.tryAdjustingSearchTerms
+                : l10n.propertiesYouViewWillAppearHere,
             style: TextStyle(
               fontSize: 16,
               color: Color(0xFF999999),
@@ -487,7 +489,7 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
                 });
               },
               icon: Icon(Icons.clear_all),
-              label: Text('Clear Filters'),
+              label: Text(l10n.clearFilters),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.mainColor,
                 foregroundColor: Colors.white,

@@ -211,7 +211,7 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
             ),
             SizedBox(height: 4),
             Text(
-              '${notifications.length} total notifications',
+              l10n.totalNotificationsCount(notifications.length),
               style: TextStyle(
                 fontSize: 14,
                 color: Color(0xFF666666),
@@ -287,7 +287,7 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
         children: [
           _buildFilterChip('all', l10n.all, Icons.grid_view_rounded, notifications.length),
           SizedBox(width: 12),
-          _buildFilterChip('unread', 'Unread', Icons.mark_email_unread_rounded, _getUnreadCount()),
+          _buildFilterChip('unread', l10n.unread, Icons.mark_email_unread_rounded, _getUnreadCount()),
           SizedBox(width: 12),
           _buildFilterChip('sale', l10n.sales, Icons.sell_rounded, notifications.where((n) => n.type == 'sale').length),
           SizedBox(width: 12),
@@ -390,7 +390,7 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
           ),
           SizedBox(height: 24),
           Text(
-            selectedFilter == 'unread' ? 'No unread notifications' : l10n.noNotifications,
+            selectedFilter == 'unread' ? l10n.noUnreadNotifications : l10n.noNotifications,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,
@@ -399,7 +399,7 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
           ),
           SizedBox(height: 8),
           Text(
-            selectedFilter == 'unread' ? 'You\'re all caught up!' : l10n.allCaughtUp,
+            l10n.allCaughtUp,
             style: TextStyle(
               fontSize: 14,
               color: Color(0xFF999999),

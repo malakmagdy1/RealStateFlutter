@@ -306,9 +306,7 @@ class _MyAppState extends State<MyApp> {
             // Current locale from LocaleCubit
             locale: locale,
 
-            initialRoute: token != null && token != ""
-                ? CustomNav.routeName
-                : LoginScreen.routeName,
+            initialRoute: SplashScreen.routeName,
 
             theme: ThemeData(
               scaffoldBackgroundColor: Colors.white,

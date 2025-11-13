@@ -332,26 +332,26 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                 SizedBox(height: 16),
                 // 🔄 Updated Units (24h)
                 _buildWebUnitSection(
-                  title: 'Updated in Last 24 Hours',
+                  title: l10n.updatedInLast24Hours,
                   icon: Icons.history_toggle_off,
                   iconColor: Colors.teal,
                   gradientColors: [Colors.teal, Colors.tealAccent],
                   units: _updated24Hours,
                   isLoading: _isLoadingUpdated24Hours,
-                  emptyMessage: 'No units updated in the last 24 hours',
+                  emptyMessage: l10n.noUnitsUpdatedLast24Hours,
                 ),
                 SizedBox(height: 16),
 
                 // 🆕 New Arrivals Section
 
                 _buildWebUnitSection(
-                  title: 'New Arrivals',
+                  title: l10n.newArrivals,
                   icon: Icons.fiber_new,
                   iconColor: Colors.teal,
                   gradientColors: [Colors.teal, Colors.tealAccent],
                   units: _newArrivals,
                   isLoading: _isLoadingNewArrivals,
-                  emptyMessage: 'No new arrivals at the moment',
+                  emptyMessage: l10n.noNewArrivals,
                 ),
                 SizedBox(height: 16),
                 // Recommended Compounds Section (hidden when navigating back)
