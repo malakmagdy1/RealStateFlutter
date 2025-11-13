@@ -279,10 +279,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get clearFilters => 'Clear Filters';
 
   @override
-  String get minPrice => 'Min Price';
+  String get minPrice => 'Min';
 
   @override
-  String get maxPrice => 'Max Price';
+  String get maxPrice => 'Max';
 
   @override
   String get minArea => 'Min Area';
@@ -933,4 +933,115 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noLoginMessage => 'No token found. Please log in first.';
+
+  @override
+  String get notes => 'Notes';
+
+  @override
+  String get loadMore => 'Load More';
+
+  @override
+  String get noResultsFound => 'No results found';
+
+  @override
+  String foundResults(int count) {
+    return 'Found $count results';
+  }
+
+  @override
+  String showingResults(int current, int total) {
+    return 'Showing $current of $total';
+  }
+
+  @override
+  String get noMoreCompounds => 'No more compounds to load';
+
+  @override
+  String get browseAllCompounds => 'Browse all available compounds';
+
+  @override
+  String get allLocations => 'All Locations';
+
+  @override
+  String get hasClubFilter => 'Has Club';
+
+  @override
+  String get hasRoofFilter => 'Has Roof';
+
+  @override
+  String get hasGardenFilter => 'Has Garden';
+
+  @override
+  String compoundsCount(String count) {
+    return '$count compounds';
+  }
+
+  @override
+  String get priceRange => 'Price Range';
+
+  @override
+  String get selectLocation => 'Select location';
+
+  @override
+  String get myFavorites => 'My Favorites';
+
+  @override
+  String get yourSavedCompoundsAndProperties =>
+      'Your saved compounds and properties';
+
+  @override
+  String get favoriteProperties => 'Favorite Properties';
+
+  @override
+  String get favoriteCompounds => 'Favorite Compounds';
+
+  @override
+  String get noFavoritesYet => 'No favorites yet';
+
+  @override
+  String get viewingHistory => 'Viewing History';
+
+  @override
+  String get clearHistory => 'Clear History';
+
+  @override
+  String get clearHistoryConfirm =>
+      'Are you sure you want to clear all viewing history?';
+
+  @override
+  String get clear => 'Clear';
+
+  @override
+  String get aiChat => 'AI Chat';
+
+  @override
+  String get free => 'Free';
+
+  @override
+  String get yourCurrentPlan => 'Your Current Plan';
+
+  @override
+  String get unlockPremiumFeatures => 'Unlock Premium Features';
+
+  @override
+  String get searchAccess => 'Search Access';
+
+  @override
+  String get unlimitedSearchesDescription =>
+      'Get unlimited searches and access to exclusive property listings';
+
+  @override
+  String get advancedFilters => 'Advanced filters & sorting';
+
+  @override
+  String get prioritySupport => 'Priority customer support';
+
+  @override
+  String get exclusiveListings => 'Exclusive premium listings';
+
+  @override
+  String get viewPlans => 'View Plans';
+
+  @override
+  String get close => 'Close';
 }

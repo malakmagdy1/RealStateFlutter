@@ -447,7 +447,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                       children: [
                         if (_currentFilter.location != null)
                           Chip(
-                            label: Text('Location: ${_currentFilter.location}', style: const TextStyle(fontSize: 12)),
+                            label: Text('${l10n.location}: ${_currentFilter.location}', style: const TextStyle(fontSize: 12)),
                             backgroundColor: AppColors.mainColor.withOpacity(0.1),
                             labelStyle: TextStyle(color: AppColors.mainColor),
                             deleteIcon: const Icon(Icons.close, size: 16),
@@ -460,7 +460,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                           ),
                         if (_currentFilter.minPrice != null)
                           Chip(
-                            label: Text('Min: ${_currentFilter.minPrice} EGP', style: const TextStyle(fontSize: 12)),
+                            label: Text('${l10n.minPrice}: ${_currentFilter.minPrice} ${l10n.egp}', style: const TextStyle(fontSize: 12)),
                             backgroundColor: AppColors.mainColor.withOpacity(0.1),
                             labelStyle: TextStyle(color: AppColors.mainColor),
                             deleteIcon: const Icon(Icons.close, size: 16),
@@ -473,7 +473,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                           ),
                         if (_currentFilter.maxPrice != null)
                           Chip(
-                            label: Text('Max: ${_currentFilter.maxPrice} EGP', style: const TextStyle(fontSize: 12)),
+                            label: Text('${l10n.maxPrice}: ${_currentFilter.maxPrice} ${l10n.egp}', style: const TextStyle(fontSize: 12)),
                             backgroundColor: AppColors.mainColor.withOpacity(0.1),
                             labelStyle: TextStyle(color: AppColors.mainColor),
                             deleteIcon: const Icon(Icons.close, size: 16),
@@ -499,7 +499,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                           ),
                         if (_currentFilter.bedrooms != null)
                           Chip(
-                            label: Text('${_currentFilter.bedrooms} Beds', style: const TextStyle(fontSize: 12)),
+                            label: Text('${_currentFilter.bedrooms} ${l10n.beds}', style: const TextStyle(fontSize: 12)),
                             backgroundColor: AppColors.mainColor.withOpacity(0.1),
                             labelStyle: TextStyle(color: AppColors.mainColor),
                             deleteIcon: const Icon(Icons.close, size: 16),
@@ -525,7 +525,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                           ),
                         if (_currentFilter.hasClub == true)
                           Chip(
-                            label: Text('Has Club', style: const TextStyle(fontSize: 12)),
+                            label: Text(l10n.hasClubFilter, style: const TextStyle(fontSize: 12)),
                             backgroundColor: AppColors.mainColor.withOpacity(0.1),
                             labelStyle: TextStyle(color: AppColors.mainColor),
                             deleteIcon: const Icon(Icons.close, size: 16),
@@ -538,7 +538,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                           ),
                         if (_currentFilter.hasRoof == true)
                           Chip(
-                            label: Text('Has Roof', style: const TextStyle(fontSize: 12)),
+                            label: Text(l10n.hasRoofFilter, style: const TextStyle(fontSize: 12)),
                             backgroundColor: AppColors.mainColor.withOpacity(0.1),
                             labelStyle: TextStyle(color: AppColors.mainColor),
                             deleteIcon: const Icon(Icons.close, size: 16),
@@ -551,7 +551,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                           ),
                         if (_currentFilter.hasGarden == true)
                           Chip(
-                            label: Text('Has Garden', style: const TextStyle(fontSize: 12)),
+                            label: Text(l10n.hasGardenFilter, style: const TextStyle(fontSize: 12)),
                             backgroundColor: AppColors.mainColor.withOpacity(0.1),
                             labelStyle: TextStyle(color: AppColors.mainColor),
                             deleteIcon: const Icon(Icons.close, size: 16),
@@ -617,7 +617,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
               child: DropdownButtonFormField<String>(
                 value: _selectedLocation,
                 decoration: InputDecoration(
-                  hintText: 'Select location',
+                  hintText: l10n.selectLocation,
                   hintStyle: TextStyle(fontSize: 13),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -633,7 +633,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                 items: [
                   DropdownMenuItem<String>(
                     value: null,
-                    child: Text('All Locations', style: TextStyle(fontSize: 13)),
+                    child: Text(l10n.allLocations, style: TextStyle(fontSize: 13)),
                   ),
                   ..._availableLocations.map((location) {
                     return DropdownMenuItem<String>(
@@ -655,7 +655,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Price Range Card
             _buildFilterCard(
-              title: 'Price Range',
+              title: l10n.priceRange,
               icon: Icons.attach_money,
               child: Row(
                 children: [
@@ -664,7 +664,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                       controller: _minPriceController,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
-                        hintText: 'Min',
+                        hintText: l10n.minPrice,
                         hintStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -686,7 +686,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                       controller: _maxPriceController,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
-                        hintText: 'Max',
+                        hintText: l10n.maxPrice,
                         hintStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -1134,7 +1134,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             FetchCompoundsEvent(page: 1, limit: _pageLimit),
                           );
                     },
-                    child: const Text('Retry'),
+                    child: Text(l10n.retry),
                   ),
                 ],
               ),
@@ -1198,7 +1198,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                 padding: const EdgeInsets.all(32.0),
                 child: Center(
                   child: Text(
-                    'No more compounds to load',
+                    l10n.noMoreCompounds,
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey.shade600,
@@ -1242,8 +1242,8 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                   children: [
                     Icon(Icons.search_off, size: 64, color: Colors.grey.shade400),
                     const SizedBox(height: 16),
-                    const Text(
-                      'No results found',
+                    Text(
+                      l10n.noResultsFound,
                       style: TextStyle(fontSize: 18, color: Colors.grey),
                     ),
                   ],
@@ -1298,7 +1298,6 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                 const SizedBox(height: 16),
                 ListView.builder(
                   shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
                   itemCount: companyResults.length,
                   itemBuilder: (context, index) {
                     final result = companyResults[index];

@@ -641,13 +641,13 @@ abstract class AppLocalizations {
   /// No description provided for @minPrice.
   ///
   /// In en, this message translates to:
-  /// **'Min Price'**
+  /// **'Min'**
   String get minPrice;
 
   /// No description provided for @maxPrice.
   ///
   /// In en, this message translates to:
-  /// **'Max Price'**
+  /// **'Max'**
   String get maxPrice;
 
   /// No description provided for @minArea.
@@ -1903,6 +1903,210 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No token found. Please log in first.'**
   String get noLoginMessage;
+
+  /// No description provided for @notes.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notes;
+
+  /// No description provided for @loadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load More'**
+  String get loadMore;
+
+  /// No description provided for @noResultsFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No results found'**
+  String get noResultsFound;
+
+  /// No description provided for @foundResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Found {count} results'**
+  String foundResults(int count);
+
+  /// No description provided for @showingResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Showing {current} of {total}'**
+  String showingResults(int current, int total);
+
+  /// No description provided for @noMoreCompounds.
+  ///
+  /// In en, this message translates to:
+  /// **'No more compounds to load'**
+  String get noMoreCompounds;
+
+  /// No description provided for @browseAllCompounds.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse all available compounds'**
+  String get browseAllCompounds;
+
+  /// No description provided for @allLocations.
+  ///
+  /// In en, this message translates to:
+  /// **'All Locations'**
+  String get allLocations;
+
+  /// No description provided for @hasClubFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Has Club'**
+  String get hasClubFilter;
+
+  /// No description provided for @hasRoofFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Has Roof'**
+  String get hasRoofFilter;
+
+  /// No description provided for @hasGardenFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Has Garden'**
+  String get hasGardenFilter;
+
+  /// No description provided for @compoundsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} compounds'**
+  String compoundsCount(String count);
+
+  /// No description provided for @priceRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Price Range'**
+  String get priceRange;
+
+  /// No description provided for @selectLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Select location'**
+  String get selectLocation;
+
+  /// No description provided for @myFavorites.
+  ///
+  /// In en, this message translates to:
+  /// **'My Favorites'**
+  String get myFavorites;
+
+  /// No description provided for @yourSavedCompoundsAndProperties.
+  ///
+  /// In en, this message translates to:
+  /// **'Your saved compounds and properties'**
+  String get yourSavedCompoundsAndProperties;
+
+  /// No description provided for @favoriteProperties.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite Properties'**
+  String get favoriteProperties;
+
+  /// No description provided for @favoriteCompounds.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite Compounds'**
+  String get favoriteCompounds;
+
+  /// No description provided for @noFavoritesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No favorites yet'**
+  String get noFavoritesYet;
+
+  /// No description provided for @viewingHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Viewing History'**
+  String get viewingHistory;
+
+  /// No description provided for @clearHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear History'**
+  String get clearHistory;
+
+  /// No description provided for @clearHistoryConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to clear all viewing history?'**
+  String get clearHistoryConfirm;
+
+  /// No description provided for @clear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clear;
+
+  /// No description provided for @aiChat.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Chat'**
+  String get aiChat;
+
+  /// No description provided for @free.
+  ///
+  /// In en, this message translates to:
+  /// **'Free'**
+  String get free;
+
+  /// No description provided for @yourCurrentPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Your Current Plan'**
+  String get yourCurrentPlan;
+
+  /// No description provided for @unlockPremiumFeatures.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock Premium Features'**
+  String get unlockPremiumFeatures;
+
+  /// No description provided for @searchAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Search Access'**
+  String get searchAccess;
+
+  /// No description provided for @unlimitedSearchesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Get unlimited searches and access to exclusive property listings'**
+  String get unlimitedSearchesDescription;
+
+  /// No description provided for @advancedFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced filters & sorting'**
+  String get advancedFilters;
+
+  /// No description provided for @prioritySupport.
+  ///
+  /// In en, this message translates to:
+  /// **'Priority customer support'**
+  String get prioritySupport;
+
+  /// No description provided for @exclusiveListings.
+  ///
+  /// In en, this message translates to:
+  /// **'Exclusive premium listings'**
+  String get exclusiveListings;
+
+  /// No description provided for @viewPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'View Plans'**
+  String get viewPlans;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
 }
 
 class _AppLocalizationsDelegate

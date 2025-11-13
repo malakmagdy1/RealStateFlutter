@@ -42,7 +42,13 @@ class WebHomeScreen extends StatefulWidget {
 
 class _WebHomeScreenState extends State<WebHomeScreen> {
   bool _showAllAvailableCompounds = false;
-  bool _showAllRecommendedCompounds = false;
+
+  // Recommended compounds pagination
+  int _recommendedPage = 1;
+  int _recommendedLimit = 9;
+  bool _hasMoreRecommended = true;
+  bool _isLoadingMoreRecommended = false;
+  final ScrollController _recommendedScrollController = ScrollController();
 
   // Unit sections
   List<Unit> _newArrivals = [];
@@ -55,13 +61,17 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
   bool _isLoadingUpdated24Hours = false;
   final CompoundWebServices _webServices = CompoundWebServices();
 
-  // Track if initial load is done
+  // Track if initial load is done and if we should show recommended
   bool _hasInitialized = false;
+  bool _showRecommendedCompounds = true;
 
   @override
   void initState() {
     super.initState();
     _refreshData();
+
+    // Setup scroll listener for recommended compounds
+    _recommendedScrollController.addListener(_onRecommendedScroll);
 
     // Load favorites after frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -70,13 +80,40 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
     });
   }
 
+  void _onRecommendedScroll() {
+    if (_isLoadingMoreRecommended) return;
+
+    // Check if scrolled near the end (80% of max scroll extent)
+    if (_recommendedScrollController.position.pixels >=
+        _recommendedScrollController.position.maxScrollExtent * 0.8) {
+      _loadMoreRecommended();
+    }
+  }
+
+  void _loadMoreRecommended() {
+    if (_isLoadingMoreRecommended || !_hasMoreRecommended) return;
+
+    setState(() {
+      _isLoadingMoreRecommended = true;
+    });
+
+    // Load 5 more compounds
+    Future.delayed(Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _recommendedLimit += 5;
+          _isLoadingMoreRecommended = false;
+        });
+      }
+    });
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Refresh data when returning to this screen (after initial load)
-    if (_hasInitialized) {
-      _refreshData();
-    } else {
+    // Mark as initialized but don't hide recommended compounds
+    // The recommended compounds should always be visible
+    if (!_hasInitialized) {
       _hasInitialized = true;
     }
   }
@@ -94,6 +131,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
 
   @override
   void dispose() {
+    _recommendedScrollController.dispose();
     super.dispose();
   }
 
@@ -165,12 +203,9 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                   },
                 ),
                 SizedBox(height: 24),
-
-                // Regular home content
-                  // Companies section
+                 // Companies section
                 CustomText20(l10n.companiesName),
                 SizedBox(height: 8),
-
                 BlocBuilder<CompanyBloc, CompanyState>(
                   builder: (context, state) {
                     if (state is CompanyLoading) {
@@ -183,33 +218,30 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                     else if (state is CompanySuccess) {
                       return SizedBox(
                         height: 100,
-                        child: AnimatedSwitcher(
-                          duration: Duration(milliseconds: 300),
-                          switchInCurve: Curves.easeInOut,
-                          switchOutCurve: Curves.linear, // prevent opening delay
-                          child: ListView.builder(
-                            key: ValueKey(state.response.companies.length), // ✅ triggers animation only on data change
-                            scrollDirection: Axis.horizontal,
-                            itemCount: state.response.companies.length,
-                            itemBuilder: (context, index) {
-                              final company = state.response.companies[index];
+                        child: ListView.builder(  // ✅ Removed AnimatedSwitcher - can cause gesture conflicts
+                          scrollDirection: Axis.horizontal,
+                          itemCount: state.response.companies.length,
+                          itemBuilder: (context, index) {
+                            final company = state.response.companies[index];
 
-                              return WebCompanyLogo(
-                                company: company,
-                                onTap: () {
-                                  // Navigate using go_router with company data
-                                  context.push(
-                                    '/company/${company.id}',
-                                    extra: company.toJson(),
-                                  ).then((_) {
-                                    context.read<CompoundBloc>().add(
-                                        FetchCompoundsEvent(page: 1, limit: 100)
-                                    );
-                                  });
-                                },
-                              );
-                            },
-                          ),
+                            return WebCompanyLogo(
+                              company: company,
+                              onTap: () async {  // ✅ Made async
+                                // Navigate using go_router with company data
+                                await context.push(  // ✅ Added await
+                                  '/company/${company.id}',
+                                  extra: company.toJson(),
+                                );
+
+                                // ✅ Check if context is still mounted before using it
+                                if (context.mounted) {
+                                  context.read<CompoundBloc>().add(
+                                      FetchCompoundsEvent(page: 1, limit: 100)
+                                  );
+                                }
+                              },
+                            );
+                          },
                         ),
                       );
                     }
@@ -237,8 +269,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
 
                     return SizedBox(height: 100);
                   },
-                )
-,
+                ),
                 // Sales Carousel
                 BlocBuilder<SaleBloc, SaleState>(
                   builder: (context, state) {
@@ -323,126 +354,104 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                   emptyMessage: 'No new arrivals at the moment',
                 ),
                 SizedBox(height: 16),
-                // Recommended Compounds Section
-                BlocBuilder<CompoundBloc, CompoundState>(
-                  builder: (context, state) {
-                    if (state is CompoundSuccess) {
-                      final compoundsWithImages = state.response.data
-                          .where((compound) => compound.images.isNotEmpty)
-                          .toList();
+                // Recommended Compounds Section (hidden when navigating back)
+                if (_showRecommendedCompounds)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      CustomText20(l10n.recommendedCompounds),
+                      SizedBox(height: 8),
+                    ],
+                  ),
 
-                      final recommendedCompounds = compoundsWithImages.isNotEmpty
-                          ? compoundsWithImages
-                          : state.response.data;
-
-                      final hasMultipleRecommended = recommendedCompounds.length > 6;
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Flexible(
-                                child: CustomText20(l10n.recommendedCompounds),
-                              ),
-                              if (hasMultipleRecommended)
-                                TextButton.icon(
-                                  onPressed: () {
-                                    setState(() {
-                                      _showAllRecommendedCompounds = !_showAllRecommendedCompounds;
-                                    });
-                                  },
-                                  label: Text(
-                                    _showAllRecommendedCompounds ? l10n.showLess : l10n.showAll,
-                                    style: TextStyle(
-                                      color: AppColors.mainColor,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  style: TextButton.styleFrom(
-                                    padding: EdgeInsets.symmetric(horizontal: 8),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          SizedBox(height: 8),
-                        ],
-                      );
-                    }
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CustomText20(l10n.recommendedCompounds),
-                        SizedBox(height: 8),
-                      ],
-                    );
-                  },
-                ),
-
-                BlocBuilder<CompoundBloc, CompoundState>(
-                  builder: (context, state) {
-                    if (state is CompoundLoading) {
-                      return SizedBox(
-                        height: 200,
-                        child: Center(
-                          child: CircularProgressIndicator(),
-                        ),
-                      );
-                    } else if (state is CompoundSuccess) {
-                      if (state.response.data.isEmpty) {
+                if (_showRecommendedCompounds)
+                  BlocBuilder<CompoundBloc, CompoundState>(
+                    builder: (context, state) {
+                      if (state is CompoundLoading) {
                         return SizedBox(
                           height: 200,
                           child: Center(
-                            child: CustomText16(l10n.noCompoundsAvailable, color: AppColors.grey),
+                            child: CircularProgressIndicator(),
                           ),
                         );
-                      }
+                      } else if (state is CompoundSuccess) {
+                        if (state.response.data.isEmpty) {
+                          return SizedBox(
+                            height: 200,
+                            child: Center(
+                              child: CustomText16(l10n.noCompoundsAvailable, color: AppColors.grey),
+                            ),
+                          );
+                        }
 
-                      final compoundsWithImages = state.response.data
-                          .where((compound) => compound.images.isNotEmpty)
-                          .toList();
+                        final compoundsWithImages = state.response.data
+                            .where((compound) => compound.images.isNotEmpty)
+                            .toList();
 
-                      final recommendedCompounds = compoundsWithImages.isNotEmpty
-                          ? compoundsWithImages
-                          : state.response.data;
+                        final recommendedCompounds = compoundsWithImages.isNotEmpty
+                            ? compoundsWithImages
+                            : state.response.data;
 
-                      final displayCount = _showAllRecommendedCompounds
-                          ? recommendedCompounds.length
-                          : (recommendedCompounds.length > 9 ? 9 : recommendedCompounds.length);
+                        final displayCount = recommendedCompounds.length > _recommendedLimit
+                            ? _recommendedLimit
+                            : recommendedCompounds.length;
 
-                      // Horizontal scroll view
-                      return SizedBox(
-                        height: 400, // Increased to accommodate card height + shadow padding
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          physics: BouncingScrollPhysics(),
-                          padding: EdgeInsets.only(bottom: 20), // Add padding for shadow
-                          itemCount: displayCount,
-                          itemBuilder: (context, index) {
-                            final compound = recommendedCompounds[index];
-                            return Padding(
-                              padding: EdgeInsets.only(
-                                right: index < displayCount - 1 ? 16 : 0,
-                              ),
-                              child: MouseRegion(
-                                cursor: SystemMouseCursors.click,
-                                child: GestureDetector(
-                                  onTap: () {
-                                    print('[WEB HOME] Compound tapped: ${compound.project}');
-                                    context.push('/compound/${compound.id}');
-                                  },
-                                  child: SizedBox(
-                                    width: 280,
-                                    child: WebCompoundCard(compound: compound),
+                        final hasMore = recommendedCompounds.length > _recommendedLimit;
+
+                        // Update hasMoreRecommended state
+                        if (_hasMoreRecommended != hasMore) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            if (mounted) {
+                              setState(() {
+                                _hasMoreRecommended = hasMore;
+                              });
+                            }
+                          });
+                        }
+
+                        return SizedBox(
+                          height: 400,
+                          child: ListView.builder(
+                            controller: _recommendedScrollController,
+                            scrollDirection: Axis.horizontal,
+                            physics: BouncingScrollPhysics(),
+                            padding: EdgeInsets.only(bottom: 20),
+                            itemCount: displayCount + (_isLoadingMoreRecommended && hasMore ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              // Show loading indicator at the end
+                              if (index == displayCount && _isLoadingMoreRecommended) {
+                                return Container(
+                                  width: 280,
+                                  margin: EdgeInsets.only(right: 16),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              }
+
+                              final compound = recommendedCompounds[index];
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  right: index < displayCount - 1 ? 16 : 0,
+                                ),
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: GestureDetector(
+                                    onTap: () {
+                                      print('[WEB HOME] Compound tapped: ${compound.project}');
+                                      context.push('/compound/${compound.id}');
+                                    },
+                                    child: SizedBox(
+                                      width: 280,
+                                      child: WebCompoundCard(compound: compound),
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                      );
-                    } else if (state is CompoundError) {
+                              );
+                            },
+                          ),
+                        );
+                      } else if (state is CompoundError) {
                       return SizedBox(
                         height: 200,
                         child: Center(
@@ -502,9 +511,10 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
           units = (data['data'] as List)
               .map((unit) {
                 final unitJson = Map<String, dynamic>.from(unit as Map<String, dynamic>);
-                // Mark as 'new' if not already set by API (New Arrivals section)
-                if (unitJson['change_type'] == null) {
-                  unitJson['change_type'] = 'new';
+                // Parse action as change_type if present
+                if (unitJson['action'] != null) {
+                  print('[NEW ARRIVALS] Found action: ${unitJson['action']} for unit ${unitJson['id']}');
+                  unitJson['change_type'] = unitJson['action'];
                   unitJson['is_updated'] = true;
                 }
                 return Unit.fromJson(unitJson);
@@ -515,9 +525,9 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
           units = data
               .map((unit) {
                 final unitJson = Map<String, dynamic>.from(unit as Map<String, dynamic>);
-                // Mark as 'new' if not already set by API (New Arrivals section)
-                if (unitJson['change_type'] == null) {
-                  unitJson['change_type'] = 'new';
+                // Parse action as change_type if present
+                if (unitJson['action'] != null) {
+                  unitJson['change_type'] = unitJson['action'];
                   unitJson['is_updated'] = true;
                 }
                 return Unit.fromJson(unitJson);
@@ -637,16 +647,22 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
 
         if (data is Map && data['activities'] != null) {
           final activities = data['activities'];
-          if (activities is Map && activities['data'] != null) {
-            units = (activities['data'] as List)
+          if (activities is List) {
+            units = activities
                 .map((activity) {
                   // Extract unit from activity
                   if (activity['unit'] != null) {
                     final unitJson = Map<String, dynamic>.from(activity['unit'] as Map<String, dynamic>);
-                    // Add the change_type from activity to unit
-                    if (activity['action'] == 'updated') {
-                      unitJson['change_type'] = 'updated';
+                    // Add action as change_type
+                    if (activity['action'] != null) {
+                      print('[UPDATED 24H] Found action: ${activity['action']} for unit ${unitJson['id']}');
+                      unitJson['change_type'] = activity['action'];
                       unitJson['is_updated'] = true;
+                    }
+                    // Add properties (changes and original values)
+                    if (activity['properties'] != null) {
+                      print('[UPDATED 24H] Found properties: ${activity['properties']}');
+                      unitJson['change_properties'] = activity['properties'];
                     }
                     return Unit.fromJson(unitJson);
                   }

@@ -279,10 +279,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get clearFilters => 'مسح التصفية';
 
   @override
-  String get minPrice => 'الحد الأدنى للسعر';
+  String get minPrice => 'الحد الأدنى';
 
   @override
-  String get maxPrice => 'الحد الأقصى للسعر';
+  String get maxPrice => 'الحد الأقصى';
 
   @override
   String get minArea => 'الحد الأدنى للمساحة';
@@ -406,7 +406,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get retry => 'إعادة المحاولة';
 
   @override
-  String get beds => 'غرف نوم';
+  String get beds => 'سرير';
 
   @override
   String get baths => 'حمامات';
@@ -932,4 +932,113 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get noLoginMessage =>
       'لم يتم العثور على رمز. يرجى تسجيل الدخول أولاً.';
+
+  @override
+  String get notes => 'ملاحظات';
+
+  @override
+  String get loadMore => 'تحميل المزيد';
+
+  @override
+  String get noResultsFound => 'لم يتم العثور على نتائج';
+
+  @override
+  String foundResults(int count) {
+    return 'تم العثور على $count نتيجة';
+  }
+
+  @override
+  String showingResults(int current, int total) {
+    return 'عرض $current من $total';
+  }
+
+  @override
+  String get noMoreCompounds => 'لا مزيد من الكمبوندات للتحميل';
+
+  @override
+  String get browseAllCompounds => 'تصفح جميع الكمبوندات المتاحة';
+
+  @override
+  String get allLocations => 'جميع المواقع';
+
+  @override
+  String get hasClubFilter => 'يحتوي على نادي';
+
+  @override
+  String get hasRoofFilter => 'يحتوي على سطح';
+
+  @override
+  String get hasGardenFilter => 'يحتوي على حديقة';
+
+  @override
+  String compoundsCount(String count) {
+    return '$count كمبوند';
+  }
+
+  @override
+  String get priceRange => 'نطاق السعر';
+
+  @override
+  String get selectLocation => 'اختر الموقع';
+
+  @override
+  String get myFavorites => 'المفضلة';
+
+  @override
+  String get yourSavedCompoundsAndProperties => 'الكمبوندات والوحدات المحفوظة';
+
+  @override
+  String get favoriteProperties => 'الوحدات المفضلة';
+
+  @override
+  String get favoriteCompounds => 'الكمبوندات المفضلة';
+
+  @override
+  String get noFavoritesYet => 'لا توجد مفضلات بعد';
+
+  @override
+  String get viewingHistory => 'سجل المشاهدة';
+
+  @override
+  String get clearHistory => 'مسح السجل';
+
+  @override
+  String get clearHistoryConfirm => 'هل أنت متأكد من مسح كل سجل المشاهدة؟';
+
+  @override
+  String get clear => 'مسح';
+
+  @override
+  String get aiChat => 'الذكاء الاصطناعي';
+
+  @override
+  String get free => 'مجاني';
+
+  @override
+  String get yourCurrentPlan => 'خطتك الحالية';
+
+  @override
+  String get unlockPremiumFeatures => 'افتح الميزات المميزة';
+
+  @override
+  String get searchAccess => 'الوصول للبحث';
+
+  @override
+  String get unlimitedSearchesDescription =>
+      'احصل على بحث غير محدود والوصول إلى قوائم عقارية حصرية';
+
+  @override
+  String get advancedFilters => 'فلاتر وترتيب متقدم';
+
+  @override
+  String get prioritySupport => 'دعم عملاء ذو أولوية';
+
+  @override
+  String get exclusiveListings => 'قوائم مميزة حصرية';
+
+  @override
+  String get viewPlans => 'عرض الخطط';
+
+  @override
+  String get close => 'إغلاق';
 }

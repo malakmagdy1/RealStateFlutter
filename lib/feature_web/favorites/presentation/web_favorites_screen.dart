@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
+import 'package:real/l10n/app_localizations.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_state.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
@@ -13,6 +14,7 @@ class WebFavoritesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       color: Color(0xFFF8F9FA),
       child: Center(
@@ -33,7 +35,7 @@ class WebFavoritesScreen extends StatelessWidget {
                     ),
                     SizedBox(width: 16),
                     Text(
-                      'My Favorites',
+                      l10n.myFavorites,
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w700,
@@ -44,7 +46,7 @@ class WebFavoritesScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Your saved compounds and properties',
+                  l10n.yourSavedCompoundsAndProperties,
                   style: TextStyle(
                     fontSize: 16,
                     color: Color(0xFF666666),
@@ -65,7 +67,7 @@ class WebFavoritesScreen extends StatelessWidget {
 
                           // Check if both are empty
                           if (compoundFavorites.isEmpty && unitFavorites.isEmpty) {
-                            return _buildEmptyState();
+                            return _buildEmptyState(context);
                           }
 
                           return SingleChildScrollView(
@@ -75,7 +77,7 @@ class WebFavoritesScreen extends StatelessWidget {
                                 // Display Unit Favorites
                                 if (unitFavorites.isNotEmpty) ...[
                                   Text(
-                                    'Favorite Properties (${unitFavorites.length})',
+                                    '${l10n.favoriteProperties} (${unitFavorites.length})',
                                     style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w600,
@@ -104,7 +106,7 @@ class WebFavoritesScreen extends StatelessWidget {
                                 // Display Compound Favorites
                                 if (compoundFavorites.isNotEmpty) ...[
                                   Text(
-                                    'Favorite Compounds (${compoundFavorites.length})',
+                                    '${l10n.favoriteCompounds} (${compoundFavorites.length})',
                                     style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w600,
@@ -145,7 +147,8 @@ class WebFavoritesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -157,7 +160,7 @@ class WebFavoritesScreen extends StatelessWidget {
           ),
           SizedBox(height: 24),
           Text(
-            'No favorites yet',
+            l10n.noFavoritesYet,
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w600,
@@ -166,7 +169,7 @@ class WebFavoritesScreen extends StatelessWidget {
           ),
           SizedBox(height: 12),
           Text(
-            'Start adding compounds to your favorites',
+            l10n.startAddingCompounds,
             style: TextStyle(
               fontSize: 16,
               color: Color(0xFF999999),

@@ -482,7 +482,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                             Tab(text: l10n.gallery),
                             Tab(text: l10n.location),
                             Tab(text: l10n.floorPlan),
-                            Tab(text: 'Notes'),
+                            Tab(text: l10n.notes),
                           ],
                         ),
                         SizedBox(height: 16),

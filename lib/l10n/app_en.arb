@@ -382,5 +382,74 @@
       }
     }
   },
-  "noLoginMessage": "No token found. Please log in first."
+  "noLoginMessage": "No token found. Please log in first.",
+
+  "notes": "Notes",
+  "loadMore": "Load More",
+  "retry": "Retry",
+  "noResultsFound": "No results found",
+  "foundResults": "Found {count} results",
+  "@foundResults": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "showingResults": "Showing {current} of {total}",
+  "@showingResults": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "noMoreCompounds": "No more compounds to load",
+  "browseAllCompounds": "Browse all available compounds",
+  "allLocations": "All Locations",
+  "minPrice": "Min",
+  "maxPrice": "Max",
+  "beds": "Beds",
+  "hasClubFilter": "Has Club",
+  "hasRoofFilter": "Has Roof",
+  "hasGardenFilter": "Has Garden",
+  "compoundsCount": "{count} compounds",
+  "@compoundsCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+
+  "priceRange": "Price Range",
+  "selectLocation": "Select location",
+
+  "myFavorites": "My Favorites",
+  "yourSavedCompoundsAndProperties": "Your saved compounds and properties",
+  "favoriteProperties": "Favorite Properties",
+  "favoriteCompounds": "Favorite Compounds",
+  "noFavoritesYet": "No favorites yet",
+
+  "viewingHistory": "Viewing History",
+  "clearHistory": "Clear History",
+  "clearHistoryConfirm": "Are you sure you want to clear all viewing history?",
+  "clear": "Clear",
+
+  "changeLanguage": "Change Language",
+  "aiChat": "AI Chat",
+  "active": "Active",
+  "free": "Free",
+  "yourCurrentPlan": "Your Current Plan",
+  "unlockPremiumFeatures": "Unlock Premium Features",
+  "searchAccess": "Search Access",
+  "unlimitedSearchesDescription": "Get unlimited searches and access to exclusive property listings",
+  "advancedFilters": "Advanced filters & sorting",
+  "prioritySupport": "Priority customer support",
+  "exclusiveListings": "Exclusive premium listings",
+  "viewPlans": "View Plans",
+  "close": "Close"
 }

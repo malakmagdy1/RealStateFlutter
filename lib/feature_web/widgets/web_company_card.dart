@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:real/l10n/app_localizations.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
@@ -12,6 +13,7 @@ class WebCompanyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -81,14 +83,14 @@ class WebCompanyCard extends StatelessWidget {
                     Expanded(
                       child: _buildStat(
                         company.numberOfCompounds,
-                        'Compounds',
+                        l10n.compounds,
                       ),
                     ),
                     SizedBox(width: 16),
                     Expanded(
                       child: _buildStat(
                         company.numberOfAvailableUnits,
-                        'Units',
+                        l10n.units,
                       ),
                     ),
                   ],

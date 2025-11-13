@@ -112,10 +112,11 @@ class _WebMainScreenState extends State<WebMainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: Column(
         children: [
-          _buildNavBar(),
+          _buildNavBar(l10n),
           Expanded(
             child: _screens[_selectedIndex],
           ),
@@ -124,7 +125,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
     );
   }
 
-  Widget _buildNavBar() {
+  Widget _buildNavBar(AppLocalizations l10n) {
     return Container(
       height: 70,
       decoration: BoxDecoration(
@@ -159,7 +160,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Real Estate',
+                    l10n.appName,
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -215,7 +216,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                                   Text(
                                     status.planNameEn.isNotEmpty
                                         ? status.planNameEn
-                                        : (status.hasActiveSubscription ? 'Active' : 'Free'),
+                                        : (status.hasActiveSubscription ? l10n.active : l10n.free),
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
@@ -240,7 +241,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                     builder: (context, locale) {
                       return PopupMenuButton<String>(
                         offset: const Offset(0, 50),
-                        tooltip: 'Change Language',
+                        tooltip: l10n.changeLanguage,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           decoration: BoxDecoration(
@@ -317,19 +318,19 @@ class _WebMainScreenState extends State<WebMainScreen> {
                   const SizedBox(width: 24),
 
                   // Navigation Links
-                  _buildNavItem('Home', 0, Icons.home_outlined, Icons.home),
+                  _buildNavItem(l10n.home, 0, Icons.home_outlined, Icons.home),
                   const SizedBox(width: 24),
-                  _buildNavItem('Compounds', 1, Icons.apartment_outlined, Icons.apartment),
+                  _buildNavItem(l10n.compounds, 1, Icons.apartment_outlined, Icons.apartment),
                   const SizedBox(width: 24),
-                  _buildNavItem('Favorites', 2, Icons.favorite_border, Icons.favorite),
+                  _buildNavItem(l10n.favorites, 2, Icons.favorite_border, Icons.favorite),
                   const SizedBox(width: 24),
-                  _buildNavItem('History', 3, Icons.history_outlined, Icons.history),
+                  _buildNavItem(l10n.history, 3, Icons.history_outlined, Icons.history),
                   const SizedBox(width: 24),
-                  _buildNavItem('AI Chat', 4, Icons.smart_toy_outlined, Icons.smart_toy),
+                  _buildNavItem(l10n.aiChat, 4, Icons.smart_toy_outlined, Icons.smart_toy),
                   const SizedBox(width: 24),
-                  _buildNavItemWithBadge('Notifications', 5, Icons.notifications_outlined, Icons.notifications, _unreadNotifications),
+                  _buildNavItemWithBadge(l10n.notifications, 5, Icons.notifications_outlined, Icons.notifications, _unreadNotifications),
                   const SizedBox(width: 24),
-                  _buildNavItem('Profile', 6, Icons.person_outline, Icons.person),
+                  _buildNavItem(l10n.profile, 6, Icons.person_outline, Icons.person),
                 ],
               ),
             ),
@@ -550,8 +551,8 @@ class _WebMainScreenState extends State<WebMainScreen> {
                     // Title
                     Text(
                       status.hasActiveSubscription
-                          ? 'Your Current Plan'
-                          : 'Unlock Premium Features',
+                          ? l10n.yourCurrentPlan
+                          : l10n.unlockPremiumFeatures,
                       style: const TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -600,7 +601,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Search Access',
+                                    l10n.searchAccess,
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.white.withOpacity(0.8),
@@ -638,7 +639,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                       ),
                     ] else ...[
                       Text(
-                        'Get unlimited searches and access to exclusive property listings',
+                        l10n.unlimitedSearchesDescription,
                         style: TextStyle(
                           fontSize: 15,
                           color: Colors.white.withOpacity(0.9),
@@ -651,9 +652,9 @@ class _WebMainScreenState extends State<WebMainScreen> {
                       // Features list
                       ...[
                         l10n.unlimitedSearches,
-                        'Advanced filters & sorting',
-                        'Priority customer support',
-                        'Exclusive premium listings',
+                        l10n.advancedFilters,
+                        l10n.prioritySupport,
+                        l10n.exclusiveListings,
                       ].map((feature) => Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Row(
@@ -714,7 +715,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                                 Text(
                                   status.hasActiveSubscription
                                       ? l10n.manageSubscription
-                                      : 'View Plans',
+                                      : l10n.viewPlans,
                                   style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -732,7 +733,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                             Navigator.of(dialogContext).pop();
                           },
                           child: Text(
-                            'Close',
+                            l10n.close,
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.9),
                               fontSize: 15,

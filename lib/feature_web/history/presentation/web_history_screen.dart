@@ -46,19 +46,20 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
   }
 
   Future<void> _clearAllHistory() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Clear History'),
-        content: Text('Are you sure you want to clear all viewing history?'),
+        title: Text(l10n.clearHistory),
+        content: Text(l10n.clearHistoryConfirm),
         actions: [
           TextButton(
             onPressed: () => context.pop(false),
-            child: Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => context.pop(true),
-            child: Text('Clear', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.clear, style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -155,7 +156,7 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
                     ),
                     SizedBox(width: 16),
                     Text(
-                      'Viewing History',
+                      l10n.viewingHistory,
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w700,
@@ -241,9 +242,9 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
                         underline: SizedBox(),
                         icon: Icon(Icons.arrow_drop_down, color: AppColors.mainColor),
                         items: [
-                          DropdownMenuItem(value: 'recent', child: Text('Most Recent')),
-                          DropdownMenuItem(value: 'name', child: Text('Name')),
-                          DropdownMenuItem(value: 'status', child: Text('Status')),
+                          DropdownMenuItem(value: 'recent', child: Text(l10n.dateDesc)),
+                          DropdownMenuItem(value: 'name', child: Text(l10n.name)),
+                          DropdownMenuItem(value: 'status', child: Text(l10n.status)),
                         ],
                         onChanged: (value) {
                           if (value != null) {
@@ -260,17 +261,17 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
                 // Filter tabs
                 Row(
                   children: [
-                    _buildFilterTab('all', 'All', _historyItems.length),
+                    _buildFilterTab('all', l10n.all, _historyItems.length),
                     SizedBox(width: 12),
                     _buildFilterTab(
                       'compounds',
-                      'Compounds',
+                      l10n.compounds,
                       _historyItems.where((i) => i['itemType'] == 'compound').length,
                     ),
                     SizedBox(width: 12),
                     _buildFilterTab(
                       'units',
-                      'Units',
+                      l10n.units,
                       _historyItems.where((i) => i['itemType'] == 'unit').length,
                     ),
                   ],
