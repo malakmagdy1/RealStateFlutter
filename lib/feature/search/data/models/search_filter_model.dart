@@ -5,7 +5,9 @@ class SearchFilter {
   final String? propertyType; // 'villa', 'apartment', 'duplex', 'studio', etc.
   final int? bedrooms;
   final String? finishing; // 'finished', 'semi_finished', 'not_finished'
-  final String? deliveryDate; // e.g., '2024', '2025'
+  final String? deliveredAtFrom; // Date format: YYYY-MM-DD - Units delivered on or after this date
+  final String? deliveredAtTo; // Date format: YYYY-MM-DD - Units delivered on or before this date
+  final bool? hasBeenDelivered; // true = only delivered units, false = only not delivered units
   final bool? hasClub;
   final bool? hasRoof;
   final bool? hasGarden;
@@ -55,7 +57,9 @@ class SearchFilter {
     this.propertyType,
     this.bedrooms,
     this.finishing,
-    this.deliveryDate,
+    this.deliveredAtFrom,
+    this.deliveredAtTo,
+    this.hasBeenDelivered,
     this.hasClub,
     this.hasRoof,
     this.hasGarden,
@@ -108,7 +112,9 @@ class SearchFilter {
       propertyType == null &&
       bedrooms == null &&
       finishing == null &&
-      deliveryDate == null &&
+      deliveredAtFrom == null &&
+      deliveredAtTo == null &&
+      hasBeenDelivered == null &&
       hasClub == null &&
       hasRoof == null &&
       hasGarden == null &&
@@ -155,7 +161,9 @@ class SearchFilter {
     if (propertyType != null && propertyType!.isNotEmpty) count++;
     if (bedrooms != null) count++;
     if (finishing != null && finishing!.isNotEmpty) count++;
-    if (deliveryDate != null && deliveryDate!.isNotEmpty) count++;
+    if (deliveredAtFrom != null && deliveredAtFrom!.isNotEmpty) count++;
+    if (deliveredAtTo != null && deliveredAtTo!.isNotEmpty) count++;
+    if (hasBeenDelivered != null) count++;
     if (hasClub == true) count++;
     if (hasRoof == true) count++;
     if (hasGarden == true) count++;
@@ -303,6 +311,15 @@ class SearchFilter {
     if (finishing != null && finishing!.isNotEmpty) {
       params['finishing'] = finishing;
     }
+    if (deliveredAtFrom != null && deliveredAtFrom!.isNotEmpty) {
+      params['planned_delivery_from'] = deliveredAtFrom;
+    }
+    if (deliveredAtTo != null && deliveredAtTo!.isNotEmpty) {
+      params['planned_delivery_to'] = deliveredAtTo;
+    }
+    if (hasBeenDelivered != null) {
+      params['has_been_delivered'] = hasBeenDelivered;
+    }
     if (hasClub == true) {
       params['has_club'] = true;
     }
@@ -353,6 +370,9 @@ class SearchFilter {
       hasActiveSale: json['has_active_sale'] == true || json['has_active_sale'] == 1,
       location: json['location']?.toString(),
       finishing: json['finishing']?.toString(),
+      deliveredAtFrom: json['delivered_at_from']?.toString(),
+      deliveredAtTo: json['delivered_at_to']?.toString(),
+      hasBeenDelivered: json['has_been_delivered'] == true || json['has_been_delivered'] == 1 ? true : (json['has_been_delivered'] == false || json['has_been_delivered'] == 0 ? false : null),
       hasClub: json['has_club'] == true || json['has_club'] == 1,
       hasRoof: json['has_roof'] == true || json['has_roof'] == 1,
       hasGarden: json['has_garden'] == true || json['has_garden'] == 1,
@@ -387,7 +407,9 @@ class SearchFilter {
     String? propertyType,
     int? bedrooms,
     String? finishing,
-    String? deliveryDate,
+    String? deliveredAtFrom,
+    String? deliveredAtTo,
+    bool? hasBeenDelivered,
     bool? hasClub,
     bool? hasRoof,
     bool? hasGarden,
@@ -431,7 +453,9 @@ class SearchFilter {
     bool clearPropertyType = false,
     bool clearBedrooms = false,
     bool clearFinishing = false,
-    bool clearDeliveryDate = false,
+    bool clearDeliveredAtFrom = false,
+    bool clearDeliveredAtTo = false,
+    bool clearHasBeenDelivered = false,
     bool clearHasClub = false,
     bool clearHasRoof = false,
     bool clearHasGarden = false,
@@ -472,7 +496,9 @@ class SearchFilter {
       propertyType: clearPropertyType ? null : (propertyType ?? this.propertyType),
       bedrooms: clearBedrooms ? null : (bedrooms ?? this.bedrooms),
       finishing: clearFinishing ? null : (finishing ?? this.finishing),
-      deliveryDate: clearDeliveryDate ? null : (deliveryDate ?? this.deliveryDate),
+      deliveredAtFrom: clearDeliveredAtFrom ? null : (deliveredAtFrom ?? this.deliveredAtFrom),
+      deliveredAtTo: clearDeliveredAtTo ? null : (deliveredAtTo ?? this.deliveredAtTo),
+      hasBeenDelivered: clearHasBeenDelivered ? null : (hasBeenDelivered ?? this.hasBeenDelivered),
       hasClub: clearHasClub ? null : (hasClub ?? this.hasClub),
       hasRoof: clearHasRoof ? null : (hasRoof ?? this.hasRoof),
       hasGarden: clearHasGarden ? null : (hasGarden ?? this.hasGarden),
@@ -517,7 +543,7 @@ class SearchFilter {
   String toString() {
     return 'SearchFilter(location: $location, minPrice: $minPrice, maxPrice: $maxPrice, '
         'propertyType: $propertyType, bedrooms: $bedrooms, finishing: $finishing, '
-        'deliveryDate: $deliveryDate, hasClub: $hasClub, hasRoof: $hasRoof, '
+        'hasClub: $hasClub, hasRoof: $hasRoof, '
         'hasGarden: $hasGarden, sortBy: $sortBy, minArea: $minArea, maxArea: $maxArea, '
         'minGardenArea: $minGardenArea, maxGardenArea: $maxGardenArea, '
         'minRoofArea: $minRoofArea, maxRoofArea: $maxRoofArea, '

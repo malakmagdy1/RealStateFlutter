@@ -143,21 +143,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                   SizedBox(height: 20),
-                  // Logo
-                  Center(
-                    child: SvgPicture.asset(
-                      'assets/images/logos/logo_with_background.svg',
-                      width: 120,
-                      height: 120,
-                      placeholderBuilder: (context) => Container(
-                        width: 120,
-                        height: 120,
-                        color: Colors.grey[300],
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 24),
                   CustomText24(
                     "Get Started Now",
                     color: AppColors.black,

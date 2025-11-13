@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/validators.dart';
 import 'package:real/core/utils/constant.dart';
@@ -11,6 +13,7 @@ import 'package:real/feature/auth/presentation/bloc/register_event.dart';
 import 'package:real/feature/auth/presentation/bloc/register_state.dart';
 import 'package:real/feature/auth/presentation/screen/email_verification_screen.dart';
 import 'package:real/feature_web/auth/presentation/web_login_screen.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class WebSignUpScreen extends StatefulWidget {
   static String routeName = '/web-signup';
@@ -138,24 +141,28 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                       width: 400,
                       padding: EdgeInsets.all(48),
                       decoration: BoxDecoration(
-                        color: Color(0xFF2C3E50),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.apartment, size: 48, color: Colors.white),
-                          SizedBox(height: 24),
-                          Text(
-                            'PropSpace',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                          Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              color: AppColors.mainColor,
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(15),
+                              child: Image.asset(
+                                "assets/images/logos/appIcon.png",
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
-                          SizedBox(height: 16),
+                          SizedBox(height: 24),
                           Text(
                             'Find Your Perfect Space',
                             style: TextStyle(
@@ -608,14 +615,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                                 disabledBackgroundColor: Colors.grey[300],
                               ),
                               child: isLoading
-                                ? SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                    ),
-                                  )
+                                ? CustomLoadingDots(size: 20)
                                 : Text(
                                     'Create My Account',
                                     style: TextStyle(
@@ -638,10 +638,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                             ),
                             TextButton(
                               onPressed: () {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  WebLoginScreen.routeName,
-                                );
+                                context.go('/login');
                               },
                               style: TextButton.styleFrom(
                                 padding: EdgeInsets.zero,

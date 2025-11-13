@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/widget/robust_network_image.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 /// A full-screen zoomable image viewer with pinch-to-zoom and pan support
 class ZoomableImageViewer extends StatefulWidget {
@@ -321,9 +322,7 @@ class _ZoomableImageState extends State<_ZoomableImage> with SingleTickerProvide
                   fit: BoxFit.contain,
                   loadingBuilder: (context) {
                     return Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.mainColor,
-                      ),
+                      child: CustomLoadingDots(size: 60),
                     );
                   },
                   errorBuilder: (context, url) {

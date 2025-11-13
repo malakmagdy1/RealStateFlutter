@@ -6,6 +6,7 @@ import '../bloc/chat_event.dart';
 import '../bloc/chat_state.dart';
 import '../../domain/chat_message.dart';
 import '../widget/property_card_widget.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 /// AI Chat Screen - Main chat interface
 class AiChatScreen extends StatefulWidget {
@@ -152,9 +153,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          CircularProgressIndicator(
-                            color: AppColors.mainColor,
-                          ),
+                          CustomLoadingDots(size: 80),
                           const SizedBox(height: 16),
                           Text(
                             'Loading chat history...',
@@ -190,14 +189,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
                   padding: const EdgeInsets.all(8.0),
                   child: Row(
                     children: [
-                      SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.mainColor,
-                        ),
-                      ),
+                      CustomLoadingDots(size: 30),
                       const SizedBox(width: 12),
                       Text(
                         'AI is thinking...',

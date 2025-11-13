@@ -30,6 +30,7 @@ import 'package:real/feature/compound/presentation/bloc/favorite/compound_favori
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_event.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_event.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class WebHomeScreen extends StatefulWidget {
   static String routeName = '/web-home';
@@ -211,7 +212,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                     if (state is CompanyLoading) {
                       return SizedBox(
                         height: 100,
-                        child: Center(child: CircularProgressIndicator()),
+                        child: Center(child: CustomLoadingDots(size: 80)),
                       );
                     }
 
@@ -283,7 +284,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: Center(
-                            child: CircularProgressIndicator(),
+                            child: CustomLoadingDots(size: 80),
                           ),
                         ),
                       );
@@ -371,7 +372,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                         return SizedBox(
                           height: 200,
                           child: Center(
-                            child: CircularProgressIndicator(),
+                            child: CustomLoadingDots(size: 120),
                           ),
                         );
                       } else if (state is CompoundSuccess) {
@@ -424,7 +425,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
                                   width: 280,
                                   margin: EdgeInsets.only(right: 16),
                                   child: Center(
-                                    child: CircularProgressIndicator(),
+                                    child: CustomLoadingDots(size: 80),
                                   ),
                                 );
                               }
@@ -737,7 +738,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> {
             ? Center(
           child: Padding(
             padding: EdgeInsets.all(32),
-            child: CircularProgressIndicator(color: iconColor),
+            child: CustomLoadingDots(size: 80),
           ),
         )
             : units.isEmpty

@@ -45,6 +45,7 @@ import 'package:real/feature/ai_chat/presentation/screen/ai_chat_screen.dart';
 import 'package:real/feature/ai_chat/presentation/bloc/chat_bloc.dart';
 
 import '../../compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class HomeScreen extends StatefulWidget {
   static String routeName = '/home';
@@ -477,7 +478,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         return Card(
                           child: Padding(
                             padding: EdgeInsets.all(24.0),
-                            child: Center(child: CircularProgressIndicator()),
+                            child: Center(child: CustomLoadingDots(size: 80)),
                           ),
                         );
                       } else if (state is SearchEmpty) {
@@ -554,7 +555,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       return SizedBox(
                         height: 100,
                         child: Center(
-                          child: CircularProgressIndicator(),
+                          child: CustomLoadingDots(size: 60),
                         ),
                       );
                     } else if (state is CompanySuccess) {
@@ -632,7 +633,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(15),
                           ),
                           child: Center(
-                            child: CircularProgressIndicator(),
+                            child: CustomLoadingDots(size: 80),
                           ),
                         ),
                       );
@@ -732,7 +733,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           SizedBox(
                             height: 280,
                             child: Center(
-                              child: CircularProgressIndicator(),
+                              child: CustomLoadingDots(size: 80),
                             ),
                           ),
                         ],
@@ -790,10 +791,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     width: 60,
                                     margin: EdgeInsets.only(right: 12),
                                     child: Center(
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: AppColors.mainColor,
-                                      ),
+                                      child: CustomLoadingDots(size: 40),
                                     ),
                                   );
                                 }
@@ -1403,7 +1401,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? Center(
                 child: Padding(
                   padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(color: AppColors.mainColor),
+                  child: CustomLoadingDots(size: 80),
                 ),
               )
             : _newArrivals.isEmpty
@@ -1492,7 +1490,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? Center(
                 child: Padding(
                   padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(color: Colors.orange),
+                  child: CustomLoadingDots(size: 80),
                 ),
               )
             : _recentlyUpdated.isEmpty
@@ -1580,7 +1578,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? Center(
                 child: Padding(
                   padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(color: Colors.purple),
+                  child: CustomLoadingDots(size: 80),
                 ),
               )
             : _recommendedUnits.isEmpty
@@ -1669,7 +1667,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ? Center(
                 child: Padding(
                   padding: EdgeInsets.all(20),
-                  child: CircularProgressIndicator(color: Colors.teal),
+                  child: CustomLoadingDots(size: 80),
                 ),
               )
             : _updated24Hours.isEmpty

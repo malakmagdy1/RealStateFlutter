@@ -7,6 +7,7 @@ import 'package:real/feature/search/data/services/view_history_service.dart';
 import 'package:real/feature_web/widgets/web_compound_card.dart';
 import 'package:real/feature_web/widgets/web_unit_card.dart';
 import 'package:real/l10n/app_localizations.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class WebHistoryScreen extends StatefulWidget {
   WebHistoryScreen({Key? key}) : super(key: key);
@@ -281,7 +282,7 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
 
                 Expanded(
                   child: _isLoading
-                      ? Center(child: CircularProgressIndicator())
+                      ? Center(child: CustomLoadingDots(size: 120))
                       : _filteredItems.isEmpty
                       ? _buildEmptyState()
                       : SingleChildScrollView(

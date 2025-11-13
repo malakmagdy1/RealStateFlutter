@@ -30,6 +30,7 @@ import 'package:real/feature/subscription/presentation/screens/subscription_plan
 import '../../../../core/widget/button/authButton.dart';
 import '../widget/textFormField.dart';
 import '../widget/authToggle.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class LoginScreen extends StatefulWidget {
   static String routeName = '/login';
@@ -294,7 +295,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             return AlertDialog(
               content: Row(
                 children: [
-                  CircularProgressIndicator(),
+                  CustomLoadingDots(size: 40),
                   SizedBox(width: 20),
                   Text('Checking subscription...'),
                 ],
@@ -646,21 +647,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                   SizedBox(height: 20),
-                  // Logo
-                  Center(
-                    child: SvgPicture.asset(
-                      'assets/images/logos/logo_with_background.svg',
-                      width: 120,
-                      height: 120,
-                      placeholderBuilder: (context) => Container(
-                        width: 120,
-                        height: 120,
-                        color: Colors.grey[300],
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                    ),
-                  ),
-                  SizedBox(height: 24),
                   Text(
                     "Welcome Back",
                     style: TextStyle(

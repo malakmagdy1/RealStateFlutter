@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class RoutePersistenceService {
   static const String _routeKey = 'last_visited_route';
   static const String _routeParamsKey = 'last_route_params';
+  static const String _screenIndexKey = 'web_main_screen_index';
 
   /// Save the current route to SharedPreferences
   static Future<void> saveRoute(String route, {Map<String, String>? params}) async {
@@ -98,5 +99,29 @@ class RoutePersistenceService {
     // Route is now saved with actual values, not placeholders
     // So we can return it directly
     return route;
+  }
+
+  /// Save the current web main screen index
+  static Future<void> saveScreenIndex(int index) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_screenIndexKey, index);
+      print('[ROUTE PERSISTENCE] Saved screen index: $index');
+    } catch (e) {
+      print('[ROUTE PERSISTENCE] Error saving screen index: $e');
+    }
+  }
+
+  /// Get the saved web main screen index
+  static Future<int?> getSavedScreenIndex() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final index = prefs.getInt(_screenIndexKey);
+      print('[ROUTE PERSISTENCE] Retrieved screen index: $index');
+      return index;
+    } catch (e) {
+      print('[ROUTE PERSISTENCE] Error getting saved screen index: $e');
+      return null;
+    }
   }
 }

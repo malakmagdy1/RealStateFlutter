@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class AuthButton extends StatelessWidget {
   final String text;
@@ -36,14 +37,7 @@ class AuthButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.black),
-                  ),
-                ),
+                CustomLoadingDots(size: 30),
                 SizedBox(width: 8),
                 CustomText16(text),
               ],

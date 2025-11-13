@@ -32,9 +32,12 @@ class CompanyCompound extends Equatable {
     return CompanyCompound(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
-      project: json['project']?.toString() ?? '',
-      location: json['location']?.toString() ?? '',
-      status: json['status']?.toString() ?? '',
+      // Use localized project name if available, fallback to original
+      project: json['project_localized']?.toString() ?? json['project']?.toString() ?? '',
+      // Use localized location if available, fallback to original
+      location: json['location_localized']?.toString() ?? json['location_ar']?.toString() ?? json['location']?.toString() ?? '',
+      // Use localized status if available, fallback to original
+      status: json['status_localized']?.toString() ?? json['status']?.toString() ?? '',
       completionProgress: json['completion_progress']?.toString(),
       images: imagesList,
     );
@@ -114,7 +117,8 @@ class Company extends Equatable {
 
     return Company(
       id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
+      // Use localized name if available (from API's name_ar field), fallback to original name
+      name: json['name_localized']?.toString() ?? json['name_ar']?.toString() ?? json['name']?.toString() ?? '',
       logo: logo,
       email: json['email']?.toString() ?? '',
       numberOfCompounds: json['number_of_compounds']?.toString() ?? '0',

@@ -28,7 +28,7 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     navigatorKey: GlobalKey<NavigatorState>(),
-    initialLocation: '/splash',
+    initialLocation: '/',
     debugLogDiagnostics: true,
     refreshListenable: _authStateNotifier,
     observers: [RouteObserver<ModalRoute<void>>(), _RouteObserver()],
@@ -149,10 +149,17 @@ class AppRouter {
       print('[ROUTER] Should save route: ${RoutePersistenceService.shouldSaveRoute(currentPath)}');
       print('[ROUTER] ==========================================');
 
-      // Always allow splash screen to show
+      // Redirect splash screen immediately - we don't need it on web
       if (isSplashRoute) {
-        print('[ROUTER] ✅ Splash screen - allowing navigation');
-        return null;
+        print('[ROUTER] ✅ Splash screen - redirecting based on auth');
+        if (isLoggedIn) {
+          final route = _initialSavedRoute ?? '/';
+          print('[ROUTER] Redirecting logged in user to: $route');
+          return route;
+        } else {
+          print('[ROUTER] Redirecting to login');
+          return '/login';
+        }
       }
 
       // If not logged in and trying to access protected route

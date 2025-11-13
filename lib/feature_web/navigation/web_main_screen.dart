@@ -12,6 +12,7 @@ import 'package:real/feature/notifications/data/models/notification_model.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_event.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
+import 'package:real/core/services/route_persistence_service.dart';
 import '../home/presentation/web_home_screen.dart';
 import '../compounds/presentation/web_compounds_screen.dart';
 import '../favorites/presentation/web_favorites_screen.dart';
@@ -49,6 +50,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
   @override
   void initState() {
     super.initState();
+    _loadSavedScreen();
     _loadUnreadCount();
     // Check for new notifications every 3 seconds
     _notificationCheckTimer = Timer.periodic(Duration(seconds: 3), (timer) {
@@ -59,6 +61,61 @@ class _WebMainScreenState extends State<WebMainScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SubscriptionBloc>().add(LoadSubscriptionStatusEvent());
     });
+  }
+
+  // Load the saved screen from SharedPreferences
+  Future<void> _loadSavedScreen() async {
+    final savedIndex = await RoutePersistenceService.getSavedScreenIndex();
+    if (savedIndex != null && savedIndex >= 0 && savedIndex < _screens.length && mounted) {
+      setState(() {
+        _selectedIndex = savedIndex;
+      });
+      print('[WEB MAIN] Restored screen index: $savedIndex');
+    }
+  }
+
+  // Convert route name to index
+  int? _getIndexFromRoute(String route) {
+    switch (route) {
+      case '/web-main/home':
+        return 0;
+      case '/web-main/compounds':
+        return 1;
+      case '/web-main/favorites':
+        return 2;
+      case '/web-main/history':
+        return 3;
+      case '/web-main/ai-chat':
+        return 4;
+      case '/web-main/notifications':
+        return 5;
+      case '/web-main/profile':
+        return 6;
+      default:
+        return null;
+    }
+  }
+
+  // Convert index to route name
+  String _getRouteFromIndex(int index) {
+    switch (index) {
+      case 0:
+        return '/web-main/home';
+      case 1:
+        return '/web-main/compounds';
+      case 2:
+        return '/web-main/favorites';
+      case 3:
+        return '/web-main/history';
+      case 4:
+        return '/web-main/ai-chat';
+      case 5:
+        return '/web-main/notifications';
+      case 6:
+        return '/web-main/profile';
+      default:
+        return '/web-main/home';
+    }
   }
 
   @override
@@ -348,6 +405,10 @@ class _WebMainScreenState extends State<WebMainScreen> {
         setState(() {
           _selectedIndex = index;
         });
+        // Save the current screen index to SharedPreferences
+        RoutePersistenceService.saveScreenIndex(index);
+        print('[WEB MAIN] Saved screen index: $index');
+
         if (index == 5) {
           _loadUnreadCount(); // Reload count when notifications screen is opened
         }
@@ -388,6 +449,10 @@ class _WebMainScreenState extends State<WebMainScreen> {
         setState(() {
           _selectedIndex = index;
         });
+        // Save the current screen index to SharedPreferences
+        RoutePersistenceService.saveScreenIndex(index);
+        print('[WEB MAIN] Saved screen index: $index');
+
         _loadUnreadCount(); // Reload count when notifications screen is opened
       },
       child: Container(

@@ -3,6 +3,7 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/widget/robust_network_image.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 import 'package:real/feature/sale/data/models/sale_model.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
@@ -190,7 +191,7 @@ class _SaleCarouselSliderState extends State<SaleCarouselSlider> {
                               return Container(
                                 color: Colors.grey.shade200,
                                 child: Center(
-                                  child: CircularProgressIndicator(),
+                                  child: CustomLoadingDots(size: 60),
                                 ),
                               );
                             },

@@ -101,6 +101,9 @@ class SearchRepository {
         print('[UNIFIED API]   - Bedrooms: ${filter.bedrooms}');
         print('[UNIFIED API]   - Min Area: ${filter.minArea}');
         print('[UNIFIED API]   - Max Area: ${filter.maxArea}');
+        print('[UNIFIED API]   - Delivered From: ${filter.deliveredAtFrom}');
+        print('[UNIFIED API]   - Delivered To: ${filter.deliveredAtTo}');
+        print('[UNIFIED API]   - Has Been Delivered: ${filter.hasBeenDelivered}');
         print('[UNIFIED API]   - Active Filters: ${filter.activeFiltersCount}');
       }
       print('[UNIFIED API] All Query Parameters: $queryParams');

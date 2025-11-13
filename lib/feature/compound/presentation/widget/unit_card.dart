@@ -16,6 +16,7 @@ import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_b
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_event.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_state.dart';
 import 'package:real/core/animations/pulse_animation.dart';
+import 'package:real/core/locale/language_service.dart';
 
 class UnitCard extends StatefulWidget {
   final Unit unit;
@@ -632,18 +633,21 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
 
   Color _getStatusColor(String status) {
     final statusLower = status.toLowerCase();
-    switch (statusLower) {
-      case 'available':
-        return Color(0xFF4CAF50);
-      case 'reserved':
-        return Colors.orange;
-      case 'sold':
-        return Color(0xFFF44336);
-      case 'in_progress':
-        return Colors.blue;
-      default:
-        return Colors.grey;
+    // Handle both English and Arabic status values
+    if (statusLower == 'available' || statusLower == 'متاح') {
+      return Color(0xFF4CAF50);
+    } else if (statusLower == 'reserved' || statusLower == 'محجوز') {
+      return Colors.orange;
+    } else if (statusLower == 'sold' || statusLower == 'مباع') {
+      return Color(0xFFF44336);
+    } else if (statusLower == 'in_progress' || statusLower == 'قيد الإنشاء') {
+      return Colors.orange; // Changed from blue to orange for in_progress
+    } else if (statusLower == 'completed' || statusLower == 'مكتمل') {
+      return Color(0xFF4CAF50);
+    } else if (statusLower == 'delivered' || statusLower == 'تم التسليم') {
+      return Color(0xFF2196F3);
     }
+    return Colors.grey;
   }
 
   String _getStatusLabel(String status) {
@@ -713,19 +717,23 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
   Widget _updateBadge(String changeType, double screenWidth) {
     Color badgeColor;
     String badgeText;
+    final isArabic = LanguageService.currentLanguage == 'ar';
 
     switch (changeType.toLowerCase()) {
       case 'new':
+      case 'جديد':
         badgeColor = Color(0xFF4CAF50); // Green
-        badgeText = 'NEW';
+        badgeText = isArabic ? 'جديد' : 'NEW';
         break;
       case 'updated':
+      case 'محدث':
         badgeColor = Color(0xFFFF9800); // Orange
-        badgeText = 'UPDATED';
+        badgeText = isArabic ? 'محدث' : 'UPDATED';
         break;
       case 'deleted':
+      case 'محذوف':
         badgeColor = Colors.red[700]!; // Red
-        badgeText = 'DELETED';
+        badgeText = isArabic ? 'محذوف' : 'DELETED';
         break;
       default:
         badgeColor = Colors.blue[700]!;

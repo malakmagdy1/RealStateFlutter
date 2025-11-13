@@ -72,18 +72,17 @@ class _SplashScreenState extends State<SplashScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: kIsWeb ? Colors.white : AppColors.mainColor,
+      backgroundColor: AppColors.mainColor,
       body: Center(
-        child: SvgPicture.asset(
-          // Use logo without background for web, logo with green bg for mobile
-          kIsWeb
-            ? 'assets/images/logos/logo.svg'
-            : 'assets/images/logos/logo.svg',
-          width: kIsWeb ? screenWidth * 0.4 : screenWidth * 0.6,
-          height: kIsWeb ? screenHeight * 0.4 : screenHeight * 0.4,
+        child: Container(
+          width: kIsWeb ? 200 : 150,
+          height: kIsWeb ? 200 : 150,
+          child: Image.asset(
+            'assets/images/logos/appIcon.png',
+            fit: BoxFit.contain,
+          ),
         ),
       ),
     );
   }
 }
-

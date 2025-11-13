@@ -28,6 +28,7 @@ import 'package:real/core/animations/page_transitions.dart';
 import 'package:real/feature/search/presentation/widget/search_filter_bottom_sheet.dart';
 import 'package:real/feature/search/data/services/location_service.dart';
 import 'package:intl/intl.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class WebCompoundsScreen extends StatefulWidget {
   const WebCompoundsScreen({Key? key}) : super(key: key);
@@ -55,6 +56,9 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   bool _hasMorePages = true;
   List<Compound> _allCompounds = [];
 
+  // Filter debounce timer
+  Timer? _filterDebounce;
+
   // Filter sidebar state variables
   String? _selectedLocation;
   List<String> _availableLocations = [];
@@ -63,7 +67,9 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   String? _selectedPropertyType;
   int? _selectedBedrooms;
   String? _selectedFinishing;
-  DateTime? _selectedDeliveryDate;
+  DateTime? _deliveredAtFrom;
+  DateTime? _deliveredAtTo;
+  bool? _hasBeenDelivered;
   bool _hasClub = false;
   bool _hasRoof = false;
   bool _hasGarden = false;
@@ -118,6 +124,8 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
   @override
   void dispose() {
+    _debounceTimer?.cancel();
+    _filterDebounce?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     _scrollController.dispose();
@@ -187,28 +195,43 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   }
 
   void _applyFilters() {
-    setState(() {
-      _currentFilter = SearchFilter(
-        location: _selectedLocation,
-        minPrice: _minPriceController.text.isEmpty
-            ? null
-            : double.tryParse(_minPriceController.text),
-        maxPrice: _maxPriceController.text.isEmpty
-            ? null
-            : double.tryParse(_maxPriceController.text),
-        propertyType: _selectedPropertyType,
-        bedrooms: _selectedBedrooms,
-        finishing: _selectedFinishing,
-        deliveryDate: _selectedDeliveryDate != null
-            ? DateFormat('yyyy-MM-dd').format(_selectedDeliveryDate!)
-            : null,
-        hasClub: _hasClub,
-        hasRoof: _hasRoof,
-        hasGarden: _hasGarden,
-        sortBy: _selectedSortBy,
-      );
+    // Cancel previous debounce if active
+    if (_filterDebounce?.isActive ?? false) {
+      _filterDebounce!.cancel();
+    }
+
+    // Debounce filter application to prevent multiple rapid calls
+    _filterDebounce = Timer(const Duration(milliseconds: 400), () {
+      print('🔍 APPLYING FILTERS WITH DEBOUNCE');
+
+      setState(() {
+        _currentFilter = SearchFilter(
+          location: _selectedLocation,
+          minPrice: _minPriceController.text.isEmpty
+              ? null
+              : double.tryParse(_minPriceController.text),
+          maxPrice: _maxPriceController.text.isEmpty
+              ? null
+              : double.tryParse(_maxPriceController.text),
+          propertyType: _selectedPropertyType,
+          bedrooms: _selectedBedrooms,
+          finishing: _selectedFinishing,
+          deliveredAtFrom: _deliveredAtFrom != null
+              ? DateFormat('yyyy-MM-dd').format(_deliveredAtFrom!)
+              : null,
+          deliveredAtTo: _deliveredAtTo != null
+              ? DateFormat('yyyy-MM-dd').format(_deliveredAtTo!)
+              : null,
+          hasBeenDelivered: _hasBeenDelivered,
+          hasClub: _hasClub,
+          hasRoof: _hasRoof,
+          hasGarden: _hasGarden,
+          sortBy: _selectedSortBy,
+        );
+      });
+
+      _performSearch(_searchController.text);
     });
-    _performSearch(_searchController.text);
   }
 
   void _clearAllFilters() {
@@ -219,14 +242,20 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
       _selectedPropertyType = null;
       _selectedBedrooms = null;
       _selectedFinishing = null;
-      _selectedDeliveryDate = null;
+      _deliveredAtFrom = null;
+      _deliveredAtTo = null;
+      _hasBeenDelivered = null;
       _hasClub = false;
       _hasRoof = false;
       _hasGarden = false;
       _selectedSortBy = null;
       _currentFilter = SearchFilter.empty();
+      _showSearchResults = false;
+      _showSearchHistory = false;
     });
-    _performSearch(_searchController.text);
+    // Clear search text and reload compounds (not units)
+    _searchController.clear();
+    _searchBloc.add(ClearSearchEvent());
   }
 
   void _performSearch(String query) {
@@ -458,7 +487,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
-                                _currentFilter = _currentFilter.copyWith(location: null);
+                                _currentFilter = _currentFilter.copyWith(clearLocation: true);
                               });
                               _performSearch(_searchController.text);
                             },
@@ -471,7 +500,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
-                                _currentFilter = _currentFilter.copyWith(minPrice: null);
+                                _currentFilter = _currentFilter.copyWith(clearMinPrice: true);
                               });
                               _performSearch(_searchController.text);
                             },
@@ -484,7 +513,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
-                                _currentFilter = _currentFilter.copyWith(maxPrice: null);
+                                _currentFilter = _currentFilter.copyWith(clearMaxPrice: true);
                               });
                               _performSearch(_searchController.text);
                             },
@@ -497,7 +526,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
-                                _currentFilter = _currentFilter.copyWith(propertyType: null);
+                                _currentFilter = _currentFilter.copyWith(clearPropertyType: true);
                               });
                               _performSearch(_searchController.text);
                             },
@@ -510,7 +539,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
-                                _currentFilter = _currentFilter.copyWith(bedrooms: null);
+                                _currentFilter = _currentFilter.copyWith(clearBedrooms: true);
                               });
                               _performSearch(_searchController.text);
                             },
@@ -523,7 +552,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
-                                _currentFilter = _currentFilter.copyWith(finishing: null);
+                                _currentFilter = _currentFilter.copyWith(clearFinishing: true);
                               });
                               _performSearch(_searchController.text);
                             },
@@ -536,7 +565,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
-                                _currentFilter = _currentFilter.copyWith(hasClub: false);
+                                _currentFilter = _currentFilter.copyWith(clearHasClub: true);
                               });
                               _performSearch(_searchController.text);
                             },
@@ -549,7 +578,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
-                                _currentFilter = _currentFilter.copyWith(hasRoof: false);
+                                _currentFilter = _currentFilter.copyWith(clearHasRoof: true);
                               });
                               _performSearch(_searchController.text);
                             },
@@ -562,7 +591,51 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
-                                _currentFilter = _currentFilter.copyWith(hasGarden: false);
+                                _currentFilter = _currentFilter.copyWith(clearHasGarden: true);
+                              });
+                              _performSearch(_searchController.text);
+                            },
+                          ),
+                        if (_currentFilter.deliveredAtFrom != null)
+                          Chip(
+                            label: Text('From: ${_currentFilter.deliveredAtFrom}', style: const TextStyle(fontSize: 12)),
+                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                            labelStyle: TextStyle(color: AppColors.mainColor),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(clearDeliveredAtFrom: true);
+                              });
+                              _performSearch(_searchController.text);
+                            },
+                          ),
+                        if (_currentFilter.deliveredAtTo != null)
+                          Chip(
+                            label: Text('To: ${_currentFilter.deliveredAtTo}', style: const TextStyle(fontSize: 12)),
+                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                            labelStyle: TextStyle(color: AppColors.mainColor),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(clearDeliveredAtTo: true);
+                              });
+                              _performSearch(_searchController.text);
+                            },
+                          ),
+                        if (_currentFilter.hasBeenDelivered != null)
+                          Chip(
+                            label: Text(
+                              _currentFilter.hasBeenDelivered == true
+                                ? 'Delivered'
+                                : 'Not Delivered',
+                              style: const TextStyle(fontSize: 12)
+                            ),
+                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                            labelStyle: TextStyle(color: AppColors.mainColor),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(clearHasBeenDelivered: true);
                               });
                               _performSearch(_searchController.text);
                             },
@@ -835,21 +908,21 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             const SizedBox(height: 12),
 
-            // Delivery Date Calendar Picker
+            // Delivered From Date
             _buildFilterCard(
-              title: l10n.deliveryDate,
+              title: 'Delivered From',
               icon: Icons.calendar_today,
               child: InkWell(
                 onTap: () async {
                   final DateTime? picked = await showDatePicker(
                     context: context,
-                    initialDate: _selectedDeliveryDate ?? DateTime.now(),
-                    firstDate: DateTime.now(),
+                    initialDate: _deliveredAtFrom ?? DateTime.now(),
+                    firstDate: DateTime(2000),
                     lastDate: DateTime(2035),
                   );
                   if (picked != null) {
                     setState(() {
-                      _selectedDeliveryDate = picked;
+                      _deliveredAtFrom = picked;
                     });
                     _applyFilters();
                   }
@@ -867,28 +940,132 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          _selectedDeliveryDate != null
-                              ? DateFormat('dd MMM yyyy').format(_selectedDeliveryDate!)
-                              : l10n.selectDeliveryDate,
+                          _deliveredAtFrom != null
+                              ? DateFormat('yyyy-MM-dd').format(_deliveredAtFrom!)
+                              : 'Select from date',
                           style: TextStyle(
                             fontSize: 13,
-                            color: _selectedDeliveryDate != null
+                            color: _deliveredAtFrom != null
                                 ? Colors.black87
                                 : Colors.grey.shade600,
                           ),
                         ),
                       ),
-                      if (_selectedDeliveryDate != null)
+                      if (_deliveredAtFrom != null)
                         InkWell(
                           onTap: () {
                             setState(() {
-                              _selectedDeliveryDate = null;
+                              _deliveredAtFrom = null;
                             });
                             _applyFilters();
                           },
                           child: Icon(Icons.close, size: 18, color: Colors.grey.shade600),
                         ),
                     ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Delivered To Date
+            _buildFilterCard(
+              title: 'Delivered To',
+              icon: Icons.calendar_today,
+              child: InkWell(
+                onTap: () async {
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: _deliveredAtTo ?? DateTime.now(),
+                    firstDate: DateTime(2000),
+                    lastDate: DateTime(2035),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _deliveredAtTo = picked;
+                    });
+                    _applyFilters();
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today_outlined, size: 20, color: Colors.grey.shade600),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _deliveredAtTo != null
+                              ? DateFormat('yyyy-MM-dd').format(_deliveredAtTo!)
+                              : 'Select to date',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _deliveredAtTo != null
+                                ? Colors.black87
+                                : Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                      if (_deliveredAtTo != null)
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _deliveredAtTo = null;
+                            });
+                            _applyFilters();
+                          },
+                          child: Icon(Icons.close, size: 18, color: Colors.grey.shade600),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Delivery Status
+            _buildFilterCard(
+              title: 'Delivery Status',
+              icon: Icons.local_shipping,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<bool?>(
+                    value: _hasBeenDelivered,
+                    isExpanded: true,
+                    hint: Text('All', style: TextStyle(fontSize: 13)),
+                    items: [
+                      DropdownMenuItem<bool?>(
+                        value: null,
+                        child: Text('All', style: TextStyle(fontSize: 13)),
+                      ),
+                      DropdownMenuItem<bool?>(
+                        value: true,
+                        child: Text('Only Delivered', style: TextStyle(fontSize: 13)),
+                      ),
+                      DropdownMenuItem<bool?>(
+                        value: false,
+                        child: Text('Not Delivered', style: TextStyle(fontSize: 13)),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _hasBeenDelivered = value;
+                      });
+                      _applyFilters();
+                    },
                   ),
                 ),
               ),
@@ -1108,7 +1285,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
           return const Center(
             child: Padding(
               padding: EdgeInsets.all(48.0),
-              child: CircularProgressIndicator(),
+              child: CustomLoadingDots(size: 120),
             ),
           );
         }
@@ -1193,7 +1370,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
               const Padding(
                 padding: EdgeInsets.all(32.0),
                 child: Center(
-                  child: CircularProgressIndicator(),
+                  child: CustomLoadingDots(size: 80),
                 ),
               ),
 
@@ -1225,7 +1402,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
           return const Center(
             child: Padding(
               padding: EdgeInsets.all(48.0),
-              child: CircularProgressIndicator(),
+              child: CustomLoadingDots(size: 120),
             ),
           );
         } else if (state is SearchSuccess || state is SearchLoadingMore) {

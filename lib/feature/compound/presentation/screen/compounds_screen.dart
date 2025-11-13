@@ -25,6 +25,7 @@ import 'package:real/feature/search/presentation/widget/search_filter_bottom_she
 import 'package:real/feature/home/presentation/widget/compunds_name.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/company/presentation/screen/company_detail_screen.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class CompoundsScreen extends StatefulWidget {
   static String routeName = '/compounds';
@@ -490,7 +491,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
                         return Card(
                           child: Padding(
                             padding: EdgeInsets.all(24.0),
-                            child: Center(child: CircularProgressIndicator()),
+                            child: Center(child: CustomLoadingDots(size: 80)),
                           ),
                         );
                       } else if (state is SearchEmpty) {
@@ -549,7 +550,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
                 child: BlocBuilder<CompoundBloc, CompoundState>(
                   builder: (context, state) {
                     if (state is CompoundLoading) {
-                      return const Center(child: CircularProgressIndicator());
+                      return Center(child: CustomLoadingDots(size: 80));
                     }
 
                     if (state is CompoundError) {
@@ -645,7 +646,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
                                   return Center(
                                     child: Padding(
                                       padding: EdgeInsets.all(16),
-                                      child: CircularProgressIndicator(),
+                                      child: CustomLoadingDots(size: 60),
                                     ),
                                   );
                                 }
@@ -827,7 +828,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
               if (searchState is SearchLoadingMore)
                 Padding(
                   padding: EdgeInsets.all(16),
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(child: CustomLoadingDots(size: 60)),
                 ),
             ],
           ],

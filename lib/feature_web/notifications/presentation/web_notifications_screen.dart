@@ -9,6 +9,7 @@ import 'package:real/feature/notifications/data/models/notification_model.dart';
 import 'package:real/feature/notifications/data/services/notification_cache_service.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:real/core/utils/web_utils_stub.dart' if (dart.library.html) 'package:real/core/utils/web_utils_web.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class WebNotificationsScreen extends StatefulWidget {
   static String routeName = '/web-notifications';
@@ -165,8 +166,8 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
                 Expanded(
                   child: isLoading
                       ? Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.mainColor,
+                          child: CustomLoadingDots(
+                            size: 120,
                           ),
                         )
                       : filteredNotifications.isEmpty

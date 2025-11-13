@@ -25,6 +25,7 @@ import 'package:real/feature/subscription/presentation/bloc/subscription_event.d
 import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
 import 'package:real/feature/subscription/presentation/screens/subscription_plans_screen.dart';
 import 'package:real/core/utils/message_helper.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class ProfileScreen extends StatefulWidget {
   ProfileScreen({super.key});
@@ -364,7 +365,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ],
                             );
                           } else if (state is UserLoading) {
-                            return CircularProgressIndicator();
+                            return CustomLoadingDots(size: 60);
                           }
                           return Column(
                             children: [
@@ -594,9 +595,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Center(
-                        child: CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.mainColor),
-                        ),
+                        child: CustomLoadingDots(size: 60),
                       ),
                     );
                   }
@@ -699,10 +698,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.red,
-                            strokeWidth: 2,
-                          ),
+                          child: CustomLoadingDots(size: 30),
                         ),
                       );
                     }

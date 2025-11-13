@@ -68,7 +68,11 @@
       "Bash(tar:*)",
       "Bash(curl:*)",
       "Bash(git pull:*)",
-      "Bash(exit 0)"
+      "Bash(exit 0)",
+      "Bash(copy:*)",
+      "Bash(clip)",
+      "Bash(cmd /c \"taskkill //F //PID 16848\")",
+      "WebFetch(domain:aqar.bdcbiz.com)"
     ],
     "deny": [],
     "ask": []

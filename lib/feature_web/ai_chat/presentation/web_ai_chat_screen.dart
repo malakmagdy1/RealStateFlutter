@@ -6,6 +6,7 @@ import '../../../feature/ai_chat/presentation/bloc/chat_event.dart';
 import '../../../feature/ai_chat/presentation/bloc/chat_state.dart';
 import '../../../feature/ai_chat/domain/chat_message.dart';
 import '../../widgets/web_property_card_widget.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 /// Web-optimized AI Chat Screen with desktop-friendly layout
 class WebAiChatScreen extends StatefulWidget {
@@ -200,8 +201,8 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                CircularProgressIndicator(
-                                  color: AppColors.mainColor,
+                                CustomLoadingDots(
+                                  size: 120,
                                 ),
                                 const SizedBox(height: 16),
                                 const Text(
@@ -251,13 +252,8 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
                         ),
                         child: Row(
                           children: [
-                            SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.mainColor,
-                              ),
+                            CustomLoadingDots(
+                              size: 20,
                             ),
                             const SizedBox(width: 12),
                             const Text(

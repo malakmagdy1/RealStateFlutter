@@ -19,6 +19,7 @@ import '../../../feature/sale/data/services/sale_web_services.dart';
 import '../../../feature/sale/data/models/sale_model.dart';
 import 'package:real/feature/compound/data/web_services/favorites_web_services.dart';
 import 'package:real/core/utils/message_helper.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class WebUnitDetailScreen extends StatefulWidget {
   static String routeName = '/web-unit-detail';
@@ -380,7 +381,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
           ),
         ),
         body: Center(
-          child: CircularProgressIndicator(color: AppColors.mainColor),
+          child: CustomLoadingDots(size: 120),
         ),
       );
     }
@@ -431,7 +432,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
       return Scaffold(
         backgroundColor: Color(0xFFF8F9FA),
         body: Center(
-          child: CircularProgressIndicator(color: AppColors.mainColor),
+          child: CustomLoadingDots(size: 120),
         ),
       );
     }
@@ -1228,7 +1229,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
         child: Center(
           child: Padding(
             padding: EdgeInsets.all(20),
-            child: CircularProgressIndicator(color: AppColors.mainColor, strokeWidth: 2),
+            child: CustomLoadingDots(size: 40),
           ),
         ),
       );
@@ -1856,7 +1857,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
         // Notes list
         Expanded(
           child: _isLoadingNotes
-              ? Center(child: CircularProgressIndicator(color: AppColors.mainColor))
+              ? Center(child: CustomLoadingDots(size: 80))
               : _unitNotes.isEmpty
                   ? Center(
                       child: Column(

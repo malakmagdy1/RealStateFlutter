@@ -23,6 +23,7 @@ import '../../../../core/widgets/sale_card.dart';
 import '../../../../core/widgets/note_dialog.dart';
 import '../../data/web_services/favorites_web_services.dart';
 import '../../../../core/widgets/zoomable_image_viewer.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class UnitDetailScreen extends StatefulWidget {
   static String routeName = '/unit-detail';
@@ -197,18 +198,22 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Color _getStatusColor() {
-    switch (widget.unit.status.toLowerCase()) {
-      case 'available':
-        return Colors.green;
-      case 'reserved':
-        return Colors.orange;
-      case 'sold':
-        return Colors.red;
-      case 'in_progress':
-        return Colors.blue;
-      default:
-        return Colors.grey;
+    final statusLower = widget.unit.status.toLowerCase();
+    // Handle both English and Arabic status values
+    if (statusLower == 'available' || statusLower == 'متاح') {
+      return Colors.green;
+    } else if (statusLower == 'reserved' || statusLower == 'محجوز') {
+      return Colors.orange;
+    } else if (statusLower == 'sold' || statusLower == 'مباع') {
+      return Colors.red;
+    } else if (statusLower == 'in_progress' || statusLower == 'قيد الإنشاء') {
+      return Colors.orange; // Changed from blue to orange for in_progress
+    } else if (statusLower == 'completed' || statusLower == 'مكتمل') {
+      return Colors.green;
+    } else if (statusLower == 'delivered' || statusLower == 'تم التسليم') {
+      return Colors.blue;
     }
+    return Colors.grey;
   }
 
   Future<void> _fetchSalesPeople() async {
@@ -620,7 +625,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                 loadingBuilder: (context) => Container(
                   color: Colors.grey.shade200,
                   child: Center(
-                    child: CircularProgressIndicator(color: AppColors.mainColor),
+                    child: CustomLoadingDots(size: 80),
                   ),
                 ),
                 errorBuilder: (context, url) => Container(
@@ -1504,7 +1509,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       return Container(
         padding: EdgeInsets.all(20),
         child: Center(
-          child: CircularProgressIndicator(color: AppColors.mainColor),
+          child: CustomLoadingDots(size: 60),
         ),
       );
     }

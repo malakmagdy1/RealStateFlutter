@@ -20,6 +20,7 @@ import 'package:real/feature/compound/data/web_services/favorites_web_services.d
 import 'package:real/core/widgets/zoomable_image_viewer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:real/feature_web/widgets/web_unit_card.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class WebCompoundDetailScreen extends StatefulWidget {
   static String routeName = '/web-compound-detail';
@@ -109,7 +110,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
               ),
             ),
             body: Center(
-              child: CircularProgressIndicator(color: AppColors.mainColor),
+              child: CustomLoadingDots(size: 120),
             ),
           );
         }
@@ -592,7 +593,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
           ),
           SizedBox(height: 24),
           if (_loadingSalespeople)
-            Center(child: CircularProgressIndicator())
+            Center(child: CustomLoadingDots(size: 60))
           else if (_salespeople.isEmpty)
             Text(
               l10n.noSalesPersonAvailable,
@@ -990,7 +991,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
     return BlocBuilder<UnitBloc, UnitState>(
       builder: (context, state) {
         if (state is UnitLoading) {
-          return Center(child: CircularProgressIndicator(color: AppColors.mainColor));
+          return Center(child: CustomLoadingDots(size: 120));
         } else if (state is UnitSuccess) {
           final units = state.response.data;
           if (units.isEmpty) {
@@ -1594,7 +1595,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
         // Notes list
         Expanded(
           child: _isLoadingNotes
-              ? Center(child: CircularProgressIndicator(color: AppColors.mainColor))
+              ? Center(child: CustomLoadingDots(size: 80))
               : _compoundNotes.isEmpty
               ? Center(
             child: Column(
@@ -1983,8 +1984,8 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                 return Center(
                   child: Padding(
                     padding: EdgeInsets.all(48),
-                    child: CircularProgressIndicator(
-                      color: AppColors.mainColor,
+                    child: CustomLoadingDots(
+                      size: 120,
                     ),
                   ),
                 );

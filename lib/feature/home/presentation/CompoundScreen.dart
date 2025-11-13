@@ -29,6 +29,7 @@ import '../../../core/widgets/zoomable_image_viewer.dart';
 import '../../compound/data/web_services/favorites_web_services.dart';
 import '../../../core/widgets/note_dialog.dart';
 import '../../compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class CompoundScreen extends StatefulWidget {
   static String routeName = '/compund';
@@ -679,7 +680,7 @@ class _CompoundScreenState extends State<CompoundScreen>
           return Center(
             child: Padding(
               padding: EdgeInsets.all(32.0),
-              child: CircularProgressIndicator(),
+              child: CustomLoadingDots(size: 80),
             ),
           );
         } else if (state is UnitSuccess) {
@@ -771,10 +772,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                 // Show loading indicator when loading more
                 if (_isLoadingMoreUnits && displayCount < units.length) ...[
                   SizedBox(height: 16),
-                  CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: AppColors.mainColor,
-                  ),
+                  CustomLoadingDots(size: 40),
                   SizedBox(height: 16),
                 ],
               ],
@@ -834,7 +832,7 @@ class _CompoundScreenState extends State<CompoundScreen>
       return Container(
         padding: EdgeInsets.all(20),
         child: Center(
-          child: CircularProgressIndicator(color: AppColors.mainColor),
+          child: CustomLoadingDots(size: 60),
         ),
       );
     }
@@ -1356,9 +1354,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                           loadingBuilder: (context) => Container(
                             color: Colors.grey.shade200,
                             child: Center(
-                              child: CircularProgressIndicator(
-                                color: AppColors.mainColor,
-                              ),
+                              child: CustomLoadingDots(size: 80),
                             ),
                           ),
                           errorBuilder: (context, url) {

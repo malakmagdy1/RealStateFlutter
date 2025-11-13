@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:intl/intl.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 import '../../data/models/search_filter_model.dart';
 import '../../data/services/location_service.dart';
@@ -30,7 +31,9 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
   bool _isLoadingLocations = true;
 
   String? _selectedLocation;
-  DateTime? _selectedDeliveryDate;
+  DateTime? _deliveredAtFrom;
+  DateTime? _deliveredAtTo;
+  bool? _hasBeenDelivered;
   String? _selectedPropertyType;
   int? _selectedBedrooms;
   String? _selectedFinishing;
@@ -85,14 +88,26 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
     _hasGarden = widget.initialFilter.hasGarden ?? false;
     _selectedSortBy = widget.initialFilter.sortBy;
 
-    // Parse delivery date from string (if exists)
-    if (widget.initialFilter.deliveryDate != null && widget.initialFilter.deliveryDate!.isNotEmpty) {
+    // Parse deliveredAtFrom date
+    if (widget.initialFilter.deliveredAtFrom != null && widget.initialFilter.deliveredAtFrom!.isNotEmpty) {
       try {
-        _selectedDeliveryDate = DateTime.parse(widget.initialFilter.deliveryDate!);
+        _deliveredAtFrom = DateTime.parse(widget.initialFilter.deliveredAtFrom!);
       } catch (e) {
-        print('[FILTER] Could not parse delivery date: ${widget.initialFilter.deliveryDate}');
+        print('[FILTER] Could not parse deliveredAtFrom date: ${widget.initialFilter.deliveredAtFrom}');
       }
     }
+
+    // Parse deliveredAtTo date
+    if (widget.initialFilter.deliveredAtTo != null && widget.initialFilter.deliveredAtTo!.isNotEmpty) {
+      try {
+        _deliveredAtTo = DateTime.parse(widget.initialFilter.deliveredAtTo!);
+      } catch (e) {
+        print('[FILTER] Could not parse deliveredAtTo date: ${widget.initialFilter.deliveredAtTo}');
+      }
+    }
+
+    // Set hasBeenDelivered
+    _hasBeenDelivered = widget.initialFilter.hasBeenDelivered;
 
     // Load locations from database
     _loadLocations();
@@ -136,7 +151,9 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
       _selectedLocation = null;
       _minPriceController.clear();
       _maxPriceController.clear();
-      _selectedDeliveryDate = null;
+      _deliveredAtFrom = null;
+      _deliveredAtTo = null;
+      _hasBeenDelivered = null;
       _selectedPropertyType = null;
       _selectedBedrooms = null;
       _selectedFinishing = null;
@@ -148,10 +165,16 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
   }
 
   void _applyFilters() {
-    // Format delivery date as yyyy-MM-dd string
-    String? deliveryDateStr;
-    if (_selectedDeliveryDate != null) {
-      deliveryDateStr = DateFormat('yyyy-MM-dd').format(_selectedDeliveryDate!);
+    // Format deliveredAtFrom as yyyy-MM-dd string
+    String? deliveredAtFromStr;
+    if (_deliveredAtFrom != null) {
+      deliveredAtFromStr = DateFormat('yyyy-MM-dd').format(_deliveredAtFrom!);
+    }
+
+    // Format deliveredAtTo as yyyy-MM-dd string
+    String? deliveredAtToStr;
+    if (_deliveredAtTo != null) {
+      deliveredAtToStr = DateFormat('yyyy-MM-dd').format(_deliveredAtTo!);
     }
 
     final filter = SearchFilter(
@@ -165,7 +188,9 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
       propertyType: _selectedPropertyType,
       bedrooms: _selectedBedrooms,
       finishing: _selectedFinishing,
-      deliveryDate: deliveryDateStr,
+      deliveredAtFrom: deliveredAtFromStr,
+      deliveredAtTo: deliveredAtToStr,
+      hasBeenDelivered: _hasBeenDelivered,
       hasClub: _hasClub ? true : null,
       hasRoof: _hasRoof ? true : null,
       hasGarden: _hasGarden ? true : null,
@@ -180,6 +205,9 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
     print('[FILTER] Max Price: ${filter.maxPrice}');
     print('[FILTER] Location: ${filter.location}');
     print('[FILTER] Finishing: ${filter.finishing}');
+    print('[FILTER] Delivered At From: ${filter.deliveredAtFrom}');
+    print('[FILTER] Delivered At To: ${filter.deliveredAtTo}');
+    print('[FILTER] Has Been Delivered: ${filter.hasBeenDelivered}');
     print('[FILTER] Has Club: ${filter.hasClub}');
     print('[FILTER] Has Roof: ${filter.hasRoof}');
     print('[FILTER] Has Garden: ${filter.hasGarden}');
@@ -257,11 +285,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                ),
+                                CustomLoadingDots(size: 30),
                                 SizedBox(width: 12),
                                 Text('Loading locations...'),
                               ],
@@ -451,15 +475,15 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
 
                   SizedBox(height: 24),
 
-                  // Delivery Date Calendar Picker
-                  _buildSectionTitle('Delivery Date'),
+                  // Delivered From Date
+                  _buildSectionTitle('Delivered From Date'),
                   SizedBox(height: 8),
                   InkWell(
                     onTap: () async {
                       final DateTime? picked = await showDatePicker(
                         context: context,
-                        initialDate: _selectedDeliveryDate ?? DateTime.now(),
-                        firstDate: DateTime.now(),
+                        initialDate: _deliveredAtFrom ?? DateTime.now(),
+                        firstDate: DateTime(2000),
                         lastDate: DateTime(2035),
                         builder: (context, child) {
                           return Theme(
@@ -476,7 +500,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                       );
                       if (picked != null) {
                         setState(() {
-                          _selectedDeliveryDate = picked;
+                          _deliveredAtFrom = picked;
                         });
                       }
                     },
@@ -495,23 +519,23 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                           SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              _selectedDeliveryDate != null
-                                  ? DateFormat('dd MMM yyyy').format(_selectedDeliveryDate!)
-                                  : 'Select delivery date',
+                              _deliveredAtFrom != null
+                                  ? DateFormat('yyyy-MM-dd').format(_deliveredAtFrom!)
+                                  : 'Select delivered from date',
                               style: TextStyle(
                                 fontSize: 16,
-                                color: _selectedDeliveryDate != null
+                                color: _deliveredAtFrom != null
                                     ? Colors.black87
                                     : Colors.grey.shade600,
                               ),
                             ),
                           ),
-                          if (_selectedDeliveryDate != null)
+                          if (_deliveredAtFrom != null)
                             IconButton(
                               icon: Icon(Icons.clear, size: 20),
                               onPressed: () {
                                 setState(() {
-                                  _selectedDeliveryDate = null;
+                                  _deliveredAtFrom = null;
                                 });
                               },
                               padding: EdgeInsets.zero,
@@ -519,6 +543,126 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                             ),
                         ],
                       ),
+                    ),
+                  ),
+
+                  SizedBox(height: 24),
+
+                  // Delivered To Date
+                  _buildSectionTitle('Delivered To Date'),
+                  SizedBox(height: 8),
+                  InkWell(
+                    onTap: () async {
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: _deliveredAtTo ?? DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2035),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: ColorScheme.light(
+                                primary: AppColors.mainColor,
+                                onPrimary: Colors.white,
+                                onSurface: Colors.black,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _deliveredAtTo = picked;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            color: Colors.grey.shade600,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _deliveredAtTo != null
+                                  ? DateFormat('yyyy-MM-dd').format(_deliveredAtTo!)
+                                  : 'Select delivered to date',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: _deliveredAtTo != null
+                                    ? Colors.black87
+                                    : Colors.grey.shade600,
+                              ),
+                            ),
+                          ),
+                          if (_deliveredAtTo != null)
+                            IconButton(
+                              icon: Icon(Icons.clear, size: 20),
+                              onPressed: () {
+                                setState(() {
+                                  _deliveredAtTo = null;
+                                });
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: BoxConstraints(),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 24),
+
+                  // Has Been Delivered
+                  _buildSectionTitle('Delivery Status'),
+                  SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: DropdownButtonFormField<bool?>(
+                      value: _hasBeenDelivered,
+                      decoration: InputDecoration(
+                        hintText: 'Select delivery status',
+                        prefixIcon: Icon(Icons.local_shipping_outlined),
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                      isExpanded: true,
+                      items: [
+                        DropdownMenuItem<bool?>(
+                          value: null,
+                          child: Text(
+                            'All',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        ),
+                        DropdownMenuItem<bool?>(
+                          value: true,
+                          child: Text('Only Delivered'),
+                        ),
+                        DropdownMenuItem<bool?>(
+                          value: false,
+                          child: Text('Not Delivered'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          _hasBeenDelivered = value;
+                        });
+                      },
                     ),
                   ),
 

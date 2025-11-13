@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:real/core/utils/web_utils.dart';
@@ -25,6 +26,7 @@ import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.da
 import 'package:real/feature/subscription/presentation/bloc/subscription_event.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
 import 'package:real/feature_web/auth/presentation/web_forgot_password_screen.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class WebLoginScreen extends StatefulWidget {
   static String routeName = '/web-login';
@@ -213,7 +215,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
           context: context,
           barrierDismissible: false,
           builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Row(
               children: [
                 Icon(Icons.block, color: Colors.red, size: 28),
@@ -255,12 +259,17 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
           context: context,
           barrierDismissible: false,
           builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Row(
               children: [
                 Icon(Icons.email_outlined, color: Colors.orange, size: 28),
                 SizedBox(width: 12),
-                Text('Email Verification Required', style: TextStyle(fontSize: 22)),
+                Text(
+                  'Email Verification Required',
+                  style: TextStyle(fontSize: 22),
+                ),
               ],
             ),
             content: Container(
@@ -297,7 +306,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
           context: context,
           barrierDismissible: false,
           builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Row(
               children: [
                 Icon(Icons.block, color: Colors.red, size: 28),
@@ -421,7 +432,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
       );
 
       // Also show error message for quick reference
-      MessageHelper.showError(context, 'Backend authentication failed - see error dialog');
+      MessageHelper.showError(
+        context,
+        'Backend authentication failed - see error dialog',
+      );
     }
   }
 
@@ -462,7 +476,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   }
 
   void _listenForSubscriptionStatus(BuildContext context) {
-    final subscription = context.read<SubscriptionBloc>().stream.listen((state) {
+    final subscription = context.read<SubscriptionBloc>().stream.listen((
+      state,
+    ) {
       if (state is SubscriptionStatusLoaded) {
         if (!state.status.hasActiveSubscription) {
           _showSubscriptionDialog(context);
@@ -492,12 +508,14 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
         builder: (context, state) {
           if (state is SubscriptionLoading) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               content: Padding(
                 padding: EdgeInsets.all(20),
                 child: Row(
                   children: [
-                    CircularProgressIndicator(),
+                    CustomLoadingDots(size: 60),
                     SizedBox(width: 24),
                     Text(
                       'Checking subscription...',
@@ -526,10 +544,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                             AppColors.mainColor,
                             AppColors.mainColor.withOpacity(0.8),
                           ]
-                        : [
-                            Colors.grey[800]!,
-                            Colors.grey[700]!,
-                          ],
+                        : [Colors.grey[800]!, Colors.grey[700]!],
                   ),
                   borderRadius: BorderRadius.circular(24),
                 ),
@@ -574,7 +589,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                           // Status badge
                           if (status.hasActiveSubscription)
                             Container(
-                              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 6,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.green,
                                 borderRadius: BorderRadius.circular(20),
@@ -589,7 +607,11 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.check_circle, color: Colors.white, size: 16),
+                                  Icon(
+                                    Icons.check_circle,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
                                   SizedBox(width: 6),
                                   Text(
                                     'ACTIVE',
@@ -625,7 +647,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                           // Subtitle/Description
                           if (status.hasActiveSubscription) ...[
                             Text(
-                              status.planNameEn ?? status.planName ?? 'Premium Plan',
+                              status.planNameEn ??
+                                  status.planName ??
+                                  'Premium Plan',
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w600,
@@ -656,13 +680,16 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                   SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Search Access',
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: Colors.white.withOpacity(0.8),
+                                            color: Colors.white.withOpacity(
+                                              0.8,
+                                            ),
                                           ),
                                         ),
                                         SizedBox(height: 4),
@@ -681,7 +708,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                   ),
                                   if (status.isUnlimited)
                                     Container(
-                                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 6,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: Colors.amber[600],
                                         borderRadius: BorderRadius.circular(12),
@@ -713,28 +743,30 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                               'Advanced filters & sorting',
                               'Priority customer support',
                               'Exclusive premium listings',
-                            ].map((feature) => Padding(
-                              padding: EdgeInsets.only(bottom: 8),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.check_circle_rounded,
-                                    color: Colors.green[300],
-                                    size: 20,
-                                  ),
-                                  SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      feature,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.white.withOpacity(0.95),
+                            ].map(
+                              (feature) => Padding(
+                                padding: EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle_rounded,
+                                      color: Colors.green[300],
+                                      size: 20,
+                                    ),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        feature,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white.withOpacity(0.95),
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            )),
+                            ),
                           ],
 
                           SizedBox(height: 24),
@@ -754,7 +786,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.white,
-                                    foregroundColor: status.hasActiveSubscription
+                                    foregroundColor:
+                                        status.hasActiveSubscription
                                         ? AppColors.mainColor
                                         : Colors.grey[800],
                                     padding: EdgeInsets.symmetric(vertical: 16),
@@ -795,7 +828,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                   context.go(_getRedirectUrl());
                                 },
                                 child: Text(
-                                  status.hasActiveSubscription ? 'View My Plan' : 'Maybe Later',
+                                  status.hasActiveSubscription
+                                      ? 'View My Plan'
+                                      : 'Maybe Later',
                                   style: TextStyle(
                                     color: Colors.white.withOpacity(0.9),
                                     fontSize: 15,
@@ -816,7 +851,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
 
           // Error or other states - just navigate to home
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
             content: Padding(
               padding: EdgeInsets.all(12),
               child: Text(
@@ -874,7 +911,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                 context: context,
                 barrierDismissible: false,
                 builder: (context) => AlertDialog(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   title: Row(
                     children: [
                       Icon(Icons.block, color: Colors.red, size: 28),
@@ -896,7 +935,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
-                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
                       ),
                       child: Text('OK', style: TextStyle(fontSize: 16)),
                     ),
@@ -917,12 +959,21 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                 context: context,
                 barrierDismissible: false,
                 builder: (context) => AlertDialog(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   title: Row(
                     children: [
-                      Icon(Icons.email_outlined, color: Colors.orange, size: 28),
+                      Icon(
+                        Icons.email_outlined,
+                        color: Colors.orange,
+                        size: 28,
+                      ),
                       SizedBox(width: 12),
-                      Text('Email Verification Required', style: TextStyle(fontSize: 22)),
+                      Text(
+                        'Email Verification Required',
+                        style: TextStyle(fontSize: 22),
+                      ),
                     ],
                   ),
                   content: Container(
@@ -939,7 +990,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.orange,
-                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
                       ),
                       child: Text('OK', style: TextStyle(fontSize: 16)),
                     ),
@@ -960,7 +1014,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                 context: context,
                 barrierDismissible: false,
                 builder: (context) => AlertDialog(
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   title: Row(
                     children: [
                       Icon(Icons.block, color: Colors.red, size: 28),
@@ -981,7 +1037,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                         SizedBox(height: 16),
                         Text(
                           'Please contact support for assistance:',
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
                         ),
                         SizedBox(height: 8),
                         SelectableText(
@@ -1002,7 +1061,10 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
-                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
                       ),
                       child: Text('OK', style: TextStyle(fontSize: 16)),
                     ),
@@ -1106,10 +1168,20 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                           children: [
                             // Logo or Brand Name
                             Center(
-                              child: Icon(
-                                Icons.location_city,
-                                size: 48,
-                                color: AppColors.mainColor,
+                              child: Container(
+                                width: 90,
+                                height: 90,
+                                decoration: BoxDecoration(
+                                  color: AppColors.mainColor,
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(15),
+                                  child: Image.asset(
+                                    "assets/images/logos/appIcon.png",
+                                    fit: BoxFit.fitWidth,
+                                  ),
+                                ),
                               ),
                             ),
                             SizedBox(height: 16),
@@ -1162,21 +1234,34 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                 fillColor: Colors.grey[50],
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: AppColors.mainColor, width: 2),
+                                  borderSide: BorderSide(
+                                    color: AppColors.mainColor,
+                                    width: 2,
+                                  ),
                                 ),
                                 errorBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Colors.red, width: 1),
+                                  borderSide: BorderSide(
+                                    color: Colors.red,
+                                    width: 1,
+                                  ),
                                 ),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
                               ),
                             ),
                             SizedBox(height: 20),
@@ -1201,24 +1286,39 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                 fillColor: Colors.grey[50],
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey[300]!,
+                                  ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: AppColors.mainColor, width: 2),
+                                  borderSide: BorderSide(
+                                    color: AppColors.mainColor,
+                                    width: 2,
+                                  ),
                                 ),
                                 errorBorder: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: Colors.red, width: 1),
+                                  borderSide: BorderSide(
+                                    color: Colors.red,
+                                    width: 1,
+                                  ),
                                 ),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
                                 suffixIcon: IconButton(
                                   icon: Icon(
-                                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                    _obscurePassword
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
                                     color: Colors.grey[600],
                                   ),
                                   onPressed: () {
@@ -1236,7 +1336,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                               alignment: Alignment.centerRight,
                               child: TextButton(
                                 onPressed: () {
-                                  Navigator.pushNamed(context, WebForgotPasswordScreen.routeName);
+                                  context.go('/forgot-password');
                                 },
                                 child: Text(
                                   'Forgot Password?',
@@ -1254,17 +1354,20 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                               builder: (context, state) {
                                 final isLoading = state is LoginLoading;
                                 return ElevatedButton(
-                                  onPressed: isLoading ? null : () {
-                                    if (_formKey.currentState!.validate()) {
-                                      final request = LoginRequest(
-                                        email: emailController.text,
-                                        password: passwordController.text,
-                                      );
-                                      context.read<LoginBloc>().add(
-                                        LoginSubmitEvent(request),
-                                      );
-                                    }
-                                  },
+                                  onPressed: isLoading
+                                      ? null
+                                      : () {
+                                          if (_formKey.currentState!
+                                              .validate()) {
+                                            final request = LoginRequest(
+                                              email: emailController.text,
+                                              password: passwordController.text,
+                                            );
+                                            context.read<LoginBloc>().add(
+                                              LoginSubmitEvent(request),
+                                            );
+                                          }
+                                        },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.mainColor,
                                     foregroundColor: Colors.white,
@@ -1275,21 +1378,14 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                     elevation: 0,
                                   ),
                                   child: isLoading
-                                    ? SizedBox(
-                                        height: 20,
-                                        width: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ? CustomLoadingDots(size: 20)
+                                      : Text(
+                                          'Sign In',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
-                                      )
-                                    : Text(
-                                        'Sign In',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
                                 );
                               },
                             ),
@@ -1298,7 +1394,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                             // OR Divider
                             Row(
                               children: [
-                                Expanded(child: Divider(color: Colors.grey[300])),
+                                Expanded(
+                                  child: Divider(color: Colors.grey[300]),
+                                ),
                                 Padding(
                                   padding: EdgeInsets.symmetric(horizontal: 16),
                                   child: Text(
@@ -1310,7 +1408,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                     ),
                                   ),
                                 ),
-                                Expanded(child: Divider(color: Colors.grey[300])),
+                                Expanded(
+                                  child: Divider(color: Colors.grey[300]),
+                                ),
                               ],
                             ),
                             SizedBox(height: 24),
@@ -1351,15 +1451,13 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                 ),
                                 TextButton(
                                   onPressed: () {
-                                    Navigator.pushReplacementNamed(
-                                      context,
-                                      WebSignUpScreen.routeName,
-                                    );
+                                    context.go('/signup');
                                   },
                                   style: TextButton.styleFrom(
                                     padding: EdgeInsets.zero,
                                     minimumSize: Size(0, 0),
-                                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
                                   ),
                                   child: Text(
                                     'Sign up',
