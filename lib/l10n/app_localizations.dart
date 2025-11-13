@@ -494,6 +494,24 @@ abstract class AppLocalizations {
   /// **'Available Units'**
   String get availableUnits;
 
+  /// No description provided for @compoundName.
+  ///
+  /// In en, this message translates to:
+  /// **'Compound Name'**
+  String get compoundName;
+
+  /// No description provided for @compoundLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Compound Location'**
+  String get compoundLocation;
+
+  /// No description provided for @locationNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Location not available'**
+  String get locationNotAvailable;
+
   /// No description provided for @unitNumber.
   ///
   /// In en, this message translates to:
@@ -1393,6 +1411,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'View on Map'**
   String get viewOnMap;
+
+  /// No description provided for @openLocationInMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Location in Maps'**
+  String get openLocationInMaps;
 
   /// No description provided for @floorPlan.
   ///

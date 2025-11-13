@@ -25,6 +25,9 @@ import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/animations/animated_list_item.dart';
 import 'package:real/core/animations/page_transitions.dart';
+import 'package:real/feature/search/presentation/widget/search_filter_bottom_sheet.dart';
+import 'package:real/feature/search/data/services/location_service.dart';
+import 'package:intl/intl.dart';
 
 class WebCompoundsScreen extends StatefulWidget {
   const WebCompoundsScreen({Key? key}) : super(key: key);
@@ -52,42 +55,27 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   bool _hasMorePages = true;
   List<Compound> _allCompounds = [];
 
-  // Filter controllers
-  final TextEditingController _locationController = TextEditingController();
+  // Filter sidebar state variables
+  String? _selectedLocation;
+  List<String> _availableLocations = [];
   final TextEditingController _minPriceController = TextEditingController();
   final TextEditingController _maxPriceController = TextEditingController();
-  final TextEditingController _deliveryDateController = TextEditingController();
-
   String? _selectedPropertyType;
   int? _selectedBedrooms;
   String? _selectedFinishing;
+  DateTime? _selectedDeliveryDate;
   bool _hasClub = false;
   bool _hasRoof = false;
   bool _hasGarden = false;
   String? _selectedSortBy;
 
-  final List<String> propertyTypes = [
-    'Villa',
-    'Apartment',
-    'Duplex',
-    'Studio',
-    'Penthouse',
-    'Townhouse',
-  ];
-
-  final List<int> bedroomOptions = [1, 2, 3, 4, 5, 6];
-
-  final List<String> finishingOptions = [
-    'Finished',
-    'Semi Finished',
-    'Not Finished',
-  ];
-
+  final List<String> propertyTypes = ['Villa', 'Apartment', 'Studio', 'Duplex', 'Penthouse'];
+  final List<int> bedroomOptions = [1, 2, 3, 4, 5];
+  final List<String> finishingOptions = ['Finished', 'Semi-Finished', 'Core & Shell'];
   final Map<String, String> sortOptions = {
     'price_asc': 'Price: Low to High',
     'price_desc': 'Price: High to Low',
-    'date_asc': 'Date: Oldest First',
-    'date_desc': 'Date: Newest First',
+    'newest': 'Newest First',
   };
 
   // Track expanded state for search results
@@ -97,6 +85,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     super.initState();
     _searchBloc = SearchBloc(repository: SearchRepository());
     _loadSearchHistory();
+    _loadLocations();
 
     // Listen to focus changes
     _searchFocusNode.addListener(() {
@@ -112,6 +101,25 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
     // Load first page with 10 items
     context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: _pageLimit));
+  }
+
+  Future<void> _loadLocations() async {
+    final locationService = LocationService();
+    final locations = await locationService.getLocations();
+    setState(() {
+      _availableLocations = locations;
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _scrollController.dispose();
+    _minPriceController.dispose();
+    _maxPriceController.dispose();
+    _searchBloc.close();
+    super.dispose();
   }
 
   void _onScroll() {
@@ -173,18 +181,47 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     });
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    _searchFocusNode.dispose();
-    _searchBloc.close();
-    _debounceTimer?.cancel();
-    _locationController.dispose();
-    _minPriceController.dispose();
-    _maxPriceController.dispose();
-    _deliveryDateController.dispose();
-    _scrollController.dispose();
-    super.dispose();
+  void _applyFilters() {
+    setState(() {
+      _currentFilter = SearchFilter(
+        location: _selectedLocation,
+        minPrice: _minPriceController.text.isEmpty
+            ? null
+            : double.tryParse(_minPriceController.text),
+        maxPrice: _maxPriceController.text.isEmpty
+            ? null
+            : double.tryParse(_maxPriceController.text),
+        propertyType: _selectedPropertyType,
+        bedrooms: _selectedBedrooms,
+        finishing: _selectedFinishing,
+        deliveryDate: _selectedDeliveryDate != null
+            ? DateFormat('yyyy-MM-dd').format(_selectedDeliveryDate!)
+            : null,
+        hasClub: _hasClub,
+        hasRoof: _hasRoof,
+        hasGarden: _hasGarden,
+        sortBy: _selectedSortBy,
+      );
+    });
+    _performSearch(_searchController.text);
+  }
+
+  void _clearAllFilters() {
+    setState(() {
+      _selectedLocation = null;
+      _minPriceController.clear();
+      _maxPriceController.clear();
+      _selectedPropertyType = null;
+      _selectedBedrooms = null;
+      _selectedFinishing = null;
+      _selectedDeliveryDate = null;
+      _hasClub = false;
+      _hasRoof = false;
+      _hasGarden = false;
+      _selectedSortBy = null;
+      _currentFilter = SearchFilter.empty();
+    });
+    _performSearch(_searchController.text);
   }
 
   void _performSearch(String query) {
@@ -229,64 +266,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     });
   }
 
-  void _applyFilters() {
-    final filter = SearchFilter(
-      location: _locationController.text.isEmpty
-          ? null
-          : _locationController.text,
-      minPrice: _minPriceController.text.isEmpty
-          ? null
-          : double.tryParse(_minPriceController.text),
-      maxPrice: _maxPriceController.text.isEmpty
-          ? null
-          : double.tryParse(_maxPriceController.text),
-      propertyType: _selectedPropertyType,
-      bedrooms: _selectedBedrooms,
-      finishing: _selectedFinishing,
-      deliveryDate: _deliveryDateController.text.isEmpty
-          ? null
-          : _deliveryDateController.text,
-      hasClub: _hasClub,
-      hasRoof: _hasRoof,
-      hasGarden: _hasGarden,
-      sortBy: _selectedSortBy,
-    );
-
-    setState(() {
-      _currentFilter = filter;
-    });
-
-    _performSearch(_searchController.text);
-  }
-
-  void _clearAllFilters() {
-    setState(() {
-      _locationController.clear();
-      _minPriceController.clear();
-      _maxPriceController.clear();
-      _deliveryDateController.clear();
-      _selectedPropertyType = null;
-      _selectedBedrooms = null;
-      _selectedFinishing = null;
-      _hasClub = false;
-      _hasRoof = false;
-      _hasGarden = false;
-      _selectedSortBy = null;
-      _currentFilter = SearchFilter.empty();
-
-      // Reset pagination when clearing filters
-      _currentPage = 1;
-      _allCompounds.clear();
-      _hasMorePages = true;
-    });
-
-    // Clear search if there's no query
-    if (_searchController.text.isEmpty) {
-      _clearSearch();
-    } else {
-      _performSearch(_searchController.text);
-    }
-  }
+  // Old filter methods removed - now using SearchFilterBottomSheet
 
   Future<void> _saveToHistory(String query) async {
     await _searchHistoryService.addToHistory(query);
@@ -345,21 +325,22 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
     return Container(
       color: const Color(0xFFF8F9FA),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // LEFT SIDEBAR - FILTERS
-          _buildFilterSidebar(l10n),
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        physics: BouncingScrollPhysics(),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // LEFT SIDEBAR - FILTERS
+            _buildFilterSidebar(l10n),
 
-          // MAIN CONTENT
-          Expanded(
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              physics: BouncingScrollPhysics(),
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            // MAIN CONTENT
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                   const SizedBox(height: 32),
                   // Header with count
                   BlocBuilder<CompoundBloc, CompoundState>(
@@ -465,23 +446,122 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                       runSpacing: 8,
                       children: [
                         if (_currentFilter.location != null)
-                          _buildFilterChip('Location: ${_currentFilter.location}'),
+                          Chip(
+                            label: Text('Location: ${_currentFilter.location}', style: const TextStyle(fontSize: 12)),
+                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                            labelStyle: TextStyle(color: AppColors.mainColor),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(location: null);
+                              });
+                              _performSearch(_searchController.text);
+                            },
+                          ),
                         if (_currentFilter.minPrice != null)
-                          _buildFilterChip('Min: ${_currentFilter.minPrice} EGP'),
+                          Chip(
+                            label: Text('Min: ${_currentFilter.minPrice} EGP', style: const TextStyle(fontSize: 12)),
+                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                            labelStyle: TextStyle(color: AppColors.mainColor),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(minPrice: null);
+                              });
+                              _performSearch(_searchController.text);
+                            },
+                          ),
                         if (_currentFilter.maxPrice != null)
-                          _buildFilterChip('Max: ${_currentFilter.maxPrice} EGP'),
+                          Chip(
+                            label: Text('Max: ${_currentFilter.maxPrice} EGP', style: const TextStyle(fontSize: 12)),
+                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                            labelStyle: TextStyle(color: AppColors.mainColor),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(maxPrice: null);
+                              });
+                              _performSearch(_searchController.text);
+                            },
+                          ),
                         if (_currentFilter.propertyType != null)
-                          _buildFilterChip(_currentFilter.propertyType!),
+                          Chip(
+                            label: Text(_currentFilter.propertyType!, style: const TextStyle(fontSize: 12)),
+                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                            labelStyle: TextStyle(color: AppColors.mainColor),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(propertyType: null);
+                              });
+                              _performSearch(_searchController.text);
+                            },
+                          ),
                         if (_currentFilter.bedrooms != null)
-                          _buildFilterChip('${_currentFilter.bedrooms} Beds'),
+                          Chip(
+                            label: Text('${_currentFilter.bedrooms} Beds', style: const TextStyle(fontSize: 12)),
+                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                            labelStyle: TextStyle(color: AppColors.mainColor),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(bedrooms: null);
+                              });
+                              _performSearch(_searchController.text);
+                            },
+                          ),
                         if (_currentFilter.finishing != null)
-                          _buildFilterChip(_currentFilter.finishing!),
+                          Chip(
+                            label: Text(_currentFilter.finishing!, style: const TextStyle(fontSize: 12)),
+                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                            labelStyle: TextStyle(color: AppColors.mainColor),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(finishing: null);
+                              });
+                              _performSearch(_searchController.text);
+                            },
+                          ),
                         if (_currentFilter.hasClub == true)
-                          _buildFilterChip('Has Club'),
+                          Chip(
+                            label: Text('Has Club', style: const TextStyle(fontSize: 12)),
+                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                            labelStyle: TextStyle(color: AppColors.mainColor),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(hasClub: false);
+                              });
+                              _performSearch(_searchController.text);
+                            },
+                          ),
                         if (_currentFilter.hasRoof == true)
-                          _buildFilterChip('Has Roof'),
+                          Chip(
+                            label: Text('Has Roof', style: const TextStyle(fontSize: 12)),
+                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                            labelStyle: TextStyle(color: AppColors.mainColor),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(hasRoof: false);
+                              });
+                              _performSearch(_searchController.text);
+                            },
+                          ),
                         if (_currentFilter.hasGarden == true)
-                          _buildFilterChip('Has Garden'),
+                          Chip(
+                            label: Text('Has Garden', style: const TextStyle(fontSize: 12)),
+                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                            labelStyle: TextStyle(color: AppColors.mainColor),
+                            deleteIcon: const Icon(Icons.close, size: 16),
+                            onDeleted: () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(hasGarden: false);
+                              });
+                              _performSearch(_searchController.text);
+                            },
+                          ),
                       ],
                     ),
 
@@ -493,10 +573,8 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                       ? _buildSearchResults(l10n)
                       : _buildCompoundsGrid(l10n),
                 ],
-              ),
-            ),
-          ),
-        ],
+              ),))]
+        ),
       ),
     );
   }
@@ -514,12 +592,10 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
           ),
         ],
       ),
-      child: SingleChildScrollView(
-        physics: BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
             const SizedBox(height: 32),
             // Header
             Row(
@@ -534,16 +610,15 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Location Card
+            // Location Dropdown
             _buildFilterCard(
               title: 'Location',
               icon: Icons.location_on,
-              child: TextField(
-                controller: _locationController,
+              child: DropdownButtonFormField<String>(
+                value: _selectedLocation,
                 decoration: InputDecoration(
-                  hintText: 'e.g., New Cairo',
+                  hintText: 'Select location',
                   hintStyle: TextStyle(fontSize: 13),
-                  prefixIcon: const Icon(Icons.location_on_outlined, size: 20),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
@@ -555,7 +630,24 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                   filled: true,
                   fillColor: Colors.white,
                 ),
-                onChanged: (value) => _applyFilters(),
+                items: [
+                  DropdownMenuItem<String>(
+                    value: null,
+                    child: Text('All Locations', style: TextStyle(fontSize: 13)),
+                  ),
+                  ..._availableLocations.map((location) {
+                    return DropdownMenuItem<String>(
+                      value: location,
+                      child: Text(location, style: TextStyle(fontSize: 13)),
+                    );
+                  }).toList(),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedLocation = value;
+                  });
+                  _applyFilters();
+                },
               ),
             ),
 
@@ -738,28 +830,62 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             const SizedBox(height: 12),
 
-            // Delivery Date Card
+            // Delivery Date Calendar Picker
             _buildFilterCard(
               title: 'Delivery Date',
               icon: Icons.calendar_today,
-              child: TextField(
-                controller: _deliveryDateController,
-                decoration: InputDecoration(
-                  hintText: 'e.g., 2025',
-                  hintStyle: TextStyle(fontSize: 13),
-                  prefixIcon: const Icon(Icons.calendar_today_outlined, size: 20),
-                  border: OutlineInputBorder(
+              child: InkWell(
+                onTap: () async {
+                  final DateTime? picked = await showDatePicker(
+                    context: context,
+                    initialDate: _selectedDeliveryDate ?? DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2035),
+                  );
+                  if (picked != null) {
+                    setState(() {
+                      _selectedDeliveryDate = picked;
+                    });
+                    _applyFilters();
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: Colors.grey.shade300),
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_today_outlined, size: 20, color: Colors.grey.shade600),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          _selectedDeliveryDate != null
+                              ? DateFormat('dd MMM yyyy').format(_selectedDeliveryDate!)
+                              : 'Select delivery date',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _selectedDeliveryDate != null
+                                ? Colors.black87
+                                : Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                      if (_selectedDeliveryDate != null)
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _selectedDeliveryDate = null;
+                            });
+                            _applyFilters();
+                          },
+                          child: Icon(Icons.close, size: 18, color: Colors.grey.shade600),
+                        ),
+                    ],
                   ),
-                  isDense: true,
-                  filled: true,
-                  fillColor: Colors.white,
                 ),
-                onChanged: (value) => _applyFilters(),
               ),
             ),
 
@@ -855,7 +981,6 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             const SizedBox(height: 20),
           ],
-        ),
       ),
     );
   }
@@ -946,20 +1071,6 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return CustomText16(title, bold: true, color: AppColors.black);
-  }
-
-  Widget _buildFilterChip(String label) {
-    return Chip(
-      label: Text(label, style: const TextStyle(fontSize: 12)),
-      backgroundColor: AppColors.mainColor.withOpacity(0.1),
-      labelStyle: TextStyle(color: AppColors.mainColor),
-      deleteIcon: const Icon(Icons.close, size: 16),
-      onDeleted: () => _clearAllFilters(),
     );
   }
 
@@ -1245,34 +1356,27 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Horizontal scrolling grid with 2 rows
-                SizedBox(
-                  height: 820, // Height for 2 rows (400px each + spacing)
-                  child: GridView.builder(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.only(bottom: 20),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2, // 2 rows
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 1.3, // width/height ratio for compound cards
-                    ),
-                    itemCount: compoundResults.length,
-                    itemBuilder: (context, index) {
-                      final result = compoundResults[index];
-                      final data = result.data as CompoundSearchData;
-                      final compound = _convertToCompound(data, result.id);
-                      return AnimatedListItem(
-                        index: index,
-                        delay: Duration(milliseconds: 50),
-                        child: SizedBox(
-                          width: 300,
-                          child: WebCompoundCard(compound: compound),
-                        ),
-                      );
-                    },
+                // Vertical scrolling grid - same as normal compounds
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 320,
+                    mainAxisSpacing: 20,
+                    crossAxisSpacing: 20,
+                    childAspectRatio: 0.9, // balanced card proportions
                   ),
+                  itemCount: compoundResults.length,
+                  itemBuilder: (context, index) {
+                    final result = compoundResults[index];
+                    final data = result.data as CompoundSearchData;
+                    final compound = _convertToCompound(data, result.id);
+                    return AnimatedListItem(
+                      index: index,
+                      delay: Duration(milliseconds: 60),
+                      child: WebCompoundCard(compound: compound),
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
               ],
@@ -1300,34 +1404,27 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                // Horizontal scrolling grid with 2 rows
-                SizedBox(
-                  height: 820, // Height for 2 rows (400px each + spacing)
-                  child: GridView.builder(
-                    scrollDirection: Axis.horizontal,
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.only(bottom: 20),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2, // 2 rows
-                      mainAxisSpacing: 16,
-                      crossAxisSpacing: 16,
-                      childAspectRatio: 1.3, // width/height ratio for unit cards
-                    ),
-                    itemCount: unitResults.length,
-                    itemBuilder: (context, index) {
-                      final result = unitResults[index];
-                      final data = result.data as UnitSearchData;
-                      final unit = _convertToUnit(data);
-                      return AnimatedListItem(
-                        index: index,
-                        delay: Duration(milliseconds: 50),
-                        child: SizedBox(
-                          width: 300,
-                          child: WebUnitCard(unit: unit),
-                        ),
-                      );
-                    },
+                // Vertical scrolling grid - same as compounds
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 320,
+                    mainAxisSpacing: 20,
+                    crossAxisSpacing: 20,
+                    childAspectRatio: 0.9, // balanced card proportions
                   ),
+                  itemCount: unitResults.length,
+                  itemBuilder: (context, index) {
+                    final result = unitResults[index];
+                    final data = result.data as UnitSearchData;
+                    final unit = _convertToUnit(data);
+                    return AnimatedListItem(
+                      index: index,
+                      delay: Duration(milliseconds: 60),
+                      child: WebUnitCard(unit: unit),
+                    );
+                  },
                 ),
                 // Loading indicator when loading more
                 if (isLoadingMore) ...[

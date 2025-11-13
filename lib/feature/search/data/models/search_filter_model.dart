@@ -14,12 +14,17 @@ class SearchFilter {
   // Advanced filter parameters
   final double? minArea;
   final double? maxArea;
+  final double? minBuiltUpArea;
+  final double? maxBuiltUpArea;
+  final double? minLandArea;
+  final double? maxLandArea;
   final double? minGardenArea;
   final double? maxGardenArea;
   final double? minRoofArea;
   final double? maxRoofArea;
   final bool? hasBasement;
   final bool? hasGarage;
+  final bool? hasActiveSale;
   final String? status; // 'available', 'reserved', 'sold'
   final int? page;
   final int? limit;
@@ -57,12 +62,17 @@ class SearchFilter {
     this.sortBy,
     this.minArea,
     this.maxArea,
+    this.minBuiltUpArea,
+    this.maxBuiltUpArea,
+    this.minLandArea,
+    this.maxLandArea,
     this.minGardenArea,
     this.maxGardenArea,
     this.minRoofArea,
     this.maxRoofArea,
     this.hasBasement,
     this.hasGarage,
+    this.hasActiveSale,
     this.status,
     this.page,
     this.limit,
@@ -105,12 +115,17 @@ class SearchFilter {
       sortBy == null &&
       minArea == null &&
       maxArea == null &&
+      minBuiltUpArea == null &&
+      maxBuiltUpArea == null &&
+      minLandArea == null &&
+      maxLandArea == null &&
       minGardenArea == null &&
       maxGardenArea == null &&
       minRoofArea == null &&
       maxRoofArea == null &&
       hasBasement == null &&
       hasGarage == null &&
+      hasActiveSale == null &&
       status == null &&
       page == null &&
       limit == null &&
@@ -146,10 +161,13 @@ class SearchFilter {
     if (hasGarden == true) count++;
     if (sortBy != null && sortBy!.isNotEmpty) count++;
     if (minArea != null || maxArea != null) count++;
+    if (minBuiltUpArea != null || maxBuiltUpArea != null) count++;
+    if (minLandArea != null || maxLandArea != null) count++;
     if (minGardenArea != null || maxGardenArea != null) count++;
     if (minRoofArea != null || maxRoofArea != null) count++;
     if (hasBasement == true) count++;
     if (hasGarage == true) count++;
+    if (hasActiveSale == true) count++;
     if (status != null && status!.isNotEmpty) count++;
     if (unitName != null && unitName!.isNotEmpty) count++;
     if (unitType != null && unitType!.isNotEmpty) count++;
@@ -231,8 +249,17 @@ class SearchFilter {
     if (maxArea != null) {
       params['max_area'] = maxArea!.toInt();
     }
-    if (status != null && status!.isNotEmpty) {
-      params['status'] = status;
+    if (minBuiltUpArea != null) {
+      params['min_built_up_area'] = minBuiltUpArea!.toInt();
+    }
+    if (maxBuiltUpArea != null) {
+      params['max_built_up_area'] = maxBuiltUpArea!.toInt();
+    }
+    if (minLandArea != null) {
+      params['min_land_area'] = minLandArea!.toInt();
+    }
+    if (maxLandArea != null) {
+      params['max_land_area'] = maxLandArea!.toInt();
     }
     if (minGardenArea != null) {
       params['min_garden_area'] = minGardenArea!.toInt();
@@ -245,6 +272,9 @@ class SearchFilter {
     }
     if (maxRoofArea != null) {
       params['max_roof_area'] = maxRoofArea!.toInt();
+    }
+    if (status != null && status!.isNotEmpty) {
+      params['status'] = status;
     }
     if (minBasementArea != null) {
       params['min_basement_area'] = minBasementArea!.toInt();
@@ -263,6 +293,9 @@ class SearchFilter {
     }
     if (hasGarage == true) {
       params['has_garage'] = true;
+    }
+    if (hasActiveSale == true) {
+      params['has_active_sale'] = true;
     }
     if (location != null && location!.isNotEmpty) {
       params['location'] = location;
@@ -306,13 +339,18 @@ class SearchFilter {
       maxPrice: json['max_price'] != null ? double.tryParse(json['max_price'].toString()) : null,
       minArea: json['min_area'] != null ? double.tryParse(json['min_area'].toString()) : null,
       maxArea: json['max_area'] != null ? double.tryParse(json['max_area'].toString()) : null,
-      status: json['status']?.toString(),
+      minBuiltUpArea: json['min_built_up_area'] != null ? double.tryParse(json['min_built_up_area'].toString()) : null,
+      maxBuiltUpArea: json['max_built_up_area'] != null ? double.tryParse(json['max_built_up_area'].toString()) : null,
+      minLandArea: json['min_land_area'] != null ? double.tryParse(json['min_land_area'].toString()) : null,
+      maxLandArea: json['max_land_area'] != null ? double.tryParse(json['max_land_area'].toString()) : null,
       minGardenArea: json['min_garden_area'] != null ? double.tryParse(json['min_garden_area'].toString()) : null,
       maxGardenArea: json['max_garden_area'] != null ? double.tryParse(json['max_garden_area'].toString()) : null,
       minRoofArea: json['min_roof_area'] != null ? double.tryParse(json['min_roof_area'].toString()) : null,
       maxRoofArea: json['max_roof_area'] != null ? double.tryParse(json['max_roof_area'].toString()) : null,
+      status: json['status']?.toString(),
       hasBasement: json['has_basement'] == true || json['has_basement'] == 1,
       hasGarage: json['has_garage'] == true || json['has_garage'] == 1,
+      hasActiveSale: json['has_active_sale'] == true || json['has_active_sale'] == 1,
       location: json['location']?.toString(),
       finishing: json['finishing']?.toString(),
       hasClub: json['has_club'] == true || json['has_club'] == 1,
@@ -356,12 +394,17 @@ class SearchFilter {
     String? sortBy,
     double? minArea,
     double? maxArea,
+    double? minBuiltUpArea,
+    double? maxBuiltUpArea,
+    double? minLandArea,
+    double? maxLandArea,
     double? minGardenArea,
     double? maxGardenArea,
     double? minRoofArea,
     double? maxRoofArea,
     bool? hasBasement,
     bool? hasGarage,
+    bool? hasActiveSale,
     String? status,
     int? page,
     int? limit,
@@ -436,12 +479,17 @@ class SearchFilter {
       sortBy: clearSortBy ? null : (sortBy ?? this.sortBy),
       minArea: clearMinArea ? null : (minArea ?? this.minArea),
       maxArea: clearMaxArea ? null : (maxArea ?? this.maxArea),
+      minBuiltUpArea: minBuiltUpArea ?? this.minBuiltUpArea,
+      maxBuiltUpArea: maxBuiltUpArea ?? this.maxBuiltUpArea,
+      minLandArea: minLandArea ?? this.minLandArea,
+      maxLandArea: maxLandArea ?? this.maxLandArea,
       minGardenArea: clearMinGardenArea ? null : (minGardenArea ?? this.minGardenArea),
       maxGardenArea: clearMaxGardenArea ? null : (maxGardenArea ?? this.maxGardenArea),
       minRoofArea: clearMinRoofArea ? null : (minRoofArea ?? this.minRoofArea),
       maxRoofArea: clearMaxRoofArea ? null : (maxRoofArea ?? this.maxRoofArea),
       hasBasement: clearHasBasement ? null : (hasBasement ?? this.hasBasement),
       hasGarage: clearHasGarage ? null : (hasGarage ?? this.hasGarage),
+      hasActiveSale: hasActiveSale ?? this.hasActiveSale,
       status: clearStatus ? null : (status ?? this.status),
       page: clearPage ? null : (page ?? this.page),
       limit: clearLimit ? null : (limit ?? this.limit),

@@ -81,6 +81,9 @@
   "location": "Location",
   "totalUnits": "Total Units",
   "availableUnits": "Available Units",
+  "compoundName": "Compound Name",
+  "compoundLocation": "Compound Location",
+  "locationNotAvailable": "Location not available",
 
   "unitNumber": "Unit Number",
   "unitType": "Unit Type",
@@ -258,6 +261,7 @@
   "details": "Details",
   "gallery": "Gallery",
   "viewOnMap": "View on Map",
+  "openLocationInMaps": "Open Location in Maps",
   "floorPlan": "Floor Plan",
   "noDescriptionAvailable": "No description available",
   "saleType": "Sale Type",

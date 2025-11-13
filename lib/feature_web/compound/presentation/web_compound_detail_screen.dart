@@ -58,7 +58,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     context.read<CompoundBloc>().add(FetchCompoundDetailEvent(compoundId: widget.compoundId));
     context.read<UnitBloc>().add(FetchUnitsEvent(compoundId: widget.compoundId));
     _startImageRotation();
@@ -694,10 +694,14 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                       /// ---- TAB BAR ----
                       TabBar(
                         controller: _tabController,
-                        labelColor: AppColors.mainColor,
+                        labelColor: Colors.white,
                         unselectedLabelColor: AppColors.grey,
-                        indicatorColor: AppColors.mainColor,
-                        indicatorWeight: 3,
+                        indicator: BoxDecoration(
+                          color: AppColors.mainColor,
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        indicatorSize: TabBarIndicatorSize.tab,
+                        indicatorPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                         labelStyle: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -709,6 +713,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                         tabs: [
                           Tab(text: 'Gallery'),
                           Tab(text: 'Units'),
+                          Tab(text: l10n.viewOnMap ?? 'Location'),
                           Tab(text: l10n.masterPlan),
                           Tab(text: 'Floor Plan'),
                           Tab(text: 'Notes'),
@@ -724,6 +729,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                           children: [
                             _buildGalleryTab(compoundData),
                             _buildUnitsTab(),
+                            _buildLocationTab(compoundData, l10n),
                             _buildMasterPlanTab(compoundData, l10n),
                             _buildFloorPlanTab(compoundData, l10n),
                             _buildNotesTab(),
@@ -831,6 +837,78 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                 );
               },
             ),
+    );
+  }
+
+  Widget _buildLocationTab(Map<String, dynamic> compoundData, AppLocalizations l10n) {
+    final locationUrl = _getString(compoundData, 'location_url');
+    final location = _getString(compoundData, 'location');
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(24),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.mainColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(100),
+              ),
+              child: Icon(
+                Icons.location_on,
+                size: 80,
+                color: AppColors.mainColor,
+              ),
+            ),
+            SizedBox(height: 24),
+            Text(
+              location,
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppColors.black,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 32),
+            if (locationUrl.isNotEmpty)
+              SizedBox(
+                width: 300,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final uri = Uri.parse(locationUrl);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: Icon(Icons.directions, size: 20, color: Colors.white),
+                  label: Text(
+                    l10n.openLocationInMaps ?? 'Open Location in Maps',
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mainColor,
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              )
+            else
+              Text(
+                l10n.mapViewNotAvailable ?? 'Map location not available',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.grey,
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 

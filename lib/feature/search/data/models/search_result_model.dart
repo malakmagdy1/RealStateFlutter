@@ -21,8 +21,18 @@ class SearchResponse extends Equatable {
     // Try 'results' or 'data' field for the results array
     final resultsData = json['results'] ?? json['data'];
     if (resultsData != null && resultsData is List) {
-      resultsList = (resultsData as List)
-          .map((result) => SearchResult.fromJson(result as Map<String, dynamic>))
+      // Parse results and filter out invalid ones
+      resultsList = resultsData
+          .map((result) {
+            try {
+              return SearchResult.fromJson(result as Map<String, dynamic>);
+            } catch (e) {
+              print('[SEARCH RESPONSE] Error parsing result: $e');
+              return null;
+            }
+          })
+          .whereType<SearchResult>() // Remove null values
+          .where((result) => _isValidSearchResult(result)) // Filter out invalid results
           .toList();
     }
 
@@ -32,6 +42,46 @@ class SearchResponse extends Equatable {
       totalResults: int.tryParse(json['total_results']?.toString() ?? json['total']?.toString() ?? '0') ?? resultsList.length,
       results: resultsList,
     );
+  }
+
+  /// Validate that a search result has essential data
+  static bool _isValidSearchResult(SearchResult result) {
+    // Must have a valid ID (not empty, not '0', not 'null')
+    if (result.id.isEmpty || result.id == '0' || result.id.toLowerCase() == 'null') {
+      print('[SEARCH RESPONSE] ✗ Skipping result with invalid ID: ${result.id}');
+      return false;
+    }
+
+    // Must have a valid name
+    if (result.name.isEmpty || result.name.toLowerCase() == 'null') {
+      print('[SEARCH RESPONSE] ✗ Skipping result ${result.id} with no name');
+      return false;
+    }
+
+    // Must have a valid type
+    if (result.type.isEmpty || !['company', 'compound', 'unit'].contains(result.type)) {
+      print('[SEARCH RESPONSE] ✗ Skipping result ${result.id} with invalid type: ${result.type}');
+      return false;
+    }
+
+    // If it's a unit, check availability and sold status
+    if (result.type == 'unit' && result.data is UnitSearchData) {
+      final unitData = result.data as UnitSearchData;
+
+      // Must be available
+      if (!unitData.available) {
+        print('[SEARCH RESPONSE] ✗ Skipping unit ${result.id} (${result.name}) - not available');
+        return false;
+      }
+
+      // Must not be sold
+      if (unitData.isSold) {
+        print('[SEARCH RESPONSE] ✗ Skipping unit ${result.id} (${result.name}) - already sold');
+        return false;
+      }
+    }
+
+    return true;
   }
 
   @override

@@ -4,21 +4,25 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 
 class FilterUnitsResponse extends Equatable {
   final bool success;
+  final String? searchQuery;
   final int totalUnits;
   final int page;
   final int limit;
   final int totalPages;
   final List<String> filtersApplied;
   final List<FilteredUnit> units;
+  final Map<String, dynamic>? subscription;
 
   FilterUnitsResponse({
     required this.success,
+    this.searchQuery,
     required this.totalUnits,
     required this.page,
     required this.limit,
     required this.totalPages,
     required this.filtersApplied,
     required this.units,
+    this.subscription,
   });
 
   factory FilterUnitsResponse.fromJson(Map<String, dynamic> json) {
@@ -27,8 +31,18 @@ class FilterUnitsResponse extends Equatable {
     // Try 'units' or 'data' field for the units array
     final unitsData = json['units'] ?? json['data'];
     if (unitsData != null && unitsData is List) {
-      unitsList = (unitsData as List)
-          .map((unit) => FilteredUnit.fromJson(unit as Map<String, dynamic>))
+      // Parse units and filter out invalid ones
+      unitsList = unitsData
+          .map((unit) {
+            try {
+              return FilteredUnit.fromJson(unit as Map<String, dynamic>);
+            } catch (e) {
+              print('[FILTER RESPONSE] Error parsing unit: $e');
+              return null;
+            }
+          })
+          .whereType<FilteredUnit>() // Remove null values
+          .where((unit) => _isValidUnit(unit)) // Filter out invalid units
           .toList();
     }
 
@@ -41,17 +55,55 @@ class FilterUnitsResponse extends Equatable {
 
     return FilterUnitsResponse(
       success: json['success'] ?? true,
+      searchQuery: json['search_query']?.toString(),
       totalUnits: json['total_units'] ?? json['total'] ?? unitsList.length,
       page: json['page'] ?? json['current_page'] ?? 1,
       limit: json['limit'] ?? json['per_page'] ?? 20,
       totalPages: json['total_pages'] ?? json['last_page'] ?? 1,
       filtersApplied: filtersList,
       units: unitsList,
+      subscription: json['subscription'] as Map<String, dynamic>?,
     );
   }
 
+  /// Validate that a unit has essential data
+  /// Returns false if unit has no valid ID or is clearly invalid/empty
+  static bool _isValidUnit(FilteredUnit unit) {
+    // Must have a valid ID (not empty, not '0', not 'null')
+    if (unit.id.isEmpty || unit.id == '0' || unit.id.toLowerCase() == 'null') {
+      print('[FILTER RESPONSE] ✗ Skipping unit with invalid ID: ${unit.id}');
+      return false;
+    }
+
+    // Must have a valid unit name or compound name
+    if (unit.unitName.isEmpty && unit.compoundName.isEmpty) {
+      print('[FILTER RESPONSE] ✗ Skipping unit ${unit.id} with no name');
+      return false;
+    }
+
+    // Must have a valid compound ID
+    if (unit.compoundId.isEmpty || unit.compoundId == '0') {
+      print('[FILTER RESPONSE] ✗ Skipping unit ${unit.id} with invalid compound ID');
+      return false;
+    }
+
+    // Must be available (not sold or unavailable)
+    if (!unit.available) {
+      print('[FILTER RESPONSE] ✗ Skipping unit ${unit.id} (${unit.unitName}) - not available');
+      return false;
+    }
+
+    // Must not be sold
+    if (unit.isSold) {
+      print('[FILTER RESPONSE] ✗ Skipping unit ${unit.id} (${unit.unitName}) - already sold');
+      return false;
+    }
+
+    return true;
+  }
+
   @override
-  List<Object?> get props => [success, totalUnits, page, limit, totalPages, filtersApplied, units];
+  List<Object?> get props => [success, searchQuery, totalUnits, page, limit, totalPages, filtersApplied, units, subscription];
 }
 
 class FilteredUnit extends Equatable {
@@ -62,6 +114,7 @@ class FilteredUnit extends Equatable {
   final String companyId;
   final String companyName;
   final String? companyLogo;
+  final String? companyEmail;
   final String unitName;
   final String buildingName;
   final String unitNumber;
@@ -82,6 +135,22 @@ class FilteredUnit extends Equatable {
   final List<String> images;
   final String createdAt;
   final String updatedAt;
+  // New fields from unified API
+  final String? unitNameLocalized;
+  final String? unitTypeLocalized;
+  final String? usageTypeLocalized;
+  final String? statusLocalized;
+  final String? originalPrice;
+  final String? discountedPrice;
+  final String? discountPercentage;
+  final bool hasActiveSale;
+  final Map<String, dynamic>? sale;
+  final Map<String, dynamic>? compound;
+  final Map<String, dynamic>? company;
+  final String? builtUpArea;
+  final String? landArea;
+  final String? gardenArea;
+  final String? roofArea;
 
   FilteredUnit({
     required this.id,
@@ -91,6 +160,7 @@ class FilteredUnit extends Equatable {
     required this.companyId,
     required this.companyName,
     this.companyLogo,
+    this.companyEmail,
     required this.unitName,
     required this.buildingName,
     required this.unitNumber,
@@ -111,6 +181,21 @@ class FilteredUnit extends Equatable {
     required this.images,
     required this.createdAt,
     required this.updatedAt,
+    this.unitNameLocalized,
+    this.unitTypeLocalized,
+    this.usageTypeLocalized,
+    this.statusLocalized,
+    this.originalPrice,
+    this.discountedPrice,
+    this.discountPercentage,
+    this.hasActiveSale = false,
+    this.sale,
+    this.compound,
+    this.company,
+    this.builtUpArea,
+    this.landArea,
+    this.gardenArea,
+    this.roofArea,
   });
 
   factory FilteredUnit.fromJson(Map<String, dynamic> json) {
@@ -121,19 +206,66 @@ class FilteredUnit extends Equatable {
           .toList();
     }
 
-    String? companyLogo = json['company_logo']?.toString();
+    // Handle company data - can be nested object or flat fields
+    String? companyLogo;
+    String? companyEmail;
+    String companyId = '';
+    String companyName = '';
+
+    if (json['company'] != null && json['company'] is Map) {
+      final companyData = json['company'] as Map<String, dynamic>;
+      companyId = companyData['id']?.toString() ?? '';
+      companyName = companyData['name']?.toString() ?? '';
+      companyLogo = companyData['logo']?.toString();
+      companyEmail = companyData['email']?.toString();
+    } else {
+      companyId = json['company_id']?.toString() ?? '';
+      companyName = json['company_name']?.toString() ?? '';
+      companyLogo = json['company_logo']?.toString();
+      companyEmail = json['company_email']?.toString();
+    }
+
     if (companyLogo != null && companyLogo.isNotEmpty) {
       companyLogo = _fixImageUrl(companyLogo);
     }
 
+    // Handle compound data - can be nested object or flat fields
+    String compoundId = '';
+    String compoundName = '';
+    String compoundLocation = '';
+
+    if (json['compound'] != null && json['compound'] is Map) {
+      final compoundData = json['compound'] as Map<String, dynamic>;
+      compoundId = compoundData['id']?.toString() ?? '';
+      compoundName = compoundData['name']?.toString() ?? '';
+      compoundLocation = compoundData['location']?.toString() ?? '';
+    } else {
+      compoundId = json['compound_id']?.toString() ?? '';
+      compoundName = json['compound_name']?.toString() ?? '';
+      compoundLocation = json['compound_location']?.toString() ?? '';
+    }
+
+    // Calculate total area from various area fields
+    double totalArea = 0.0;
+    if (json['total_area'] != null) {
+      totalArea = double.tryParse(json['total_area']?.toString() ?? '0') ?? 0.0;
+    } else {
+      // Calculate from built_up_area + garden_area + roof_area
+      final builtUp = double.tryParse(json['built_up_area']?.toString() ?? '0') ?? 0.0;
+      final garden = double.tryParse(json['garden_area']?.toString() ?? '0') ?? 0.0;
+      final roof = double.tryParse(json['roof_area']?.toString() ?? '0') ?? 0.0;
+      totalArea = builtUp + garden + roof;
+    }
+
     return FilteredUnit(
       id: json['id']?.toString() ?? '',
-      compoundId: json['compound_id']?.toString() ?? '',
-      compoundName: json['compound_name']?.toString() ?? '',
-      compoundLocation: json['compound_location']?.toString() ?? '',
-      companyId: json['company_id']?.toString() ?? '',
-      companyName: json['company_name']?.toString() ?? '',
+      compoundId: compoundId,
+      compoundName: compoundName,
+      compoundLocation: compoundLocation,
+      companyId: companyId,
+      companyName: companyName,
       companyLogo: companyLogo,
+      companyEmail: companyEmail,
       unitName: json['unit_name']?.toString() ?? '',
       buildingName: json['building_name']?.toString() ?? '',
       unitNumber: json['unit_number']?.toString() ?? '',
@@ -145,15 +277,30 @@ class FilteredUnit extends Equatable {
       stageNumber: json['stage_number']?.toString(),
       numberOfBeds: int.tryParse(json['number_of_beds']?.toString() ?? '0') ?? 0,
       floorNumber: int.tryParse(json['floor_number']?.toString() ?? '0') ?? 0,
-      normalPrice: json['normal_price']?.toString() ?? '0',
-      totalPricing: json['total_pricing']?.toString() ?? '0',
-      totalArea: double.tryParse(json['total_area']?.toString() ?? '0') ?? 0.0,
+      normalPrice: json['normal_price']?.toString() ?? json['discounted_price']?.toString() ?? '0',
+      totalPricing: json['total_pricing']?.toString() ?? json['normal_price']?.toString() ?? '0',
+      totalArea: totalArea,
       available: json['available'] == true || json['available']?.toString() == '1',
       isSold: json['is_sold'] == true || json['is_sold']?.toString() == '1',
       deliveredAt: json['delivered_at']?.toString(),
       images: imagesList,
       createdAt: json['created_at']?.toString() ?? '',
       updatedAt: json['updated_at']?.toString() ?? '',
+      unitNameLocalized: json['unit_name_localized']?.toString(),
+      unitTypeLocalized: json['unit_type_localized']?.toString(),
+      usageTypeLocalized: json['usage_type_localized']?.toString(),
+      statusLocalized: json['status_localized']?.toString(),
+      originalPrice: json['original_price']?.toString(),
+      discountedPrice: json['discounted_price']?.toString(),
+      discountPercentage: json['discount_percentage']?.toString(),
+      hasActiveSale: json['has_active_sale'] == true || json['has_active_sale']?.toString() == '1' || json['has_active_sale']?.toString() == 'true',
+      sale: json['sale'] as Map<String, dynamic>?,
+      compound: json['compound'] as Map<String, dynamic>?,
+      company: json['company'] as Map<String, dynamic>?,
+      builtUpArea: json['built_up_area']?.toString(),
+      landArea: json['land_area']?.toString(),
+      gardenArea: json['garden_area']?.toString(),
+      roofArea: json['roof_area']?.toString(),
     );
   }
 
@@ -194,6 +341,7 @@ class FilteredUnit extends Equatable {
         companyId,
         companyName,
         companyLogo,
+        companyEmail,
         unitName,
         buildingName,
         unitNumber,
@@ -214,5 +362,20 @@ class FilteredUnit extends Equatable {
         images,
         createdAt,
         updatedAt,
+        unitNameLocalized,
+        unitTypeLocalized,
+        usageTypeLocalized,
+        statusLocalized,
+        originalPrice,
+        discountedPrice,
+        discountPercentage,
+        hasActiveSale,
+        sale,
+        compound,
+        company,
+        builtUpArea,
+        landArea,
+        gardenArea,
+        roofArea,
       ];
 }

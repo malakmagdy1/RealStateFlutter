@@ -41,13 +41,140 @@ class SearchRepository {
     }
   }
 
-  /// Search for companies, compounds, and units
+  /// Unified search and filter API - combines search and filter functionality
+  ///
+  /// Parameters:
+  /// - [query]: The search term (optional)
+  /// - [filter]: Filter parameters
+  /// - [page]: Page number (default: 1)
+  /// - [limit]: Items per page (default: 20)
+  Future<FilterUnitsResponse> searchAndFilter({
+    String? query,
+    SearchFilter? filter,
+    String? token,
+    int page = 1,
+    int limit = 1000,
+  }) async {
+    try {
+      // Use provided token parameter, or fall back to global token
+      final authToken = token ?? constants.token ?? '';
+      final currentLang = LanguageService.currentLanguage;
+
+      // Build query parameters
+      final Map<String, dynamic> queryParams = {
+        'lang': currentLang,
+        'page': page,
+        'limit': limit,
+      };
+
+      // Add search query if provided
+      if (query != null && query.isNotEmpty) {
+        queryParams['search'] = query;
+      }
+
+      // Add filter parameters if provided
+      if (filter != null) {
+        final filterParams = filter.toQueryParameters();
+        queryParams.addAll(filterParams);
+      }
+
+      // Build URL with query parameters (convert to string)
+      final stringParams = queryParams.map(
+        (key, value) => MapEntry(key, value.toString()),
+      );
+      final uri = Uri.parse(
+        '$baseUrl/search-and-filter',
+      ).replace(queryParameters: stringParams);
+
+      print('===========================================');
+      print('[UNIFIED API] Endpoint: GET /api/search-and-filter');
+      print('[UNIFIED API] Full URL: $uri');
+      print('[UNIFIED API] Search Query: ${query ?? "none"}');
+      print('[UNIFIED API] Language: $currentLang');
+      print('[UNIFIED API] Pagination: Page $page, Limit $limit per page');
+      if (filter != null) {
+        print('[UNIFIED API] Filter Details:');
+        print('[UNIFIED API]   - Location: ${filter.location}');
+        print('[UNIFIED API]   - Property Type: ${filter.propertyType}');
+        print('[UNIFIED API]   - Min Price: ${filter.minPrice}');
+        print('[UNIFIED API]   - Max Price: ${filter.maxPrice}');
+        print('[UNIFIED API]   - Bedrooms: ${filter.bedrooms}');
+        print('[UNIFIED API]   - Min Area: ${filter.minArea}');
+        print('[UNIFIED API]   - Max Area: ${filter.maxArea}');
+        print('[UNIFIED API]   - Active Filters: ${filter.activeFiltersCount}');
+      }
+      print('[UNIFIED API] All Query Parameters: $queryParams');
+      print('===========================================');
+
+      // Make API request
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              if (authToken.isNotEmpty) 'Authorization': 'Bearer $authToken',
+            },
+          )
+          .timeout(
+            Duration(seconds: 30),
+            onTimeout: () {
+              throw Exception('Request timeout');
+            },
+          );
+
+      print('[UNIFIED API] Status code: ${response.statusCode}');
+      final bodyPreview = response.body.length > 1000
+          ? '${response.body.substring(0, 1000)}... [truncated]'
+          : response.body;
+      print('[UNIFIED API] Response body: $bodyPreview');
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+        print('[UNIFIED API] Response data parsed successfully');
+        print(
+          '[UNIFIED API] Units found: ${jsonData['units']?.length ?? 0}',
+        );
+
+        return FilterUnitsResponse.fromJson(jsonData);
+      } else {
+        print('[UNIFIED API] Error: ${response.body}');
+        try {
+          final errorData = json.decode(response.body);
+
+          // Check for subscription requirement
+          if (errorData['subscription_required'] == true) {
+            print('[UNIFIED API] Subscription required error detected');
+          }
+
+          // Use localized error message based on current language
+          final errorMessage = currentLang == 'en'
+              ? (errorData['message_en'] ?? errorData['message'] ?? 'Failed to search and filter: ${response.statusCode}')
+              : (errorData['message'] ?? errorData['message_en'] ?? 'Failed to search and filter: ${response.statusCode}');
+
+          print('[UNIFIED API] Error message to display: $errorMessage');
+          throw Exception(errorMessage);
+        } catch (e) {
+          if (e is Exception && e.toString().contains('Exception:')) {
+            rethrow; // Re-throw our custom exception
+          }
+          throw Exception('Failed to search and filter: ${response.statusCode}');
+        }
+      }
+    } catch (e) {
+      print('[UNIFIED API] Exception: $e');
+      throw Exception('Search and filter failed: $e');
+    }
+  }
+
+  /// Search for companies, compounds, and units (DEPRECATED - use searchAndFilter instead)
   ///
   /// Parameters:
   /// - [query]: The search term
   /// - [type]: Optional filter - 'company', 'compound', or 'unit'
   /// - [perPage]: Number of results per page (default: 20)
   /// - [filter]: Optional filter parameters
+  @deprecated
   Future<SearchResponse> search({
     required String query,
     String? type,
@@ -234,199 +361,31 @@ class SearchRepository {
     return search(query: query, type: 'unit', perPage: perPage);
   }
 
-  /// Filter units using dedicated filter API (GET - Basic)
+  /// Filter units using unified search-and-filter API (replaces old filter-units endpoint)
   Future<FilterUnitsResponse> filterUnits(
     SearchFilter filter, {
     String? token,
     int page = 1,
     int limit = 1000,
   }) async {
-    try {
-      // Use provided token parameter, or fall back to global token
-      final authToken = token ?? constants.token ?? '';
-      final currentLang = LanguageService.currentLanguage;
-
-      // Convert filter to query parameters
-      final queryParams = filter.toQueryParameters();
-
-      // Add language, page, and limit parameters
-      queryParams['lang'] = currentLang;
-      queryParams['page'] = page;
-      queryParams['limit'] = limit;
-
-      // Build URL with query parameters (convert to string)
-      final stringParams = queryParams.map(
-        (key, value) => MapEntry(key, value.toString()),
-      );
-      final uri = Uri.parse(
-        '$baseUrl/filter-units',
-      ).replace(queryParameters: stringParams);
-
-      print('===========================================');
-      print('[FILTER API GET] Endpoint: GET /api/filter-units');
-      print('[FILTER API GET] Full URL: $uri');
-      print('[FILTER API GET] Language: $currentLang');
-      print('[FILTER API GET] Pagination: Page $page, Limit $limit per page');
-      print('[FILTER API GET] Filter Details:');
-      print('[FILTER API GET]   - Location: ${filter.location}');
-      print('[FILTER API GET]   - Property Type: ${filter.propertyType}');
-      print('[FILTER API GET]   - Min Price: ${filter.minPrice}');
-      print('[FILTER API GET]   - Max Price: ${filter.maxPrice}');
-      print('[FILTER API GET]   - Bedrooms: ${filter.bedrooms}');
-      print('[FILTER API GET]   - Min Area: ${filter.minArea}');
-      print('[FILTER API GET]   - Max Area: ${filter.maxArea}');
-      print('[FILTER API GET]   - Active Filters: ${filter.activeFiltersCount}');
-      print('[FILTER API GET] All Query Parameters: $queryParams');
-      print('===========================================');
-
-      // Make API request
-      final response = await http
-          .get(
-            uri,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              if (authToken.isNotEmpty) 'Authorization': 'Bearer $authToken',
-            },
-          )
-          .timeout(
-            Duration(seconds: 30),
-            onTimeout: () {
-              throw Exception('Request timeout');
-            },
-          );
-
-      print('[FILTER API GET] Status code: ${response.statusCode}');
-      print('[FILTER API GET] Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        print('[FILTER API GET] Response data: $jsonData');
-        print(
-          '[FILTER API GET] Units found: ${jsonData['data']?.length ?? jsonData['units']?.length ?? 0}',
-        );
-
-        return FilterUnitsResponse.fromJson(jsonData);
-      } else {
-        print('[FILTER API GET] Error: ${response.body}');
-        try {
-          final errorData = json.decode(response.body);
-
-          // Check for subscription requirement
-          if (errorData['subscription_required'] == true) {
-            print('[FILTER API GET] Subscription required error detected');
-          }
-
-          // Use localized error message based on current language
-          final errorMessage = currentLang == 'en'
-              ? (errorData['message_en'] ?? errorData['message'] ?? 'Failed to filter units: ${response.statusCode}')
-              : (errorData['message'] ?? errorData['message_en'] ?? 'Failed to filter units: ${response.statusCode}');
-
-          print('[FILTER API GET] Error message to display: $errorMessage');
-          throw Exception(errorMessage);
-        } catch (e) {
-          if (e is Exception && e.toString().contains('Exception:')) {
-            rethrow; // Re-throw our custom exception
-          }
-          throw Exception('Failed to filter units: ${response.statusCode}');
-        }
-      }
-    } catch (e) {
-      print('[FILTER API GET] Exception: $e');
-      throw Exception('Filter failed: $e');
-    }
+    // Use the new unified API
+    return searchAndFilter(
+      filter: filter,
+      token: token,
+      page: page,
+      limit: limit,
+    );
   }
 
-  /// Filter units using dedicated filter API (POST - Advanced)
+  /// Filter units using unified search-and-filter API (replaces old filter-units POST endpoint)
   Future<FilterUnitsResponse> filterUnitsAdvanced(
     SearchFilter filter, {
     String? token,
   }) async {
-    try {
-      // Use provided token parameter, or fall back to global token
-      final authToken = token ?? constants.token ?? '';
-      final currentLang = LanguageService.currentLanguage;
-
-      // Convert filter to JSON body
-      final body = filter.toJson();
-
-      // Add language parameter to body
-      body['lang'] = currentLang;
-
-      final uri = Uri.parse('$baseUrl/filter-units');
-
-      print('===========================================');
-      print('[FILTER API POST] Endpoint: POST /api/filter-units');
-      print('[FILTER API POST] Full URL: $uri');
-      print('[FILTER API POST] Language: $currentLang');
-      print('[FILTER API POST] Filter Details:');
-      print('[FILTER API POST]   - Location: ${filter.location}');
-      print('[FILTER API POST]   - Property Type: ${filter.propertyType}');
-      print('[FILTER API POST]   - Min Price: ${filter.minPrice}');
-      print('[FILTER API POST]   - Max Price: ${filter.maxPrice}');
-      print('[FILTER API POST]   - Bedrooms: ${filter.bedrooms}');
-      print('[FILTER API POST]   - Min Area: ${filter.minArea}');
-      print('[FILTER API POST]   - Max Area: ${filter.maxArea}');
-      print('[FILTER API POST]   - Active Filters: ${filter.activeFiltersCount}');
-      print('[FILTER API POST] Request Body: $body');
-      print('===========================================');
-
-      // Make API request
-      final response = await http
-          .post(
-            uri,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              if (authToken.isNotEmpty) 'Authorization': 'Bearer $authToken',
-            },
-            body: json.encode(body),
-          )
-          .timeout(
-            Duration(seconds: 30),
-            onTimeout: () {
-              throw Exception('Request timeout');
-            },
-          );
-
-      print('[FILTER API POST] Status code: ${response.statusCode}');
-      print('[FILTER API POST] Response body: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final jsonData = json.decode(response.body);
-        print('[FILTER API POST] Response data: $jsonData');
-        print(
-          '[FILTER API POST] Units found: ${jsonData['data']?.length ?? jsonData['units']?.length ?? 0}',
-        );
-
-        return FilterUnitsResponse.fromJson(jsonData);
-      } else {
-        print('[FILTER API POST] Error: ${response.body}');
-        try {
-          final errorData = json.decode(response.body);
-
-          // Check for subscription requirement
-          if (errorData['subscription_required'] == true) {
-            print('[FILTER API POST] Subscription required error detected');
-          }
-
-          // Use localized error message based on current language
-          final errorMessage = currentLang == 'en'
-              ? (errorData['message_en'] ?? errorData['message'] ?? 'Failed to filter units: ${response.statusCode}')
-              : (errorData['message'] ?? errorData['message_en'] ?? 'Failed to filter units: ${response.statusCode}');
-
-          print('[FILTER API POST] Error message to display: $errorMessage');
-          throw Exception(errorMessage);
-        } catch (e) {
-          if (e is Exception && e.toString().contains('Exception:')) {
-            rethrow; // Re-throw our custom exception
-          }
-          throw Exception('Failed to filter units: ${response.statusCode}');
-        }
-      }
-    } catch (e) {
-      print('[FILTER API POST] Exception: $e');
-      throw Exception('Filter failed: $e');
-    }
+    // Use the new unified API
+    return searchAndFilter(
+      filter: filter,
+      token: token,
+    );
   }
 }

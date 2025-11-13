@@ -110,13 +110,19 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
+    // Debug logging for badges
+    if (widget.unit.changeType != null) {
+      print('[UNIT CARD] Unit ${widget.unit.id}: changeType=${widget.unit.changeType}, isUpdated=${widget.unit.isUpdated}');
+    }
+
     final screenWidth = MediaQuery.of(context).size.width;
     final unitImages = widget.unit.images ?? [];
     final bool hasImages = unitImages.isNotEmpty;
 
-    final compoundName = widget.unit.compoundName?.isNotEmpty == true
-        ? widget.unit.compoundName!
-        : '';
+    // Use compound location for the location display, fallback to compound name if not available
+    final compoundLocation = widget.unit.compoundLocation?.isNotEmpty == true
+        ? widget.unit.compoundLocation!
+        : (widget.unit.compoundName?.isNotEmpty == true ? widget.unit.compoundName! : '');
 
     final unitType = widget.unit.usageType ?? widget.unit.unitType ?? 'Unit';
     final unitNumber = widget.unit.unitNumber ?? '';
@@ -290,10 +296,20 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                           ),
                         ),
 
-                        // Update Badge (NEW/UPDATED) - Rotated Ribbon Style
-                        if (widget.unit.isUpdated == true && widget.unit.changeType != null)
+                        // Sale Badge (higher priority, shown at top)
+                        if (widget.unit.sale != null && widget.unit.sale!.isCurrentlyActive)
                           Positioned(
                             top: 12,
+                            right: -5,
+                            child: Transform.rotate(
+                              angle: 0.785, // 45 degrees
+                              child: _saleBadge(widget.unit.sale!, screenWidth),
+                            ),
+                          ),
+                        // Update Badge (NEW/UPDATED) - Shown below sale badge if both exist
+                        if (widget.unit.isUpdated == true && widget.unit.changeType != null)
+                          Positioned(
+                            top: widget.unit.sale != null && widget.unit.sale!.isCurrentlyActive ? 40 : 12,
                             right: -5,
                             child: Transform.rotate(
                               angle: 0.785, // 45 degrees
@@ -362,7 +378,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                               SizedBox(width: 2),
                               Expanded(
                                 child: Text(
-                                  compoundName,
+                                  compoundLocation,
                                   style: TextStyle(
                                     fontSize: subtitleFontSize,
                                     color: Colors.grey[600],
@@ -534,7 +550,11 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
   }
 
   String? _getBestPrice() {
-    // Priority: discountedPrice > totalPrice > normalPrice > originalPrice > price
+    // Priority: sale price > discountedPrice > totalPrice > normalPrice > originalPrice > price
+    // Check if unit has an active sale
+    if (widget.unit.sale != null && widget.unit.sale!.isCurrentlyActive) {
+      return widget.unit.sale!.newPrice.toString();
+    }
     if (widget.unit.discountedPrice != null &&
         widget.unit.discountedPrice!.isNotEmpty &&
         widget.unit.discountedPrice != '0') {
@@ -720,6 +740,25 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
       color: badgeColor,
       child: Text(
         badgeText,
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _saleBadge(Sale sale, double screenWidth) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: 18,
+        vertical: 4,
+      ),
+      color: Color(0xFFFF6B6B),  // Red/pink color for sale
+      child: Text(
+        '${sale.discountPercentage.toInt()}% OFF',
         style: TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,

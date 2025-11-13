@@ -207,6 +207,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get availableUnits => 'Available Units';
 
   @override
+  String get compoundName => 'Compound Name';
+
+  @override
+  String get compoundLocation => 'Compound Location';
+
+  @override
+  String get locationNotAvailable => 'Location not available';
+
+  @override
   String get unitNumber => 'Unit Number';
 
   @override
@@ -667,6 +676,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get viewOnMap => 'View on Map';
+
+  @override
+  String get openLocationInMaps => 'Open Location in Maps';
 
   @override
   String get floorPlan => 'Floor Plan';

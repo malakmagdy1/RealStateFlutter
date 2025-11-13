@@ -63,7 +63,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _initializeUnit();
   }
 
@@ -71,9 +71,33 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
     if (widget.unit != null) {
       // Unit passed from previous screen
       _currentUnit = widget.unit;
-      _setupUnit();
+
+      // Check if unit has complete price data
+      // If unit has a sale but missing price data, refetch from API to get complete info
+      bool hasSale = _currentUnit!.hasActiveSale == true || _currentUnit!.sale != null;
+      bool missingPriceData = (_currentUnit!.originalPrice == null || _currentUnit!.originalPrice!.isEmpty) &&
+                               (_currentUnit!.normalPrice == null || _currentUnit!.normalPrice!.isEmpty) &&
+                               (_currentUnit!.price.isEmpty || _currentUnit!.price == '0');
+
+      print('[WEB UNIT DETAIL] ========================================');
+      print('[WEB UNIT DETAIL] Unit passed from navigation - ID: ${_currentUnit!.id}');
+      print('[WEB UNIT DETAIL] Has sale: $hasSale');
+      print('[WEB UNIT DETAIL] Missing price data: $missingPriceData');
+      print('[WEB UNIT DETAIL] originalPrice: ${_currentUnit!.originalPrice}');
+      print('[WEB UNIT DETAIL] normalPrice: ${_currentUnit!.normalPrice}');
+      print('[WEB UNIT DETAIL] price: ${_currentUnit!.price}');
+
+      if (hasSale && missingPriceData) {
+        print('[WEB UNIT DETAIL] Unit has sale but missing price data - refetching from API...');
+        await _fetchUnit(); // Refetch to get complete data
+      } else {
+        print('[WEB UNIT DETAIL] Unit has complete data - using passed unit');
+        _setupUnit();
+      }
+      print('[WEB UNIT DETAIL] ========================================');
     } else {
       // Fetch from API if not passed
+      print('[WEB UNIT DETAIL] No unit passed - fetching from API...');
       await _fetchUnit();
     }
   }
@@ -106,11 +130,16 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
   void _setupUnit() {
     if (_currentUnit != null) {
       _fetchSalesPeople();
-      // Sale is now included in unit data, no need to fetch separately
+      // Check if sale is included in unit data first
       if (_currentUnit!.sale != null) {
+        print('[WEB UNIT DETAIL] Sale found in unit data: ${_currentUnit!.sale!.saleName}');
         setState(() {
           _unitSale = _currentUnit!.sale;
         });
+      } else {
+        // If not included, fetch separately from API
+        print('[WEB UNIT DETAIL] No sale in unit data, fetching from API...');
+        _fetchUnitSale();
       }
       _fetchUnitNotes();
       _startImageRotation();
@@ -187,9 +216,53 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
       print('[WEB UNIT DETAIL] Sale response for unit ${_currentUnit!.id}: $response');
 
       if (response['success'] == true && response['sales'] != null) {
-        final sales = (response['sales'] as List)
-            .map((s) => Sale.fromJson(s as Map<String, dynamic>))
-            .toList();
+        final salesList = response['sales'] as List;
+        print('[WEB UNIT DETAIL] Processing ${salesList.length} sales from API');
+
+        final sales = salesList.map((saleData) {
+          final saleJson = Map<String, dynamic>.from(saleData as Map<String, dynamic>);
+
+          // If sale doesn't have old_price/new_price, calculate from unit data
+          if ((saleJson['old_price'] == null || saleJson['old_price'] == 0) &&
+              (saleJson['new_price'] == null || saleJson['new_price'] == 0)) {
+
+            print('[WEB UNIT DETAIL] Sale missing prices, calculating from unit data...');
+            print('[WEB UNIT DETAIL] Unit originalPrice: ${_currentUnit!.originalPrice}');
+            print('[WEB UNIT DETAIL] Unit normalPrice: ${_currentUnit!.normalPrice}');
+            print('[WEB UNIT DETAIL] Unit price: ${_currentUnit!.price}');
+
+            double unitPrice = 0.0;
+
+            // Priority: original_price > normal_price > price
+            if (_currentUnit!.originalPrice != null && _currentUnit!.originalPrice!.isNotEmpty) {
+              unitPrice = double.tryParse(_currentUnit!.originalPrice!) ?? 0.0;
+              print('[WEB UNIT DETAIL] Using originalPrice: $unitPrice');
+            } else if (_currentUnit!.normalPrice != null && _currentUnit!.normalPrice!.isNotEmpty) {
+              unitPrice = double.tryParse(_currentUnit!.normalPrice!) ?? 0.0;
+              print('[WEB UNIT DETAIL] Using normalPrice: $unitPrice');
+            } else if (_currentUnit!.price.isNotEmpty) {
+              unitPrice = double.tryParse(_currentUnit!.price) ?? 0.0;
+              print('[WEB UNIT DETAIL] Using price: $unitPrice');
+            }
+
+            final discountPercent = saleJson['discount_percentage'] is num
+                ? (saleJson['discount_percentage'] as num).toDouble()
+                : double.tryParse(saleJson['discount_percentage']?.toString() ?? '0') ?? 0.0;
+
+            print('[WEB UNIT DETAIL] Discount percentage: $discountPercent');
+
+            if (unitPrice > 0 && discountPercent > 0) {
+              saleJson['old_price'] = unitPrice;
+              saleJson['new_price'] = unitPrice * (1 - (discountPercent / 100));
+              saleJson['savings'] = unitPrice * (discountPercent / 100);
+              print('[WEB UNIT DETAIL] ✓ Calculated prices - Old: ${saleJson['old_price']}, New: ${saleJson['new_price']}, Savings: ${saleJson['savings']}');
+            } else {
+              print('[WEB UNIT DETAIL] ✗ Cannot calculate - unitPrice: $unitPrice, discount: $discountPercent');
+            }
+          }
+
+          return Sale.fromJson(saleJson);
+        }).toList();
 
         // Filter for only currently active sales that match this unit
         final activeSales = sales.where((sale) {
@@ -211,6 +284,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
         print('[WEB UNIT DETAIL] Found ${activeSales.length} matching sales for this unit');
         if (activeSales.isNotEmpty) {
           print('[WEB UNIT DETAIL] First sale: ${activeSales.first.saleName} - Type: ${activeSales.first.saleType}');
+          print('[WEB UNIT DETAIL] Sale prices - Old: ${activeSales.first.oldPrice}, New: ${activeSales.first.newPrice}, Savings: ${activeSales.first.savings}');
         }
 
         if (activeSales.isNotEmpty && mounted) {
@@ -234,6 +308,31 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
         setState(() => _isLoadingSale = false);
       }
     }
+  }
+
+  String _getBestPrice() {
+    // Priority: discountedPrice > totalPrice > normalPrice > originalPrice > price
+    if (_currentUnit!.discountedPrice != null &&
+        _currentUnit!.discountedPrice!.isNotEmpty &&
+        _currentUnit!.discountedPrice != '0') {
+      return _currentUnit!.discountedPrice!;
+    }
+    if (_currentUnit!.totalPrice != null &&
+        _currentUnit!.totalPrice!.isNotEmpty &&
+        _currentUnit!.totalPrice != '0') {
+      return _currentUnit!.totalPrice!;
+    }
+    if (_currentUnit!.normalPrice != null &&
+        _currentUnit!.normalPrice!.isNotEmpty &&
+        _currentUnit!.normalPrice != '0') {
+      return _currentUnit!.normalPrice!;
+    }
+    if (_currentUnit!.originalPrice != null &&
+        _currentUnit!.originalPrice!.isNotEmpty &&
+        _currentUnit!.originalPrice != '0') {
+      return _currentUnit!.originalPrice!;
+    }
+    return _currentUnit!.price;
   }
 
   String _formatPrice(String price) {
@@ -361,7 +460,12 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                         SizedBox(height: 16),
                         TabBar(
                           controller: _tabController,
-                          labelColor: AppColors.mainColor,
+                          labelColor: AppColors.white,
+                          indicator: BoxDecoration(
+                            color: AppColors.mainColor,
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          indicatorSize: TabBarIndicatorSize.tab,
                           unselectedLabelColor: AppColors.grey,
                           indicatorColor: AppColors.mainColor,
                           indicatorWeight: 3,
@@ -376,6 +480,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                           tabs: [
                             Tab(text: l10n.details),
                             Tab(text: l10n.gallery),
+                            Tab(text: l10n.location),
                             Tab(text: l10n.floorPlan),
                             Tab(text: 'Notes'),
                           ],
@@ -400,6 +505,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                             children: [
                               _buildDetailsTab(l10n),
                               _buildGalleryTab(),
+                              _buildLocationTab(l10n),
                               _buildFloorPlanTab(l10n),
                               _buildNotesTab(),
                             ],
@@ -560,6 +666,56 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
   }
 
   Widget _buildSaleSection(Sale sale, AppLocalizations l10n) {
+    print('[SALE SECTION] ========================================');
+    print('[SALE SECTION] Starting price calculation');
+    print('[SALE SECTION] Sale object - oldPrice: ${sale.oldPrice}, newPrice: ${sale.newPrice}, savings: ${sale.savings}');
+    print('[SALE SECTION] Sale discount: ${sale.discountPercentage}%');
+    print('[SALE SECTION] Unit data - originalPrice: ${_currentUnit!.originalPrice}');
+    print('[SALE SECTION] Unit data - normalPrice: ${_currentUnit!.normalPrice}');
+    print('[SALE SECTION] Unit data - discountedPrice: ${_currentUnit!.discountedPrice}');
+    print('[SALE SECTION] Unit data - price: ${_currentUnit!.price}');
+
+    // Calculate prices from unit data (in case sale doesn't have them)
+    double oldPrice = sale.oldPrice;
+    double newPrice = sale.newPrice;
+    double savings = sale.savings;
+
+    // If sale doesn't have prices, calculate from unit data
+    if (oldPrice == 0 || newPrice == 0) {
+      print('[SALE SECTION] Sale prices are 0, calculating from unit data...');
+      try {
+        // Get original price from unit
+        if (_currentUnit!.originalPrice != null && _currentUnit!.originalPrice!.isNotEmpty && _currentUnit!.originalPrice != '0') {
+          oldPrice = double.parse(_currentUnit!.originalPrice!);
+          print('[SALE SECTION] Got oldPrice from originalPrice: $oldPrice');
+        } else if (_currentUnit!.normalPrice != null && _currentUnit!.normalPrice!.isNotEmpty && _currentUnit!.normalPrice != '0') {
+          oldPrice = double.parse(_currentUnit!.normalPrice!);
+          print('[SALE SECTION] Got oldPrice from normalPrice: $oldPrice');
+        } else {
+          print('[SALE SECTION] Could not get oldPrice from unit data');
+        }
+
+        // Get discounted price from unit
+        if (_currentUnit!.discountedPrice != null && _currentUnit!.discountedPrice!.isNotEmpty && _currentUnit!.discountedPrice != '0') {
+          newPrice = double.parse(_currentUnit!.discountedPrice!);
+          print('[SALE SECTION] Got newPrice from discountedPrice: $newPrice');
+        } else {
+          print('[SALE SECTION] Could not get newPrice from unit data');
+        }
+
+        // Calculate savings
+        if (oldPrice > 0 && newPrice > 0) {
+          savings = oldPrice - newPrice;
+          print('[SALE SECTION] Calculated savings: $savings');
+        }
+      } catch (e) {
+        print('[SALE SECTION] Error calculating prices: $e');
+      }
+    }
+
+    print('[SALE SECTION] Final prices - old: $oldPrice, new: $newPrice, savings: $savings');
+    print('[SALE SECTION] ========================================');
+
     return Container(
       padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -652,7 +808,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'EGP ${_formatPrice(sale.oldPrice.toString())}',
+                    'EGP ${_formatPrice(oldPrice.toString())}',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
@@ -677,7 +833,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'EGP ${_formatPrice(sale.newPrice.toString())}',
+                    'EGP ${_formatPrice(newPrice.toString())}',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -701,7 +857,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                   ),
                   SizedBox(height: 4),
                   Text(
-                    'EGP ${_formatPrice(sale.savings.toString())}',
+                    'EGP ${_formatPrice(savings.toString())}',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -945,7 +1101,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
           // Price - show sale price if available
           if (_unitSale != null) ...[
             Text(
-              'EGP ${_formatPrice(_currentUnit!.price)}',
+              'EGP ${_formatPrice(_unitSale!.oldPrice.toString())}',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -984,7 +1140,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
             ),
           ] else
             Text(
-              'EGP ${_formatPrice(_currentUnit!.price)}',
+              'EGP ${_formatPrice(_getBestPrice())}',
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,
@@ -1274,9 +1430,6 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
           _buildSpecRow(l10n.roofArea, _currentUnit!.roofArea != null && _currentUnit!.roofArea != '0' ? '${_currentUnit!.roofArea} ${l10n.sqm}' : 'N/A'),
           _buildSpecRow(l10n.floor, _currentUnit!.floor ?? 'N/A'),
           _buildSpecRow(l10n.building, _currentUnit!.buildingName ?? 'N/A'),
-          _buildSpecRow('Original Price', _currentUnit!.originalPrice != null ? 'EGP ${_formatPrice(_currentUnit!.originalPrice!)}' : 'N/A'),
-          _buildSpecRow(l10n.price, _currentUnit!.price != '0' ? 'EGP ${_formatPrice(_currentUnit!.price)}' : 'N/A'),
-          _buildSpecRow('Total Price', _currentUnit!.totalPrice != null ? 'EGP ${_formatPrice(_currentUnit!.totalPrice!)}' : 'N/A'),
           SizedBox(height: 24),
           // Amenities
           _buildAmenitiesSection(l10n),
@@ -1365,6 +1518,176 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
           ),
         );
       },
+    );
+  }
+
+  Widget _buildLocationTab(AppLocalizations l10n) {
+    final compoundLocation = widget.unit?.compoundName ?? '';
+    final actualLocation = compoundLocation.isNotEmpty ? compoundLocation : l10n.locationNotAvailable;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Location Header
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.mainColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.location_on,
+                  size: 32,
+                  color: AppColors.mainColor,
+                ),
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l10n.location,
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.black,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      l10n.compoundLocation,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 24),
+
+          // Location URL / Map
+          if (widget.unit?.compoundLocationUrl != null && widget.unit!.compoundLocationUrl!.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.map, size: 20, color: AppColors.mainColor),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l10n.viewOnMap ?? 'View on Map',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: AppColors.grey,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final url = Uri.parse(widget.unit!.compoundLocationUrl!);
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      icon: Icon(Icons.location_on, color: Colors.white),
+                      label: Text(
+                        l10n.openLocationInMaps ?? 'Open Location in Maps',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.mainColor,
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            Container(
+              width: double.infinity,
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.map, size: 48, color: Colors.grey.shade400),
+                    SizedBox(height: 12),
+                    Text(
+                      l10n.mapViewNotAvailable,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _locationDetailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.grey),
+        SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.grey,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.black,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 
@@ -1644,6 +1967,8 @@ class UnitChangeNotes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    print('[UNIT CHANGE NOTES] isUpdated=${unit.isUpdated}, changeType=${unit.changeType}, changeProperties=${unit.changeProperties}');
+
     if (unit.isUpdated != true) return SizedBox.shrink();
 
     return Container(
@@ -1690,8 +2015,20 @@ class UnitChangeNotes extends StatelessWidget {
               Colors.grey.shade700,
             ),
 
-          // Changed fields
-          if (unit.changedFields != null && unit.changedFields!.isNotEmpty) ...[
+          // Changed fields with values (from changeProperties)
+          if (unit.changeProperties != null) ...[
+            SizedBox(height: 12),
+            Text(
+              'What Changed:',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: Colors.grey.shade800,
+              ),
+            ),
+            SizedBox(height: 8),
+            _buildChangesTable(unit.changeProperties!),
+          ] else if (unit.changedFields != null && unit.changedFields!.isNotEmpty) ...[
             SizedBox(height: 8),
             Text(
               'Changed Fields:',
@@ -1768,5 +2105,102 @@ class UnitChangeNotes extends StatelessWidget {
     } catch (e) {
       return dateStr;
     }
+  }
+
+  Widget _buildChangesTable(Map<String, dynamic> properties) {
+    final changes = properties['changes'] as Map<String, dynamic>?;
+    final original = properties['original'] as Map<String, dynamic>?;
+
+    if (changes == null || changes.isEmpty) {
+      return SizedBox.shrink();
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.orange.shade200),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: changes.entries.map((entry) {
+          final fieldName = entry.key;
+          final newValue = entry.value?.toString() ?? 'N/A';
+          final oldValue = original?[fieldName]?.toString() ?? 'N/A';
+
+          return Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: Colors.orange.shade100, width: 1),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Field name
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    _formatFieldName(fieldName),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                ),
+                // Original value
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      oldValue,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.red.shade900,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Icon(Icons.arrow_forward, size: 16, color: Colors.orange),
+                SizedBox(width: 8),
+                // New value
+                Expanded(
+                  flex: 2,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      newValue,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.green.shade900,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  String _formatFieldName(String fieldName) {
+    // Convert snake_case to Title Case
+    return fieldName
+        .split('_')
+        .map((word) => word.isEmpty ? '' : '${word[0].toUpperCase()}${word.substring(1)}')
+        .join(' ');
   }
 }

@@ -80,13 +80,19 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    // Debug logging for badges
+    if (widget.unit.changeType != null) {
+      print('[WEB UNIT CARD] Unit ${widget.unit.id}: changeType=${widget.unit.changeType}, isUpdated=${widget.unit.isUpdated}');
+    }
+
     // Fallback to compound images if unit images are empty
     final unitImages = widget.unit.images ?? [];
     final bool hasImages = unitImages.isNotEmpty;
 
-    final compoundName = widget.unit.compoundName?.isNotEmpty == true
-        ? widget.unit.compoundName!
-        : '';
+    // Use compound location for the location display, fallback to compound name if not available
+    final compoundLocation = widget.unit.compoundLocation?.isNotEmpty == true
+        ? widget.unit.compoundLocation!
+        : (widget.unit.compoundName?.isNotEmpty == true ? widget.unit.compoundName! : '');
 
     final unitType = widget.unit.usageType ?? widget.unit.unitType ?? 'Unit';
     final unitNumber = widget.unit.unitNumber ?? '';
@@ -284,17 +290,27 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                         ),
                       ),
 
-                      // Update Badge for new/updated/deleted units (Rotated Ribbon Style)
-                      if (widget.unit.isUpdated == true && widget.unit.changeType != null)
+                      // Sale badge (higher priority, shown at top)
+                      if (widget.unit.sale != null && widget.unit.sale!.isCurrentlyActive)
                         Positioned(
-                          top: 12,
-                          right: -5,
+                          top: 8,
+                          right: -35,  // Extended further out for triangle effect
                           child: Transform.rotate(
-                            angle: 0.785, // 45 degrees
-                            child: _updateBadge(widget.unit.changeType!),
+                            angle: 0.785398, // 45 degrees
+                            child: _saleBadge(widget.unit.sale!),
                           ),
                         ),
 
+                      // Update badge (shown below sale badge if both exist)
+                      if (widget.unit.isUpdated == true && widget.unit.changeType != null)
+                        Positioned(
+                          top: widget.unit.sale != null && widget.unit.sale!.isCurrentlyActive ? 48 : 8,  // Offset if sale badge exists
+                          right: -35,  // Extended further out for triangle effect
+                          child: Transform.rotate(
+                            angle: 0.785398, // 45 degrees
+                            child: _updateBadge(widget.unit.changeType!),
+                          ),
+                        ),
                       // Semi-transparent Info Area at bottom
                       Container(
                         width: double.infinity,
@@ -360,7 +376,7 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                                 SizedBox(width: 3),
                                 Expanded(
                                   child: Text(
-                                    compoundName.isNotEmpty ? compoundName : 'N/A',
+                                    compoundLocation.isNotEmpty ? compoundLocation : 'N/A',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: Colors.grey[600],
@@ -511,7 +527,11 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
   }
 
   String? _getBestPrice() {
-    // Priority: discountedPrice > totalPrice > normalPrice > originalPrice > price
+    // Priority: sale price > discountedPrice > totalPrice > normalPrice > originalPrice > price
+    // Check if unit has an active sale
+    if (widget.unit.sale != null && widget.unit.sale!.isCurrentlyActive) {
+      return widget.unit.sale!.newPrice.toString();
+    }
     if (widget.unit.discountedPrice != null &&
         widget.unit.discountedPrice!.isNotEmpty &&
         widget.unit.discountedPrice != '0') {
@@ -724,15 +744,15 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
 
     switch (changeType.toLowerCase()) {
       case 'new':
-        badgeColor = Color(0xFF4CAF50); // Green
+        badgeColor = Color(0xFF4CAF50);
         badgeText = 'NEW';
         break;
       case 'updated':
-        badgeColor = Color(0xFFFF9800); // Orange
+        badgeColor = Color(0xFFFF9800);
         badgeText = 'UPDATED';
         break;
       case 'deleted':
-        badgeColor = Colors.red[700]!; // Red
+        badgeColor = Colors.red[700]!;
         badgeText = 'DELETED';
         break;
       default:
@@ -741,24 +761,73 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: 4,
+      width: 140,
+      height: 25,
+      padding: EdgeInsets.only(
+        left: 35,   // Push text to center of visible ribbon
+        right: 10,
+        top: 6,
+        bottom: 6,
+      ),// Add fixed height
+      decoration: BoxDecoration(
+        color: badgeColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
-      color: badgeColor,
-      child: Text(
-        badgeText,
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-          letterSpacing: 0.5,
+      child: Center(  // Use Center widget instead of alignment
+        child: Text(
+          badgeText,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 10,
+            letterSpacing: 0.5,
+          ),
         ),
       ),
     );
   }
-}
 
+  Widget _saleBadge(Sale sale) {
+    return Container(
+      width: 140,
+      height: 25,
+      padding: EdgeInsets.only(
+        left: 35,   // Push text to center of visible ribbon
+        right: 10,
+        top: 6,
+        bottom: 6,
+      ),
+      decoration: BoxDecoration(
+        color: Color(0xFFFF6B6B),  // Red/pink color for sale
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          '${sale.discountPercentage.toInt()}% OFF',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 10,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
+
+}
 // Animated Action Button Widget
 class _AnimatedActionButton extends StatefulWidget {
   final IconData icon;

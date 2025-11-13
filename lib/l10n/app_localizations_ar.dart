@@ -207,6 +207,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get availableUnits => 'الوحدات المتاحة';
 
   @override
+  String get compoundName => 'اسم الكمبوند';
+
+  @override
+  String get compoundLocation => 'موقع الكمبوند';
+
+  @override
+  String get locationNotAvailable => 'الموقع غير متاح';
+
+  @override
   String get unitNumber => 'رقم الوحدة';
 
   @override
@@ -665,6 +674,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get viewOnMap => 'عرض على الخريطة';
+
+  @override
+  String get openLocationInMaps => 'فتح الموقع في الخرائط';
 
   @override
   String get floorPlan => 'مخطط الطابق';

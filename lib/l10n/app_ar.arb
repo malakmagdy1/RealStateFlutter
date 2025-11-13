@@ -78,6 +78,9 @@
   "location": "الموقع",
   "totalUnits": "إجمالي الوحدات",
   "availableUnits": "الوحدات المتاحة",
+  "compoundName": "اسم الكمبوند",
+  "compoundLocation": "موقع الكمبوند",
+  "locationNotAvailable": "الموقع غير متاح",
 
   "unitNumber": "رقم الوحدة",
   "unitType": "نوع الوحدة",
@@ -247,6 +250,7 @@
   "details": "التفاصيل",
   "gallery": "المعرض",
   "viewOnMap": "عرض على الخريطة",
+  "openLocationInMaps": "فتح الموقع في الخرائط",
   "floorPlan": "مخطط الطابق",
   "noDescriptionAvailable": "لا يوجد وصف متاح",
   "saleType": "نوع البيع",

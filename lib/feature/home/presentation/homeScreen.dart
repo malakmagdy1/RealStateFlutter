@@ -203,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _debounceTimer = Timer(Duration(milliseconds: 500), () {
       _searchBloc.add(SearchQueryEvent(
         query: query.trim(),
-        type: _currentFilter.isEmpty ? null : 'unit', // Filter-only searches show units only
+        type: 'unit', // Always search for units
         filter: _currentFilter.isEmpty ? null : _currentFilter,
       ));
       // Save to history after search is triggered (only if there's a query)
@@ -344,50 +344,52 @@ class _HomeScreenState extends State<HomeScreen> {
                   SizedBox(height: 12),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
+                    physics: BouncingScrollPhysics(),
+                    padding: EdgeInsets.only(bottom: 4),
                     child: Row(
                       children: [
                         if (_currentFilter.location != null)
                           _buildFilterChip(
                             'Location: ${_currentFilter.location}',
-                            () => setState(() {
-                              _currentFilter = _currentFilter.copyWith(clearLocation: true);
-                              if (_searchController.text.isNotEmpty) {
-                                _performSearch(_searchController.text);
-                              }
-                            }),
+                            () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(clearLocation: true);
+                              });
+                              _performSearch(_searchController.text);
+                            },
                           ),
                         if (_currentFilter.propertyType != null)
                           _buildFilterChip(
                             'Type: ${_currentFilter.propertyType}',
-                            () => setState(() {
-                              _currentFilter = _currentFilter.copyWith(clearPropertyType: true);
-                              if (_searchController.text.isNotEmpty) {
-                                _performSearch(_searchController.text);
-                              }
-                            }),
+                            () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(clearPropertyType: true);
+                              });
+                              _performSearch(_searchController.text);
+                            },
                           ),
                         if (_currentFilter.minPrice != null || _currentFilter.maxPrice != null)
                           _buildFilterChip(
                             'Price: ${_currentFilter.minPrice ?? "0"} - ${_currentFilter.maxPrice ?? "∞"}',
-                            () => setState(() {
-                              _currentFilter = _currentFilter.copyWith(
-                                clearMinPrice: true,
-                                clearMaxPrice: true,
-                              );
-                              if (_searchController.text.isNotEmpty) {
-                                _performSearch(_searchController.text);
-                              }
-                            }),
+                            () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(
+                                  clearMinPrice: true,
+                                  clearMaxPrice: true,
+                                );
+                              });
+                              _performSearch(_searchController.text);
+                            },
                           ),
                         if (_currentFilter.bedrooms != null)
                           _buildFilterChip(
                             '${_currentFilter.bedrooms} ${l10n.beds}',
-                            () => setState(() {
-                              _currentFilter = _currentFilter.copyWith(clearBedrooms: true);
-                              if (_searchController.text.isNotEmpty) {
-                                _performSearch(_searchController.text);
-                              }
-                            }),
+                            () {
+                              setState(() {
+                                _currentFilter = _currentFilter.copyWith(clearBedrooms: true);
+                              });
+                              _performSearch(_searchController.text);
+                            },
                           ),
                         TextButton.icon(
                           onPressed: _clearFilters,
@@ -1186,9 +1188,9 @@ class _HomeScreenState extends State<HomeScreen> {
           units = (data['data'] as List)
               .map((unit) {
                 final unitJson = Map<String, dynamic>.from(unit as Map<String, dynamic>);
-                // Mark as 'new' if not already set by API (New Arrivals section)
-                if (unitJson['change_type'] == null) {
-                  unitJson['change_type'] = 'new';
+                // Parse action as change_type if present
+                if (unitJson['action'] != null) {
+                  unitJson['change_type'] = unitJson['action'];
                   unitJson['is_updated'] = true;
                 }
                 return Unit.fromJson(unitJson);
@@ -1199,9 +1201,9 @@ class _HomeScreenState extends State<HomeScreen> {
           units = data
               .map((unit) {
                 final unitJson = Map<String, dynamic>.from(unit as Map<String, dynamic>);
-                // Mark as 'new' if not already set by API (New Arrivals section)
-                if (unitJson['change_type'] == null) {
-                  unitJson['change_type'] = 'new';
+                // Parse action as change_type if present
+                if (unitJson['action'] != null) {
+                  unitJson['change_type'] = unitJson['action'];
                   unitJson['is_updated'] = true;
                 }
                 return Unit.fromJson(unitJson);
@@ -1321,12 +1323,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
         if (data is Map && data['activities'] != null) {
           final activities = data['activities'];
-          if (activities is Map && activities['data'] != null) {
-            units = (activities['data'] as List)
+          if (activities is List) {
+            units = activities
                 .map((activity) {
                   // Extract unit from activity
                   if (activity['unit'] != null) {
-                    return Unit.fromJson(activity['unit'] as Map<String, dynamic>);
+                    final unitJson = Map<String, dynamic>.from(activity['unit'] as Map<String, dynamic>);
+                    // Add action as change_type
+                    if (activity['action'] != null) {
+                      unitJson['change_type'] = activity['action'];
+                      unitJson['is_updated'] = true;
+                    }
+                    // Add properties (changes and original values)
+                    if (activity['properties'] != null) {
+                      unitJson['change_properties'] = activity['properties'];
+                    }
+                    return Unit.fromJson(unitJson);
                   }
                   return null;
                 })

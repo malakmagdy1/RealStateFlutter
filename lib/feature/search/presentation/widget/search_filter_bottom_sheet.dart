@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
+import 'package:intl/intl.dart';
 
 import '../../data/models/search_filter_model.dart';
+import '../../data/services/location_service.dart';
 
 class SearchFilterBottomSheet extends StatefulWidget {
   final SearchFilter initialFilter;
@@ -20,11 +22,15 @@ class SearchFilterBottomSheet extends StatefulWidget {
 }
 
 class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
-  late TextEditingController _locationController;
   late TextEditingController _minPriceController;
   late TextEditingController _maxPriceController;
-  late TextEditingController _deliveryDateController;
 
+  final LocationService _locationService = LocationService();
+  List<String> _availableLocations = [];
+  bool _isLoadingLocations = true;
+
+  String? _selectedLocation;
+  DateTime? _selectedDeliveryDate;
   String? _selectedPropertyType;
   int? _selectedBedrooms;
   String? _selectedFinishing;
@@ -60,18 +66,17 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
   @override
   void initState() {
     super.initState();
-    _locationController = TextEditingController(
-      text: widget.initialFilter.location,
-    );
+
+    // Initialize controllers
     _minPriceController = TextEditingController(
       text: widget.initialFilter.minPrice?.toString() ?? '',
     );
     _maxPriceController = TextEditingController(
       text: widget.initialFilter.maxPrice?.toString() ?? '',
     );
-    _deliveryDateController = TextEditingController(
-      text: widget.initialFilter.deliveryDate ?? '',
-    );
+
+    // Set initial values
+    _selectedLocation = widget.initialFilter.location;
     _selectedPropertyType = widget.initialFilter.propertyType;
     _selectedBedrooms = widget.initialFilter.bedrooms;
     _selectedFinishing = widget.initialFilter.finishing;
@@ -79,23 +84,59 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
     _hasRoof = widget.initialFilter.hasRoof ?? false;
     _hasGarden = widget.initialFilter.hasGarden ?? false;
     _selectedSortBy = widget.initialFilter.sortBy;
+
+    // Parse delivery date from string (if exists)
+    if (widget.initialFilter.deliveryDate != null && widget.initialFilter.deliveryDate!.isNotEmpty) {
+      try {
+        _selectedDeliveryDate = DateTime.parse(widget.initialFilter.deliveryDate!);
+      } catch (e) {
+        print('[FILTER] Could not parse delivery date: ${widget.initialFilter.deliveryDate}');
+      }
+    }
+
+    // Load locations from database
+    _loadLocations();
+  }
+
+  Future<void> _loadLocations() async {
+    print('[FILTER BOTTOM SHEET] ========================================');
+    print('[FILTER BOTTOM SHEET] Loading locations...');
+    try {
+      final locations = await _locationService.getLocations();
+      print('[FILTER BOTTOM SHEET] ✓ Received ${locations.length} locations');
+      print('[FILTER BOTTOM SHEET] Locations: ${locations.take(5).join(", ")}${locations.length > 5 ? "..." : ""}');
+
+      if (mounted) {
+        setState(() {
+          _availableLocations = locations;
+          _isLoadingLocations = false;
+        });
+        print('[FILTER BOTTOM SHEET] ✓ UI updated with locations');
+      }
+    } catch (e) {
+      print('[FILTER BOTTOM SHEET] ✗ Error loading locations: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingLocations = false;
+        });
+      }
+    }
+    print('[FILTER BOTTOM SHEET] ========================================');
   }
 
   @override
   void dispose() {
-    _locationController.dispose();
     _minPriceController.dispose();
     _maxPriceController.dispose();
-    _deliveryDateController.dispose();
     super.dispose();
   }
 
   void _clearAllFilters() {
     setState(() {
-      _locationController.clear();
+      _selectedLocation = null;
       _minPriceController.clear();
       _maxPriceController.clear();
-      _deliveryDateController.clear();
+      _selectedDeliveryDate = null;
       _selectedPropertyType = null;
       _selectedBedrooms = null;
       _selectedFinishing = null;
@@ -107,10 +148,14 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
   }
 
   void _applyFilters() {
+    // Format delivery date as yyyy-MM-dd string
+    String? deliveryDateStr;
+    if (_selectedDeliveryDate != null) {
+      deliveryDateStr = DateFormat('yyyy-MM-dd').format(_selectedDeliveryDate!);
+    }
+
     final filter = SearchFilter(
-      location: _locationController.text.isEmpty
-          ? null
-          : _locationController.text,
+      location: _selectedLocation,
       minPrice: _minPriceController.text.isEmpty
           ? null
           : double.tryParse(_minPriceController.text),
@@ -120,9 +165,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
       propertyType: _selectedPropertyType,
       bedrooms: _selectedBedrooms,
       finishing: _selectedFinishing,
-      deliveryDate: _deliveryDateController.text.isEmpty
-          ? null
-          : _deliveryDateController.text,
+      deliveryDate: deliveryDateStr,
       hasClub: _hasClub ? true : null,
       hasRoof: _hasRoof ? true : null,
       hasGarden: _hasGarden ? true : null,
@@ -195,27 +238,75 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
           // Content
           Expanded(
             child: SingleChildScrollView(
+              physics: BouncingScrollPhysics(),
               padding: EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Location
+                  // Location Dropdown
                   _buildSectionTitle('Location'),
                   SizedBox(height: 8),
-                  TextField(
-                    controller: _locationController,
-                    decoration: InputDecoration(
-                      hintText: 'e.g., New Cairo, 6th October',
-                      prefixIcon: Icon(Icons.location_on_outlined),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                    ),
-                  ),
+                  _isLoadingLocations
+                      ? Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                ),
+                                SizedBox(width: 12),
+                                Text('Loading locations...'),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedLocation,
+                            decoration: InputDecoration(
+                              hintText: 'Select location',
+                              prefixIcon: Icon(Icons.location_on_outlined),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            isExpanded: true,
+                            items: [
+                              DropdownMenuItem<String>(
+                                value: null,
+                                child: Text(
+                                  'All Locations',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                              ..._availableLocations.map((location) {
+                                return DropdownMenuItem<String>(
+                                  value: location,
+                                  child: Text(location),
+                                );
+                              }).toList(),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedLocation = value;
+                              });
+                            },
+                          ),
+                        ),
 
                   SizedBox(height: 24),
 
@@ -360,20 +451,73 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
 
                   SizedBox(height: 24),
 
-                  // Delivery Date
+                  // Delivery Date Calendar Picker
                   _buildSectionTitle('Delivery Date'),
                   SizedBox(height: 8),
-                  TextField(
-                    controller: _deliveryDateController,
-                    decoration: InputDecoration(
-                      hintText: 'e.g., 2025, Q1 2026',
-                      prefixIcon: Icon(Icons.calendar_today_outlined),
-                      border: OutlineInputBorder(
+                  InkWell(
+                    onTap: () async {
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDeliveryDate ?? DateTime.now(),
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(2035),
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: ColorScheme.light(
+                                primary: AppColors.mainColor,
+                                onPrimary: Colors.white,
+                                onSurface: Colors.black,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _selectedDeliveryDate = picked;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            color: Colors.grey.shade600,
+                          ),
+                          SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _selectedDeliveryDate != null
+                                  ? DateFormat('dd MMM yyyy').format(_selectedDeliveryDate!)
+                                  : 'Select delivery date',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: _selectedDeliveryDate != null
+                                    ? Colors.black87
+                                    : Colors.grey.shade600,
+                              ),
+                            ),
+                          ),
+                          if (_selectedDeliveryDate != null)
+                            IconButton(
+                              icon: Icon(Icons.clear, size: 20),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedDeliveryDate = null;
+                                });
+                              },
+                              padding: EdgeInsets.zero,
+                              constraints: BoxConstraints(),
+                            ),
+                        ],
                       ),
                     ),
                   ),

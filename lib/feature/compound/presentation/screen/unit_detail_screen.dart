@@ -7,6 +7,7 @@ import 'package:real/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../data/models/unit_model.dart';
 import '../../data/web_services/compound_web_services.dart';
+import '../../data/web_services/unit_web_services.dart';
 import '../../../sale/data/models/sale_model.dart';
 import '../../../sale/data/services/sale_web_services.dart';
 import '../../../sale/presentation/widgets/sales_person_selector.dart';
@@ -40,6 +41,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   final CompoundWebServices _compoundWebServices = CompoundWebServices();
   final CompanyWebServices _companyWebServices = CompanyWebServices();
   final SaleWebServices _saleWebServices = SaleWebServices();
+  final UnitWebServices _unitWebServices = UnitWebServices();
   final FavoritesWebServices _favoritesWebServices = FavoritesWebServices();
   late TabController _tabController;
   List<CompanyUser> _salesPeople = [];
@@ -50,6 +52,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  Unit? _currentUnit; // To hold refreshed unit data if needed
 
   @override
   void initState() {
@@ -58,15 +61,72 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     ViewHistoryService().addViewedUnit(widget.unit);
     _imagePageController = PageController();
     _tabController = TabController(length: 6, vsync: this);
+    _currentUnit = widget.unit; // Initialize with passed unit
+
+    print('[UNIT DETAIL] ========================================');
     print('[UNIT DETAIL] Unit ID: ${widget.unit.id}');
     print('[UNIT DETAIL] Note ID: ${widget.unit.noteId}');
-    // Sale is now included in unit data, no need to fetch separately
-    if (widget.unit.sale != null) {
-      _unitSale = widget.unit.sale;
+    print('[UNIT DETAIL] Has active sale: ${widget.unit.hasActiveSale}');
+    print('[UNIT DETAIL] Unit originalPrice: ${widget.unit.originalPrice}');
+    print('[UNIT DETAIL] Unit normalPrice: ${widget.unit.normalPrice}');
+    print('[UNIT DETAIL] Unit price: ${widget.unit.price}');
+
+    // Check if unit has sale but missing price data
+    bool hasSale = widget.unit.hasActiveSale == true || widget.unit.sale != null;
+    bool missingPriceData = (widget.unit.originalPrice == null || widget.unit.originalPrice!.isEmpty) &&
+                             (widget.unit.normalPrice == null || widget.unit.normalPrice!.isEmpty) &&
+                             (widget.unit.price.isEmpty || widget.unit.price == '0');
+
+    print('[UNIT DETAIL] Has sale: $hasSale');
+    print('[UNIT DETAIL] Missing price data: $missingPriceData');
+
+    if (hasSale && missingPriceData) {
+      print('[UNIT DETAIL] Unit has sale but missing price data - refetching from API...');
+      _refetchUnitData();
+    } else {
+      print('[UNIT DETAIL] Unit data complete - proceeding normally');
+      _setupSale();
     }
+    print('[UNIT DETAIL] ========================================');
+
     _startAutoSlide();
     _fetchSalesPeople();
     _fetchUnitNote();
+  }
+
+  Future<void> _refetchUnitData() async {
+    try {
+      print('[UNIT DETAIL] Fetching complete unit data from API...');
+      final unitData = await _unitWebServices.getUnitById(widget.unit.id);
+      final refreshedUnit = Unit.fromJson(unitData);
+
+      setState(() {
+        _currentUnit = refreshedUnit;
+      });
+
+      print('[UNIT DETAIL] ✓ Unit data refreshed');
+      print('[UNIT DETAIL] Refreshed originalPrice: ${refreshedUnit.originalPrice}');
+      print('[UNIT DETAIL] Refreshed normalPrice: ${refreshedUnit.normalPrice}');
+      print('[UNIT DETAIL] Refreshed price: ${refreshedUnit.price}');
+
+      _setupSale();
+    } catch (e) {
+      print('[UNIT DETAIL] ✗ Error refetching unit data: $e');
+      // Fall back to using original unit data
+      _setupSale();
+    }
+  }
+
+  void _setupSale() {
+    // Check if sale is included in unit data first
+    if (_currentUnit!.sale != null) {
+      print('[UNIT DETAIL] Sale found in unit data: ${_currentUnit!.sale!.saleName}');
+      _unitSale = _currentUnit!.sale;
+    } else {
+      // If not included, fetch separately from API
+      print('[UNIT DETAIL] No sale in unit data, fetching from API...');
+      _fetchUnitSale();
+    }
   }
 
   @override
@@ -203,19 +263,63 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Future<void> _fetchUnitSale() async {
-    if (_isLoadingSale) return;
+    if (_isLoadingSale || _currentUnit == null) return;
 
     setState(() => _isLoadingSale = true);
 
     try {
-      final response = await _saleWebServices.getSalesByUnit(widget.unit.id);
+      final response = await _saleWebServices.getSalesByUnit(_currentUnit!.id);
 
-      print('[UNIT DETAIL] Sale response for unit ${widget.unit.id}: $response');
+      print('[UNIT DETAIL] Sale response for unit ${_currentUnit!.id}: $response');
 
       if (response['success'] == true && response['sales'] != null) {
-        final sales = (response['sales'] as List)
-            .map((s) => Sale.fromJson(s as Map<String, dynamic>))
-            .toList();
+        final salesList = response['sales'] as List;
+        print('[UNIT DETAIL] Processing ${salesList.length} sales from API');
+
+        final sales = salesList.map((saleData) {
+          final saleJson = Map<String, dynamic>.from(saleData as Map<String, dynamic>);
+
+          // If sale doesn't have old_price/new_price, calculate from unit data
+          if ((saleJson['old_price'] == null || saleJson['old_price'] == 0) &&
+              (saleJson['new_price'] == null || saleJson['new_price'] == 0)) {
+
+            print('[UNIT DETAIL] Sale missing prices, calculating from unit data...');
+            print('[UNIT DETAIL] Unit originalPrice: ${_currentUnit!.originalPrice}');
+            print('[UNIT DETAIL] Unit normalPrice: ${_currentUnit!.normalPrice}');
+            print('[UNIT DETAIL] Unit price: ${_currentUnit!.price}');
+
+            double unitPrice = 0.0;
+
+            // Priority: original_price > normal_price > price
+            if (_currentUnit!.originalPrice != null && _currentUnit!.originalPrice!.isNotEmpty) {
+              unitPrice = double.tryParse(_currentUnit!.originalPrice!) ?? 0.0;
+              print('[UNIT DETAIL] Using originalPrice: $unitPrice');
+            } else if (_currentUnit!.normalPrice != null && _currentUnit!.normalPrice!.isNotEmpty) {
+              unitPrice = double.tryParse(_currentUnit!.normalPrice!) ?? 0.0;
+              print('[UNIT DETAIL] Using normalPrice: $unitPrice');
+            } else if (_currentUnit!.price.isNotEmpty) {
+              unitPrice = double.tryParse(_currentUnit!.price) ?? 0.0;
+              print('[UNIT DETAIL] Using price: $unitPrice');
+            }
+
+            final discountPercent = saleJson['discount_percentage'] is num
+                ? (saleJson['discount_percentage'] as num).toDouble()
+                : double.tryParse(saleJson['discount_percentage']?.toString() ?? '0') ?? 0.0;
+
+            print('[UNIT DETAIL] Discount percentage: $discountPercent');
+
+            if (unitPrice > 0 && discountPercent > 0) {
+              saleJson['old_price'] = unitPrice;
+              saleJson['new_price'] = unitPrice * (1 - (discountPercent / 100));
+              saleJson['savings'] = unitPrice * (discountPercent / 100);
+              print('[UNIT DETAIL] ✓ Calculated prices - Old: ${saleJson['old_price']}, New: ${saleJson['new_price']}, Savings: ${saleJson['savings']}');
+            } else {
+              print('[UNIT DETAIL] ✗ Cannot calculate - unitPrice: $unitPrice, discount: $discountPercent');
+            }
+          }
+
+          return Sale.fromJson(saleJson);
+        }).toList();
 
         // Filter for only currently active sales that match this unit
         final activeSales = sales.where((sale) {
@@ -225,10 +329,10 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           // Check if sale applies to this specific unit or compound
           if (sale.saleType.toLowerCase() == 'unit') {
             // Unit-specific sale: must match exact unit ID
-            return sale.unitId == widget.unit.id;
+            return sale.unitId == _currentUnit!.id;
           } else if (sale.saleType.toLowerCase() == 'compound') {
             // Compound-wide sale: must match compound ID
-            return sale.compoundId == widget.unit.compoundId;
+            return sale.compoundId == _currentUnit!.compoundId;
           }
 
           return false;
@@ -237,6 +341,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         print('[UNIT DETAIL] Found ${activeSales.length} matching sales for this unit');
         if (activeSales.isNotEmpty) {
           print('[UNIT DETAIL] First sale: ${activeSales.first.saleName} - Type: ${activeSales.first.saleType}');
+          print('[UNIT DETAIL] Sale prices - Old: ${activeSales.first.oldPrice}, New: ${activeSales.first.newPrice}, Savings: ${activeSales.first.savings}');
         }
 
         if (activeSales.isNotEmpty && mounted) {
@@ -593,7 +698,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         // Show sale price if available
         if (_unitSale != null) ...[
           Text(
-            'EGP ${_formatPrice(widget.unit.price)}',
+            'EGP ${_formatPrice(_unitSale!.oldPrice.toString())}',
             style: TextStyle(
               fontSize: 18,
               color: Colors.grey.shade600,
@@ -918,15 +1023,260 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Widget _buildMapTab(AppLocalizations l10n) {
-    return Center(
+    final unit = _currentUnit ?? widget.unit;
+    final compoundLocation = unit.compoundName ?? '';
+    final actualLocation = compoundLocation.isNotEmpty ? compoundLocation : l10n.locationNotAvailable ?? 'Location not available';
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(24),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.map, size: 60, color: AppColors.grey),
-          SizedBox(height: 16),
-          CustomText16(l10n.mapViewNotAvailable, color: AppColors.grey),
+          // Location Header
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.mainColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.location_on,
+                  size: 32,
+                  color: AppColors.mainColor,
+                ),
+              ),
+              SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CustomText18(
+                      l10n.location ?? 'Location',
+                      bold: true,
+                      color: AppColors.black,
+                    ),
+                    SizedBox(height: 4),
+                    CustomText14(
+                      l10n.compoundLocation ?? 'Compound Location',
+                      color: AppColors.grey,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 24),
+
+          // Location Card
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Compound Name
+                Row(
+                  children: [
+                    Icon(Icons.apartment, size: 20, color: AppColors.mainColor),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: CustomText16(
+                        l10n.compoundName ?? 'Compound',
+                        color: AppColors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Padding(
+                  padding: EdgeInsets.only(left: 28),
+                  child: CustomText18(
+                    actualLocation,
+                    bold: true,
+                    color: AppColors.black,
+                  ),
+                ),
+
+                SizedBox(height: 20),
+                Divider(),
+                SizedBox(height: 20),
+
+                // Unit Details
+                Row(
+                  children: [
+                    Icon(Icons.home_work, size: 20, color: AppColors.mainColor),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: CustomText16(
+                        l10n.unitDetails ?? 'Unit Details',
+                        color: AppColors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 12),
+
+                Padding(
+                  padding: EdgeInsets.only(left: 28),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (unit.buildingName != null && unit.buildingName!.isNotEmpty) ...[
+                        _locationDetailRow(
+                          Icons.business,
+                          l10n.building ?? 'Building',
+                          unit.buildingName!,
+                        ),
+                        SizedBox(height: 8),
+                      ],
+                      if (unit.floor.isNotEmpty && unit.floor != '0') ...[
+                        _locationDetailRow(
+                          Icons.layers,
+                          l10n.floor ?? 'Floor',
+                          unit.floor,
+                        ),
+                        SizedBox(height: 8),
+                      ],
+                      if (unit.unitNumber != null && unit.unitNumber!.isNotEmpty) ...[
+                        _locationDetailRow(
+                          Icons.pin,
+                          l10n.unitNumber ?? 'Unit Number',
+                          unit.unitNumber!,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          SizedBox(height: 24),
+
+          // Location URL / Map
+          if (unit.compoundLocationUrl != null && unit.compoundLocationUrl!.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.map, size: 20, color: AppColors.mainColor),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: CustomText16(
+                          l10n.viewOnMap ?? 'View on Map',
+                          color: AppColors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final url = Uri.parse(unit.compoundLocationUrl!);
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                        }
+                      },
+                      icon: Icon(Icons.location_on, color: Colors.white),
+                      label: Text(
+                        l10n.openLocationInMaps ?? 'Open Location in Maps',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.mainColor,
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            Container(
+              width: double.infinity,
+              height: 200,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.map, size: 48, color: Colors.grey.shade400),
+                    SizedBox(height: 12),
+                    CustomText14(
+                      l10n.mapViewNotAvailable ?? 'Map view coming soon',
+                      color: Colors.grey.shade600,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _locationDetailRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.grey),
+        SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.grey,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.black,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
     );
   }
 

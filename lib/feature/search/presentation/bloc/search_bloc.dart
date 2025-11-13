@@ -31,68 +31,52 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     emit(SearchLoading());
 
     try {
-      // If there's a filter, use the dedicated filter API with pagination
-      if (event.filter != null && !event.filter!.isEmpty) {
-        print('[SEARCH BLOC] Using filter-units API with filter (Page: ${event.page})');
+      // Always use the unified search-and-filter API
+      print('[SEARCH BLOC] Using unified search-and-filter API (Page: ${event.page})');
+      print('[SEARCH BLOC] Search Query: "${event.query}"');
+      if (event.filter != null) {
         print('[SEARCH BLOC] Filter params: ${event.filter!.toQueryParameters()}');
+      }
 
-        // Fetch with limit of 10 units (2 rows of 5 each) for first page
-        final filterResponse = await repository.filterUnits(
-          event.filter!,
-          page: event.page,
-          limit: 10,
+      // Use unified searchAndFilter API
+      final filterResponse = await repository.searchAndFilter(
+        query: event.query.trim().isEmpty ? null : event.query.trim(),
+        filter: event.filter,
+        page: event.page,
+        limit: 1000, // Get all results
+      );
+
+      // Convert FilteredUnit to SearchResult
+      final searchResults = filterResponse.units.map((unit) {
+        return SearchResult(
+          type: 'unit',
+          id: unit.id,
+          name: unit.unitName,
+          data: _convertFilteredUnitToSearchData(unit),
         );
+      }).toList();
 
-        // Convert FilteredUnit to SearchResult
-        final searchResults = filterResponse.units.map((unit) {
-          return SearchResult(
-            type: 'unit',
-            id: unit.id,
-            name: unit.unitName,
-            data: _convertFilteredUnitToSearchData(unit),
-          );
-        }).toList();
+      _allResults = searchResults;
 
-        _allResults = searchResults;
+      // Create a SearchResponse with the filtered units
+      final response = SearchResponse(
+        status: filterResponse.success,
+        searchQuery: event.query,
+        totalResults: filterResponse.totalUnits,
+        results: searchResults,
+      );
 
-        // Create a SearchResponse with the filtered units
-        final response = SearchResponse(
-          status: filterResponse.success,
-          searchQuery: event.query,
-          totalResults: filterResponse.totalUnits,
-          results: searchResults,
-        );
-
-        if (searchResults.isEmpty) {
-          emit(SearchEmpty());
-        } else {
-          final hasMore = filterResponse.page < filterResponse.totalPages;
-          print('[SEARCH BLOC] Found ${searchResults.length} filtered units (Page ${filterResponse.page}/${filterResponse.totalPages})');
-          emit(SearchSuccess(
-            response: response,
-            hasMorePages: hasMore,
-            currentPage: filterResponse.page,
-            totalPages: filterResponse.totalPages,
-          ));
-        }
+      if (searchResults.isEmpty) {
+        emit(SearchEmpty());
       } else {
-        // Use the search API (returns companies, compounds, and units)
-        print('[SEARCH BLOC] Using search API with query: "${event.query}"');
-        final response = await repository.search(
-          query: event.query,
-          type: event.type,
-          perPage: 100,
-          filter: event.filter,
-        );
-
-        _allResults = response.results;
-
-        if (response.results.isEmpty) {
-          emit(SearchEmpty());
-        } else {
-          print('[SEARCH BLOC] Found ${response.totalResults} results');
-          emit(SearchSuccess(response: response));
-        }
+        final hasMore = filterResponse.page < filterResponse.totalPages;
+        print('[SEARCH BLOC] Found ${searchResults.length} units (Page ${filterResponse.page}/${filterResponse.totalPages})');
+        emit(SearchSuccess(
+          response: response,
+          hasMorePages: hasMore,
+          currentPage: filterResponse.page,
+          totalPages: filterResponse.totalPages,
+        ));
       }
     } catch (e) {
       print('[SEARCH BLOC] Error: ${e.toString()}');
@@ -114,11 +98,14 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
 
     try {
       print('[SEARCH BLOC] Loading more results (Page: ${event.page})');
+      print('[SEARCH BLOC] Search Query: "${event.query}"');
 
-      final filterResponse = await repository.filterUnits(
-        event.filter!,
+      // Use unified searchAndFilter API
+      final filterResponse = await repository.searchAndFilter(
+        query: event.query.trim().isEmpty ? null : event.query.trim(),
+        filter: event.filter,
         page: event.page,
-        limit: 10,
+        limit: 1000,
       );
 
       // Convert new units to SearchResult

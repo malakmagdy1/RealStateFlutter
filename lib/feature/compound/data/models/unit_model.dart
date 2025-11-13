@@ -29,6 +29,8 @@ class Unit extends Equatable {
   final String? companyName;
   final String? companyId;
   final String? compoundName;
+  final String? compoundLocation;
+  final String? compoundLocationUrl;
 
   // Additional fields from search API
   final String? code;
@@ -52,6 +54,7 @@ class Unit extends Equatable {
   final String? lastChangedAt;
   final String? changeType; // 'new', 'updated', 'deleted'
   final List<String>? changedFields;
+  final Map<String, dynamic>? changeProperties; // Contains 'changes' and 'original' from API
 
   // Sale fields
   final bool? hasActiveSale;
@@ -84,6 +87,8 @@ class Unit extends Equatable {
     this.companyName,
     this.companyId,
     this.compoundName,
+    this.compoundLocation,
+    this.compoundLocationUrl,
     // Additional fields from search API
     this.code,
     this.originalPrice,
@@ -104,6 +109,7 @@ class Unit extends Equatable {
     this.lastChangedAt,
     this.changeType,
     this.changedFields,
+    this.changeProperties,
     // Sale fields
     this.hasActiveSale,
     this.sale,
@@ -149,41 +155,94 @@ class Unit extends Equatable {
     }
 
     // Parse update tracking fields from API
-    bool isUpdated = json['is_updated'] == true || json['is_updated'] == 1;
     String? changeType = json['change_type']?.toString();
-    String? lastChangedAt = json['last_changed_at']?.toString();
+    // Check both variations: last_changed_at and last_change_at
+    String? lastChangedAt = json['last_changed_at']?.toString() ?? json['last_change_at']?.toString();
     List<String>? changedFields = json['changed_fields'] != null
         ? (json['changed_fields'] as List).map((e) => e.toString()).toList()
         : null;
+    Map<String, dynamic>? changeProperties = json['change_properties'] != null
+        ? Map<String, dynamic>.from(json['change_properties'] as Map)
+        : null;
+    // Set isUpdated to true if API sends it OR if changeType exists
+    bool isUpdated = json['is_updated'] == true || json['is_updated'] == 1 || changeType != null;
+
+    if (changeType != null) {
+      print('[UNIT MODEL] Parsing unit with changeType=$changeType, isUpdated=$isUpdated, changeProperties=$changeProperties');
+    }
 
     // Parse sale data if available
     Sale? sale;
     bool hasActiveSale = json['has_active_sale'] == true || json['has_active_sale'] == 1;
 
+    print('[UNIT MODEL] ========================================');
+    print('[UNIT MODEL] Parsing unit ID: ${json['id']}');
+    print('[UNIT MODEL] has_active_sale: $hasActiveSale');
+    print('[UNIT MODEL] sale data present: ${json['sale'] != null}');
+
     if (json['sale'] != null && json['sale'] is Map<String, dynamic>) {
       try {
         final saleJson = Map<String, dynamic>.from(json['sale'] as Map<String, dynamic>);
+        print('[UNIT MODEL] Sale JSON: $saleJson');
+        print('[UNIT MODEL] Sale old_price: ${saleJson['old_price']}');
+        print('[UNIT MODEL] Sale new_price: ${saleJson['new_price']}');
+        print('[UNIT MODEL] Sale discount_percentage: ${saleJson['discount_percentage']}');
 
         // If old_price and new_price are not in the sale, calculate them from unit price
         if ((saleJson['old_price'] == null || saleJson['old_price'] == 0) &&
             (saleJson['new_price'] == null || saleJson['new_price'] == 0)) {
-          final unitPrice = double.tryParse(price) ?? 0.0;
+
+          print('[UNIT MODEL] Sale prices are missing/0, calculating from unit data...');
+          print('[UNIT MODEL] Unit original_price: ${json['original_price']}');
+          print('[UNIT MODEL] Unit normal_price: ${json['normal_price']}');
+          print('[UNIT MODEL] Unit price (calculated): $price');
+
+          // Try to get the best price from unit data
+          double unitPrice = 0.0;
+
+          // Priority: original_price > normal_price > price
+          if (json['original_price'] != null) {
+            unitPrice = double.tryParse(json['original_price'].toString()) ?? 0.0;
+            print('[UNIT MODEL] Using original_price: $unitPrice');
+          } else if (json['normal_price'] != null) {
+            unitPrice = double.tryParse(json['normal_price'].toString()) ?? 0.0;
+            print('[UNIT MODEL] Using normal_price: $unitPrice');
+          } else if (price.isNotEmpty) {
+            unitPrice = double.tryParse(price) ?? 0.0;
+            print('[UNIT MODEL] Using price: $unitPrice');
+          }
+
           final discountPercent = saleJson['discount_percentage'] is num
               ? (saleJson['discount_percentage'] as num).toDouble()
               : double.tryParse(saleJson['discount_percentage']?.toString() ?? '0') ?? 0.0;
+
+          print('[UNIT MODEL] Unit price to use: $unitPrice');
+          print('[UNIT MODEL] Discount percentage: $discountPercent');
 
           if (unitPrice > 0 && discountPercent > 0) {
             saleJson['old_price'] = unitPrice;
             saleJson['new_price'] = unitPrice * (1 - (discountPercent / 100));
             saleJson['savings'] = unitPrice * (discountPercent / 100);
+            print('[UNIT MODEL] ✓ Calculated sale prices:');
+            print('[UNIT MODEL]   Old: ${saleJson['old_price']}');
+            print('[UNIT MODEL]   New: ${saleJson['new_price']}');
+            print('[UNIT MODEL]   Savings: ${saleJson['savings']}');
+          } else {
+            print('[UNIT MODEL] ✗ Cannot calculate prices - unitPrice: $unitPrice, discount: $discountPercent');
           }
+        } else {
+          print('[UNIT MODEL] Sale already has prices - old: ${saleJson['old_price']}, new: ${saleJson['new_price']}');
         }
 
         sale = Sale.fromJson(saleJson);
+        print('[UNIT MODEL] ✓ Sale object created successfully');
       } catch (e) {
-        print('[UNIT MODEL] Error parsing sale: $e');
+        print('[UNIT MODEL] ✗ Error parsing sale: $e');
       }
+    } else {
+      print('[UNIT MODEL] No sale data in unit JSON');
     }
+    print('[UNIT MODEL] ========================================');
 
     return Unit(
       id: json['id']?.toString() ?? '',
@@ -231,6 +290,12 @@ class Unit extends Equatable {
       // Extract compound name from either direct field or nested compound object
       compoundName: json['compound_name']?.toString() ??
                     (json['compound'] != null ? json['compound']['name']?.toString() : null),
+      // Extract compound location from either direct field or nested compound object
+      compoundLocation: json['compound_location']?.toString() ??
+                        (json['compound'] != null ? json['compound']['location']?.toString() : null),
+      // Extract compound location URL from either direct field or nested compound object
+      compoundLocationUrl: json['compound_location_url']?.toString() ??
+                           (json['compound'] != null ? json['compound']['location_url']?.toString() : null),
       // Additional fields from search API
       code: json['code']?.toString() ?? json['unit_code']?.toString(),
       originalPrice: json['original_price']?.toString(),
@@ -251,6 +316,7 @@ class Unit extends Equatable {
       lastChangedAt: lastChangedAt,
       changeType: changeType,
       changedFields: changedFields,
+      changeProperties: changeProperties,
       // Sale fields
       hasActiveSale: hasActiveSale,
       sale: sale,
@@ -284,6 +350,8 @@ class Unit extends Equatable {
       'company_name': companyName,
       'company_id': companyId,
       'compound_name': compoundName,
+      'compound_location': compoundLocation,
+      'compound_location_url': compoundLocationUrl,
       'code': code,
       'original_price': originalPrice,
       'discounted_price': discountedPrice,
@@ -327,6 +395,8 @@ class Unit extends Equatable {
     companyName,
     companyId,
     compoundName,
+    compoundLocation,
+    compoundLocationUrl,
     code,
     originalPrice,
     discountedPrice,
@@ -344,6 +414,7 @@ class Unit extends Equatable {
     lastChangedAt,
     changeType,
     changedFields,
+    changeProperties,
     hasActiveSale,
     sale,
   ];
@@ -370,8 +441,18 @@ class UnitResponse {
   factory UnitResponse.fromJson(Map<String, dynamic> json) {
     List<Unit> unitsList = [];
     if (json['data'] != null && json['data'] is List) {
+      // Parse units and filter out invalid/unavailable/sold ones
       unitsList = (json['data'] as List)
-          .map((unit) => Unit.fromJson(unit as Map<String, dynamic>))
+          .map((unit) {
+            try {
+              return Unit.fromJson(unit as Map<String, dynamic>);
+            } catch (e) {
+              print('[UNIT RESPONSE] Error parsing unit: $e');
+              return null;
+            }
+          })
+          .whereType<Unit>() // Remove null values
+          .where((unit) => _isValidUnit(unit)) // Filter out invalid units
           .toList();
     }
 
@@ -381,6 +462,35 @@ class UnitResponse {
       total: int.tryParse(json['total']?.toString() ?? '0') ?? 0,
       data: unitsList,
     );
+  }
+
+  /// Validate that a unit has essential data and is available
+  static bool _isValidUnit(Unit unit) {
+    // Must have a valid ID (not empty, not '0', not 'null')
+    if (unit.id.isEmpty || unit.id == '0' || unit.id.toLowerCase() == 'null') {
+      print('[UNIT RESPONSE] ✗ Skipping unit with invalid ID: ${unit.id}');
+      return false;
+    }
+
+    // Must have a valid compound ID
+    if (unit.compoundId.isEmpty || unit.compoundId == '0') {
+      print('[UNIT RESPONSE] ✗ Skipping unit ${unit.id} with invalid compound ID');
+      return false;
+    }
+
+    // Must be available (if available field exists)
+    if (unit.available != null && unit.available == false) {
+      print('[UNIT RESPONSE] ✗ Skipping unit ${unit.id} - not available');
+      return false;
+    }
+
+    // Must not be sold (if isSold field exists)
+    if (unit.isSold != null && unit.isSold == true) {
+      print('[UNIT RESPONSE] ✗ Skipping unit ${unit.id} - already sold');
+      return false;
+    }
+
+    return true;
   }
 
   Map<String, dynamic> toJson() {
