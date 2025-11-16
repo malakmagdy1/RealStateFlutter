@@ -618,22 +618,15 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
     }
   }
 
-  Future<void> _showShareDialog(BuildContext context) async {
-    AdvancedShareBottomSheet.show(
+  void _showShareDialog(BuildContext context) {
+    showModalBottomSheet(
       context: context,
-      propertyType: 'unit',
-      propertyId: widget.unit.id,
-      propertyTitle: widget.unit.unitNumber ?? 'Unit',
-      propertyPrice: _getBestPrice(),
-      propertyLocation: widget.unit.compoundLocation ?? 'N/A',
-      propertyImage: widget.unit.images?.isNotEmpty == true ? widget.unit.images!.first : null,
-      propertyDetails: {
-        'bedrooms': widget.unit.bedrooms,
-        'bathrooms': widget.unit.bathrooms,
-        'area': widget.unit.area,
-        'type': widget.unit.usageType ?? widget.unit.unitType ?? 'Unit',
-        'compound': widget.unit.compoundName,
-      },
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => AdvancedShareBottomSheet(
+        type: 'unit',
+        id: widget.unit.id,
+      ),
     );
   }
 
