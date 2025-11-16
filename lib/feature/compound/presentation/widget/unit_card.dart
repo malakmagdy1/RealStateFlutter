@@ -228,6 +228,25 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                   ),
                                 ),
                               ),
+                              SizedBox(width: 4),
+                              // Share Button
+                              GestureDetector(
+                                onTap: () => _showShareDialog(context),
+                                child: Container(
+                                  height: 28,
+                                  width: 28,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.35),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.share_outlined,
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ],
@@ -597,6 +616,25 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
         }
       }
     }
+  }
+
+  Future<void> _showShareDialog(BuildContext context) async {
+    AdvancedShareBottomSheet.show(
+      context: context,
+      propertyType: 'unit',
+      propertyId: widget.unit.id,
+      propertyTitle: widget.unit.unitNumber ?? 'Unit',
+      propertyPrice: _getBestPrice(),
+      propertyLocation: widget.unit.compoundLocation ?? 'N/A',
+      propertyImage: widget.unit.images?.isNotEmpty == true ? widget.unit.images!.first : null,
+      propertyDetails: {
+        'bedrooms': widget.unit.bedrooms,
+        'bathrooms': widget.unit.bathrooms,
+        'area': widget.unit.area,
+        'type': widget.unit.usageType ?? widget.unit.unitType ?? 'Unit',
+        'compound': widget.unit.compoundName,
+      },
+    );
   }
 
   Future<void> _showSalespeople(BuildContext context) async {
