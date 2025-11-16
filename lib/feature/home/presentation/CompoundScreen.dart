@@ -641,7 +641,7 @@ class _CompoundScreenState extends State<CompoundScreen>
           else
             CustomText16(
               'Map location not available',
-              color: Colors.black,
+              color: AppColors.greyText,
             ),
         ],
       ),
@@ -724,14 +724,14 @@ class _CompoundScreenState extends State<CompoundScreen>
                       _searchQuery.isEmpty
                           ? l10n.noUnitsAvailable
                           : l10n.noUnitsMatch,
-                      color: Colors.black,
+                      color: AppColors.greyText,
                       bold: true,
                     ),
                     if (_searchQuery.isNotEmpty) ...[
                       SizedBox(height: 8),
                       CustomText16(
                         l10n.tryDifferentKeywords,
-                        color: Colors.black,
+                        color: AppColors.greyText,
                       ),
                     ],
                   ],
@@ -946,7 +946,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                       SizedBox(width: 4),
                       CustomText14(
                         salesPerson.phone!,
-                        color: Colors.black,
+                        color: AppColors.greyText,
                       ),
                     ],
                   ),
@@ -1022,7 +1022,7 @@ class _CompoundScreenState extends State<CompoundScreen>
               'Add your personal notes about this compound. Your notes are private and only visible to you.',
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey[600],
+                color: AppColors.greyText,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -1091,7 +1091,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                         note['content'] ?? '',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.black87,
+                          color: Colors.black,
                           height: 1.5,
                         ),
                       ),
@@ -1100,7 +1100,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                         'Updated: ${_formatNoteDate(note['updated_at'])}',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey[600],
+                          color: AppColors.greyText,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -1286,29 +1286,43 @@ class _CompoundScreenState extends State<CompoundScreen>
 
   // Tab Bar
   Widget _buildCornerTabBar() {
-    return TabBar(
-      controller: _tabController,
-      isScrollable: true,
-      labelColor: AppColors.mainColor,
-      unselectedLabelColor: AppColors.grey,
-      indicatorColor: AppColors.mainColor,
-      indicatorWeight: 3,
-      labelStyle: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.bold,
+    return Container(
+      height: 50,
+      child: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        labelColor: Colors.white,
+        unselectedLabelColor: Colors.grey.shade600,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          color: Colors.grey.shade600,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.shade400.withOpacity(0.3),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        labelStyle: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.normal,
+        ),
+        labelPadding: EdgeInsets.symmetric(horizontal: 16),
+        tabs: [
+          Tab(icon: Icon(Icons.info_outline, size: 18), text: 'Details'),
+          Tab(icon: Icon(Icons.photo_library_outlined, size: 18), text: 'Gallery'),
+          Tab(icon: Icon(Icons.map_outlined, size: 18), text: 'Map'),
+          Tab(icon: Icon(Icons.architecture_outlined, size: 18), text: 'Master Plan'),
+          Tab(icon: Icon(Icons.home_work_outlined, size: 18), text: 'Units'),
+          Tab(icon: Icon(Icons.note_outlined, size: 18), text: 'Notes'),
+        ],
       ),
-      unselectedLabelStyle: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.normal,
-      ),
-      tabs: [
-        Tab(text: 'Details'),
-        Tab(text: 'Gallery'),
-        Tab(text: 'View on Map'),
-        Tab(text: 'Master Plan'),
-        Tab(text: 'Units'),
-        Tab(text: 'Notes'),
-      ],
     );
   }
 

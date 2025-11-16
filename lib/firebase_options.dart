@@ -45,7 +45,7 @@ class DefaultFirebaseOptions {
     appId: '1:832433207149:web:2aea4e6bfcc664d8e0cc64',
     messagingSenderId: '832433207149',
     projectId: 'realstate-4564d',
-    authDomain: 'realstate-4564d.firebaseapp.com',
+    authDomain: 'aqar.bdcbiz.com',
     storageBucket: 'realstate-4564d.firebasestorage.app',
     measurementId: 'G-SFX5H50KQM',
   );

@@ -17,6 +17,7 @@ import 'package:real/feature/auth/presentation/bloc/user_event.dart';
 import 'package:real/feature/auth/presentation/screen/editNameScreen.dart';
 import 'package:real/feature/auth/presentation/screen/editPhoneScreen.dart';
 import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
+import 'package:real/feature/auth/presentation/screen/device_management_screen.dart';
 import 'package:real/feature/home/presentation/widget/customListTile.dart';
 import 'package:real/feature/notifications/presentation/screens/notifications_screen.dart';
 import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
@@ -26,6 +27,7 @@ import 'package:real/feature/subscription/presentation/bloc/subscription_state.d
 import 'package:real/feature/subscription/presentation/screens/subscription_plans_screen.dart';
 import 'package:real/core/utils/message_helper.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
+import 'package:real/services/fcm_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   ProfileScreen({super.key});
@@ -37,8 +39,6 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
-  bool _isPersonalInfoExpanded = false;
-  bool _isPreferencesExpanded = false;
 
   @override
   void initState() {
@@ -199,6 +199,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<String?> _getFCMToken() async {
+    try {
+      final fcmService = FCMService();
+      return fcmService.fcmToken;
+    } catch (e) {
+      print('Error getting FCM token: $e');
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -223,7 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           elevation: 0,
           automaticallyImplyLeading: false,
           title: Text(
-            'Profile & Settings',
+            'Profile',
             style: TextStyle(
               color: AppColors.mainColor,
               fontSize: 18,
@@ -271,23 +281,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                       AppColors.mainColor.withOpacity(0.1),
                                     ],
                                   ),
-                                  borderRadius: BorderRadius.circular(20),
+                                  shape: BoxShape.circle,
                                   border: Border.all(
                                     color: AppColors.mainColor.withOpacity(0.3),
                                     width: 2,
                                   ),
                                 ),
                                 child: _imageFile != null
-                                    ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(18),
+                                    ? ClipOval(
                                         child: Image.file(
                                           _imageFile!,
                                           fit: BoxFit.cover,
                                         ),
                                       )
                                     : imageUrl != null && imageUrl.isNotEmpty
-                                        ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(18),
+                                        ? ClipOval(
                                             child: Image.network(
                                               imageUrl,
                                               fit: BoxFit.cover,
@@ -603,99 +611,228 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 },
               ),
 
-              Divider(height: 1, thickness: 1),
+              SizedBox(height: 16),
 
-              // Personal Information Section
-              ExpansionTile(
-                leading: Icon(Icons.person_outline, color: AppColors.mainColor),
-                title: Text(
-                  l10n.personalInformation,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.mainColor,
-                  ),
+              // Profile Options
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 10,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
                 ),
-                iconColor: AppColors.mainColor,
-                collapsedIconColor: AppColors.mainColor,
-                initiallyExpanded: _isPersonalInfoExpanded,
-                onExpansionChanged: (expanded) {
-                  setState(() {
-                    _isPersonalInfoExpanded = expanded;
-                  });
-                },
-                children: [
-                  ListTile(
-                    leading: Icon(Icons.person_outline, color: AppColors.mainColor.withOpacity(0.7)),
-                    title: Text(l10n.editName),
-                    trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mainColor),
-                    onTap: () {
-                      Navigator.pushNamed(context, EditNameScreen.routeName);
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.phone_outlined, color: AppColors.mainColor.withOpacity(0.7)),
-                    title: Text('Edit Phone Number'),
-                    trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mainColor),
-                    onTap: () {
-                      Navigator.pushNamed(context, EditPhoneScreen.routeName);
-                    },
-                  ),
-                ],
-              ),
-
-              Divider(height: 1, thickness: 1),
-
-              // Preferences Section
-              ExpansionTile(
-                leading: Icon(Icons.settings_outlined, color: AppColors.mainColor),
-                title: Text(
-                  l10n.preferences,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.mainColor,
-                  ),
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.mainColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.person_outline, color: AppColors.mainColor, size: 24),
+                      ),
+                      title: Text(
+                        l10n.editName,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                      onTap: () {
+                        Navigator.pushNamed(context, EditNameScreen.routeName);
+                      },
+                    ),
+                    Divider(height: 1, indent: 72, endIndent: 16),
+                    ListTile(
+                      leading: Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.mainColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.phone_outlined, color: AppColors.mainColor, size: 24),
+                      ),
+                      title: Text(
+                        'Edit Phone Number',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                      onTap: () {
+                        Navigator.pushNamed(context, EditPhoneScreen.routeName);
+                      },
+                    ),
+                    Divider(height: 1, indent: 72, endIndent: 16),
+                    BlocBuilder<LocaleCubit, Locale>(
+                      builder: (context, locale) {
+                        return ListTile(
+                          leading: Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.mainColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.language_outlined, color: AppColors.mainColor, size: 24),
+                          ),
+                          title: Text(
+                            l10n.language,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          subtitle: Text(
+                            locale.languageCode == 'en' ? 'English' : 'العربية',
+                            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          ),
+                          trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                          onTap: () => _showLanguageDialog(context),
+                        );
+                      },
+                    ),
+                    Divider(height: 1, indent: 72, endIndent: 16),
+                    ListTile(
+                      leading: Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.mainColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.notifications_active_outlined, color: AppColors.mainColor, size: 24),
+                      ),
+                      title: Text(
+                        'FCM Token',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: FutureBuilder<String?>(
+                        future: _getFCMToken(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState == ConnectionState.waiting) {
+                            return Text(
+                              'Loading...',
+                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            );
+                          }
+                          final token = snapshot.data;
+                          if (token == null || token.isEmpty) {
+                            return Text(
+                              'No token available',
+                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            );
+                          }
+                          return Text(
+                            '${token.substring(0, token.length > 30 ? 30 : token.length)}...',
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          );
+                        },
+                      ),
+                      trailing: Icon(Icons.copy, size: 16, color: Colors.grey),
+                      onTap: () async {
+                        final token = await _getFCMToken();
+                        if (token != null && token.isNotEmpty) {
+                          await Clipboard.setData(ClipboardData(text: token));
+                          if (mounted) {
+                            MessageHelper.showSuccess(context, 'FCM token copied to clipboard!');
+                          }
+                        } else {
+                          if (mounted) {
+                            MessageHelper.showError(context, 'No FCM token available');
+                          }
+                        }
+                      },
+                    ),
+                    Divider(height: 1, indent: 72, endIndent: 16),
+                    ListTile(
+                      leading: Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.mainColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.devices_other, color: AppColors.mainColor, size: 24),
+                      ),
+                      title: Text(
+                        'Manage Devices',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'View and remove devices',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      ),
+                      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                      onTap: () {
+                        Navigator.pushNamed(context, DeviceManagementScreen.routeName);
+                      },
+                    ),
+                    Divider(height: 1, indent: 72, endIndent: 16),
+                    ListTile(
+                      leading: Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.mainColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.language, color: AppColors.mainColor, size: 24),
+                      ),
+                      title: Text(
+                        'Website',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      subtitle: Text(
+                        'https://aqarapp.co/',
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      ),
+                      trailing: Icon(Icons.open_in_new, size: 16, color: Colors.grey),
+                      onTap: () async {
+                        await Clipboard.setData(ClipboardData(text: 'https://aqarapp.co/'));
+                        if (mounted) {
+                          MessageHelper.showSuccess(context, 'Website URL copied to clipboard!');
+                        }
+                      },
+                    ),
+                  ],
                 ),
-                iconColor: AppColors.mainColor,
-                collapsedIconColor: AppColors.mainColor,
-                initiallyExpanded: _isPreferencesExpanded,
-                onExpansionChanged: (expanded) {
-                  setState(() {
-                    _isPreferencesExpanded = expanded;
-                  });
-                },
-                children: [
-                  BlocBuilder<LocaleCubit, Locale>(
-                    builder: (context, locale) {
-                      return ListTile(
-                        leading: Icon(Icons.language_outlined, color: AppColors.mainColor.withOpacity(0.7)),
-                        title: Text(l10n.language),
-                        subtitle: Text(locale.languageCode == 'en' ? 'English' : 'العربية'),
-                        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.mainColor),
-                        onTap: () => _showLanguageDialog(context),
-                      );
-                    },
-                  ),
-                ],
               ),
-
-              Divider(height: 1, thickness: 1),
 
               SizedBox(height: screenHeight * 0.04),
 
-              // Logout Button
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+              // Logout Button - Centered with limited width
+              Center(
                 child: BlocBuilder<LoginBloc, LoginState>(
                   builder: (context, state) {
                     if (state is LogoutLoading) {
                       return Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(vertical: 16),
+                        width: screenWidth * 0.5,
+                        padding: EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
                           color: Color(0xFFFFE5E5),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(25),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.red.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
                         ),
                         child: Center(
                           child: CustomLoadingDots(size: 30),
@@ -703,26 +840,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     }
 
-                    return InkWell(
-                      onTap: () => _handleLogout(context),
-                      child: Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: Color(0xFFFFE5E5),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Center(
-                          child: Text(
-                            l10n.logout,
-                            style: TextStyle(
-                              color: Colors.red,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                    return TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: Duration(milliseconds: 600),
+                      curve: Curves.easeOutBack,
+                      builder: (context, value, child) {
+                        return Transform.scale(
+                          scale: value,
+                          child: InkWell(
+                            onTap: () => _handleLogout(context),
+                            borderRadius: BorderRadius.circular(25),
+                            child: Container(
+                              width: screenWidth * 0.5,
+                              padding: EdgeInsets.symmetric(vertical: 14),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.red[400]!,
+                                    Colors.red[600]!,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(25),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.red.withOpacity(0.3),
+                                    blurRadius: 12,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.logout_rounded,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    l10n.logout,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ),
+                        );
+                      },
                     );
                   },
                 ),

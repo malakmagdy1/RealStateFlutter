@@ -64,21 +64,19 @@ class SearchResponse extends Equatable {
       return false;
     }
 
-    // If it's a unit, check availability and sold status
+    // If it's a unit, check sold status
     if (result.type == 'unit' && result.data is UnitSearchData) {
       final unitData = result.data as UnitSearchData;
 
-      // Must be available
-      if (!unitData.available) {
-        print('[SEARCH RESPONSE] ✗ Skipping unit ${result.id} (${result.name}) - not available');
-        return false;
-      }
-
-      // Must not be sold
-      if (unitData.isSold) {
+      // Skip only if explicitly sold
+      if (unitData.status.toLowerCase() == 'sold' || unitData.isSold) {
         print('[SEARCH RESPONSE] ✗ Skipping unit ${result.id} (${result.name}) - already sold');
         return false;
       }
+
+      // Note: We removed the 'available' check because backend may not set it correctly
+      // Units should be shown unless explicitly sold
+      print('[SEARCH RESPONSE] ✓ Including unit ${result.id} (${result.name}) - Status: ${unitData.status}');
     }
 
     return true;

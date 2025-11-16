@@ -569,7 +569,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
               SizedBox(height: 12),
               Text(
                 'No images available',
-                style: TextStyle(fontSize: 14, color: Color(0xFF999999)),
+                style: TextStyle(fontSize: 14, color: AppColors.greyText),
               ),
             ],
           ),
@@ -804,7 +804,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                     'Original Price',
                     style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF999999),
+                      color: AppColors.greyText,
                     ),
                   ),
                   SizedBox(height: 4),
@@ -813,7 +813,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
-                      color: Color(0xFF999999),
+                      color: AppColors.greyText,
                       decoration: TextDecoration.lineThrough,
                     ),
                   ),
@@ -1350,7 +1350,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
               l10n.noSalesPersonAvailable,
               style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF999999),
+                color: AppColors.greyText,
               ),
             ),
           ],
@@ -1449,7 +1449,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
             label,
             style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF666666),
+              color: AppColors.greyText,
             ),
           ),
           Expanded(
@@ -1458,7 +1458,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF333333),
+                color: Colors.black,
               ),
               textAlign: TextAlign.right,
             ),
@@ -1701,7 +1701,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
           SizedBox(height: 16),
           Text(
             l10n.floorPlanNotAvailable,
-            style: TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(fontSize: 14, color: AppColors.greyText),
           ),
         ],
       ),
@@ -1916,7 +1916,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                                           _formatNoteDate(createdAt),
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: Colors.grey,
+                                            color: AppColors.greyText,
                                           ),
                                         ),
                                       ],
@@ -2070,7 +2070,7 @@ class UnitChangeNotes extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
-              color: Colors.grey.shade700,
+              color: Colors.black,
             ),
           ),
           Text(

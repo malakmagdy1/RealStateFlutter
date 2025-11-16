@@ -340,6 +340,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 SizedBox(height: 16),
 
+                // Recommended Compounds Section
                 // Active filters chips
                 if (_currentFilter.activeFiltersCount > 0) ...[
                   SizedBox(height: 12),
@@ -532,7 +533,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    CustomText20(l10n.companiesName),
+                    Row(
+                      children: [
+                        Icon(Icons.business, size: 24, color: AppColors.mainColor),
+                        SizedBox(width: 8),
+                        CustomText20(l10n.companiesName),
+                      ],
+                    ),
                     TextButton(
                       onPressed: () {
                         context.pushSlideFade(CompaniesScreen());
@@ -721,41 +728,40 @@ class _HomeScreenState extends State<HomeScreen> {
                 _buildUpdated24HoursSection(l10n),
                 SizedBox(height: 24),
 
-                // Recommended Compounds Section
+                // 🤖 AI Recommended Compounds Section
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.psychology, size: 24, color: AppColors.mainColor),
+                        SizedBox(width: 8),
+                        CustomText20(l10n.recommendedCompounds),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                  ],
+                ),
+
                 BlocBuilder<CompoundBloc, CompoundState>(
                   builder: (context, state) {
                     if (state is CompoundLoading) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CustomText20(l10n.recommendedCompounds),
-                          SizedBox(height: 12),
-                          SizedBox(
-                            height: 280,
-                            child: Center(
-                              child: CustomLoadingDots(size: 80),
-                            ),
-                          ),
-                        ],
+                      return SizedBox(
+                        height: 280,
+                        child: Center(
+                          child: CustomLoadingDots(size: 80),
+                        ),
                       );
                     } else if (state is CompoundSuccess) {
                       if (state.response.data.isEmpty) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            CustomText20(l10n.recommendedCompounds),
-                            SizedBox(height: 12),
-                            SizedBox(
-                              height: 280,
-                              child: Center(
-                                child: CustomText16(l10n.noCompoundsAvailable, color: AppColors.grey),
-                              ),
-                            ),
-                          ],
+                        return SizedBox(
+                          height: 280,
+                          child: Center(
+                            child: CustomText16(l10n.noCompoundsAvailable, color: AppColors.grey),
+                          ),
                         );
                       }
 
-                      // Show compounds with images as recommended, or all if none have images
                       final compoundsWithImages = state.response.data
                           .where((compound) => compound.images.isNotEmpty)
                           .toList();
@@ -764,91 +770,81 @@ class _HomeScreenState extends State<HomeScreen> {
                           ? compoundsWithImages
                           : state.response.data;
 
-                      // Use pagination - show up to _recommendedDisplayCount items
                       final displayCount = recommendedCompounds.length > _recommendedDisplayCount
                           ? _recommendedDisplayCount
                           : recommendedCompounds.length;
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Title
-                          CustomText20(l10n.recommendedCompounds),
-                          SizedBox(height: 12),
-                          // Horizontal scroll view with pagination
-                          SizedBox(
-                            height: 280,
-                            child: ListView.builder(
-                              controller: _recommendedScrollController,
-                              scrollDirection: Axis.horizontal,
-                              physics: BouncingScrollPhysics(),
-                              padding: EdgeInsets.symmetric(horizontal: 8),
-                              itemCount: displayCount + (_isLoadingMoreRecommended && displayCount < recommendedCompounds.length ? 1 : 0),
-                              itemBuilder: (context, index) {
-                                // Show loading indicator at end
-                                if (index == displayCount) {
-                                  return Container(
-                                    width: 60,
-                                    margin: EdgeInsets.only(right: 12),
-                                    child: Center(
-                                      child: CustomLoadingDots(size: 40),
-                                    ),
-                                  );
-                                }
+                      final hasMore = recommendedCompounds.length > _recommendedDisplayCount;
 
-                                final compound = recommendedCompounds[index];
-                                return Container(
-                                  width: 200,
-                                  margin: EdgeInsets.only(
-                                    right: index < displayCount - 1 ? 12 : 0,
-                                  ),
-                                  child: CompoundsName(compound: compound),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
+                      return SizedBox(
+                        height: 280,
+                        child: ListView.builder(
+                          controller: _recommendedScrollController,
+                          scrollDirection: Axis.horizontal,
+                          physics: BouncingScrollPhysics(),
+                          itemCount: displayCount + (_isLoadingMoreRecommended && hasMore ? 1 : 0),
+                          itemBuilder: (context, index) {
+                            // Show loading indicator at the end
+                            if (index == displayCount && _isLoadingMoreRecommended) {
+                              return Container(
+                                width: 190,
+                                margin: EdgeInsets.only(right: 8),
+                                child: Center(
+                                  child: CustomLoadingDots(size: 60),
+                                ),
+                              );
+                            }
+
+                            final compound = recommendedCompounds[index];
+                            return SizedBox(
+                              width: 190,
+                              child: Padding(
+                                padding: EdgeInsets.only(right: 8),
+                                child: CompoundsName(
+                                  compound: compound,
+                                  onTap: () {
+                                    context.pushSlideFade(
+                                      CompoundScreen(compound: compound),
+                                    ).then((_) {
+                                      context.read<CompoundBloc>().add(
+                                        FetchCompoundsEvent(page: 1, limit: 50),
+                                      );
+                                    });
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       );
                     } else if (state is CompoundError) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          CustomText20(l10n.recommendedCompounds),
-                          SizedBox(height: 12),
-                          SizedBox(
-                            height: 280,
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  CustomText16(
-                                    'Error: ${state.message}',
-                                    color: Colors.red,
-                                    align: TextAlign.center,
-                                  ),
-                                  SizedBox(height: 8),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      context.read<CompoundBloc>().add(
-                                            FetchCompoundsEvent(),
-                                          );
-                                    },
-                                    child: CustomText16(l10n.retry, color: AppColors.white),
-                                  ),
-                                ],
+                      return SizedBox(
+                        height: 280,
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              CustomText16(
+                                'Error: ${state.message}',
+                                color: Colors.red,
+                                align: TextAlign.center,
                               ),
-                            ),
+                              SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: () {
+                                  context.read<CompoundBloc>().add(
+                                    FetchCompoundsEvent(),
+                                  );
+                                },
+                                child: CustomText16(l10n.retry, color: AppColors.white),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       );
                     }
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        CustomText20(l10n.recommendedCompounds),
-                        SizedBox(height: 280),
-                      ],
-                    );
+                    return SizedBox(height: 280);
                   },
                 ),
               ],
@@ -902,16 +898,17 @@ class _HomeScreenState extends State<HomeScreen> {
     final compounds = results.where((r) => r.type == 'compound').toList();
     final units = results.where((r) => r.type == 'unit').toList();
 
-    return Card(
+    return SingleChildScrollView(
       child: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Header with results count
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                CustomText16(
+                CustomText20(
                   'Found ${response.totalResults} result${response.totalResults == 1 ? '' : 's'}',
                   bold: true,
                 ),
@@ -921,42 +918,80 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            Divider(),
+            SizedBox(height: 16),
 
-            // Companies
+            // Companies Section
             if (companies.isNotEmpty) ...[
-              SizedBox(height: 8),
-              CustomText16(
+              CustomText18(
                 '${l10n.companies} (${companies.length})',
                 bold: true,
-                color: Colors.blue,
+                color: AppColors.mainColor,
               ),
-              SizedBox(height: 8),
-              ...companies.map((result) => _buildCompanyResultItem(result, l10n)),
+              SizedBox(height: 12),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 0.9,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                ),
+                itemCount: companies.length,
+                itemBuilder: (context, index) {
+                  return _buildCompanyResultCard(companies[index], l10n);
+                },
+              ),
+              SizedBox(height: 24),
             ],
 
-            // Compounds
+            // Compounds Section
             if (compounds.isNotEmpty) ...[
-              SizedBox(height: 16),
-              CustomText16(
+              CustomText18(
                 '${l10n.compounds} (${compounds.length})',
                 bold: true,
-                color: Colors.green,
+                color: AppColors.mainColor,
               ),
-              SizedBox(height: 8),
-              ...compounds.map((result) => _buildCompoundResultItem(result, l10n)),
+              SizedBox(height: 12),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.63,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: compounds.length,
+                itemBuilder: (context, index) {
+                  return _buildCompoundResultCard(compounds[index], l10n);
+                },
+              ),
+              SizedBox(height: 24),
             ],
 
-            // Units
+            // Units Section
             if (units.isNotEmpty) ...[
-              SizedBox(height: 16),
-              CustomText16(
+              CustomText18(
                 '${l10n.units} (${units.length})',
                 bold: true,
-                color: Colors.orange,
+                color: AppColors.mainColor,
               ),
-              SizedBox(height: 8),
-              ...units.map((result) => _buildUnitResultItem(result, l10n)),
+              SizedBox(height: 12),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.63,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: units.length,
+                itemBuilder: (context, index) {
+                  return _buildUnitResultCard(units[index], l10n);
+                },
+              ),
             ],
           ],
         ),
@@ -964,47 +999,24 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCompanyResultItem(SearchResult result, AppLocalizations l10n) {
+  Widget _buildCompanyResultCard(SearchResult result, AppLocalizations l10n) {
     final data = result.data as CompanySearchData;
-    return ListTile(
-      dense: true,
-      leading: CircleAvatar(
-        backgroundColor: Colors.blue.shade100,
-        child: data.logo != null && data.logo!.isNotEmpty
-            ? ClipOval(
-                child: Image.network(
-                  data.logo!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Icon(Icons.business, size: 20),
-                ),
-              )
-            : Icon(Icons.business, size: 20),
-      ),
-      title: Text(
-        data.name,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        data.email,
-        style: TextStyle(fontSize: 12),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Icon(Icons.chevron_right, size: 20),
+    final company = Company(
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      logo: data.logo,
+      numberOfCompounds: data.numberOfCompounds,
+      numberOfAvailableUnits: data.numberOfAvailableUnits,
+      createdAt: '',
+      sales: [],
+      compounds: [],
+    );
+
+    return CompanyName(
+      company: company,
       onTap: () {
         _clearSearch();
-        final company = Company(
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          logo: data.logo,
-          numberOfCompounds: data.numberOfCompounds,
-          numberOfAvailableUnits: data.numberOfAvailableUnits,
-          createdAt: '', sales: [], compounds: [],
-        );
         Navigator.pushNamed(
           context,
           CompanyDetailScreen.routeName,
@@ -1014,58 +1026,34 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildCompoundResultItem(SearchResult result, AppLocalizations l10n) {
+  Widget _buildCompoundResultCard(SearchResult result, AppLocalizations l10n) {
     final data = result.data as CompoundSearchData;
-    return ListTile(
-      dense: true,
-      leading: CircleAvatar(
-        backgroundColor: Colors.green.shade100,
-        child: data.images.isNotEmpty
-            ? ClipOval(
-                child: Image.network(
-                  data.images.first,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Icon(Icons.apartment, size: 20),
-                ),
-              )
-            : Icon(Icons.apartment, size: 20),
-      ),
-      title: Text(
-        data.name,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        data.location,
-        style: TextStyle(fontSize: 12),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Icon(Icons.chevron_right, size: 20),
+    final compound = Compound(
+      id: data.id,
+      companyId: data.company.id,
+      project: data.name,
+      location: data.location,
+      images: data.images,
+      builtUpArea: '0',
+      howManyFloors: '0',
+      completionProgress: data.completionProgress,
+      club: '0',
+      isSold: '0',
+      status: data.status,
+      totalUnits: data.unitsCount,
+      createdAt: data.createdAt,
+      updatedAt: '',
+      companyName: data.company.name,
+      companyLogo: data.company.logo,
+      soldUnits: '0',
+      availableUnits: data.unitsCount,
+      sales: [],
+    );
+
+    return CompoundsName(
+      compound: compound,
       onTap: () {
         _clearSearch();
-        final compound = Compound(
-          id: data.id,
-          companyId: data.company.id,
-          project: data.name,
-          location: data.location,
-          images: data.images,
-          builtUpArea: '0',
-          howManyFloors: '0',
-          completionProgress: data.completionProgress,
-          club: '0',
-          isSold: '0',
-          status: data.status,
-          totalUnits: data.unitsCount,
-          createdAt: data.createdAt,
-          updatedAt: '',
-          companyName: data.company.name,
-          companyLogo: data.company.logo,
-          soldUnits: '0',
-          availableUnits: data.unitsCount, sales: [],
-        );
         context.pushSlideFade(
           CompoundScreen(compound: compound),
         );
@@ -1073,7 +1061,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildUnitResultItem(SearchResult result, AppLocalizations l10n) {
+  Widget _buildUnitResultCard(SearchResult result, AppLocalizations l10n) {
     final data = result.data as UnitSearchData;
 
     // Don't display sold units
@@ -1433,7 +1421,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemCount: _newArrivals.length,
                       itemBuilder: (context, index) {
                         return Container(
-                          width: 200,
+                          width: 190,
                           margin: EdgeInsets.only(
                             right: index < _newArrivals.length - 1 ? 12 : 0,
                           ),
@@ -1699,7 +1687,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       itemCount: _updated24Hours.length,
                       itemBuilder: (context, index) {
                         return Container(
-                          width: 200,
+                          width: 190,
                           margin: EdgeInsets.only(
                             right: index < _updated24Hours.length - 1 ? 12 : 0,
                           ),

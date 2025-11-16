@@ -35,6 +35,26 @@ class CompoundResponse extends Equatable {
     );
   }
 
+  CompoundResponse copyWith({
+    bool? success,
+    int? count,
+    String? total,
+    int? page,
+    int? limit,
+    int? totalPages,
+    List<Compound>? data,
+  }) {
+    return CompoundResponse(
+      success: success ?? this.success,
+      count: count ?? this.count,
+      total: total ?? this.total,
+      page: page ?? this.page,
+      limit: limit ?? this.limit,
+      totalPages: totalPages ?? this.totalPages,
+      data: data ?? this.data,
+    );
+  }
+
   @override
   List<Object?> get props => [success, count, total, page, limit, totalPages, data];
 

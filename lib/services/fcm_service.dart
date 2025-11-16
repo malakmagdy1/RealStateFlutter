@@ -261,7 +261,6 @@ class FCMService {
           print('╔════════════════════════════════════════════════════╗');
           print('║   ✅ FCM TOKEN SAVED TO BACKEND SUCCESSFULLY!     ║');
           print('╠════════════════════════════════════════════════════╣');
-          print('║   User ID: ${data['data']['user_id'].toString().padRight(39)} ║');
           print('║   You will now receive notifications!             ║');
           print('╚════════════════════════════════════════════════════╝');
           print('');
@@ -319,31 +318,57 @@ class FCMService {
 
     await _saveNotificationToCache(message);
 
-    // Show local notification when app is in foreground (skip on web)
-    if (message.notification != null && !kIsWeb) {
-      _localNotifications.show(
-        message.notification.hashCode,
-        message.notification!.title,
-        message.notification!.body,
-        NotificationDetails(
-          android: AndroidNotificationDetails(
-            'high_importance_channel',
-            'High Importance Notifications',
-            channelDescription: 'This channel is used for important notifications.',
-            importance: Importance.high,
-            priority: Priority.high,
-            icon: '@mipmap/ic_launcher',
-            playSound: true,
-            enableVibration: true,
+    // Show local notification when app is in foreground
+    if (message.notification != null) {
+      if (kIsWeb) {
+        // For web, show browser notification
+        print('🌐 Showing web notification in foreground...');
+        _showWebNotification(
+          message.notification!.title ?? 'Notification',
+          message.notification!.body ?? '',
+          message.data,
+        );
+      } else {
+        // For mobile, show flutter local notification
+        _localNotifications.show(
+          message.notification.hashCode,
+          message.notification!.title,
+          message.notification!.body,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              'high_importance_channel',
+              'High Importance Notifications',
+              channelDescription: 'This channel is used for important notifications.',
+              importance: Importance.high,
+              priority: Priority.high,
+              icon: '@mipmap/ic_launcher',
+              playSound: true,
+              enableVibration: true,
+            ),
+            iOS: DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
           ),
-          iOS: DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
-        ),
-        payload: jsonEncode(message.data),
-      );
+          payload: jsonEncode(message.data),
+        );
+      }
+    }
+  }
+
+  // ============================================================
+  // SHOW WEB NOTIFICATION (for foreground messages on web)
+  // ============================================================
+  void _showWebNotification(String title, String body, Map<String, dynamic> data) {
+    if (kIsWeb) {
+      try {
+        // Use JavaScript interop to show browser notification
+        showWebNotification(title, body);
+        print('✅ Web notification shown: $title');
+      } catch (e) {
+        print('❌ Error showing web notification: $e');
+      }
     }
   }
 

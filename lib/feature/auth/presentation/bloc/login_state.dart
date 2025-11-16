@@ -34,6 +34,16 @@ class LoginError extends LoginState {
   List<Object?> get props => [message];
 }
 
+class LoginDeviceLimitError extends LoginState {
+  final String message;
+  final List<Map<String, dynamic>> devices;
+
+  LoginDeviceLimitError(this.message, this.devices);
+
+  @override
+  List<Object?> get props => [message, devices];
+}
+
 class LogoutLoading extends LoginState {
   LogoutLoading();
 }

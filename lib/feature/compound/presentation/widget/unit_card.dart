@@ -47,7 +47,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
 
-    _elevationAnimation = Tween<double>(begin: 4.0, end: 8.0).animate(
+    _elevationAnimation = Tween<double>(begin: 4.0, end: 12.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
   }
@@ -55,19 +55,11 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
   @override
   void didUpdateWidget(UnitCard oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Update local note when widget is rebuilt with new data
-    print('[UNIT CARD] didUpdateWidget called');
-    print('[UNIT CARD] Old notes: ${oldWidget.unit.notes}');
-    print('[UNIT CARD] New notes: ${widget.unit.notes}');
-    print('[UNIT CARD] Old note_id: ${oldWidget.unit.noteId}');
-    print('[UNIT CARD] New note_id: ${widget.unit.noteId}');
-
     if (widget.unit.notes != oldWidget.unit.notes ||
         widget.unit.noteId != oldWidget.unit.noteId) {
       setState(() {
         _currentNote = widget.unit.notes;
       });
-      print('[UNIT CARD] Updated _currentNote to: $_currentNote');
     }
   }
 
@@ -77,58 +69,17 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
-  Future<void> _showSalespeople(BuildContext context) async {
-    final compoundWebServices = CompoundWebServices();
-    final l10n = AppLocalizations.of(context)!;
-
-    try {
-      final response = await compoundWebServices.getSalespeopleByCompound(widget.unit.compoundId);
-
-      if (response['success'] == true && response['salespeople'] != null) {
-        final salespeople = (response['salespeople'] as List)
-            .map((sp) => SalesPerson.fromJson(sp as Map<String, dynamic>))
-            .toList();
-
-        if (salespeople.isNotEmpty && context.mounted) {
-          SalesPersonSelector.show(
-            context,
-            salesPersons: salespeople,
-          );
-        } else if (context.mounted) {
-          MessageHelper.showMessage(
-            context: context,
-            message: l10n.noSalesPersonAvailable,
-            isSuccess: true,
-          );
-        }
-      }
-    } catch (e) {
-      if (context.mounted) {
-        MessageHelper.showError(context, '${l10n.error}: $e');
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Debug logging for badges
-    if (widget.unit.changeType != null) {
-      print('[UNIT CARD] Unit ${widget.unit.id}: changeType=${widget.unit.changeType}, isUpdated=${widget.unit.isUpdated}');
-    }
-
-    final screenWidth = MediaQuery.of(context).size.width;
     final unitImages = widget.unit.images ?? [];
     final bool hasImages = unitImages.isNotEmpty;
 
-    // Use compound location for the location display, fallback to compound name if not available
     final compoundLocation = widget.unit.compoundLocation?.isNotEmpty == true
         ? widget.unit.compoundLocation!
-        : (widget.unit.compoundName?.isNotEmpty == true ? widget.unit.compoundName! : '');
+        : 'N/A';
 
     final unitType = widget.unit.usageType ?? widget.unit.unitType ?? 'Unit';
     final unitNumber = widget.unit.unitNumber ?? '';
-
-    // Display unit number/name separately from type
     String unitName = unitNumber.isNotEmpty ? unitNumber : 'Unit';
 
     // Hide sold units completely
@@ -136,36 +87,26 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
       return SizedBox.shrink();
     }
 
-    // Fixed sizing for consistency with compound cards
-    final double imageHeight = screenWidth * 0.30; // 30% of screen width (matches compound cards)
-    final double borderRadius = 16;
-    final double actionButtonSize = 32.0; // Fixed size (matches compound cards)
-    final double actionIconSize = 18.0; // Fixed size (matches compound cards)
-    final double phoneButtonSize = 36.0; // Fixed size (matches compound cards)
-    final double phoneIconSize = 20.0; // Fixed size for better visibility
-    final double contentPadding = 6; // Reduced padding for compact text area
-    final double titleFontSize = screenWidth * 0.033; // 3.3% of screen width (reduced)
-    final double subtitleFontSize = screenWidth * 0.024; // 2.4% of screen width (reduced)
-    final double priceFontSize = screenWidth * 0.037; // 3.7% of screen width (reduced)
-
     return AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) => Transform.scale(
         scale: _scaleAnimation.value,
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(borderRadius),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: _elevationAnimation.value,
-                offset: Offset(0, 4),
-              ),
-            ],
-          ),
-          clipBehavior: Clip.hardEdge,
-          child: Material(
+        child: AspectRatio(
+          aspectRatio: 0.72, // Width to height ratio for card (reduced from 0.85 to make it smaller/taller)
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: _elevationAnimation.value,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            clipBehavior: Clip.hardEdge,
+            child: Material(
             color: Colors.transparent,
             child: InkWell(
               onTap: () {
@@ -183,148 +124,149 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
               onTapDown: (_) => _animationController.forward(),
               onTapUp: (_) => _animationController.reverse(),
               onTapCancel: () => _animationController.reverse(),
-              borderRadius: BorderRadius.circular(borderRadius),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Image section
-                  ClipRRect(
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(borderRadius),
-                      topRight: Radius.circular(borderRadius),
+              borderRadius: BorderRadius.circular(24),
+              hoverColor: AppColors.mainColor.withOpacity(0.03),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Stack(
+                  alignment: Alignment.bottomCenter,
+                  children: [
+                    // Background Image - fills entire container
+                    Positioned.fill(
+                      child: hasImages
+                          ? RobustNetworkImage(
+                              imageUrl: unitImages.first,
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, url) => _buildPlaceholder(),
+                            )
+                          : _buildPlaceholder(),
                     ),
-                    child: Stack(
-                      children: [
-                        hasImages
-                            ? RobustNetworkImage(
-                                imageUrl: unitImages.first,
-                                height: imageHeight,
-                                width: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, url) => _buildPlaceholder(imageHeight),
-                              )
-                            : _buildPlaceholder(imageHeight),
 
-                        // Top Row: Action Buttons (Left) and Status (Right)
-                        Positioned(
-                          top: 6,
-                          left: 6,
-                          right: 6,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    // Top Row: Action Buttons (Left)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      right: 8,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Action Buttons Row
+                          Row(
                             children: [
-                              // Action Buttons Row
-                              Row(
-                                children: [
-                                  // Favorite Button
-                                  BlocBuilder<UnitFavoriteBloc, UnitFavoriteState>(
-                                    builder: (context, state) {
-                                      bool isFavorite = false;
-                                      if (state is UnitFavoriteUpdated) {
-                                        isFavorite = state.favorites.any((u) => u.id == widget.unit.id);
-                                      }
-                                      print('[UNIT CARD] Favorite button state - Unit ${widget.unit.id}: isFavorite=$isFavorite');
-                                      return PulseAnimation(
-                                        animate: _animateFavorite,
-                                        child: _actionButton(
-                                          isFavorite ? Icons.favorite : Icons.favorite_border,
-                                          () {
-                                            print('[UNIT CARD] Favorite button clicked - Unit ${widget.unit.id}, current state: $isFavorite');
-                                            try {
-                                              if (isFavorite) {
-                                                print('[UNIT CARD] Removing from favorites');
-                                                context.read<UnitFavoriteBloc>().add(
-                                                  RemoveFavoriteUnit(widget.unit),
-                                                );
-                                              } else {
-                                                print('[UNIT CARD] Adding to favorites');
-                                                context.read<UnitFavoriteBloc>().add(
-                                                  AddFavoriteUnit(widget.unit),
-                                                );
-                                              }
+                              // Favorite Button
+                              BlocBuilder<UnitFavoriteBloc, UnitFavoriteState>(
+                                builder: (context, state) {
+                                  bool isFavorite = false;
+                                  if (state is UnitFavoriteUpdated) {
+                                    isFavorite = state.favorites.any((u) => u.id == widget.unit.id);
+                                  }
+                                  return PulseAnimation(
+                                    animate: _animateFavorite,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (isFavorite) {
+                                          context.read<UnitFavoriteBloc>().add(
+                                            RemoveFavoriteUnit(widget.unit),
+                                          );
+                                        } else {
+                                          context.read<UnitFavoriteBloc>().add(
+                                            AddFavoriteUnit(widget.unit),
+                                          );
+                                        }
 
-                                              // Trigger pulse animation
-                                              setState(() {
-                                                _animateFavorite = true;
-                                              });
-                                              Future.delayed(Duration(milliseconds: 600), () {
-                                                if (mounted) {
-                                                  setState(() {
-                                                    _animateFavorite = false;
-                                                  });
-                                                }
-                                              });
-                                            } catch (e) {
-                                              print('[UNIT CARD] Error toggling favorite: $e');
-                                            }
-                                          },
-                                          actionButtonSize,
-                                          actionIconSize,
-                                          color: isFavorite ? Colors.red : null,
+                                        setState(() {
+                                          _animateFavorite = true;
+                                        });
+                                        Future.delayed(Duration(milliseconds: 600), () {
+                                          if (mounted) {
+                                            setState(() {
+                                              _animateFavorite = false;
+                                            });
+                                          }
+                                        });
+                                      },
+                                      child: Container(
+                                        height: 28,
+                                        width: 28,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.35),
+                                          shape: BoxShape.circle,
                                         ),
-                                      );
-                                    },
-                                  ),
-                                  SizedBox(width: 4),
-                                  // Share Button
-                                  _actionButton(Icons.share, () {
-                                    showModalBottomSheet(
-                                      context: context,
-                                      isScrollControlled: true,
-                                      backgroundColor: Colors.transparent,
-                                      builder: (context) => AdvancedShareBottomSheet(
-                                        type: 'unit',
-                                        id: widget.unit.id,
+                                        child: Icon(
+                                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                                          size: 14,
+                                          color: isFavorite ? Colors.red : Colors.white,
+                                        ),
                                       ),
-                                    );
-                                  }, actionButtonSize, actionIconSize),
-                                  SizedBox(width: 4),
-                                  // Note Button
-                                  _actionButton(
+                                    ),
+                                  );
+                                },
+                              ),
+                              SizedBox(width: 4),
+                              // Note Button
+                              GestureDetector(
+                                onTap: () => _showNoteDialog(context),
+                                child: Container(
+                                  height: 28,
+                                  width: 28,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: _currentNote != null && _currentNote!.isNotEmpty
+                                        ? AppColors.mainColor.withOpacity(0.9)
+                                        : Colors.black.withOpacity(0.35),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
                                     _currentNote != null && _currentNote!.isNotEmpty
                                         ? Icons.note
                                         : Icons.note_add_outlined,
-                                    () => _showNoteDialog(context),
-                                    actionButtonSize,
-                                    actionIconSize,
-                                    color: _currentNote != null && _currentNote!.isNotEmpty
-                                        ? AppColors.mainColor
-                                        : null,
+                                    size: 14,
+                                    color: Colors.white,
                                   ),
-                                ],
+                                ),
                               ),
                             ],
                           ),
-                        ),
-
-                        // Sale Badge (higher priority, shown at top)
-                        if (widget.unit.sale != null && widget.unit.sale!.isCurrentlyActive)
-                          Positioned(
-                            top: 12,
-                            right: -5,
-                            child: Transform.rotate(
-                              angle: 0.785, // 45 degrees
-                              child: _saleBadge(widget.unit.sale!, screenWidth),
-                            ),
-                          ),
-                        // Update Badge (NEW/UPDATED) - Shown below sale badge if both exist
-                        if (widget.unit.isUpdated == true && widget.unit.changeType != null)
-                          Positioned(
-                            top: widget.unit.sale != null && widget.unit.sale!.isCurrentlyActive ? 40 : 12,
-                            right: -5,
-                            child: Transform.rotate(
-                              angle: 0.785, // 45 degrees
-                              child: _updateBadge(widget.unit.changeType!, screenWidth),
-                            ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
 
-                  // Content section
-                  Flexible(
-                    child: Padding(
-                      padding: EdgeInsets.all(3), // Further reduced to prevent overflow
+                    // Sale badge (higher priority, shown at top)
+                    if (widget.unit.sale != null && widget.unit.sale!.isCurrentlyActive)
+                      Positioned(
+                        top: 8,
+                        right: -35,
+                        child: Transform.rotate(
+                          angle: 0.785398, // 45 degrees
+                          child: _saleBadge(widget.unit.sale!),
+                        ),
+                      ),
+
+                    // Update badge (shown below sale badge if both exist)
+                    if (widget.unit.isUpdated == true && widget.unit.changeType != null)
+                      Positioned(
+                        top: widget.unit.sale != null && widget.unit.sale!.isCurrentlyActive ? 48 : 8,
+                        right: -35,
+                        child: Transform.rotate(
+                          angle: 0.785398, // 45 degrees
+                          child: _updateBadge(widget.unit.changeType!),
+                        ),
+                      ),
+
+                    // Semi-transparent Info Area at bottom
+                    Container(
+                      width: double.infinity,
+                      padding: EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.90),
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(24),
+                          bottomRight: Radius.circular(24),
+                        ),
+                      ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,7 +287,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                 child: Text(
                                   unitName,
                                   style: TextStyle(
-                                    fontSize: titleFontSize,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
                                     height: 1.1,
@@ -356,32 +298,32 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                               ),
                             ],
                           ),
-                          SizedBox(height: 0.5),
+                          SizedBox(height: 2),
 
                           // Unit Type (Villa, Apartment, etc.)
                           Text(
                             unitType,
                             style: TextStyle(
-                              fontSize: subtitleFontSize,
+                              fontSize: 9,
                               fontWeight: FontWeight.w500,
                               color: Colors.grey[700],
-                              height: 1.0,
+                              height: 1.1,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          SizedBox(height: 0.5),
+                          SizedBox(height: 2),
 
-                          // Location
+                          // Compound Name
                           Row(
                             children: [
-                              Icon(Icons.location_on_outlined, size: subtitleFontSize, color: Colors.grey[600]),
+                              Icon(Icons.location_on_outlined, size: 11, color: Colors.grey[600]),
                               SizedBox(width: 2),
                               Expanded(
                                 child: Text(
-                                  compoundLocation,
+                                  compoundLocation.isNotEmpty ? compoundLocation : 'N/A',
                                   style: TextStyle(
-                                    fontSize: subtitleFontSize,
+                                    fontSize: 9,
                                     color: Colors.grey[600],
                                   ),
                                   maxLines: 1,
@@ -391,54 +333,63 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                             ],
                           ),
 
-                          SizedBox(height: 0.5),
+                          SizedBox(height: 3),
 
                           // Property Details Row 1
                           Row(
                             children: [
-                              _detailChip(Icons.bed_outlined, widget.unit.bedrooms.isNotEmpty && widget.unit.bedrooms != '0' ? widget.unit.bedrooms : 'N/A', subtitleFontSize),
-                              SizedBox(width: 3),
-                              _detailChip(Icons.bathtub_outlined, widget.unit.bathrooms.isNotEmpty && widget.unit.bathrooms != '0' ? widget.unit.bathrooms : 'N/A', subtitleFontSize),
-                              SizedBox(width: 3),
-                              _detailChip(Icons.square_foot, widget.unit.area.isNotEmpty && widget.unit.area != '0' ? '${widget.unit.area}m²' : 'N/A', subtitleFontSize),
+                              _detailChip(Icons.home_work, widget.unit.bedrooms.isNotEmpty && widget.unit.bedrooms != '0' ? '${widget.unit.bedrooms} Bed' : 'N/A'),
+                              SizedBox(width: 2),
+                              _detailChip(Icons.bathtub_outlined, widget.unit.bathrooms.isNotEmpty && widget.unit.bathrooms != '0' ? widget.unit.bathrooms : 'N/A'),
+                              SizedBox(width: 2),
                             ],
                           ),
 
-                          SizedBox(height: 0.3),
-
-                          // Property Details Row 2 (Floor, Status/Progress, Delivery)
+                          SizedBox(height: 2),
                           Row(
                             children: [
-                              _detailChip(Icons.stairs, 'Floor: ${widget.unit.floor.isNotEmpty && widget.unit.floor != '0' ? widget.unit.floor : 'N/A'}', subtitleFontSize * 0.9),
-                              SizedBox(width: 3),
-                              // Status/Progress
+                              _detailChip(Icons.square_foot, widget.unit.area.isNotEmpty && widget.unit.area != '0' ? '${widget.unit.area}m²' : 'N/A'),
+                              SizedBox(width: 2),
                               widget.unit.status.toLowerCase().contains('progress')
-                                  ? _detailChip(Icons.pending, 'In Progress', subtitleFontSize * 0.9, color: Colors.orange)
+                                  ? _detailChip(Icons.pending, 'Progress', color: Colors.orange)
                                   : widget.unit.status.toLowerCase() == 'available'
-                                      ? _detailChip(Icons.check_circle, 'Available', subtitleFontSize * 0.9, color: Colors.green)
-                                      : _detailChip(Icons.info_outline, widget.unit.status, subtitleFontSize * 0.9),
-                              SizedBox(width: 3),
-                              // Delivery Date
-                              _detailChip(
-                                Icons.calendar_today,
-                                widget.unit.deliveryDate != null && widget.unit.deliveryDate!.isNotEmpty
-                                    ? widget.unit.deliveryDate!
-                                    : 'N/A',
-                                subtitleFontSize * 0.9,
+                                      ? _detailChip(Icons.check_circle, 'Available', color: Colors.green)
+                                      : _detailChip(Icons.info_outline, widget.unit.status),
+                            ],
+                          ),
+
+                          SizedBox(height: 3),
+                          // Delivery Date Row
+                          Row(
+                            children: [
+                              Icon(Icons.calendar_today, size: 11, color: Colors.grey[600]),
+                              SizedBox(width: 2),
+                              Expanded(
+                                child: Text(
+                                  widget.unit.deliveryDate != null && widget.unit.deliveryDate!.isNotEmpty
+                                      ? widget.unit.deliveryDate!
+                                      : 'N/A',
+                                  style: TextStyle(
+                                    fontSize: 9,
+                                    color: Colors.grey[600],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
                             ],
                           ),
 
-                          SizedBox(height: 0.3),
-
+                          SizedBox(height: 3),
                           // Price and Phone Button Row
                           Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Expanded(
                                 child: Text(
                                   'EGP ${_formatPrice(_getBestPrice())}',
                                   style: TextStyle(
-                                    fontSize: priceFontSize,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.mainColor,
                                   ),
@@ -446,28 +397,27 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                   overflow: TextOverflow.ellipsis,
                                 ),
                               ),
-                              // Phone Button with CircleAvatar
+                              // Phone Button
                               GestureDetector(
                                 onTap: () => _showSalespeople(context),
                                 child: Container(
+                                  width: 32,
+                                  height: 32,
                                   decoration: BoxDecoration(
+                                    color: AppColors.mainColor,
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Color(0xFF26A69A).withOpacity(0.3),
-                                        blurRadius: 8,
+                                        color: AppColors.mainColor.withOpacity(0.4),
+                                        blurRadius: 10,
                                         offset: Offset(0, 3),
                                       ),
                                     ],
                                   ),
-                                  child: CircleAvatar(
-                                    radius: phoneButtonSize / 2,
-                                    backgroundColor: Color(0xFF26A69A),
-                                    child: Icon(
-                                      Icons.phone,
-                                      color: Colors.white,
-                                      size: phoneIconSize,
-                                    ),
+                                  child: Icon(
+                                    Icons.phone,
+                                    color: Colors.white,
+                                    size: 16,
                                   ),
                                 ),
                               ),
@@ -476,20 +426,21 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                         ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
+                  ],
+                ), // Stack closing
+              ), // ClipRRect closing
+            ), // InkWell closing
+          ), // Material closing
+        ), // Container closing
+      ), // AspectRatio closing
+      ), // Transform.scale closing
+    ); // AnimatedBuilder closing
   }
 
-  Widget _buildPlaceholder(double height) {
+  Widget _buildPlaceholder() {
     return Container(
-      height: height,
       width: double.infinity,
+      height: double.infinity,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -506,15 +457,15 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
           children: [
             Icon(
               Icons.image_outlined,
-              size: height * 0.3,
+              size: 64,
               color: AppColors.mainColor.withOpacity(0.3),
             ),
-            SizedBox(height: 6),
+            SizedBox(height: 8),
             Text(
               'No Image Available',
               style: TextStyle(
                 color: Colors.grey[600],
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -524,35 +475,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
     );
   }
 
-  Widget _actionButton(IconData icon, VoidCallback onTap, double buttonSize, double iconSize, {Color? color}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: buttonSize,
-        height: buttonSize,
-        decoration: BoxDecoration(
-          color: color != null ? color.withOpacity(0.1) : Colors.white.withOpacity(0.95),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Icon(
-          icon,
-          size: iconSize,
-          color: color ?? Colors.grey[700],
-        ),
-      ),
-    );
-  }
-
   String? _getBestPrice() {
-    // Priority: sale price > discountedPrice > totalPrice > normalPrice > originalPrice > price
-    // Check if unit has an active sale
     if (widget.unit.sale != null && widget.unit.sale!.isCurrentlyActive) {
       return widget.unit.sale!.newPrice.toString();
     }
@@ -599,25 +522,25 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
     }
   }
 
-  Widget _detailChip(IconData icon, String value, double fontSize, {Color? color}) {
+  Widget _detailChip(IconData icon, String value, {Color? color}) {
     final chipColor = color ?? Colors.grey[700]!;
     return Flexible(
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+        padding: EdgeInsets.symmetric(horizontal: 5, vertical: 2),
         decoration: BoxDecoration(
           color: color != null ? color.withOpacity(0.1) : Colors.grey[100],
-          borderRadius: BorderRadius.circular(5),
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: fontSize * 1.15, color: chipColor),
+            Icon(icon, size: 11, color: chipColor),
             SizedBox(width: 2),
             Flexible(
               child: Text(
                 value,
                 style: TextStyle(
-                  fontSize: fontSize * 0.9,
+                  fontSize: 8,
                   fontWeight: FontWeight.w600,
                   color: chipColor,
                 ),
@@ -629,41 +552,6 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
         ),
       ),
     );
-  }
-
-  Color _getStatusColor(String status) {
-    final statusLower = status.toLowerCase();
-    // Handle both English and Arabic status values
-    if (statusLower == 'available' || statusLower == 'متاح') {
-      return Color(0xFF4CAF50);
-    } else if (statusLower == 'reserved' || statusLower == 'محجوز') {
-      return Colors.orange;
-    } else if (statusLower == 'sold' || statusLower == 'مباع') {
-      return Color(0xFFF44336);
-    } else if (statusLower == 'in_progress' || statusLower == 'قيد الإنشاء') {
-      return Colors.orange; // Changed from blue to orange for in_progress
-    } else if (statusLower == 'completed' || statusLower == 'مكتمل') {
-      return Color(0xFF4CAF50);
-    } else if (statusLower == 'delivered' || statusLower == 'تم التسليم') {
-      return Color(0xFF2196F3);
-    }
-    return Colors.grey;
-  }
-
-  String _getStatusLabel(String status) {
-    final statusLower = status.toLowerCase();
-    switch (statusLower) {
-      case 'available':
-        return 'AVAILABLE';
-      case 'reserved':
-        return 'RESERVED';
-      case 'sold':
-        return 'SOLD';
-      case 'in_progress':
-        return 'IN PROGRESS';
-      default:
-        return status.toUpperCase();
-    }
   }
 
   Future<void> _showNoteDialog(BuildContext context) async {
@@ -681,14 +569,12 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
 
       try {
         if (widget.unit.noteId != null) {
-          // Update existing note using new Notes API
           await webServices.updateNote(
             noteId: widget.unit.noteId!,
             content: result,
             title: 'Unit Note',
           );
         } else {
-          // Create new note using new Notes API
           await webServices.createNote(
             content: result,
             title: 'Unit Note',
@@ -700,7 +586,6 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
           _currentNote = result;
         });
 
-        // Reload favorites to get updated noteId
         bloc.add(LoadFavoriteUnits());
 
         if (mounted) {
@@ -714,7 +599,51 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
     }
   }
 
-  Widget _updateBadge(String changeType, double screenWidth) {
+  Future<void> _showSalespeople(BuildContext context) async {
+    final compoundWebServices = CompoundWebServices();
+    final l10n = AppLocalizations.of(context)!;
+
+    try {
+      final compoundName = widget.unit.compoundName ?? '';
+      if (compoundName.isEmpty) {
+        if (context.mounted) {
+          MessageHelper.showMessage(
+            context: context,
+            message: l10n.noSalesPersonAvailable,
+            isSuccess: true,
+          );
+        }
+        return;
+      }
+
+      final response = await compoundWebServices.getSalespeopleByCompound(compoundName);
+
+      if (response['success'] == true && response['salespeople'] != null) {
+        final salespeople = (response['salespeople'] as List)
+            .map((sp) => SalesPerson.fromJson(sp as Map<String, dynamic>))
+            .toList();
+
+        if (salespeople.isNotEmpty && context.mounted) {
+          SalesPersonSelector.show(
+            context,
+            salesPersons: salespeople,
+          );
+        } else if (context.mounted) {
+          MessageHelper.showMessage(
+            context: context,
+            message: l10n.noSalesPersonAvailable,
+            isSuccess: true,
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        MessageHelper.showError(context, '${l10n.error}: $e');
+      }
+    }
+  }
+
+  Widget _updateBadge(String changeType) {
     Color badgeColor;
     String badgeText;
     final isArabic = LanguageService.currentLanguage == 'ar';
@@ -722,17 +651,17 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
     switch (changeType.toLowerCase()) {
       case 'new':
       case 'جديد':
-        badgeColor = Color(0xFF4CAF50); // Green
+        badgeColor = Color(0xFF4CAF50);
         badgeText = isArabic ? 'جديد' : 'NEW';
         break;
       case 'updated':
       case 'محدث':
-        badgeColor = Color(0xFFFF9800); // Orange
+        badgeColor = Color(0xFFFF9800);
         badgeText = isArabic ? 'محدث' : 'UPDATED';
         break;
       case 'deleted':
       case 'محذوف':
-        badgeColor = Colors.red[700]!; // Red
+        badgeColor = Colors.red[700]!;
         badgeText = isArabic ? 'محذوف' : 'DELETED';
         break;
       default:
@@ -741,37 +670,67 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
     }
 
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: 4,
+      width: 140,
+      height: 25,
+      padding: EdgeInsets.only(
+        left: 35,
+        right: 10,
+        top: 6,
+        bottom: 6,
       ),
-      color: badgeColor,
-      child: Text(
-        badgeText,
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-          letterSpacing: 0.5,
+      decoration: BoxDecoration(
+        color: badgeColor,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          badgeText,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 10,
+            letterSpacing: 0.5,
+          ),
         ),
       ),
     );
   }
 
-  Widget _saleBadge(Sale sale, double screenWidth) {
+  Widget _saleBadge(Sale sale) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: 18,
-        vertical: 4,
+      width: 140,
+      height: 25,
+      padding: EdgeInsets.only(
+        left: 35,
+        right: 10,
+        top: 6,
+        bottom: 6,
       ),
-      color: Color(0xFFFF6B6B),  // Red/pink color for sale
-      child: Text(
-        '${sale.discountPercentage.toInt()}% OFF',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-          letterSpacing: 0.5,
+      decoration: BoxDecoration(
+        color: Color(0xFFFF6B6B),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black26,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          '${sale.discountPercentage.toInt()}% OFF',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 10,
+            letterSpacing: 0.5,
+          ),
         ),
       ),
     );

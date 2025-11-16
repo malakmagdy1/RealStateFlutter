@@ -1,6 +1,8 @@
 import 'dart:io' show Platform;
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:real/feature/company/data/models/company_model.dart';
+import 'package:real/feature/compound/data/models/compound_model.dart';
 
 class FilterUnitsResponse extends Equatable {
   final bool success;
@@ -11,6 +13,8 @@ class FilterUnitsResponse extends Equatable {
   final int totalPages;
   final List<String> filtersApplied;
   final List<FilteredUnit> units;
+  final List<Company> companies;
+  final List<Compound> compounds;
   final Map<String, dynamic>? subscription;
 
   FilterUnitsResponse({
@@ -22,6 +26,8 @@ class FilterUnitsResponse extends Equatable {
     required this.totalPages,
     required this.filtersApplied,
     required this.units,
+    this.companies = const [],
+    this.compounds = const [],
     this.subscription,
   });
 
@@ -46,6 +52,40 @@ class FilterUnitsResponse extends Equatable {
           .toList();
     }
 
+    // Parse companies array
+    List<Company> companiesList = [];
+    final companiesData = json['companies'];
+    if (companiesData != null && companiesData is List) {
+      companiesList = companiesData
+          .map((company) {
+            try {
+              return Company.fromJson(company as Map<String, dynamic>);
+            } catch (e) {
+              print('[FILTER RESPONSE] Error parsing company: $e');
+              return null;
+            }
+          })
+          .whereType<Company>()
+          .toList();
+    }
+
+    // Parse compounds array
+    List<Compound> compoundsList = [];
+    final compoundsData = json['compounds'];
+    if (compoundsData != null && compoundsData is List) {
+      compoundsList = compoundsData
+          .map((compound) {
+            try {
+              return Compound.fromJson(compound as Map<String, dynamic>);
+            } catch (e) {
+              print('[FILTER RESPONSE] Error parsing compound: $e');
+              return null;
+            }
+          })
+          .whereType<Compound>()
+          .toList();
+    }
+
     List<String> filtersList = [];
     if (json['filters_applied'] != null && json['filters_applied'] is List) {
       filtersList = (json['filters_applied'] as List)
@@ -62,6 +102,8 @@ class FilterUnitsResponse extends Equatable {
       totalPages: json['total_pages'] ?? json['last_page'] ?? 1,
       filtersApplied: filtersList,
       units: unitsList,
+      companies: companiesList,
+      compounds: compoundsList,
       subscription: json['subscription'] as Map<String, dynamic>?,
     );
   }
@@ -87,23 +129,20 @@ class FilterUnitsResponse extends Equatable {
       return false;
     }
 
-    // Must be available (not sold or unavailable)
-    if (!unit.available) {
-      print('[FILTER RESPONSE] ✗ Skipping unit ${unit.id} (${unit.unitName}) - not available');
-      return false;
-    }
-
-    // Must not be sold
-    if (unit.isSold) {
+    // Skip only if explicitly sold (status is "sold")
+    if (unit.status.toLowerCase() == 'sold' || unit.isSold) {
       print('[FILTER RESPONSE] ✗ Skipping unit ${unit.id} (${unit.unitName}) - already sold');
       return false;
     }
 
+    // Note: We removed the 'available' check because backend may not set it correctly
+    // Units should be shown unless explicitly sold
+    print('[FILTER RESPONSE] ✓ Including unit ${unit.id} (${unit.unitName}) - Status: ${unit.status}, Available: ${unit.available}');
     return true;
   }
 
   @override
-  List<Object?> get props => [success, searchQuery, totalUnits, page, limit, totalPages, filtersApplied, units, subscription];
+  List<Object?> get props => [success, searchQuery, totalUnits, page, limit, totalPages, filtersApplied, units, companies, compounds, subscription];
 }
 
 class FilteredUnit extends Equatable {

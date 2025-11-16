@@ -143,10 +143,12 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                   SizedBox(height: 20),
-                  CustomText24(
-                    "Get Started Now",
-                    color: AppColors.black,
-                    bold: true,
+                  Center(
+                    child: CustomText24(
+                      "Get Started Now",
+                      color: AppColors.black,
+                      bold: true,
+                    ),
                   ),
                   SizedBox(height: 20),
                   AuthToggle(

@@ -26,6 +26,9 @@ import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.da
 import 'package:real/feature/subscription/presentation/bloc/subscription_event.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
 import 'package:real/feature/subscription/presentation/screens/subscription_plans_screen.dart';
+import 'package:real/feature/auth/presentation/screen/device_management_screen.dart';
+import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/widget/button/authButton.dart';
 import '../widget/textFormField.dart';
@@ -512,6 +515,195 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     );
   }
 
+  void _showDeviceLimitDialog(BuildContext context, String message, List<Map<String, dynamic>> devices) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.orange, size: 28),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Device Limit Reached',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                message,
+                style: TextStyle(fontSize: 15, height: 1.4),
+              ),
+              SizedBox(height: 20),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.blue.shade700, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'How to fix this:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue.shade900,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      '1. Login from one of your existing devices',
+                      style: TextStyle(fontSize: 13, color: Colors.blue.shade900),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '2. Go to Profile → Device Management',
+                      style: TextStyle(fontSize: 13, color: Colors.blue.shade900),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '3. Remove old or unused devices',
+                      style: TextStyle(fontSize: 13, color: Colors.blue.shade900),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      '4. Come back and login from this device',
+                      style: TextStyle(fontSize: 13, color: Colors.blue.shade900),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16),
+              if (devices.isNotEmpty) ...[
+                Text(
+                  'Your registered devices:',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.greyText,
+                  ),
+                ),
+                SizedBox(height: 12),
+                ...devices.take(5).map((device) {
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 8),
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _getDeviceIcon(device['device_type']),
+                          color: AppColors.mainColor,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                device['device_name'] ?? 'Unknown Device',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              Text(
+                                device['os_version'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.greyText,
+                                ),
+                              ),
+                              if (device['last_active'] != null || device['last_active_at'] != null)
+                                Text(
+                                  'Last: ${_formatDeviceDate(device['last_active'] ?? device['last_active_at'])}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.greyText,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('OK'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              Navigator.pushNamed(context, SubscriptionPlansScreen.routeName);
+            },
+            icon: Icon(Icons.workspace_premium, size: 18),
+            label: Text('Upgrade Plan'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.mainColor,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getDeviceIcon(String? deviceType) {
+    switch (deviceType?.toLowerCase()) {
+      case 'android':
+        return Icons.android;
+      case 'ios':
+        return Icons.phone_iphone;
+      case 'web':
+        return Icons.web;
+      case 'windows':
+        return Icons.desktop_windows;
+      case 'macos':
+        return Icons.laptop_mac;
+      default:
+        return Icons.devices;
+    }
+  }
+
+  String _formatDeviceDate(String? dateStr) {
+    if (dateStr == null) return 'Never';
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('MMM dd, HH:mm').format(date);
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -629,6 +821,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
             // Check subscription status after login
             _checkSubscriptionStatus(context);
+          } else if (state is LoginDeviceLimitError) {
+            // Show device limit dialog
+            _showDeviceLimitDialog(context, state.message, state.devices);
           } else if (state is LoginError) {
             MessageHelper.showError(context, state.message);
           }
@@ -647,12 +842,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                   SizedBox(height: 20),
-                  Text(
-                    "Welcome Back",
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                  Center(
+                    child: Text(
+                      "Welcome Back",
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
               SizedBox(height: 20),

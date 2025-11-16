@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/validators.dart';
@@ -12,7 +11,6 @@ import 'package:real/feature/auth/presentation/bloc/register_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/register_event.dart';
 import 'package:real/feature/auth/presentation/bloc/register_state.dart';
 import 'package:real/feature/auth/presentation/screen/email_verification_screen.dart';
-import 'package:real/feature_web/auth/presentation/web_login_screen.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class WebSignUpScreen extends StatefulWidget {
@@ -80,8 +78,11 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 1024;
+
     return Scaffold(
-      backgroundColor: Color(0xFFF8F9FA),
+      backgroundColor: Colors.white,
       body: BlocListener<RegisterBloc, RegisterState>(
         listener: (context, state) async {
           if (state is RegisterSuccess) {
@@ -91,8 +92,6 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                 key: "token",
                 value: state.response.token!
               );
-
-              // Update global token variable
               token = state.response.token!;
 
               // Save user ID if available
@@ -103,17 +102,11 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                 );
                 userId = state.response.user!.id.toString();
               }
-
-              print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-              print('[WebSignupScreen] Token saved after registration');
-              print('[WebSignupScreen] Token: ${state.response.token}');
-              print('[WebSignupScreen] User ID: ${state.response.user?.id}');
-              print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
             }
 
             MessageHelper.showSuccess(context, state.response.message);
 
-            // Navigate to email verification screen after successful registration
+            // Navigate to email verification screen
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
@@ -126,30 +119,83 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
             MessageHelper.showError(context, state.message);
           }
         },
-        child: Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.all(32.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Left side - PropSpace branding
-                if (MediaQuery.of(context).size.width > 1200)
-                  Padding(
-                    padding: EdgeInsets.only(right: 64),
-                    child: Container(
-                      width: 400,
-                      padding: EdgeInsets.all(48),
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
+        child: Row(
+          children: [
+            // Left side - Background Image (hidden on mobile)
+            if (!isMobile)
+              Expanded(
+                flex: 1,
+                child: Container(
+                  decoration: BoxDecoration(
+                    image: DecorationImage(
+                      image: AssetImage('assets/images/onboarding1.jpg'),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.3),
+                          Colors.black.withOpacity(0.6),
+                        ],
                       ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: 120,
-                            height: 120,
+                    ),
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(48),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Join us today!',
+                              style: TextStyle(
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              'Create an account to discover your dream property. Your perfect home is just a few steps away.',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Right side - Signup Form
+            Expanded(
+              flex: 1,
+              child: Container(
+                color: Colors.white,
+                child: Center(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(48.0),
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: 450),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Logo or Brand Name
+                        Center(
+                          child: Container(
+                            width: 90,
+                            height: 90,
                             decoration: BoxDecoration(
                               color: AppColors.mainColor,
                               borderRadius: BorderRadius.circular(15),
@@ -158,281 +204,130 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                               borderRadius: BorderRadius.circular(15),
                               child: Image.asset(
                                 "assets/images/logos/appIcon.png",
-                                fit: BoxFit.cover,
+                                fit: BoxFit.fitWidth,
                               ),
                             ),
                           ),
-                          SizedBox(height: 24),
-                          Text(
-                            'Find Your Perfect Space',
+                        ),
+                        SizedBox(height: 16),
+                        Center(
+                          child: Text(
+                            'RealtyFind',
                             style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withOpacity(0.9),
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.mainColor,
                             ),
                           ),
-                          SizedBox(height: 16),
-                          Text(
-                            'Create an account to save properties, get market updates, and connect with agents.',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white.withOpacity(0.8),
-                              height: 1.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                        ),
+                        SizedBox(height: 40),
 
-                // Right side - Registration Form
-                Container(
-                  width: 550,
-                  padding: EdgeInsets.all(48),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 20,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
+                        // Title
                         Text(
-                          'Get Started for Free',
+                          'Create Your Account',
                           style: TextStyle(
                             fontSize: 32,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
                         ),
-                        SizedBox(height: 32),
-
-                        // Social Sign Up Buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  // Handle Google sign up
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.symmetric(vertical: 14),
-                                  side: BorderSide(color: Colors.grey[300]!),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                icon: Image.asset(
-                                  'assets/images/google.png',
-                                  height: 20,
-                                  width: 20,
-                                ),
-                                label: Text(
-                                  'Sign up with Google',
-                                  style: TextStyle(
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            SizedBox(width: 12),
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: () {
-                                  // Handle Apple sign up
-                                },
-                                style: OutlinedButton.styleFrom(
-                                  padding: EdgeInsets.symmetric(vertical: 14),
-                                  side: BorderSide(color: Colors.grey[300]!),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                                icon: Icon(Icons.apple, size: 24, color: Colors.black87),
-                                label: Text(
-                                  'Sign up with Apple',
-                                  style: TextStyle(
-                                    color: Colors.black87,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 32),
-
-                        // Step indicator
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: AppColors.mainColor.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            'Step 1 of 2: Create Your Account',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.mainColor,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        SizedBox(height: 24),
-
-                        // Full Name
+                        SizedBox(height: 8),
                         Text(
-                          'Full Name',
+                          'Sign up to start your property journey',
                           style: TextStyle(
                             fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                            color: Colors.grey[600],
                           ),
                         ),
+                        SizedBox(height: 32),
+
+                        // Full Name
+                        _buildLabel('Full Name'),
                         SizedBox(height: 8),
-                        TextFormField(
+                        _buildTextField(
                           controller: nameController,
+                          hintText: 'Enter your full name',
                           validator: Validators.validateName,
-                          decoration: InputDecoration(
-                            hintText: 'John Doe',
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: AppColors.mainColor, width: 2),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.red, width: 1),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          ),
+                          prefixIcon: Icons.person_outline,
                         ),
                         SizedBox(height: 20),
 
-                        // Email Address
-                        Text(
-                          'Email Address',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
+                        // Email
+                        _buildLabel('Email Address'),
                         SizedBox(height: 8),
-                        TextFormField(
+                        _buildTextField(
                           controller: emailController,
-                          keyboardType: TextInputType.emailAddress,
+                          hintText: 'Enter your email',
                           validator: Validators.validateEmail,
-                          decoration: InputDecoration(
-                            hintText: 'john.doe@example.com',
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: AppColors.mainColor, width: 2),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.red, width: 1),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          prefixIcon: Icons.email_outlined,
+                        ),
+                        SizedBox(height: 20),
+
+                        // Phone
+                        _buildLabel('Phone Number'),
+                        SizedBox(height: 8),
+                        _buildTextField(
+                          controller: phoneController,
+                          hintText: 'Enter your phone number',
+                          validator: Validators.validatePhone,
+                          keyboardType: TextInputType.phone,
+                          prefixIcon: Icons.phone_outlined,
                         ),
                         SizedBox(height: 20),
 
                         // Password
-                        Text(
-                          'Password',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
+                        _buildLabel('Password'),
                         SizedBox(height: 8),
-                        TextFormField(
+                        _buildTextField(
                           controller: passwordController,
-                          obscureText: _obscurePassword,
+                          hintText: 'Enter your password',
                           validator: Validators.validatePassword,
+                          obscureText: _obscurePassword,
+                          prefixIcon: Icons.lock_outline,
                           onChanged: _checkPasswordStrength,
-                          decoration: InputDecoration(
-                            hintText: 'Enter your password',
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              color: Colors.grey[600],
+                              size: 20,
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: AppColors.mainColor, width: 2),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.red, width: 1),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                                color: Colors.grey[600],
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                            ),
+                            onPressed: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
                           ),
                         ),
+
+                        // Password Strength Indicator
                         if (_passwordStrength.isNotEmpty) ...[
-                          SizedBox(height: 8),
+                          SizedBox(height: 12),
                           Row(
                             children: [
                               Expanded(
                                 child: Container(
                                   height: 4,
                                   decoration: BoxDecoration(
-                                    color: _passwordStrengthColor,
+                                    color: _passwordStrengthColor.withOpacity(0.3),
                                     borderRadius: BorderRadius.circular(2),
+                                  ),
+                                  child: FractionallySizedBox(
+                                    alignment: Alignment.centerLeft,
+                                    widthFactor: _passwordStrength == 'Weak' ? 0.25
+                                        : _passwordStrength == 'Fair' ? 0.5
+                                        : _passwordStrength == 'Good' ? 0.75
+                                        : 1.0,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: _passwordStrengthColor,
+                                        borderRadius: BorderRadius.circular(2),
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 8),
+                              SizedBox(width: 12),
                               Text(
                                 _passwordStrength,
                                 style: TextStyle(
@@ -447,209 +342,193 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                         SizedBox(height: 20),
 
                         // Confirm Password
-                        Text(
-                          'Confirm Password',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
+                        _buildLabel('Confirm Password'),
                         SizedBox(height: 8),
-                        TextFormField(
+                        _buildTextField(
                           controller: confirmPasswordController,
-                          obscureText: _obscureConfirmPassword,
+                          hintText: 'Confirm your password',
                           validator: (value) => Validators.validateConfirmPassword(
                             value,
                             passwordController.text,
                           ),
-                          decoration: InputDecoration(
-                            hintText: 'Confirm your password',
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
+                          obscureText: _obscureConfirmPassword,
+                          prefixIcon: Icons.lock_outline,
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _obscureConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                              color: Colors.grey[600],
+                              size: 20,
                             ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: AppColors.mainColor, width: 2),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.red, width: 1),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                                color: Colors.grey[600],
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscureConfirmPassword = !_obscureConfirmPassword;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 20),
-
-                        // Phone Number
-                        Text(
-                          'Phone Number',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        SizedBox(height: 8),
-                        TextFormField(
-                          controller: phoneController,
-                          keyboardType: TextInputType.phone,
-                          validator: Validators.validatePhone,
-                          decoration: InputDecoration(
-                            hintText: '+20 123 456 7890',
-                            filled: true,
-                            fillColor: Colors.grey[50],
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.grey[300]!),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: AppColors.mainColor, width: 2),
-                            ),
-                            errorBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: Colors.red, width: 1),
-                            ),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            prefixIcon: Icon(Icons.phone, color: Colors.grey[600]),
+                            onPressed: () {
+                              setState(() {
+                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                              });
+                            },
                           ),
                         ),
                         SizedBox(height: 24),
 
-                        // Terms and Conditions Checkbox
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Checkbox(
-                              value: _acceptTerms,
-                              onChanged: (value) {
-                                setState(() {
-                                  _acceptTerms = value ?? false;
-                                });
-                              },
-                              activeColor: AppColors.mainColor,
+                        // Terms Checkbox
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _acceptTerms = !_acceptTerms;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: _acceptTerms ? AppColors.mainColor : Colors.grey[300]!,
+                              ),
                             ),
-                            Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.only(top: 12),
-                                child: RichText(
-                                  text: TextSpan(
-                                    style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-                                    children: [
-                                      TextSpan(text: 'I agree to the '),
-                                      TextSpan(
-                                        text: 'Terms of Service',
-                                        style: TextStyle(
-                                          color: AppColors.mainColor,
-                                          fontWeight: FontWeight.w600,
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    color: _acceptTerms ? AppColors.mainColor : Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                      color: _acceptTerms ? AppColors.mainColor : Colors.grey[400]!,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: _acceptTerms
+                                      ? Icon(Icons.check, size: 14, color: Colors.white)
+                                      : null,
+                                ),
+                                SizedBox(width: 12),
+                                Expanded(
+                                  child: RichText(
+                                    text: TextSpan(
+                                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                                      children: [
+                                        TextSpan(text: 'I agree to the '),
+                                        TextSpan(
+                                          text: 'Terms of Service',
+                                          style: TextStyle(
+                                            color: AppColors.mainColor,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
-                                      ),
-                                      TextSpan(text: ' and '),
-                                      TextSpan(
-                                        text: 'Privacy Policy',
-                                        style: TextStyle(
-                                          color: AppColors.mainColor,
-                                          fontWeight: FontWeight.w600,
+                                        TextSpan(text: ' and '),
+                                        TextSpan(
+                                          text: 'Privacy Policy',
+                                          style: TextStyle(
+                                            color: AppColors.mainColor,
+                                            fontWeight: FontWeight.w600,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                        SizedBox(height: 24),
+                        SizedBox(height: 32),
 
                         // Create Account Button
                         BlocBuilder<RegisterBloc, RegisterState>(
                           builder: (context, state) {
                             final isLoading = state is RegisterLoading;
-                            return ElevatedButton(
-                              onPressed: (!_acceptTerms || isLoading) ? null : () {
-                                if (_formKey.currentState!.validate()) {
-                                  final request = RegisterRequest(
-                                    name: nameController.text,
-                                    email: emailController.text,
-                                    password: passwordController.text,
-                                    passwordConfirmation: confirmPasswordController.text,
-                                    phone: phoneController.text,
-                                    role: 'buyer',
-                                  );
-                                  context.read<RegisterBloc>().add(
-                                    RegisterSubmitEvent(request),
-                                  );
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.mainColor,
-                                foregroundColor: Colors.white,
-                                padding: EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                elevation: 0,
-                                disabledBackgroundColor: Colors.grey[300],
+                            return Container(
+                              height: 56,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(12),
+                                gradient: (!_acceptTerms || isLoading)
+                                    ? null
+                                    : LinearGradient(
+                                        colors: [
+                                          AppColors.mainColor,
+                                          AppColors.mainColor.withOpacity(0.8),
+                                        ],
+                                      ),
+                                color: (!_acceptTerms || isLoading) ? Colors.grey[300] : null,
+                                boxShadow: (!_acceptTerms || isLoading)
+                                    ? null
+                                    : [
+                                        BoxShadow(
+                                          color: AppColors.mainColor.withOpacity(0.3),
+                                          blurRadius: 12,
+                                          offset: Offset(0, 6),
+                                        ),
+                                      ],
                               ),
-                              child: isLoading
-                                ? CustomLoadingDots(size: 20)
-                                : Text(
-                                    'Create My Account',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                              child: ElevatedButton(
+                                onPressed: (!_acceptTerms || isLoading) ? null : () {
+                                  if (_formKey.currentState!.validate()) {
+                                    final request = RegisterRequest(
+                                      name: nameController.text,
+                                      email: emailController.text,
+                                      password: passwordController.text,
+                                      passwordConfirmation: confirmPasswordController.text,
+                                      phone: phoneController.text,
+                                      role: 'buyer',
+                                    );
+                                    context.read<RegisterBloc>().add(
+                                      RegisterSubmitEvent(request),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  foregroundColor: Colors.white,
+                                  shadowColor: Colors.transparent,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
+                                ),
+                                child: isLoading
+                                    ? CustomLoadingDots(size: 24)
+                                    : Text(
+                                        'Create Account',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                              ),
                             );
                           },
                         ),
                         SizedBox(height: 24),
 
-                        // Log In Link
+                        // Already have account
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
                               'Already have an account? ',
-                              style: TextStyle(color: Colors.grey[600]),
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 14,
+                              ),
                             ),
                             TextButton(
                               onPressed: () {
                                 context.go('/login');
                               },
                               style: TextButton.styleFrom(
-                                padding: EdgeInsets.zero,
+                                padding: EdgeInsets.symmetric(horizontal: 4),
                                 minimumSize: Size(0, 0),
                                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                               ),
                               child: Text(
-                                'Log In',
+                                'Sign In',
                                 style: TextStyle(
                                   color: AppColors.mainColor,
                                   fontWeight: FontWeight.w600,
+                                  fontSize: 14,
                                 ),
                               ),
                             ),
@@ -658,11 +537,75 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                       ],
                     ),
                   ),
+                    ),
+                  ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: Colors.black87,
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String hintText,
+    String? Function(String?)? validator,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    IconData? prefixIcon,
+    Widget? suffixIcon,
+    void Function(String)? onChanged,
+  }) {
+    return TextFormField(
+      controller: controller,
+      validator: validator,
+      keyboardType: keyboardType,
+      obscureText: obscureText,
+      onChanged: onChanged,
+      style: TextStyle(fontSize: 15),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+        filled: true,
+        fillColor: Colors.grey[50],
+        prefixIcon: prefixIcon != null
+            ? Icon(prefixIcon, color: Colors.grey[600], size: 20)
+            : null,
+        suffixIcon: suffixIcon,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.mainColor, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.red[300]!, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.red, width: 2),
+        ),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );
   }

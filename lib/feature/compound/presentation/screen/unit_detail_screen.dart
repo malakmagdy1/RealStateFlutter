@@ -697,7 +697,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         if (widget.unit.companyName != null && widget.unit.companyName!.isNotEmpty)
           CustomText16(
             widget.unit.companyName!,
-            color: Colors.grey.shade600,
+            color: AppColors.greyText,
           ),
         SizedBox(height: 12),
         // Show sale price if available
@@ -706,7 +706,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
             'EGP ${_formatPrice(_unitSale!.oldPrice.toString())}',
             style: TextStyle(
               fontSize: 18,
-              color: Colors.grey.shade600,
+              color: AppColors.greyText,
               decoration: TextDecoration.lineThrough,
             ),
           ),
@@ -754,7 +754,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
             widget.unit.price.isNotEmpty && widget.unit.area.isNotEmpty)
           CustomText14(
             'EGP ${_calculatePricePerSqm()} ${l10n.perSqm}',
-            color: Colors.grey.shade700,
+            color: AppColors.greyText,
           ),
       ],
     );
@@ -816,41 +816,55 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         CustomText24(
           value,
           bold: true,
-          color: Colors.black87,
+          color: Colors.black,
         ),
         SizedBox(height: 4),
         CustomText14(
           label,
-          color: Colors.black87,
+          color: Colors.black,
         ),
       ],
     );
   }
 
   Widget _buildTabBar(AppLocalizations l10n) {
-    return TabBar(
-      controller: _tabController,
-      isScrollable: true,
-      labelColor: AppColors.mainColor,
-      unselectedLabelColor: AppColors.grey,
-      indicatorColor: AppColors.mainColor,
-      indicatorWeight: 3,
-      labelStyle: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.bold,
+    return Container(
+      height: 50,
+      child: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        labelColor: Colors.white,
+        unselectedLabelColor: AppColors.grey,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          color: AppColors.mainColor,
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.mainColor.withOpacity(0.3),
+              blurRadius: 8,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        labelStyle: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.normal,
+        ),
+        labelPadding: EdgeInsets.symmetric(horizontal: 16),
+        tabs: [
+          Tab(icon: Icon(Icons.info_outline, size: 18), text: l10n.details),
+          Tab(icon: Icon(Icons.photo_library_outlined, size: 18), text: l10n.gallery),
+          Tab(icon: Icon(Icons.note_outlined, size: 18), text: 'Notes'),
+          Tab(icon: Icon(Icons.payment, size: 18), text: l10n.paymentPlans),
+          Tab(icon: Icon(Icons.map_outlined, size: 18), text: l10n.viewOnMap),
+          Tab(icon: Icon(Icons.architecture_outlined, size: 18), text: l10n.floorPlan),
+        ],
       ),
-      unselectedLabelStyle: TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.normal,
-      ),
-      tabs: [
-        Tab(text: l10n.details),
-        Tab(text: l10n.gallery),
-        Tab(text: 'Notes'),
-        Tab(text: l10n.paymentPlans),
-        Tab(text: l10n.viewOnMap),
-        Tab(text: l10n.floorPlan),
-      ],
     );
   }
 
@@ -932,7 +946,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                           widget.unit.notes!,
                           style: TextStyle(
                             fontSize: 13,
-                            color: Color(0xFF856404),
+                            color: Colors.black,
                           ),
                         ),
                       ],
@@ -970,14 +984,14 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         children: [
           CustomText16(
             label,
-            color: Colors.grey.shade700,
+            color: AppColors.greyText,
             bold: false,
           ),
           Expanded(
             child: CustomText16(
               value,
               bold: true,
-              color: Colors.black87,
+              color: Colors.black,
               align: TextAlign.right,
             ),
           ),
@@ -1029,234 +1043,100 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
 
   Widget _buildMapTab(AppLocalizations l10n) {
     final unit = _currentUnit ?? widget.unit;
-    final compoundLocation = unit.compoundName ?? '';
-    final actualLocation = compoundLocation.isNotEmpty ? compoundLocation : l10n.locationNotAvailable ?? 'Location not available';
+    final compoundLocation = unit.compoundLocation ?? '';
+    final actualLocation = compoundLocation.isNotEmpty ? compoundLocation : (l10n.locationNotAvailable ?? 'Location not available');
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Location Header
-          Row(
-            children: [
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Location Icon
+            Container(
+              padding: EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.mainColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.location_on,
+                size: 64,
+                color: AppColors.mainColor,
+              ),
+            ),
+
+            SizedBox(height: 24),
+
+            // Location Text
+            Text(
+              actualLocation,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.black,
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            SizedBox(height: 32),
+
+            // Open Location Button
+            if (unit.compoundLocationUrl != null && unit.compoundLocationUrl!.isNotEmpty)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final url = Uri.parse(unit.compoundLocationUrl!);
+                    if (await canLaunchUrl(url)) {
+                      await launchUrl(url, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: Icon(Icons.map, color: Colors.white, size: 24),
+                  label: Text(
+                    l10n.openLocationInMaps ?? 'Open Location in Maps',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mainColor,
+                    padding: EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 4,
+                  ),
+                ),
+              )
+            else
               Container(
-                padding: EdgeInsets.all(12),
+                width: double.infinity,
+                padding: EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: AppColors.mainColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.grey.shade300),
                 ),
-                child: Icon(
-                  Icons.location_on,
-                  size: 32,
-                  color: AppColors.mainColor,
-                ),
-              ),
-              SizedBox(width: 16),
-              Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    CustomText18(
-                      l10n.location ?? 'Location',
-                      bold: true,
-                      color: AppColors.black,
-                    ),
-                    SizedBox(height: 4),
-                    CustomText14(
-                      l10n.compoundLocation ?? 'Compound Location',
-                      color: AppColors.grey,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-
-          SizedBox(height: 24),
-
-          // Location Card
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.grey.shade200),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Compound Name
-                Row(
-                  children: [
-                    Icon(Icons.apartment, size: 20, color: AppColors.mainColor),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: CustomText16(
-                        l10n.compoundName ?? 'Compound',
-                        color: AppColors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8),
-                Padding(
-                  padding: EdgeInsets.only(left: 28),
-                  child: CustomText18(
-                    actualLocation,
-                    bold: true,
-                    color: AppColors.black,
-                  ),
-                ),
-
-                SizedBox(height: 20),
-                Divider(),
-                SizedBox(height: 20),
-
-                // Unit Details
-                Row(
-                  children: [
-                    Icon(Icons.home_work, size: 20, color: AppColors.mainColor),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: CustomText16(
-                        l10n.unitDetails ?? 'Unit Details',
-                        color: AppColors.grey,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12),
-
-                Padding(
-                  padding: EdgeInsets.only(left: 28),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (unit.buildingName != null && unit.buildingName!.isNotEmpty) ...[
-                        _locationDetailRow(
-                          Icons.business,
-                          l10n.building ?? 'Building',
-                          unit.buildingName!,
-                        ),
-                        SizedBox(height: 8),
-                      ],
-                      if (unit.floor.isNotEmpty && unit.floor != '0') ...[
-                        _locationDetailRow(
-                          Icons.layers,
-                          l10n.floor ?? 'Floor',
-                          unit.floor,
-                        ),
-                        SizedBox(height: 8),
-                      ],
-                      if (unit.unitNumber != null && unit.unitNumber!.isNotEmpty) ...[
-                        _locationDetailRow(
-                          Icons.pin,
-                          l10n.unitNumber ?? 'Unit Number',
-                          unit.unitNumber!,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          SizedBox(height: 24),
-
-          // Location URL / Map
-          if (unit.compoundLocationUrl != null && unit.compoundLocationUrl!.isNotEmpty) ...[
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.map, size: 20, color: AppColors.mainColor),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: CustomText16(
-                          l10n.viewOnMap ?? 'View on Map',
-                          color: AppColors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                        final url = Uri.parse(unit.compoundLocationUrl!);
-                        if (await canLaunchUrl(url)) {
-                          await launchUrl(url, mode: LaunchMode.externalApplication);
-                        }
-                      },
-                      icon: Icon(Icons.location_on, color: Colors.white),
-                      label: Text(
-                        l10n.openLocationInMaps ?? 'Open Location in Maps',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.mainColor,
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ] else ...[
-            Container(
-              width: double.infinity,
-              height: 200,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade200),
-              ),
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.map, size: 48, color: Colors.grey.shade400),
+                    Icon(Icons.map_outlined, size: 48, color: Colors.grey.shade400),
                     SizedBox(height: 12),
-                    CustomText14(
-                      l10n.mapViewNotAvailable ?? 'Map view coming soon',
-                      color: Colors.grey.shade600,
+                    Text(
+                      l10n.mapViewNotAvailable ?? 'Location not available',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.greyText,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -1342,7 +1222,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
               'Add your personal notes about this unit. Your notes are private and only visible to you.',
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey[600],
+                color: AppColors.greyText,
                 fontStyle: FontStyle.italic,
               ),
             ),
@@ -1411,7 +1291,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                         note['content'] ?? '',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.black87,
+                          color: Colors.black,
                           height: 1.5,
                         ),
                       ),
@@ -1420,7 +1300,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                         'Updated: ${_formatNoteDate(note['updated_at'])}',
                         style: TextStyle(
                           fontSize: 11,
-                          color: Colors.grey[600],
+                          color: AppColors.greyText,
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -2008,7 +1888,7 @@ class UnitChangeNotes extends StatelessWidget {
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
-                color: Colors.grey.shade800,
+                color: Colors.black,
               ),
             ),
             SizedBox(height: 6),
@@ -2042,7 +1922,7 @@ class UnitChangeNotes extends StatelessWidget {
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
-              color: Colors.grey.shade800,
+              color: Colors.black,
             ),
           ),
           Text(

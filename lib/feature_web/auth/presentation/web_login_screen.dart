@@ -27,6 +27,8 @@ import 'package:real/feature/subscription/presentation/bloc/subscription_event.d
 import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
 import 'package:real/feature_web/auth/presentation/web_forgot_password_screen.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
+import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
+import 'package:intl/intl.dart';
 
 class WebLoginScreen extends StatefulWidget {
   static String routeName = '/web-login';
@@ -880,6 +882,237 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     );
   }
 
+  void _showDeviceLimitDialog(
+    BuildContext context,
+    String message,
+    List<Map<String, dynamic>> devices,
+  ) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.orange, size: 32),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Device Limit Reached',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 650),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: TextStyle(fontSize: 16, height: 1.5),
+                ),
+                SizedBox(height: 24),
+                Container(
+                  padding: EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.blue.shade700, size: 24),
+                          SizedBox(width: 12),
+                          Text(
+                            'How to fix this:',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue.shade900,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+                      _buildStep('1', 'Login from one of your existing devices'),
+                      SizedBox(height: 8),
+                      _buildStep('2', 'Go to Profile → Device Management'),
+                      SizedBox(height: 8),
+                      _buildStep('3', 'Remove old or unused devices'),
+                      SizedBox(height: 8),
+                      _buildStep('4', 'Come back and login from this device'),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 20),
+                if (devices.isNotEmpty) ...[
+                  Text(
+                    'Your registered devices:',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  ...devices.take(5).map((device) {
+                    return Container(
+                      margin: EdgeInsets.only(bottom: 12),
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.mainColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              _getDeviceIcon(device['device_type']),
+                              color: AppColors.mainColor,
+                              size: 22,
+                            ),
+                          ),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  device['device_name'] ?? 'Unknown Device',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  device['os_version'] ?? '',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                if (device['last_active'] != null ||
+                                    device['last_active_at'] != null)
+                                  Padding(
+                                    padding: EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      'Last active: ${_formatDeviceDate(device['last_active'] ?? device['last_active_at'])}',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[500],
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: Text('OK', style: TextStyle(fontSize: 16)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              context.go('/subscription-plans');
+            },
+            icon: Icon(Icons.workspace_premium, size: 20),
+            label: Text('Upgrade Plan', style: TextStyle(fontSize: 16)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.mainColor,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              elevation: 2,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStep(String number, String text) {
+    return Row(
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: Colors.blue.shade700,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              number,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(fontSize: 14, color: Colors.blue.shade900),
+          ),
+        ),
+      ],
+    );
+  }
+
+  IconData _getDeviceIcon(String? deviceType) {
+    switch (deviceType?.toLowerCase()) {
+      case 'android':
+        return Icons.android;
+      case 'ios':
+        return Icons.phone_iphone;
+      case 'web':
+        return Icons.web;
+      case 'windows':
+        return Icons.desktop_windows;
+      case 'macos':
+        return Icons.laptop_mac;
+      default:
+        return Icons.devices;
+    }
+  }
+
+  String _formatDeviceDate(String? dateStr) {
+    if (dateStr == null) return 'Never';
+    try {
+      final date = DateTime.parse(dateStr);
+      return DateFormat('MMM dd, yyyy HH:mm').format(date);
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
   @override
   void dispose() {
     emailController.dispose();
@@ -1090,6 +1323,9 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
             // Check subscription status after login
             // (Success message will be shown based on subscription status)
             _checkSubscriptionStatus(context);
+          } else if (state is LoginDeviceLimitError) {
+            // Show device limit dialog for web
+            _showDeviceLimitDialog(context, state.message, state.devices);
           } else if (state is LoginError) {
             MessageHelper.showError(context, state.message);
           }
@@ -1177,9 +1413,13 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(15),
-                                  child: Image.asset(
-                                    "assets/images/logos/appIcon.png",
-                                    fit: BoxFit.fitWidth,
+                                  child: Padding(
+                                    padding: EdgeInsets.all(15), // optional padding to make the image smaller inside
+                                    child: SvgPicture.asset(
+                                      'assets/images/logos/logo.svg',
+                                      colorFilter: ColorFilter.mode(AppColors.logoColor, BlendMode.srcIn),
+                                      fit: BoxFit.contain,
+                                    ),
                                   ),
                                 ),
                               ),

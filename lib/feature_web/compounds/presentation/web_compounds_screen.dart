@@ -8,6 +8,7 @@ import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
 import 'package:real/feature_web/widgets/web_compound_card.dart';
 import 'package:real/feature_web/widgets/web_unit_card.dart';
+import 'package:real/feature_web/widgets/web_company_card.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:real/feature/search/data/repositories/search_repository.dart';
 import 'package:real/feature/search/data/services/search_history_service.dart';
@@ -76,7 +77,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   String? _selectedSortBy;
 
   final List<String> propertyTypes = ['Villa', 'Apartment', 'Studio', 'Duplex', 'Penthouse'];
-  final List<int> bedroomOptions = [1, 2, 3, 4, 5];
+  final List<int> bedroomOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9];
   final List<String> finishingOptions = ['Finished', 'Semi-Finished', 'Core & Shell'];
 
   // Sort options - will be populated with localized values
@@ -252,10 +253,17 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
       _currentFilter = SearchFilter.empty();
       _showSearchResults = false;
       _showSearchHistory = false;
+      // Reset pagination state
+      _currentPage = 1;
+      _allCompounds.clear();
+      _hasMorePages = true;
     });
-    // Clear search text and reload compounds (not units)
+    // Clear search text and clear search state
     _searchController.clear();
     _searchBloc.add(ClearSearchEvent());
+
+    // Reload compounds from first page
+    context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: _pageLimit));
   }
 
   void _performSearch(String query) {
@@ -1282,9 +1290,9 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
       builder: (context, state) {
         // Show loading only on first page
         if (state is CompoundLoading && _currentPage == 1) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.all(48.0),
+              padding: const EdgeInsets.all(48.0),
               child: CustomLoadingDots(size: 120),
             ),
           );
@@ -1367,8 +1375,8 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Loading indicator at bottom when loading more
             if (_isLoadingMore)
-              const Padding(
-                padding: EdgeInsets.all(32.0),
+              Padding(
+                padding: const EdgeInsets.all(32.0),
                 child: Center(
                   child: CustomLoadingDots(size: 80),
                 ),
@@ -1399,7 +1407,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
       bloc: _searchBloc,
       builder: (context, state) {
         if (state is SearchLoading) {
-          return const Center(
+          return Center(
             child: Padding(
               padding: EdgeInsets.all(48.0),
               child: CustomLoadingDots(size: 120),
@@ -1478,43 +1486,20 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                ListView.builder(
+                // Horizontal list layout for companies
+                ListView.separated(
                   shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   itemCount: companyResults.length,
+                  separatorBuilder: (context, index) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final result = companyResults[index];
                     final data = result.data as CompanySearchData;
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      child: ListTile(
-                        leading: data.logo != null && data.logo!.isNotEmpty
-                            ? ClipOval(
-                                child: RobustNetworkImage(
-                                  imageUrl: data.logo!,
-                                  width: 40,
-                                  height: 40,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, url) => Icon(
-                                    Icons.business,
-                                    size: 24,
-                                    color: AppColors.mainColor,
-                                  ),
-                                ),
-                              )
-                            : Icon(Icons.business, color: AppColors.mainColor),
-                        title: Text(data.name),
-                        subtitle: Text('${data.compoundsCount} compounds'),
-                        trailing: Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () {
-                          final company = _convertToCompany(data, result.id);
-                          context.pushSlideFade(
-                            WebCompanyDetailScreen(
-                              companyId: result.id,
-                              company: company,
-                            ),
-                          );
-                        },
-                      ),
+                    final company = _convertToCompany(data, result.id);
+                    return AnimatedListItem(
+                      index: index,
+                      delay: Duration(milliseconds: 60),
+                      child: _buildHorizontalCompanyCard(company, l10n),
                     );
                   },
                 ),
@@ -1724,6 +1709,185 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
       companyLogo: data.compound.company.logo,
       companyId: data.compound.company.id,
       compoundName: data.compound.name,
+    );
+  }
+
+  Widget _buildHorizontalCompanyCard(Company company, AppLocalizations l10n) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () {
+          print('[COMPANY CARD] Navigating to company: ${company.id} - ${company.name}');
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => WebCompanyDetailScreen(
+                companyId: company.id,
+                company: company,
+              ),
+            ),
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE6E6E6), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              // Company Logo
+              if (company.logo != null && company.logo!.isNotEmpty)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    color: const Color(0xFFF8F9FA),
+                    padding: const EdgeInsets.all(8),
+                    child: RobustNetworkImage(
+                      imageUrl: company.logo!,
+                      width: 54,
+                      height: 54,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, url) => _buildCompanyPlaceholder(company.name),
+                    ),
+                  ),
+                )
+              else
+                _buildCompanyPlaceholder(company.name),
+
+              const SizedBox(width: 20),
+
+              // Company Info
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      company.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF333333),
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.email_outlined, size: 16, color: Colors.grey[600]),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            company.email,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[600],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 20),
+
+              // Stats
+              Row(
+                children: [
+                  _buildCompanyStat(
+                    icon: Icons.apartment,
+                    label: l10n.compounds,
+                    value: company.numberOfCompounds,
+                  ),
+                  const SizedBox(width: 24),
+                  _buildCompanyStat(
+                    icon: Icons.home_work_outlined,
+                    label: l10n.units,
+                    value: company.numberOfAvailableUnits,
+                  ),
+                ],
+              ),
+
+              const SizedBox(width: 12),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 18,
+                color: AppColors.mainColor,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompanyPlaceholder(String name) {
+    return Container(
+      width: 70,
+      height: 70,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: AppColors.mainColor,
+      ),
+      child: Center(
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : 'C',
+          style: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCompanyStat({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 16, color: AppColors.mainColor),
+            const SizedBox(width: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.mainColor,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[600],
+          ),
+        ),
+      ],
     );
   }
 

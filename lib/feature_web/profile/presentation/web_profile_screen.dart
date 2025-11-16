@@ -24,6 +24,8 @@ import 'package:real/feature/subscription/presentation/bloc/subscription_event.d
 import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
 import 'package:real/feature_web/subscription/presentation/web_subscription_plans_screen.dart';
 import 'package:go_router/go_router.dart';
+import 'package:real/services/fcm_service.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class WebProfileScreen extends StatefulWidget {
   WebProfileScreen({Key? key}) : super(key: key);
@@ -241,11 +243,15 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
     return BlocListener<LoginBloc, LoginState>(
       listener: (context, state) {
         if (state is LogoutSuccess) {
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            WebLoginScreen.routeName,
-            (route) => false,
-          );
-          MessageHelper.showSuccess(context, state.message);
+          // Navigate to login screen using GoRouter for web
+          // Use pushReplacement to ensure clean navigation
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.go('/login');
+            // Force a router rebuild
+            if (context.mounted) {
+              MessageHelper.showSuccess(context, state.message);
+            }
+          });
         } else if (state is LogoutError) {
           MessageHelper.showError(context, state.message);
         }
@@ -286,6 +292,10 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                               child: Column(
                                 children: [
                                   _buildSubscriptionSection(l10n),
+                                  SizedBox(height: 24),
+                                  _buildDeviceManagementSection(l10n),
+                                  SizedBox(height: 24),
+                                  _buildFCMTokenSection(l10n),
                                   SizedBox(height: 24),
                                   _buildLogoutSection(l10n),
                                 ],
@@ -873,6 +883,18 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
             subtitle: l10n.manageNotificationSettings,
             onTap: () {},
           ),
+          SizedBox(height: 12),
+          _buildSettingItem(
+            icon: Icons.language,
+            title: 'Website',
+            subtitle: 'https://aqarapp.co/',
+            onTap: () async {
+              await Clipboard.setData(ClipboardData(text: 'https://aqarapp.co/'));
+              if (context.mounted) {
+                MessageHelper.showSuccess(context, 'Website URL copied to clipboard!');
+              }
+            },
+          ),
         ],
       ),
     );
@@ -974,16 +996,6 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
               );
             },
           ),
-          SizedBox(height: 16),
-          Center(
-            child: Text(
-              l10n.appVersion,
-              style: TextStyle(
-                fontSize: 14,
-                color: Color(0xFF999999),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -1046,5 +1058,379 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildDeviceManagementSection(AppLocalizations l10n) {
+    final AuthWebServices authService = AuthWebServices();
+
+    return FutureBuilder<Map<String, dynamic>>(
+      future: Future.wait([
+        authService.getUserDevices(),
+        authService.getSubscriptionInfo(),
+      ]).then((results) => {
+        'devices': results[0],
+        'subscription': results[1],
+      }),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            padding: EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Center(child: CustomLoadingDots(size: 40)),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Container(
+            padding: EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Text(
+              'Error loading devices: ${snapshot.error}',
+              style: TextStyle(color: Colors.red),
+            ),
+          );
+        }
+
+        final devices = snapshot.data!['devices'] as List<Map<String, dynamic>>;
+        final subscription = snapshot.data!['subscription'] as Map<String, dynamic>;
+
+        return Container(
+          padding: EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 15,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.devices_other, color: AppColors.mainColor, size: 24),
+                  SizedBox(width: 12),
+                  Text(
+                    'Device Management',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20),
+
+              // Device limit info
+              Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppColors.mainColor.withOpacity(0.1),
+                      AppColors.mainColor.withOpacity(0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.mainColor.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.workspace_premium, color: AppColors.mainColor, size: 20),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${subscription['current_devices']} / ${subscription['max_devices']} devices used',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(height: 16),
+
+              // Devices list
+              if (devices.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: Text(
+                      'No devices found',
+                      style: TextStyle(color: Colors.grey[600]),
+                    ),
+                  ),
+                )
+              else
+                ...devices.take(3).map((device) {
+                  final isCurrentDevice = device['is_current_device'] == true || device['is_current_device'] == 1;
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 12),
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isCurrentDevice ? AppColors.mainColor.withOpacity(0.05) : Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isCurrentDevice ? AppColors.mainColor : Colors.grey[200]!,
+                        width: isCurrentDevice ? 2 : 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _getDeviceIcon(device['device_type']),
+                          color: AppColors.mainColor,
+                          size: 20,
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      device['device_name'] ?? 'Unknown',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  if (isCurrentDevice)
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.mainColor,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'Current',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                device['os_version'] ?? '',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!isCurrentDevice)
+                          IconButton(
+                            icon: Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                            onPressed: () async {
+                              final confirmed = await showDialog<bool>(
+                                context: context,
+                                builder: (context) => AlertDialog(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                  title: Text('Remove Device'),
+                                  content: Text('Are you sure you want to remove "${device['device_name']}"?'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, false),
+                                      child: Text('Cancel'),
+                                    ),
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context, true),
+                                      style: TextButton.styleFrom(foregroundColor: Colors.red),
+                                      child: Text('Remove'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              if (confirmed == true) {
+                                try {
+                                  // Use device_id (e.g. "web_1763299843458") not numeric id
+                                  await authService.removeDevice(device['device_id'].toString());
+                                  MessageHelper.showSuccess(context, 'Device removed successfully');
+                                  setState(() {}); // Refresh
+                                } catch (e) {
+                                  MessageHelper.showError(context, 'Failed to remove device');
+                                }
+                              }
+                            },
+                          ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildFCMTokenSection(AppLocalizations l10n) {
+    return Container(
+      padding: EdgeInsets.all(28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.notifications_active_outlined, color: AppColors.mainColor, size: 24),
+              SizedBox(width: 12),
+              Text(
+                'FCM Token',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF333333),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Text(
+            'Firebase Cloud Messaging token for testing notifications.',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey[600],
+            ),
+          ),
+          SizedBox(height: 20),
+
+          Builder(
+            builder: (context) {
+              final fcmService = FCMService();
+              final token = fcmService.fcmToken;
+
+              if (token != null && token.isNotEmpty) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[50],
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey[300]!),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              token.length > 60 ? '${token.substring(0, 60)}...' : token,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontFamily: 'monospace',
+                                color: Colors.black87,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          IconButton(
+                            icon: Icon(Icons.copy, size: 18, color: AppColors.mainColor),
+                            onPressed: () async {
+                              await Clipboard.setData(ClipboardData(text: token));
+                              MessageHelper.showSuccess(context, 'FCM token copied!');
+                            },
+                            tooltip: 'Copy token',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                );
+              } else {
+                return Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.orange[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.orange[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.warning_amber, color: Colors.orange[700], size: 20),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'No FCM token available yet',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Colors.orange[900],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getDeviceIcon(String? deviceType) {
+    switch (deviceType?.toLowerCase()) {
+      case 'android':
+        return Icons.android;
+      case 'ios':
+        return Icons.phone_iphone;
+      case 'web':
+        return Icons.web;
+      case 'windows':
+        return Icons.desktop_windows;
+      case 'macos':
+        return Icons.laptop_mac;
+      default:
+        return Icons.devices;
+    }
   }
 }

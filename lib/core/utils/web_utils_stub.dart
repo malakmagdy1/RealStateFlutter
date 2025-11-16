@@ -11,3 +11,7 @@ String? getLocalStorageItem(String key) {
 void removeLocalStorageItem(String key) {
   // No-op on non-web platforms
 }
+
+void showWebNotification(String title, String body) {
+  // No-op on non-web platforms (notifications handled by FCMService)
+}

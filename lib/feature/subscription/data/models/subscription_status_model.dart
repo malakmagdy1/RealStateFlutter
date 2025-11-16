@@ -58,4 +58,15 @@ class SubscriptionStatusModel {
     if (hasUnlimitedSearches) return true;
     return remainingSearches > 0;
   }
+
+  /// Check if subscription is expired
+  bool get isExpired {
+    if (expiresAt == null || expiresAt!.isEmpty) return false;
+    try {
+      final expirationDate = DateTime.parse(expiresAt!);
+      return DateTime.now().isAfter(expirationDate);
+    } catch (e) {
+      return false;
+    }
+  }
 }

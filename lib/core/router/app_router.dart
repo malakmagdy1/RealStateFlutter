@@ -12,7 +12,7 @@ import 'package:real/feature_web/company/presentation/web_company_detail_screen.
 import 'package:real/feature_web/compound/presentation/web_compound_detail_screen.dart';
 import 'package:real/feature_web/compound/presentation/web_unit_detail_screen.dart';
 import 'package:real/feature_web/subscription/presentation/web_subscription_plans_screen.dart';
-import 'package:real/feature_web/profile/presentation/web_profile_settings_screen.dart';
+import 'package:real/feature/auth/presentation/screen/device_management_screen.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
 
@@ -116,11 +116,11 @@ class AppRouter {
         builder: (context, state) => WebSubscriptionPlansScreen(),
       ),
 
-      // Profile Settings
+      // Device Management
       GoRoute(
-        path: '/profile/settings',
-        name: 'profile-settings',
-        builder: (context, state) => WebProfileSettingsScreen(),
+        path: '/device-management',
+        name: 'device-management',
+        builder: (context, state) => DeviceManagementScreen(),
       ),
     ],
 
@@ -182,10 +182,10 @@ class AppRouter {
         return '/';
       }
 
-      // Save the current route if it's a protected route and user is logged in
-      if (isLoggedIn && !isLoginRoute && RoutePersistenceService.shouldSaveRoute(currentPath)) {
-        _saveCurrentRoute(state);
-      }
+      // DISABLED: Route persistence - users requested to always start on home screen
+      // if (isLoggedIn && !isLoginRoute && RoutePersistenceService.shouldSaveRoute(currentPath)) {
+      //   _saveCurrentRoute(state);
+      // }
 
       print('[ROUTER] ✅ No redirect needed - allowing navigation to $currentPath');
       return null; // No redirect needed

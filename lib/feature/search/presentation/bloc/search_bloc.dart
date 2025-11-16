@@ -1,4 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:real/feature/company/data/models/company_model.dart';
+import 'package:real/feature/compound/data/models/compound_model.dart';
 import '../../data/repositories/search_repository.dart';
 import '../../data/models/search_result_model.dart';
 import '../../data/models/search_filter_model.dart';
@@ -21,10 +23,16 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
     Emitter<SearchState> emit,
   ) async {
     // Require at least a query or filter
-    if (event.query.trim().isEmpty && event.filter == null) {
+    final hasQuery = event.query.trim().isNotEmpty;
+    final hasFilter = event.filter != null && !event.filter!.isEmpty;
+
+    if (!hasQuery && !hasFilter) {
+      print('[SEARCH BLOC] ✗ No query or filter provided - emitting SearchEmpty');
       emit(SearchEmpty());
       return;
     }
+
+    print('[SEARCH BLOC] ✓ Has Query: $hasQuery, Has Filter: $hasFilter');
 
     // Reset results for new search
     _allResults = [];
@@ -43,18 +51,42 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
         query: event.query.trim().isEmpty ? null : event.query.trim(),
         filter: event.filter,
         page: event.page,
-        limit: 1000, // Get all results
+        limit: 30, // Load 30 results per page for better performance
       );
 
-      // Convert FilteredUnit to SearchResult
-      final searchResults = filterResponse.units.map((unit) {
+      // Convert companies, compounds, and units to SearchResult
+      // Order: companies first, then compounds, then units
+      final List<SearchResult> searchResults = [];
+
+      // Add companies
+      searchResults.addAll(filterResponse.companies.map((company) {
+        return SearchResult(
+          type: 'company',
+          id: company.id,
+          name: company.name,
+          data: _convertCompanyToSearchData(company),
+        );
+      }));
+
+      // Add compounds
+      searchResults.addAll(filterResponse.compounds.map((compound) {
+        return SearchResult(
+          type: 'compound',
+          id: compound.id,
+          name: compound.project,
+          data: _convertCompoundToSearchData(compound),
+        );
+      }));
+
+      // Add units
+      searchResults.addAll(filterResponse.units.map((unit) {
         return SearchResult(
           type: 'unit',
           id: unit.id,
           name: unit.unitName,
           data: _convertFilteredUnitToSearchData(unit),
         );
-      }).toList();
+      }));
 
       _allResults = searchResults;
 
@@ -105,18 +137,42 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
         query: event.query.trim().isEmpty ? null : event.query.trim(),
         filter: event.filter,
         page: event.page,
-        limit: 1000,
+        limit: 30, // Load 30 results per page for better performance
       );
 
-      // Convert new units to SearchResult
-      final newSearchResults = filterResponse.units.map((unit) {
+      // Convert new companies, compounds, and units to SearchResult
+      // Order: companies first, then compounds, then units
+      final List<SearchResult> newSearchResults = [];
+
+      // Add companies
+      newSearchResults.addAll(filterResponse.companies.map((company) {
+        return SearchResult(
+          type: 'company',
+          id: company.id,
+          name: company.name,
+          data: _convertCompanyToSearchData(company),
+        );
+      }));
+
+      // Add compounds
+      newSearchResults.addAll(filterResponse.compounds.map((compound) {
+        return SearchResult(
+          type: 'compound',
+          id: compound.id,
+          name: compound.project,
+          data: _convertCompoundToSearchData(compound),
+        );
+      }));
+
+      // Add units
+      newSearchResults.addAll(filterResponse.units.map((unit) {
         return SearchResult(
           type: 'unit',
           id: unit.id,
           name: unit.unitName,
           data: _convertFilteredUnitToSearchData(unit),
         );
-      }).toList();
+      }));
 
       // Append new results to existing
       _allResults.addAll(newSearchResults);
@@ -143,6 +199,39 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       // Restore previous state on error
       emit(currentState);
     }
+  }
+
+  // Convert Company to CompanySearchData
+  CompanySearchData _convertCompanyToSearchData(Company company) {
+    return CompanySearchData(
+      id: company.id,
+      name: company.name,
+      email: company.email,
+      logo: company.logo,
+      numberOfCompounds: company.numberOfCompounds,
+      numberOfAvailableUnits: company.numberOfAvailableUnits,
+      compoundsCount: company.numberOfCompounds,
+      createdAt: company.createdAt,
+    );
+  }
+
+  // Convert Compound to CompoundSearchData
+  CompoundSearchData _convertCompoundToSearchData(Compound compound) {
+    return CompoundSearchData(
+      id: compound.id,
+      name: compound.project,
+      location: compound.location,
+      status: compound.status,
+      completionProgress: compound.completionProgress ?? '0',
+      unitsCount: compound.totalUnits,
+      company: CompanyInfo(
+        id: compound.companyId,
+        name: compound.companyName,
+        logo: compound.companyLogo,
+      ),
+      images: compound.images,
+      createdAt: compound.createdAt,
+    );
   }
 
   // Convert FilteredUnit from filter API to UnitSearchData for consistency

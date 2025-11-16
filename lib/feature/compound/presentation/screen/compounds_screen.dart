@@ -26,6 +26,7 @@ import 'package:real/feature/home/presentation/widget/compunds_name.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/company/presentation/screen/company_detail_screen.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
+import 'package:real/feature/company/presentation/widget/company_card.dart';
 
 class CompoundsScreen extends StatefulWidget {
   static String routeName = '/compounds';
@@ -36,7 +37,7 @@ class CompoundsScreen extends StatefulWidget {
   State<CompoundsScreen> createState() => _CompoundsScreenState();
 }
 
-class _CompoundsScreenState extends State<CompoundsScreen> {
+class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final GlobalKey _searchKey = GlobalKey();
@@ -50,6 +51,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
   Timer? _debounceTimer;
   List<String> _searchHistory = [];
   SearchFilter _currentFilter = SearchFilter.empty();
+  String? _currentSortBy;
 
   // Track expanded state for search results
   bool _showAllCompanies = false;
@@ -62,10 +64,14 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
 
+  // TabController for search results
+  late TabController _searchTabController;
+
   @override
   void initState() {
     super.initState();
     _searchBloc = SearchBloc(repository: SearchRepository());
+    _searchTabController = TabController(length: 3, vsync: this);
     _loadSearchHistory();
 
     // Fetch first page of compounds
@@ -96,6 +102,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     _scrollController.dispose();
+    _searchTabController.dispose();
     _searchBloc.close();
     _debounceTimer?.cancel();
     super.dispose();
@@ -182,6 +189,96 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
           // Re-run search with new filters (works with or without query text)
           _performSearch(_searchController.text);
         },
+      ),
+    );
+  }
+
+  void _openSortBottomSheet() {
+    final l10n = AppLocalizations.of(context)!;
+    final Map<String, String> sortOptions = {
+      'price_asc': l10n.priceAsc,
+      'price_desc': l10n.priceDesc,
+      'newest': l10n.newestFirst,
+    };
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Header
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  CustomText20('Sort By', bold: true, color: AppColors.black),
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        _currentSortBy = null;
+                        _currentFilter = _currentFilter.copyWith(sortBy: null);
+                      });
+                      _performSearch(_searchController.text);
+                      Navigator.pop(context);
+                    },
+                    child: CustomText16('Clear', color: Colors.red),
+                  ),
+                ],
+              ),
+            ),
+            // Sort options
+            ListView(
+              shrinkWrap: true,
+              padding: EdgeInsets.symmetric(vertical: 8),
+              children: sortOptions.entries.map((entry) {
+                final isSelected = _currentSortBy == entry.key;
+                return RadioListTile<String>(
+                  title: Text(
+                    entry.value,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  value: entry.key,
+                  groupValue: _currentSortBy,
+                  onChanged: (value) {
+                    setState(() {
+                      _currentSortBy = value;
+                      _currentFilter = _currentFilter.copyWith(sortBy: value);
+                    });
+                    _performSearch(_searchController.text);
+                    Navigator.pop(context);
+                  },
+                  activeColor: AppColors.mainColor,
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
@@ -297,6 +394,25 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
                         ),
                       ),
                       SizedBox(width: 8),
+                      // Sort button
+                      Container(
+                        decoration: BoxDecoration(
+                          color: _currentSortBy != null
+                              ? AppColors.mainColor.withOpacity(0.1)
+                              : Colors.grey.shade200,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.swap_vert,
+                            color: _currentSortBy != null
+                                ? AppColors.mainColor
+                                : Colors.grey,
+                          ),
+                          onPressed: _openSortBottomSheet,
+                        ),
+                      ),
+                      SizedBox(width: 8),
                       // Filter button with badge
                       Stack(
                         key: _filterKey,
@@ -310,7 +426,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
                             ),
                             child: IconButton(
                               icon: Icon(
-                                Icons.filter_list,
+                                Icons.tune,
                                 color: _currentFilter.isEmpty
                                     ? Colors.grey
                                     : AppColors.mainColor,
@@ -349,13 +465,24 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
                     ],
                   ),
 
-                  // Active filters chips
-                  if (_currentFilter.activeFiltersCount > 0) ...[
+                  // Active filters and sort chips
+                  if (_currentFilter.activeFiltersCount > 0 || _currentSortBy != null) ...[
                     SizedBox(height: 12),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
                         children: [
+                          if (_currentSortBy != null)
+                            _buildFilterChip(
+                              'Sort: ${_getSortLabel(_currentSortBy!)}',
+                              () => setState(() {
+                                _currentSortBy = null;
+                                _currentFilter = _currentFilter.copyWith(sortBy: null);
+                                if (_searchController.text.isNotEmpty) {
+                                  _performSearch(_searchController.text);
+                                }
+                              }),
+                            ),
                           if (_currentFilter.location != null)
                             _buildFilterChip(
                               'Location: ${_currentFilter.location}',
@@ -488,48 +615,42 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
                     bloc: _searchBloc,
                     builder: (context, state) {
                       if (state is SearchLoading) {
-                        return Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(24.0),
-                            child: Center(child: CustomLoadingDots(size: 80)),
-                          ),
+                        return Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: Center(child: CustomLoadingDots(size: 80)),
                         );
                       } else if (state is SearchEmpty) {
-                        return Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(24.0),
-                            child: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
-                                  SizedBox(height: 8),
-                                  CustomText16(
-                                    l10n.noResults,
-                                    color: Colors.grey[600]!,
-                                  ),
-                                ],
-                              ),
+                        return Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
+                                SizedBox(height: 8),
+                                CustomText16(
+                                  l10n.noResults,
+                                  color: Colors.grey[600]!,
+                                ),
+                              ],
                             ),
                           ),
                         );
                       } else if (state is SearchError) {
-                        return Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(24.0),
-                            child: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.error_outline, size: 48, color: Colors.red[400]),
-                                  SizedBox(height: 8),
-                                  CustomText16(
-                                    'Error: ${state.message}',
-                                    color: Colors.red,
-                                    align: TextAlign.center,
-                                  ),
-                                ],
-                              ),
+                        return Padding(
+                          padding: EdgeInsets.all(24.0),
+                          child: Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.error_outline, size: 48, color: Colors.red[400]),
+                                SizedBox(height: 8),
+                                CustomText16(
+                                  'Error: ${state.message}',
+                                  color: Colors.red,
+                                  align: TextAlign.center,
+                                ),
+                              ],
                             ),
                           ),
                         );
@@ -620,8 +741,14 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                CustomText20(
-                                  '${l10n.availableCompounds} (${state.response.total})',
+                                Row(
+                                  children: [
+                                    Icon(Icons.apartment, size: 24, color: AppColors.mainColor),
+                                    SizedBox(width: 8),
+                                    CustomText20(
+                                      '${l10n.availableCompounds} (${state.response.total})',
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
@@ -679,264 +806,303 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
     final units = results.where((r) => r.type == 'unit').toList();
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Header with result count
+        // Header
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           color: Colors.white,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              CustomText16(
-                'Found ${response.totalResults} result${response.totalResults == 1 ? '' : 's'}',
-                bold: true,
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(Icons.search, size: 24, color: AppColors.mainColor),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: CustomText18(
+                        'Found ${response.totalResults} result${response.totalResults == 1 ? '' : 's'}',
+                        bold: true,
+                      ),
+                    ),
+                  ],
+                ),
               ),
               IconButton(
-                icon: Icon(Icons.close),
+                icon: Icon(Icons.close, color: Colors.grey[700]),
                 onPressed: _clearSearch,
               ),
             ],
           ),
         ),
 
-            // Companies
-            if (companies.isNotEmpty) ...[
-              SizedBox(height: 8),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                color: Colors.white,
-                child: CustomText16(
-                  '${l10n.companies} (${companies.length})',
-                  bold: true,
-                  color: Colors.blue,
-                ),
+        // TabBar
+        Container(
+          child: TabBar(
+            controller: _searchTabController,
+            indicatorColor: Colors.black,
+            indicatorWeight: 3,
+            labelColor: Colors.black,
+            unselectedLabelColor: Colors.black,
+            labelStyle: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+            unselectedLabelStyle: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.normal,
+            ),
+            tabs: [
+              Tab(
+                icon: Icon(Icons.home_work, size: 20),
+                text: 'Units (${units.length})',
               ),
-              SizedBox(height: 4),
-              ...(_showAllCompanies ? companies : companies.take(3))
-                  .map((result) => _buildCompanyResultItem(result, l10n)),
-              if (companies.length > 3)
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllCompanies = !_showAllCompanies;
-                    });
-                  },
-                  icon: Icon(
-                    _showAllCompanies ? Icons.expand_less : Icons.expand_more,
-                    size: 18,
-                  ),
-                  label: Text(
-                    _showAllCompanies
-                        ? l10n.showLess
-                        : '+ ${companies.length - 3} more',
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey[600],
-                  ),
-                ),
+              Tab(
+                icon: Icon(Icons.apartment, size: 20),
+                text: 'Compounds (${compounds.length})',
+              ),
+              Tab(
+                icon: Icon(Icons.business, size: 20),
+                text: 'Companies (${companies.length})',
+              ),
             ],
+          ),
+        ),
 
-            // Compounds
-            if (compounds.isNotEmpty) ...[
-              SizedBox(height: 8),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                color: Colors.white,
-                child: CustomText16(
-                  '${l10n.compounds} (${compounds.length})',
-                  bold: true,
-                  color: Colors.green,
-                ),
-              ),
-              SizedBox(height: 4),
-              ...(_showAllCompounds ? compounds : compounds.take(3))
-                  .map((result) => _buildCompoundResultItem(result, l10n)),
-              if (compounds.length > 3)
-                TextButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      _showAllCompounds = !_showAllCompounds;
-                    });
-                  },
-                  icon: Icon(
-                    _showAllCompounds ? Icons.expand_less : Icons.expand_more,
-                    size: 18,
-                  ),
-                  label: Text(
-                    _showAllCompounds
-                        ? l10n.showLess
-                        : '+ ${compounds.length - 3} more',
-                  ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey[600],
-                  ),
-                ),
+        // SizedBox with fixed height for TabBarView
+        SizedBox(
+          height: 500, // Fixed height for the tab content area
+          child: TabBarView(
+            controller: _searchTabController,
+            children: [
+              _buildUnitsTab(units, searchState, response, l10n),
+              _buildCompoundsTab(compounds, l10n),
+              _buildCompaniesTab(companies, l10n),
             ],
+          ),
+        ),
+      ],
+    );
+  }
 
-            // Units
-            if (units.isNotEmpty) ...[
-              SizedBox(height: 8),
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                color: Colors.white,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    CustomText16(
-                      '${l10n.units} (${response.totalResults})',
-                      bold: true,
-                      color: Colors.orange,
-                    ),
-                    if (searchState is SearchSuccess && searchState.hasMorePages)
-                      CustomText14(
-                        'Page ${searchState.currentPage}/${searchState.totalPages}',
-                        color: Colors.grey[600]!,
-                      ),
-                  ],
-                ),
+  // Units Tab Content
+  Widget _buildUnitsTab(List<SearchResult> units, SearchState searchState, SearchResponse response, AppLocalizations l10n) {
+    if (units.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.home_work_outlined, size: 64, color: Colors.grey[400]),
+              SizedBox(height: 16),
+              CustomText16(
+                'No units found',
+                color: Colors.grey[600]!,
               ),
-              SizedBox(height: 4),
-              // Display units as list items (not cards)
-              ...units.map((result) => _buildUnitResultListItem(result, l10n)),
-              // Load more button if there are more pages
-              if (searchState is SearchSuccess && searchState.hasMorePages)
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Center(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        _searchBloc.add(
-                          LoadMoreSearchResultsEvent(
-                            query: _searchController.text,
-                            filter: _currentFilter,
-                            page: searchState.currentPage + 1,
-                          ),
-                        );
-                      },
-                      icon: Icon(Icons.refresh, size: 18),
-                      label: Text('Load More (${response.totalResults - units.length} remaining)'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.mainColor,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(8),
+      child: Column(
+        children: [
+          GridView.builder(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              childAspectRatio: 0.63,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemCount: units.length,
+            itemBuilder: (context, index) {
+              return _buildUnitResultItem(units[index], l10n);
+            },
+          ),
+
+          // Load more button if there are more pages
+          if (searchState is SearchSuccess && searchState.hasMorePages)
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _searchBloc.add(
+                    LoadMoreSearchResultsEvent(
+                      query: _searchController.text,
+                      filter: _currentFilter,
+                      page: searchState.currentPage + 1,
                     ),
+                  );
+                },
+                icon: Icon(Icons.refresh, size: 18),
+                label: Text('Load More (${response.totalResults - units.length} remaining)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.mainColor,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-              // Loading indicator when loading more
-              if (searchState is SearchLoadingMore)
-                Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Center(child: CustomLoadingDots(size: 60)),
-                ),
+              ),
+            ),
+
+          // Loading indicator when loading more
+          if (searchState is SearchLoadingMore)
+            Padding(
+              padding: EdgeInsets.all(16),
+              child: Center(child: CustomLoadingDots(size: 60)),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // Compounds Tab Content
+  Widget _buildCompoundsTab(List<SearchResult> compounds, AppLocalizations l10n) {
+    if (compounds.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.apartment_outlined, size: 64, color: Colors.grey[400]),
+              SizedBox(height: 16),
+              CustomText16(
+                'No compounds found',
+                color: Colors.grey[600]!,
+              ),
             ],
-          ],
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(8),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.63,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+        ),
+        itemCount: compounds.length,
+        itemBuilder: (context, index) {
+          return _buildCompoundResultItem(compounds[index], l10n);
+        },
+      ),
+    );
+  }
+
+  // Companies Tab Content
+  Widget _buildCompaniesTab(List<SearchResult> companies, AppLocalizations l10n) {
+    if (companies.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.business_outlined, size: 64, color: Colors.grey[400]),
+              SizedBox(height: 16),
+              CustomText16(
+                'No companies found',
+                color: Colors.grey[600]!,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(8),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: NeverScrollableScrollPhysics(),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.63,
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+        ),
+        itemCount: companies.length,
+        itemBuilder: (context, index) {
+          return _buildCompanyResultItem(companies[index], l10n);
+        },
+      ),
     );
   }
 
   Widget _buildCompanyResultItem(SearchResult result, AppLocalizations l10n) {
     final data = result.data as CompanySearchData;
-    return ListTile(
-      dense: true,
-      leading: CircleAvatar(
-        backgroundColor: Colors.blue.shade100,
-        child: data.logo != null && data.logo!.isNotEmpty
-            ? ClipOval(
-                child: Image.network(
-                  data.logo!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Icon(Icons.business, size: 20),
-                ),
-              )
-            : Icon(Icons.business, size: 20),
+    final company = Company(
+      id: data.id,
+      name: data.name,
+      email: data.email,
+      logo: data.logo,
+      numberOfCompounds: data.numberOfCompounds,
+      numberOfAvailableUnits: data.numberOfAvailableUnits,
+      createdAt: '',
+      sales: [],
+      compounds: [],
+    );
+
+    return AspectRatio(
+      aspectRatio: 0.63,
+      child: CompanyCard(
+        company: company,
+        showMargin: false,
+        onTap: () {
+          _clearSearch();
+          Navigator.pushNamed(
+            context,
+            CompanyDetailScreen.routeName,
+            arguments: company,
+          );
+        },
       ),
-      title: Text(
-        data.name,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        data.email,
-        style: TextStyle(fontSize: 12),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Icon(Icons.chevron_right, size: 20),
-      onTap: () {
-        _clearSearch();
-        final company = Company(
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          logo: data.logo,
-          numberOfCompounds: data.numberOfCompounds,
-          numberOfAvailableUnits: data.numberOfAvailableUnits,
-          createdAt: '', sales: [], compounds: [],
-        );
-        Navigator.pushNamed(
-          context,
-          CompanyDetailScreen.routeName,
-          arguments: company,
-        );
-      },
     );
   }
 
   Widget _buildCompoundResultItem(SearchResult result, AppLocalizations l10n) {
     final data = result.data as CompoundSearchData;
-    return ListTile(
-      dense: true,
-      leading: CircleAvatar(
-        backgroundColor: Colors.green.shade100,
-        child: data.images.isNotEmpty
-            ? ClipOval(
-                child: Image.network(
-                  data.images.first,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) =>
-                      Icon(Icons.apartment, size: 20),
-                ),
-              )
-            : Icon(Icons.apartment, size: 20),
-      ),
-      title: Text(
-        data.name,
-        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(
-        data.location,
-        style: TextStyle(fontSize: 12),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: Icon(Icons.chevron_right, size: 20),
+    final compound = Compound(
+      id: data.id,
+      companyId: data.company.id,
+      project: data.name,
+      location: data.location,
+      images: data.images,
+      builtUpArea: '0',
+      howManyFloors: '0',
+      completionProgress: data.completionProgress,
+      club: '0',
+      isSold: '0',
+      status: data.status,
+      totalUnits: data.unitsCount,
+      createdAt: data.createdAt,
+      updatedAt: '',
+      companyName: data.company.name,
+      companyLogo: data.company.logo,
+      soldUnits: '0',
+      availableUnits: data.unitsCount,
+      sales: [],
+    );
+
+    return CompoundsName(
+      compound: compound,
       onTap: () {
         _clearSearch();
-        final compound = Compound(
-          id: data.id,
-          companyId: data.company.id,
-          project: data.name,
-          location: data.location,
-          images: data.images,
-          builtUpArea: '0',
-          howManyFloors: '0',
-          completionProgress: data.completionProgress,
-          club: '0',
-          isSold: '0',
-          status: data.status,
-          totalUnits: data.unitsCount,
-          createdAt: data.createdAt,
-          updatedAt: '',
-          companyName: data.company.name,
-          companyLogo: data.company.logo,
-          soldUnits: '0',
-          availableUnits: data.unitsCount, sales: [],
-        );
         context.pushSlideFade(
           CompoundScreen(compound: compound),
         );
@@ -1171,5 +1337,15 @@ class _CompoundsScreenState extends State<CompoundsScreen> {
         ),
       ),
     );
+  }
+
+  String _getSortLabel(String sortKey) {
+    final l10n = AppLocalizations.of(context)!;
+    final sortOptions = {
+      'price_asc': l10n.priceAsc,
+      'price_desc': l10n.priceDesc,
+      'newest': l10n.newestFirst,
+    };
+    return sortOptions[sortKey] ?? sortKey;
   }
 }

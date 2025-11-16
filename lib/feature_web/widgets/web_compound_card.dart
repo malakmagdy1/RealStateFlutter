@@ -18,6 +18,7 @@ import 'package:real/feature_web/compound/presentation/web_compound_detail_scree
 import 'package:real/core/widgets/note_dialog.dart';
 import 'package:real/feature/compound/data/web_services/favorites_web_services.dart';
 import 'package:real/core/animations/pulse_animation.dart';
+import 'package:real/core/locale/locale_cubit.dart';
 
 class WebCompoundCard extends StatefulWidget {
   final Compound compound;
@@ -33,14 +34,31 @@ class WebCompoundCard extends StatefulWidget {
   State<WebCompoundCard> createState() => _WebCompoundCardState();
 }
 
-class _WebCompoundCardState extends State<WebCompoundCard> {
+class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProviderStateMixin {
   String? _currentNote;
   bool _animateFavorite = false;
+  bool _isHovering = false;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _elevationAnimation;
 
   @override
   void initState() {
     super.initState();
     _currentNote = widget.compound.notes;
+
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 1.03).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+
+    _elevationAnimation = Tween<double>(begin: 4.0, end: 12.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
   }
 
   @override
@@ -123,21 +141,51 @@ class _WebCompoundCardState extends State<WebCompoundCard> {
   }
 
   @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    // Wrap with BlocBuilder to rebuild when locale changes
+    return BlocBuilder<LocaleCubit, Locale>(
+      builder: (context, locale) {
+        return _buildCard(context);
+      },
+    );
+  }
+
+  Widget _buildCard(BuildContext context) {
     final compound = widget.compound; // Create local variable for convenience
     final companyLogo = compound.companyLogo ?? ''; // Store companyLogo to avoid null promotion issues
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 30,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Material(
+
+    return MouseRegion(
+      onEnter: (_) {
+        setState(() => _isHovering = true);
+        _animationController.forward();
+      },
+      onExit: (_) {
+        setState(() => _isHovering = false);
+        _animationController.reverse();
+      },
+      child: AnimatedBuilder(
+        animation: _animationController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: _elevationAnimation.value * 2.5,
+                    offset: Offset(0, _elevationAnimation.value * 0.67),
+                  ),
+                ],
+              ),
+              child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
@@ -319,7 +367,7 @@ class _WebCompoundCardState extends State<WebCompoundCard> {
                 // ⚪ Semi-transparent Info Area
                 Container(
                   width: double.infinity,
-                  padding: EdgeInsets.all(10),
+                  padding: EdgeInsets.all(8),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.90),
                     borderRadius: BorderRadius.only(
@@ -486,6 +534,10 @@ class _WebCompoundCardState extends State<WebCompoundCard> {
             ),
           ),
         ),
+              ),
+            ),
+          );
+        },
       ),
     );
 

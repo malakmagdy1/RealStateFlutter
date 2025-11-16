@@ -41,50 +41,62 @@ class CompoundsName extends StatefulWidget {
   State<CompoundsName> createState() => _CompoundsNameState();
 }
 
-class _CompoundsNameState extends State<CompoundsName> {
+class _CompoundsNameState extends State<CompoundsName> with SingleTickerProviderStateMixin {
   bool _animateFavorite = false;
   bool _animateShare = false;
   String? _currentNote;
+  late AnimationController _animationController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _elevationAnimation;
 
   @override
   void initState() {
     super.initState();
     _currentNote = widget.compound.notes;
+
+    _animationController = AnimationController(
+      duration: Duration(milliseconds: 200),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.98).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
+
+    _elevationAnimation = Tween<double>(begin: 4.0, end: 12.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
+    );
   }
 
   @override
   void didUpdateWidget(CompoundsName oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Update local note when widget is rebuilt with new data
-    print('[COMPOUNDS NAME] didUpdateWidget called');
-    print('[COMPOUNDS NAME] Old notes: ${oldWidget.compound.notes}');
-    print('[COMPOUNDS NAME] New notes: ${widget.compound.notes}');
-    print('[COMPOUNDS NAME] Old note_id: ${oldWidget.compound.noteId}');
-    print('[COMPOUNDS NAME] New note_id: ${widget.compound.noteId}');
-
     if (widget.compound.notes != oldWidget.compound.notes ||
         widget.compound.noteId != oldWidget.compound.noteId) {
       setState(() {
         _currentNote = widget.compound.notes;
       });
-      print('[COMPOUNDS NAME] Updated _currentNote to: $_currentNote');
     }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
   }
 
   String _formatDate(String dateStr) {
     try {
-      // Parse the date string
       final date = DateTime.parse(dateStr);
-      // Format as day/month/year
       return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
     } catch (e) {
-      // If parsing fails, try to extract just the date part before 'T'
       if (dateStr.contains('T')) {
         return dateStr.split('T')[0];
       }
       return dateStr;
     }
   }
+
   Future<void> _showSalespeople(BuildContext context) async {
     final compoundWebServices = CompoundWebServices();
     final l10n = AppLocalizations.of(context)!;
@@ -119,169 +131,84 @@ class _CompoundsNameState extends State<CompoundsName> {
 
   @override
   Widget build(BuildContext context) {
-    // Get the first image from the compound's images array
     final bool hasImages = widget.compound.images.isNotEmpty;
     final String? displayImage = hasImages ? widget.compound.images.first : null;
 
-    // Use responsive dimensions
-    final screenWidth = MediaQuery.of(context).size.width;
-    final double imageHeight = screenWidth * 0.30; // 30% of screen width for image (matches unit cards)
-    final double borderRadius = 16;
-    final double iconSize = 18.0; // Fixed icon size (matches unit cards)
-    final double buttonSize = 32.0; // Fixed button size (matches unit cards)
-    final double phoneButtonSize = 36.0; // Fixed size for phone button (matches unit cards)
-    final double fontSize = 10.0; // Fixed font size
-    final double titleFontSize = 16.0; // Fixed title font size
-
-    // Debug company logo
-    print('========================================');
-    print('[COMPOUND CARD] Compound: ${widget.compound.project}');
-    print('[COMPOUND CARD] Company: ${widget.compound.companyName}');
-    print('[COMPOUND CARD] Company Logo URL: ${widget.compound.companyLogo ?? "NULL"}');
-    print('[COMPOUND CARD] Has Logo: ${widget.compound.companyLogo != null && widget.compound.companyLogo!.isNotEmpty}');
-    print('========================================');
-
-    return HoverScaleAnimation(
-      child: Hero(
-        tag: 'compound_${widget.compound.id}${widget.heroTagSuffix != null ? "_${widget.heroTagSuffix}" : ""}',
-        child: GestureDetector(
-          onTap:
-              widget.onTap ??
-              () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => CompoundScreen(compound: widget.compound),
-                  ),
-                );
-              },
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-        // No fixed width/height - let parent GridView control sizing
-        margin: EdgeInsets.zero,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(borderRadius),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 20,
-              spreadRadius: 0,
-              offset: Offset(0, 8),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image Section
-            if (hasImages)
-              Stack(
-                children: [
-                  RobustNetworkImage(
-                    imageUrl: displayImage!,
-                    width: double.infinity,
-                    height: imageHeight,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context) => Container(
-                      width: double.infinity,
-                      height: imageHeight,
-                      color: Colors.grey[200],
-                      child: Center(child: CircularProgressIndicator(color: AppColors.mainColor)),
+    return AnimatedBuilder(
+      animation: _animationController,
+      builder: (context, child) => Transform.scale(
+        scale: _scaleAnimation.value,
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: _elevationAnimation.value,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onTap ??
+                  () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CompoundScreen(compound: widget.compound),
+                      ),
+                    );
+                  },
+              onTapDown: (_) => _animationController.forward(),
+              onTapUp: (_) => _animationController.reverse(),
+              onTapCancel: () => _animationController.reverse(),
+              borderRadius: BorderRadius.circular(24),
+              hoverColor: AppColors.mainColor.withOpacity(0.03),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: SizedBox(
+                  height: double.infinity,
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                    // Background Image - fills entire container
+                    Positioned.fill(
+                      child: hasImages
+                          ? RobustNetworkImage(
+                              imageUrl: displayImage!,
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, url) => _buildPlaceholder(),
+                            )
+                          : _buildPlaceholder(),
                     ),
-                    errorBuilder: (context, url) {
-                      return Container(
-                        width: double.infinity,
-                        height: imageHeight,
-                        color: Colors.grey[200],
-                        child: Icon(
-                          Icons.image_not_supported,
-                          size: imageHeight * 0.25,
-                          color: Colors.grey[400],
-                        ),
-                      );
-                    },
-                  ),
 
-                  // Recommended Badge - Top Center
-                  if (widget.showRecommendedBadge)
+                    // Top Row: Action Buttons (Left)
                     Positioned(
                       top: 8,
-                      left: 0,
-                      right: 0,
-                      child: Center(
-                        child: Container(
-                          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.mainColor,
-                                AppColors.mainColor.withOpacity(0.8),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.mainColor.withOpacity(0.4),
-                                blurRadius: 8,
-                                offset: Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.recommend,
-                                color: Colors.white,
-                                size: 14,
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                'RECOMMENDED',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 10,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  // Top Row: Action Buttons (Left) and Status (Right)
-                  Positioned(
-                    top: widget.showRecommendedBadge ? 38 : 6, // Push down if recommended badge is showing (matches unit cards)
-                    left: 6,
-                    right: 6,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Action Buttons Row - Wrapped in Flexible to prevent overflow
-                        Flexible(
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                      left: 8,
+                      right: 8,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Action Buttons Row
+                          Row(
                             children: [
                               // Favorite Button
-                              BlocBuilder<
-                                CompoundFavoriteBloc,
-                                CompoundFavoriteState
-                              >(
+                              BlocBuilder<CompoundFavoriteBloc, CompoundFavoriteState>(
                                 builder: (context, state) {
                                   final bloc = context.read<CompoundFavoriteBloc>();
                                   final isFavorite = bloc.isFavorite(widget.compound);
 
                                   return PulseAnimation(
                                     animate: _animateFavorite,
-                                    child: _actionButton(
-                                      isFavorite ? Icons.favorite : Icons.favorite_border,
-                                      () {
+                                    child: GestureDetector(
+                                      onTap: () {
                                         bloc.toggleFavorite(widget.compound);
                                         setState(() {
                                           _animateFavorite = true;
@@ -294,18 +221,28 @@ class _CompoundsNameState extends State<CompoundsName> {
                                           }
                                         });
                                       },
-                                      buttonSize,
-                                      iconSize,
-                                      color: isFavorite ? Colors.red : null,
+                                      child: Container(
+                                        height: 32,
+                                        width: 32,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: Colors.black.withOpacity(0.35),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          isFavorite ? Icons.favorite : Icons.favorite_border,
+                                          size: 16,
+                                          color: isFavorite ? Colors.red : Colors.white,
+                                        ),
+                                      ),
                                     ),
                                   );
                                 },
                               ),
-                              SizedBox(width: 4), // Matches unit cards
+                              SizedBox(width: 8),
                               // Share Button
-                              PulseAnimation(
-                                animate: _animateShare,
-                                child: _actionButton(Icons.share, () async {
+                              GestureDetector(
+                                onTap: () async {
                                   setState(() {
                                     _animateShare = true;
                                   });
@@ -317,7 +254,6 @@ class _CompoundsNameState extends State<CompoundsName> {
                                     }
                                   });
 
-                                  // Fetch compound units for advanced share
                                   final compoundWebServices = CompoundWebServices();
                                   List<Map<String, dynamic>>? units;
 
@@ -338,318 +274,404 @@ class _CompoundsNameState extends State<CompoundsName> {
                                       builder: (context) => AdvancedShareBottomSheet(
                                         type: 'compound',
                                         id: widget.compound.id.toString(),
-                                      units: units,
-                                    ),
-                                  );
-                                }
-                                }, buttonSize, iconSize),
-                              ),
-                              SizedBox(width: 4), // Matches unit cards
-                              // Note Button
-                              _actionButton(
-                                _currentNote != null && _currentNote!.isNotEmpty
-                                    ? Icons.note
-                                    : Icons.note_add_outlined,
-                                () => _showNoteDialog(context),
-                                buttonSize,
-                                iconSize,
-                                color: _currentNote != null && _currentNote!.isNotEmpty
-                                    ? AppColors.mainColor
-                                    : null,
-                              ),
-                              // Update Badge (NEW)
-                              if (widget.compound.updatedUnitsCount > 0) ...[
-                                SizedBox(width: 2), // Reduced from 4
-                                Container(
-                                  padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2), // Reduced padding
+                                        units: units,
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  height: 32,
+                                  width: 32,
+                                  alignment: Alignment.center,
                                   decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [Color(0xFFFF3B30), Color(0xFFFF6B6B)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Color(0xFFFF3B30).withOpacity(0.3),
-                                        blurRadius: 8,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
+                                    color: Colors.black.withOpacity(0.35),
+                                    shape: BoxShape.circle,
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.fiber_new,
-                                        color: Colors.white,
-                                        size: 9, // Reduced from 10
-                                      ),
-                                      SizedBox(width: 1), // Reduced from 2
-                                      Text(
-                                        '${widget.compound.updatedUnitsCount}',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 8, // Reduced from 9
-                                          letterSpacing: 0.2,
-                                        ),
-                                      ),
-                                    ],
+                                  child: Icon(
+                                    Icons.share_outlined,
+                                    size: 16,
+                                    color: Colors.white,
                                   ),
                                 ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: 2), // Small spacer (reduced from 3)
-                        // Status Badge - Also wrapped in Flexible
-                        // Flexible(
-                        //   child: Container(
-                        //     padding: EdgeInsets.symmetric(
-                        //       horizontal: 5, // Reduced from 6
-                        //       vertical: 2,
-                        //     ),
-                        //     decoration: BoxDecoration(
-                        //       color: widget.compound.status == 'delivered'
-                        //           ? Color(0xFF4CAF50)
-                        //           : Color(0xFFFF9800),
-                        //       borderRadius: BorderRadius.circular(20),
-                        //       boxShadow: [
-                        //         BoxShadow(
-                        //           color: (widget.compound.status == 'delivered'
-                        //               ? Color(0xFF4CAF50)
-                        //               : Color(0xFFFF9800)).withOpacity(0.3),
-                        //           blurRadius: 8,
-                        //           offset: Offset(0, 2),
-                        //         ),
-                        //       ],
-                        //     ),
-                        //     child: Text(
-                        //       widget.compound.status.toUpperCase(),
-                        //       style: TextStyle(
-                        //         color: Colors.white,
-                        //         fontSize: 7, // Reduced from 8
-                        //         fontWeight: FontWeight.bold,
-                        //         letterSpacing: 0.3,
-                        //       ),
-                        //       maxLines: 1,
-                        //       overflow: TextOverflow.ellipsis,
-                        //     ),
-                        //   ),
-                        // ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-            // Content Section - Flexible to fill remaining space
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.all(3), // Further reduced to minimize white area
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                  // Compound Title + Status Row
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.compound.project,
-                          style: TextStyle(
-                            fontSize: 13, // Reduced for compact look
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                            height: 1.2,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 0.5),
-
-                  // Company Name
-                  Text(
-                    widget.compound.companyName.isNotEmpty ? widget.compound.companyName : 'N/A',
-                    style: TextStyle(
-                      fontSize: 10, // Reduced for compact look
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[600],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 0.5), // Minimized spacing
-
-                  // Location and Phone Button Row
-                  Row(
-                    children: [
-                      Icon(Icons.location_on_outlined, size: 11, color: Colors.grey[600]),
-                      SizedBox(width: 2),
-                      Expanded(
-                        child: Text(
-                          widget.compound.location.isNotEmpty ? widget.compound.location : 'N/A',
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: Colors.grey[600],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      // Phone Button with CircleAvatar
-                      GestureDetector(
-                        onTap: () => _showSalespeople(context),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0xFF26A69A).withOpacity(0.3),
-                                blurRadius: 6,
-                                offset: Offset(0, 2),
+                              ),
+                              SizedBox(width: 8),
+                              // Note Button
+                              GestureDetector(
+                                onTap: () => _showNoteDialog(context),
+                                child: Container(
+                                  height: 32,
+                                  width: 32,
+                                  alignment: Alignment.center,
+                                  decoration: BoxDecoration(
+                                    color: _currentNote != null && _currentNote!.isNotEmpty
+                                        ? AppColors.mainColor.withOpacity(0.9)
+                                        : Colors.black.withOpacity(0.35),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    _currentNote != null && _currentNote!.isNotEmpty
+                                        ? Icons.note
+                                        : Icons.note_add_outlined,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
                             ],
                           ),
-                          child: CircleAvatar(
-                            radius: 14, // 28 diameter - slightly smaller
-                            backgroundColor: Color(0xFF26A69A),
-                            child: Icon(
-                              Icons.phone,
-                              color: Colors.white,
-                              size: 14,
+                        ],
+                      ),
+                    ),
+
+                    // Update Badge (NEW units)
+                    if (widget.compound.updatedUnitsCount > 0)
+                      Positioned(
+                        top: 8,
+                        right: -35,
+                        child: Transform.rotate(
+                          angle: 0.785398, // 45 degrees
+                          child: Container(
+                            width: 140,
+                            height: 25,
+                            padding: EdgeInsets.only(
+                              left: 35,
+                              right: 10,
+                              top: 6,
+                              bottom: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFFFF3B30), Color(0xFFFF6B6B)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black26,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.fiber_new, color: Colors.white, size: 10),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    '${widget.compound.updatedUnitsCount}',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 10,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
 
-                  SizedBox(height: 1), // Minimized spacing
-
-                  // Row 1: Units, Available, Floors (3 items in grey containers)
-                  Row(
-                    children: [
-                      _detailChip(Icons.home_work, '${widget.compound.totalUnits ?? "0"}'),
-                      SizedBox(width: 2),
-                      _detailChip(Icons.check_circle_outline, '${widget.compound.availableUnits ?? "0"}', color: Colors.green),
-                      SizedBox(width: 2),
-                      _detailChip(Icons.layers, '${widget.compound.howManyFloors ?? "N/A"}'),
-                    ],
-                  ),
-
-                  SizedBox(height: 1), // Minimized spacing
-
-                  // Row 2: Area, Progress, Delivery (3 items in grey containers)
-                  Row(
-                    children: [
-                      _detailChip(
-                        Icons.square_foot,
-                        widget.compound.builtUpArea.isNotEmpty && widget.compound.builtUpArea != '0'
-                            ? '${widget.compound.builtUpArea}m²'
-                            : 'N/A',
-                      ),
-                      SizedBox(width: 2),
-                      if (widget.compound.completionProgress != null && widget.compound.completionProgress!.isNotEmpty)
-                        _detailChip(Icons.trending_up, '${widget.compound.completionProgress}%', color: AppColors.mainColor)
-                      else if (widget.compound.status.toLowerCase().contains('progress'))
-                        _detailChip(Icons.pending, 'Progress', color: Colors.orange)
-                      else
-                        _detailChip(Icons.trending_up, 'N/A'),
-                      SizedBox(width: 2),
-                      _detailChip(
-                        Icons.calendar_today,
-                        widget.compound.plannedDeliveryDate != null && widget.compound.plannedDeliveryDate!.isNotEmpty
-                            ? _formatDate(widget.compound.plannedDeliveryDate!)
-                            : 'N/A',
-                      ),
-                    ],
-                  ),
-
-                  // Latest Update Note (if exists)
-                  if (widget.compound.latestUpdateNote != null &&
-                      widget.compound.latestUpdateNote!.isNotEmpty) ...[
-                    SizedBox(height: 8),
+                    // Semi-transparent Info Area at bottom
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                      width: double.infinity,
+                      padding: EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Color(0xFFFF3B30).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Color(0xFFFF3B30).withOpacity(0.3),
-                          width: 1,
+                        color: Colors.white.withOpacity(0.90),
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(24),
+                          bottomRight: Radius.circular(24),
                         ),
                       ),
-                      child: Row(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(
-                            Icons.info_outline,
-                            size: 12,
-                            color: Color(0xFFFF3B30),
-                          ),
-                          SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              widget.compound.latestUpdateNote!,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: Color(0xFFFF3B30),
-                                fontWeight: FontWeight.w600,
+                          // Compound Name with Company Logo
+                          Row(
+                            children: [
+                              if (widget.compound.companyLogo != null && widget.compound.companyLogo!.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 6),
+                                  child: CircleAvatar(
+                                    radius: 10,
+                                    backgroundImage: NetworkImage(widget.compound.companyLogo!),
+                                    backgroundColor: Colors.grey[200],
+                                  ),
+                                ),
+                              Expanded(
+                                child: Text(
+                                  widget.compound.project,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black87,
+                                    height: 1.2,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                              maxLines: 3, // more room for text
-                              overflow: TextOverflow.ellipsis,
-                              softWrap: true,
+                            ],
+                          ),
+                          SizedBox(height: 2),
+
+                          // Company Name
+                          Text(
+                            widget.compound.companyName.isNotEmpty ? widget.compound.companyName : 'N/A',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey[700],
+                              height: 1.2,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 3),
+
+                          // Location
+                          Row(
+                            children: [
+                              Icon(Icons.location_on_outlined, size: 12, color: Colors.grey[600]),
+                              SizedBox(width: 3),
+                              Expanded(
+                                child: Text(
+                                  widget.compound.location.isNotEmpty ? widget.compound.location : 'N/A',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey[600],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          SizedBox(height: 4),
+
+                          // Property Details Row 1
+                          Row(
+                            children: [
+                              _detailChip(Icons.home_work, '${widget.compound.totalUnits ?? "0"}'),
+                              SizedBox(width: 3),
+                              _detailChip(Icons.check_circle_outline, '${widget.compound.availableUnits ?? "0"}', color: Colors.green),
+                              SizedBox(width: 3),
+                              _detailChip(Icons.layers, '${widget.compound.howManyFloors ?? "N/A"}'),
+                            ],
+                          ),
+
+                          SizedBox(height: 3),
+
+                          // Property Details Row 2
+                          Row(
+                            children: [
+                              _detailChip(
+                                Icons.square_foot,
+                                widget.compound.builtUpArea.isNotEmpty && widget.compound.builtUpArea != '0'
+                                    ? '${widget.compound.builtUpArea}m²'
+                                    : 'N/A',
+                              ),
+                              SizedBox(width: 3),
+                              if (widget.compound.completionProgress != null && widget.compound.completionProgress!.isNotEmpty)
+                                _detailChip(Icons.trending_up, '${widget.compound.completionProgress}%', color: AppColors.mainColor)
+                              else if (widget.compound.status.toLowerCase().contains('progress'))
+                                _detailChip(Icons.pending, 'Progress', color: Colors.orange)
+                              else
+                                _detailChip(Icons.trending_up, 'N/A'),
+                            ],
+                          ),
+
+                          SizedBox(height: 4),
+
+                          // Delivery Date and Phone Button Row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.calendar_today, size: 12, color: Colors.grey[600]),
+                                    SizedBox(width: 3),
+                                    Expanded(
+                                      child: Text(
+                                        widget.compound.plannedDeliveryDate != null && widget.compound.plannedDeliveryDate!.isNotEmpty
+                                            ? _formatDate(widget.compound.plannedDeliveryDate!)
+                                            : 'N/A',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: Colors.grey[600],
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Phone Button
+                              GestureDetector(
+                                onTap: () => _showSalespeople(context),
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.mainColor,
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.mainColor.withOpacity(0.4),
+                                        blurRadius: 10,
+                                        offset: Offset(0, 3),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    Icons.phone,
+                                    color: Colors.white,
+                                    size: 16,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ),
                   ],
-
-                  SizedBox(height: 8),
-
-                  // Additional Info Chips - Always show
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      _buildInfoChip(
-                        icon: Icons.apartment,
-                        label: widget.compound.totalUnits ?? '0',
-                      ),
-                      _buildInfoChip(
-                        icon: Icons.check_circle_outline,
-                        label: widget.compound.availableUnits ?? '0',
-                        color: Color(0xFF4CAF50),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
+                ),
               ),
             ),
-            ),
-
-          ],
+          ),
         ),
-          ), // Container
-        ), // GestureDetector
-      ), // Hero
-    ); // HoverScaleAnimation
+      ),
+    );
   }
 
-  Widget _actionButton(IconData icon, VoidCallback onTap, double size, double iconSize, {Color? color}) {
+  Widget _buildPlaceholder() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFF8F9FA),
+            Color(0xFFE9ECEF),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.image_outlined,
+              size: 64,
+              color: AppColors.mainColor.withOpacity(0.3),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'No Image Available',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _detailChip(IconData icon, String value, {Color? color}) {
+    final chipColor = color ?? Colors.grey[700]!;
+    return Flexible(
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: color != null ? color.withOpacity(0.1) : Colors.grey[100],
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 12, color: chipColor),
+            SizedBox(width: 3),
+            Flexible(
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  color: chipColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showNoteDialog(BuildContext context) async {
+    final result = await NoteDialog.show(
+      context,
+      initialNote: _currentNote,
+      title: _currentNote != null && _currentNote!.isNotEmpty ? 'Edit Note' : 'Add Note',
+    );
+
+    if (result != null && mounted) {
+      final webServices = FavoritesWebServices();
+      final bloc = context.read<CompoundFavoriteBloc>();
+
+      try {
+        if (widget.compound.noteId != null) {
+          await webServices.updateNote(
+            noteId: widget.compound.noteId!,
+            content: result,
+            title: 'Compound Note',
+          );
+        } else {
+          await webServices.createNote(
+            content: result,
+            title: 'Compound Note',
+            compoundId: int.tryParse(widget.compound.id),
+          );
+        }
+
+        setState(() {
+          _currentNote = result;
+        });
+
+        bloc.add(LoadFavoriteCompounds());
+
+        if (mounted) {
+          MessageHelper.showSuccess(context, 'Note saved successfully');
+        }
+      } catch (e) {
+        if (mounted) {
+          MessageHelper.showError(context, 'Failed to save note: $e');
+        }
+      }
+    }
+  }
+
+  Widget _actionButton(IconData icon, VoidCallback onTap, double buttonSize, double iconSize, {Color? color}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: size,
-        height: size,
+        width: buttonSize,
+        height: buttonSize,
         decoration: BoxDecoration(
           color: color != null ? color.withOpacity(0.1) : Colors.white.withOpacity(0.95),
           shape: BoxShape.circle,
@@ -667,263 +689,6 @@ class _CompoundsNameState extends State<CompoundsName> {
           color: color ?? Colors.grey[700],
         ),
       ),
-    );
-  }
-
-  Widget _detailChip(IconData icon, String value, {Color? color}) {
-    final chipColor = color ?? Colors.grey[700]!;
-    return Flexible(
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 3, vertical: 2),
-        decoration: BoxDecoration(
-          color: color != null ? color.withOpacity(0.1) : Colors.grey[100],
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 9, color: chipColor),
-            SizedBox(width: 1.5),
-            Flexible(
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: 8,
-                  fontWeight: FontWeight.w600,
-                  color: chipColor,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoChip({
-    required IconData icon,
-    required String label,
-    Color? color,
-  }) {
-    final chipColor = color ?? AppColors.mainColor;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      decoration: BoxDecoration(
-        color: chipColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: chipColor.withOpacity(0.3)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: chipColor),
-          SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: chipColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showNoteDialog(BuildContext context) async {
-    final result = await NoteDialog.show(
-      context,
-      initialNote: _currentNote,
-      title: _currentNote != null && _currentNote!.isNotEmpty
-          ? 'Edit Note'
-          : 'Add Note',
-    );
-
-    if (result != null && context.mounted) {
-      final webServices = FavoritesWebServices();
-      final bloc = context.read<CompoundFavoriteBloc>();
-
-      try {
-        if (widget.compound.noteId != null) {
-          // Update existing note using new Notes API
-          await webServices.updateNote(
-            noteId: widget.compound.noteId!,
-            content: result,
-            title: 'Compound Note',
-          );
-        } else {
-          // Create new note using new Notes API
-          await webServices.createNote(
-            content: result,
-            title: 'Compound Note',
-            compoundId: int.tryParse(widget.compound.id),
-          );
-        }
-
-        // Update local state immediately
-        setState(() {
-          _currentNote = result;
-        });
-
-        // Trigger bloc refresh to reload favorites with updated noteId
-        bloc.add(LoadFavoriteCompounds());
-
-        if (context.mounted) {
-          MessageHelper.showSuccess(context, 'Note saved successfully');
-        }
-      } catch (e) {
-        if (context.mounted) {
-          MessageHelper.showError(context, 'Failed to save note: $e');
-        }
-      }
-    }
-  }
-}
-
-// Company Logo Widget with fallback to API fetch
-class _CompanyLogo extends StatefulWidget {
-  final String companyId;
-  final String companyName;
-  final String? companyLogo;
-
-  _CompanyLogo({
-    required this.companyId,
-    required this.companyName,
-    this.companyLogo,
-  });
-
-  @override
-  State<_CompanyLogo> createState() => _CompanyLogoState();
-}
-
-class _CompanyLogoState extends State<_CompanyLogo> {
-  String? _fetchedLogo;
-  bool _isLoading = false;
-  bool _hasFetched = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // If no logo provided, fetch it from API
-    if ((widget.companyLogo == null || widget.companyLogo!.isEmpty) && !_hasFetched) {
-      _fetchCompanyLogo();
-    }
-  }
-
-  Future<void> _fetchCompanyLogo() async {
-    if (_isLoading || _hasFetched) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final companyWebServices = CompanyWebServices();
-      final companyData = await companyWebServices.getCompanyById(widget.companyId);
-
-      print('[COMPANY LOGO] Fetched company data: $companyData');
-
-      if (mounted) {setState(() {
-          _fetchedLogo = companyData['logo']?.toString();
-          _isLoading = false;
-          _hasFetched = true;
-          print('[COMPANY LOGO] Logo URL: $_fetchedLogo');
-        });
-      }
-    } catch (e) {
-      print('[COMPANY LOGO] Error fetching company: $e');
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-          _hasFetched = true;
-        });
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final logoUrl = widget.companyLogo ?? _fetchedLogo;
-    final hasLogo = logoUrl != null && logoUrl.isNotEmpty;
-
-    return Container(
-      width: 28,
-      height: 28,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white,
-        border: Border.all(
-          color: AppColors.mainColor.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: hasLogo
-          ? ClipOval(
-              child: RobustNetworkImage(
-                imageUrl: logoUrl,
-                width: 28,
-                height: 28,
-                fit: BoxFit.cover,
-                loadingBuilder: (context) => Container(
-                  color: Colors.grey.shade100,
-                  child: Center(
-                    child: SizedBox(
-                      width: 12,
-                      height: 12,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 1.5,
-                        color: AppColors.mainColor,
-                      ),
-                    ),
-                  ),
-                ),
-                errorBuilder: (context, url) {
-                  print('[COMPANY LOGO ERROR] Failed to load logo: $url');
-                  return Container(
-                    color: AppColors.mainColor.withOpacity(0.1),
-                    child: Center(
-                      child: Text(
-                        widget.companyName.isNotEmpty
-                            ? widget.companyName[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.mainColor,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            )
-          : Container(
-              color: _isLoading ? Colors.grey.shade100 : AppColors.mainColor.withOpacity(0.1),
-              child: Center(
-                child: _isLoading
-                    ? SizedBox(
-                        width: 12,
-                        height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 1.5,
-                          color: AppColors.mainColor,
-                        ),
-                      )
-                    : Text(
-                        widget.companyName.isNotEmpty
-                            ? widget.companyName[0].toUpperCase()
-                            : '?',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.mainColor,
-                        ),
-                      ),
-              ),
-            ),
     );
   }
 }

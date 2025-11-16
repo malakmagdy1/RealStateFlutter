@@ -23,7 +23,7 @@ class AuthButton extends StatelessWidget {
               ? AppColors.mainColor.withOpacity(0.6)
               : AppColors.mainColor,
         ),
-        foregroundColor: WidgetStateProperty.all(AppColors.black),
+        foregroundColor: WidgetStateProperty.all(Colors.white),
         shape: WidgetStateProperty.all(
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         ),
@@ -39,10 +39,10 @@ class AuthButton extends StatelessWidget {
               children: [
                 CustomLoadingDots(size: 30),
                 SizedBox(width: 8),
-                CustomText16(text),
+                CustomText16(text, color: Colors.white),
               ],
             )
-          : CustomText16(text),
+          : CustomText16(text, color: Colors.white),
     );
   }
 }

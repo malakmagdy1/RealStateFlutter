@@ -56,6 +56,10 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
   bool _isLoadingNotes = false;
   final TextEditingController _noteController = TextEditingController();
 
+  // Units search
+  final TextEditingController _unitsSearchController = TextEditingController();
+  String _unitsSearchQuery = '';
+
   @override
   void initState() {
     super.initState();
@@ -85,6 +89,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
     _emailController.dispose();
     _messageController.dispose();
     _noteController.dispose();
+    _unitsSearchController.dispose();
     super.dispose();
   }
 
@@ -509,7 +514,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
               'No images available',
               style: TextStyle(
                 fontSize: 14,
-                color: Color(0xFF999999),
+                color: AppColors.greyText,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -534,7 +539,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                   label,
                   style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF666666),
+                    color: AppColors.greyText,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -543,7 +548,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                     value,
                     style: TextStyle(
                       fontSize: 13,
-                      color: Color(0xFF333333),
+                      color: Colors.black,
                       fontWeight: FontWeight.w600,
                     ),
                     textAlign: TextAlign.end,
@@ -586,7 +591,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF333333),
+                  color: Colors.black,
                 ),
               ),
             ],
@@ -597,7 +602,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
           else if (_salespeople.isEmpty)
             Text(
               l10n.noSalesPersonAvailable,
-              style: TextStyle(color: Color(0xFF999999)),
+              style: TextStyle(color: AppColors.greyText),
             )
           else
             ..._salespeople.map((salesperson) {
@@ -616,7 +621,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF333333),
+                        color: Colors.black,
                       ),
                     ),
                     SizedBox(height: 8),
@@ -628,7 +633,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                           salesperson['phone'] ?? 'N/A',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF666666),
+                            color: AppColors.greyText,
                           ),
                         ),
                       ],
@@ -789,7 +794,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                     'No images available',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Color(0xFF999999),
+                      color: AppColors.greyText,
                     ),
                   ),
                 ],
@@ -934,7 +939,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                     'No master plan available',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Color(0xFF999999),
+                      color: AppColors.greyText,
                     ),
                   ),
                 ],
@@ -988,46 +993,152 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
   }
 
   Widget _buildUnitsTab() {
+    final l10n = AppLocalizations.of(context)!;
+
     return BlocBuilder<UnitBloc, UnitState>(
       builder: (context, state) {
         if (state is UnitLoading) {
           return Center(child: CustomLoadingDots(size: 120));
         } else if (state is UnitSuccess) {
-          final units = state.response.data;
-          if (units.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.home_outlined,
-                    size: 80,
-                    color: AppColors.mainColor.withOpacity(0.3),
-                  ),
-                  SizedBox(height: 16),
-                  Text(
-                    'No units available',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Color(0xFF999999),
+          final allUnits = state.response.data;
+
+          // Filter units based on search query
+          final filteredUnits = allUnits.where((unit) {
+            if (_unitsSearchQuery.isEmpty) return true;
+
+            final query = _unitsSearchQuery.toLowerCase();
+            final unitNumber = (unit.unitNumber ?? '').toLowerCase();
+            final unitType = (unit.unitType ?? '').toLowerCase();
+            final price = (unit.price ?? '').toLowerCase();
+            final bedrooms = (unit.bedrooms ?? '').toLowerCase();
+            final floor = (unit.floor ?? '').toLowerCase();
+            final status = (unit.status ?? '').toLowerCase();
+
+            return unitNumber.contains(query) ||
+                   unitType.contains(query) ||
+                   price.contains(query) ||
+                   bedrooms.contains(query) ||
+                   floor.contains(query) ||
+                   status.contains(query);
+          }).toList();
+
+          return Column(
+            children: [
+              // Search bar
+              Padding(
+                padding: EdgeInsets.all(24),
+                child: TextField(
+                  controller: _unitsSearchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _unitsSearchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: '${l10n.searchForUnits ?? 'Search for units'}...',
+                    prefixIcon: Icon(Icons.search, color: AppColors.mainColor),
+                    suffixIcon: _unitsSearchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: Icon(Icons.clear, size: 20),
+                            onPressed: () {
+                              setState(() {
+                                _unitsSearchController.clear();
+                                _unitsSearchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
                     ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.mainColor, width: 2),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
-                ],
+                ),
               ),
-            );
-          }
-          return GridView.builder(
-            padding: EdgeInsets.all(24),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              mainAxisSpacing: 20,
-              crossAxisSpacing: 20,
-              childAspectRatio: 0.9,
-            ),
-            itemCount: units.length,
-            itemBuilder: (context, index) {
-              return WebUnitCard(unit: units[index]);
-            },
+
+              // Results count
+              if (_unitsSearchQuery.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Row(
+                    children: [
+                      Text(
+                        '${l10n.foundResults(filteredUnits.length)}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.greyText,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              SizedBox(height: 8),
+
+              // Units grid or empty state
+              Expanded(
+                child: filteredUnits.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              _unitsSearchQuery.isNotEmpty
+                                  ? Icons.search_off
+                                  : Icons.home_outlined,
+                              size: 80,
+                              color: AppColors.mainColor.withOpacity(0.3),
+                            ),
+                            SizedBox(height: 16),
+                            Text(
+                              _unitsSearchQuery.isNotEmpty
+                                  ? l10n.noResultsFound ?? 'No results found'
+                                  : 'No units available',
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: AppColors.greyText,
+                              ),
+                            ),
+                            if (_unitsSearchQuery.isNotEmpty) ...[
+                              SizedBox(height: 8),
+                              Text(
+                                'Try different search terms',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFFBBBBBB),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      )
+                    : GridView.builder(
+                        padding: EdgeInsets.all(24),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 20,
+                          crossAxisSpacing: 20,
+                          childAspectRatio: 0.9,
+                        ),
+                        itemCount: filteredUnits.length,
+                        itemBuilder: (context, index) {
+                          return WebUnitCard(unit: filteredUnits[index]);
+                        },
+                      ),
+              ),
+            ],
           );
         } else if (state is UnitError) {
           return Center(
@@ -1062,7 +1173,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                     'No floor plan available',
                     style: TextStyle(
                       fontSize: 16,
-                      color: Color(0xFF999999),
+                      color: AppColors.greyText,
                     ),
                   ),
                 ],
@@ -1162,7 +1273,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF333333),
+              color: Colors.black,
             ),
           ),
           SizedBox(height: 4),
@@ -1170,7 +1281,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
             sale.description,
             style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF666666),
+              color: AppColors.greyText,
               height: 1.4,
             ),
           ),
@@ -1205,8 +1316,6 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
     );
   }
 
-
-
   Widget _buildFinishSpecs(Map<String, dynamic> compoundData) {
     final finishSpecs = _getString(compoundData, 'finish_specs');
     final l10n = AppLocalizations.of(context)!;
@@ -1232,7 +1341,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF333333),
+              color: Colors.black,
             ),
           ),
           SizedBox(height: 12),
@@ -1246,7 +1355,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
               style: {
                 "body": Style(
                   fontSize: FontSize(12),
-                  color: Color(0xFF666666),
+                  color: AppColors.greyText,
                   lineHeight: LineHeight(1.6),
                   maxLines: 2,
                   textOverflow: TextOverflow.ellipsis,
@@ -1258,7 +1367,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
               style: {
                 "body": Style(
                   fontSize: FontSize(12),
-                  color: Color(0xFF666666),
+                  color: AppColors.greyText,
                   lineHeight: LineHeight(1.6),
                 ),
               },
@@ -1326,7 +1435,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
-                color: Color(0xFF333333),
+                color: Colors.black,
               ),
             ),
           ),
@@ -1373,7 +1482,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: Color(0xFF333333),
+                  color: Colors.black,
                 ),
               ),
             ],
@@ -1393,7 +1502,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF666666),
+                color: AppColors.greyText,
               ),
             ),
             SizedBox(height: 8),
@@ -1437,7 +1546,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
           label,
           style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF666666),
+            color: AppColors.greyText,
           ),
         ),
         Text(
@@ -1445,7 +1554,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF333333),
+            color: Colors.black,
           ),
         ),
       ],
@@ -1488,7 +1597,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF333333),
+              color: Colors.black,
             ),
           ),
           SizedBox(height: 12),
@@ -1534,7 +1643,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: available ? AppColors.mainColor : Color(0xFF999999),
+                          color: available ? AppColors.mainColor : AppColors.greyText,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1605,12 +1714,12 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                 SizedBox(height: 16),
                 Text(
                   'No notes yet',
-                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                  style: TextStyle(fontSize: 16, color: AppColors.greyText),
                 ),
                 SizedBox(height: 8),
                 Text(
                   'Add your first note above',
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
+                  style: TextStyle(fontSize: 14, color: AppColors.greyText),
                 ),
               ],
             ),
@@ -1645,7 +1754,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                               content,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF333333),
+                                color: Colors.black,
                               ),
                             ),
                             if (createdAt.isNotEmpty) ...[
@@ -1654,7 +1763,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                                 _formatNoteDate(createdAt),
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.grey,
+                                  color: AppColors.greyText,
                                 ),
                               ),
                             ],

@@ -40,3 +40,12 @@ class FetchCompoundDetailEvent extends CompoundEvent {
   @override
   List<Object?> get props => [compoundId];
 }
+
+class FetchWeeklyRecommendedCompoundsEvent extends CompoundEvent {
+  final bool forceRefresh;
+
+  FetchWeeklyRecommendedCompoundsEvent({this.forceRefresh = false});
+
+  @override
+  List<Object?> get props => [forceRefresh];
+}

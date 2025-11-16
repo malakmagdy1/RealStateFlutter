@@ -12,3 +12,16 @@ String? getLocalStorageItem(String key) {
 void removeLocalStorageItem(String key) {
   html.window.localStorage.remove(key);
 }
+
+void showWebNotification(String title, String body) {
+  // Check if browser supports notifications
+  if (html.Notification.supported) {
+    // Request permission if not granted
+    html.Notification.requestPermission().then((permission) {
+      if (permission == 'granted') {
+        // Show notification
+        html.Notification(title, body: body, icon: '/firebase-logo.png');
+      }
+    });
+  }
+}

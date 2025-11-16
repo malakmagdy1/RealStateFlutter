@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/router/app_router.dart';
@@ -12,6 +13,9 @@ import 'package:real/feature/notifications/data/models/notification_model.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_event.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
+import 'package:real/feature/auth/presentation/bloc/login_bloc.dart';
+import 'package:real/feature/auth/presentation/bloc/login_event.dart';
+import 'package:real/core/utils/message_helper.dart';
 import 'package:real/core/services/route_persistence_service.dart';
 import '../home/presentation/web_home_screen.dart';
 import '../compounds/presentation/web_compounds_screen.dart';
@@ -170,14 +174,31 @@ class _WebMainScreenState extends State<WebMainScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    return Scaffold(
-      body: Column(
-        children: [
-          _buildNavBar(l10n),
-          Expanded(
-            child: _screens[_selectedIndex],
-          ),
-        ],
+    return BlocListener<SubscriptionBloc, SubscriptionState>(
+      listener: (context, state) {
+        // Auto-logout if subscription is expired
+        if (state is SubscriptionStatusLoaded) {
+          if (state.status.isExpired && state.status.hasActiveSubscription) {
+            // Subscription was active but expired - logout user
+            print('⚠️ Subscription expired - logging out user');
+            MessageHelper.showError(context, 'Your subscription has expired. Please renew to continue.');
+
+            // Trigger logout
+            Future.delayed(Duration(seconds: 2), () {
+              context.read<LoginBloc>().add(LogoutEvent());
+            });
+          }
+        }
+      },
+      child: Scaffold(
+        body: Column(
+          children: [
+            _buildNavBar(l10n),
+            Expanded(
+              child: _screens[_selectedIndex],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -210,18 +231,23 @@ class _WebMainScreenState extends State<WebMainScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Row(
                 children: [
-                  // Logo
-                  const Text(
-                    '🏘️',
-                    style: TextStyle(fontSize: 28),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    l10n.appName,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
+                  Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
                       color: AppColors.mainColor,
+                      borderRadius: BorderRadius.circular(15),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: Padding(
+                        padding: EdgeInsets.all(15), // optional padding to make the image smaller inside
+                        child: SvgPicture.asset(
+                          'assets/images/logos/logo.svg',
+                          colorFilter: ColorFilter.mode(AppColors.logoColor, BlendMode.srcIn),
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -229,66 +255,73 @@ class _WebMainScreenState extends State<WebMainScreen> {
                   // Subscription Status Badge (Clickable)
                   BlocBuilder<SubscriptionBloc, SubscriptionState>(
                     builder: (context, state) {
-                      if (state is SubscriptionStatusLoaded) {
-                        final status = state.status;
-                        return MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () => _showSubscriptionDialog(context, status),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: status.hasActiveSubscription
-                                      ? [
-                                          AppColors.mainColor.withOpacity(0.2),
-                                          AppColors.mainColor.withOpacity(0.1),
-                                        ]
-                                      : [
-                                          Colors.grey[300]!,
-                                          Colors.grey[200]!,
-                                        ],
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: status.hasActiveSubscription
-                                      ? AppColors.mainColor.withOpacity(0.3)
-                                      : Colors.grey[400]!,
-                                  width: 1,
-                                ),
+                      // Always show the badge - either loaded status or default "Free"
+                      final hasActiveSubscription = state is SubscriptionStatusLoaded && state.status.hasActiveSubscription;
+                      final planName = state is SubscriptionStatusLoaded && state.status.planNameEn.isNotEmpty
+                          ? state.status.planNameEn
+                          : (hasActiveSubscription ? l10n.active : l10n.free);
+
+                      return MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () {
+                            if (state is SubscriptionStatusLoaded) {
+                              _showSubscriptionDialog(context, state.status);
+                            } else {
+                              // Navigate to subscription plans if not loaded
+                              context.go('/subscription');
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: hasActiveSubscription
+                                    ? [
+                                        AppColors.mainColor.withOpacity(0.2),
+                                        AppColors.mainColor.withOpacity(0.1),
+                                      ]
+                                    : [
+                                        Colors.grey[300]!,
+                                        Colors.grey[200]!,
+                                      ],
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    status.hasActiveSubscription
-                                        ? Icons.workspace_premium
-                                        : Icons.info_outline,
-                                    size: 16,
-                                    color: status.hasActiveSubscription
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: hasActiveSubscription
+                                    ? AppColors.mainColor.withOpacity(0.3)
+                                    : Colors.grey[400]!,
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  hasActiveSubscription
+                                      ? Icons.workspace_premium
+                                      : Icons.info_outline,
+                                  size: 16,
+                                  color: hasActiveSubscription
+                                      ? AppColors.mainColor
+                                      : Colors.grey[700],
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  planName,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: hasActiveSubscription
                                         ? AppColors.mainColor
                                         : Colors.grey[700],
                                   ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    status.planNameEn.isNotEmpty
-                                        ? status.planNameEn
-                                        : (status.hasActiveSubscription ? l10n.active : l10n.free),
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
-                                      color: status.hasActiveSubscription
-                                          ? AppColors.mainColor
-                                          : Colors.grey[700],
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                           ),
-                        );
-                      }
-                      return const SizedBox.shrink();
+                        ),
+                      );
                     },
                   ),
                   const SizedBox(width: 24),

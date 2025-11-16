@@ -4,7 +4,7 @@ import 'dart:math' as math;
 class CustomLoadingDots extends StatefulWidget {
   final double size;
 
-  const CustomLoadingDots({Key? key, this.size = 100}) : super(key: key);
+  CustomLoadingDots({Key? key, this.size = 100}) : super(key: key);
 
   @override
   State<CustomLoadingDots> createState() => _CustomLoadingDotsState();
@@ -27,29 +27,59 @@ class _CustomLoadingDotsState extends State<CustomLoadingDots>
   @override
   void initState() {
     super.initState();
+    _initializeAnimation();
+  }
+
+  void _initializeAnimation() {
     // إعداد الأنيميشن للدوران الكامل
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200), // سرعة الدوران
     );
-    // تشغيل الأنيميشن بشكل متكرر
+
+    // تشغيل الأنيميشن بشكل متكرر بدون توقف
     _controller.repeat();
-    print('[LOADING DOTS] Animation started - should repeat continuously');
+
+    // Add listener to ensure it keeps repeating
+    _controller.addStatusListener(_onAnimationStatus);
+
+    print('[LOADING DOTS] Animation initialized and started - will repeat indefinitely');
+  }
+
+  void _onAnimationStatus(AnimationStatus status) {
+    // If animation somehow stops or completes, restart it
+    if (status == AnimationStatus.dismissed || status == AnimationStatus.completed) {
+      print('[LOADING DOTS] Animation status changed to $status - restarting repeat');
+      if (mounted) {
+        _controller.repeat();
+      }
+    }
   }
 
   @override
   void didUpdateWidget(CustomLoadingDots oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Ensure animation is running when widget updates
+    // Ensure animation is always running when widget updates
     if (!_controller.isAnimating) {
-      print('[LOADING DOTS] Animation stopped, restarting...');
+      print('[LOADING DOTS] Animation not running after update - restarting...');
+      _controller.repeat();
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Ensure animation continues after dependency changes
+    if (!_controller.isAnimating) {
+      print('[LOADING DOTS] Dependencies changed, animation not running - restarting...');
       _controller.repeat();
     }
   }
 
   @override
   void dispose() {
-    print('[LOADING DOTS] Widget disposed - animation will stop');
+    print('[LOADING DOTS] Widget disposed - stopping animation');
+    _controller.removeStatusListener(_onAnimationStatus);
     _controller.dispose();
     super.dispose();
   }

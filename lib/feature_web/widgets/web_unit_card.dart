@@ -18,6 +18,7 @@ import 'package:real/feature/sale/presentation/widgets/sales_person_selector.dar
 import 'package:real/l10n/app_localizations.dart';
 import 'package:real/core/animations/pulse_animation.dart';
 import 'package:real/core/locale/language_service.dart';
+import 'package:real/core/locale/locale_cubit.dart';
 
 class WebUnitCard extends StatefulWidget {
   final Unit unit;
@@ -81,6 +82,15 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
+    // Wrap with BlocBuilder to rebuild when locale changes
+    return BlocBuilder<LocaleCubit, Locale>(
+      builder: (context, locale) {
+        return _buildCard(context);
+      },
+    );
+  }
+
+  Widget _buildCard(BuildContext context) {
     // Debug logging for badges
     if (widget.unit.changeType != null) {
       print('[WEB UNIT CARD] Unit ${widget.unit.id}: changeType=${widget.unit.changeType}, isUpdated=${widget.unit.isUpdated}');
@@ -315,7 +325,7 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                       // Semi-transparent Info Area at bottom
                       Container(
                         width: double.infinity,
-                        padding: EdgeInsets.all(10),
+                        padding: EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.90),
                           borderRadius: BorderRadius.only(
@@ -332,21 +342,32 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                               children: [
                                 if (widget.unit.companyLogo != null && widget.unit.companyLogo!.isNotEmpty)
                                   Padding(
-                                    padding: const EdgeInsets.only(right: 6),
+                                    padding: const EdgeInsets.only(right: 8),
                                     child: CircleAvatar(
-                                      radius: 10,
-                                      backgroundImage: NetworkImage(widget.unit.companyLogo!),
+                                      radius: 12,
                                       backgroundColor: Colors.grey[200],
+                                      child: ClipOval(
+                                        child: RobustNetworkImage(
+                                          imageUrl: widget.unit.companyLogo!,
+                                          width: 24,
+                                          height: 24,
+                                          fit: BoxFit.contain,
+                                          errorBuilder: (context, url) => Icon(
+                                            Icons.business,
+                                            size: 14,
+                                            color: Colors.grey[600],
+                                          ),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 Expanded(
                                   child: Text(
                                     unitName,
                                     style: TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 18,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.black87,
-                                      height: 1.2,
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -362,8 +383,7 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.grey[700],
-                                height: 1.2,
+                                color: Colors.grey[600],
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -373,14 +393,14 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                             // Compound Name
                             Row(
                               children: [
-                                Icon(Icons.location_on_outlined, size: 12, color: Colors.grey[600]),
-                                SizedBox(width: 3),
+                                Icon(Icons.location_on_outlined, size: 14, color: Colors.grey[600]),
+                                SizedBox(width: 4),
                                 Expanded(
                                   child: Text(
                                     compoundLocation.isNotEmpty ? compoundLocation : 'N/A',
                                     style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
+                                      fontSize: 13,
+                                      color: Colors.grey[700],
                                     ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
@@ -395,14 +415,14 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                             Row(
                               children: [
                                 _detailChip(Icons.bed_outlined, widget.unit.bedrooms.isNotEmpty && widget.unit.bedrooms != '0' ? widget.unit.bedrooms : 'N/A'),
-                                SizedBox(width: 3),
+                                SizedBox(width: 2),
                                 _detailChip(Icons.bathtub_outlined, widget.unit.bathrooms.isNotEmpty && widget.unit.bathrooms != '0' ? widget.unit.bathrooms : 'N/A'),
-                                SizedBox(width: 3),
+                                SizedBox(width: 2),
                                 _detailChip(Icons.square_foot, widget.unit.area.isNotEmpty && widget.unit.area != '0' ? '${widget.unit.area}m²' : 'N/A'),
                               ],
                             ),
 
-                            SizedBox(height: 3),
+                            SizedBox(height: 2),
                             Row(
                               children: [
                                 widget.unit.status.toLowerCase().contains('progress')
@@ -410,7 +430,7 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                                     : widget.unit.status.toLowerCase() == 'available'
                                         ? _detailChip(Icons.check_circle, 'Available', color: Colors.green)
                                         : _detailChip(Icons.info_outline, widget.unit.status),
-                                SizedBox(width: 3),
+                                SizedBox(width: 2),
                                 // Delivery Date
                                 _detailChip(
                                   Icons.calendar_today,
@@ -444,23 +464,23 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                                   child: GestureDetector(
                                     onTap: () => _showSalespeople(context),
                                     child: Container(
-                                      width: 32,
-                                      height: 32,
+                                      width: 35,
+                                      height: 35,
                                       decoration: BoxDecoration(
                                         color: Color(0xFF26A69A),
                                         shape: BoxShape.circle,
                                         boxShadow: [
                                           BoxShadow(
                                             color: Color(0xFF26A69A).withOpacity(0.4),
-                                            blurRadius: 10,
-                                            offset: Offset(0, 3),
+                                            blurRadius: 12,
+                                            offset: Offset(0, 4),
                                           ),
                                         ],
                                       ),
                                       child: Icon(
                                         Icons.phone,
                                         color: Colors.white,
-                                        size: 16,
+                                        size: 20,
                                       ),
                                     ),
                                   ),
@@ -578,32 +598,39 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
 
   Widget _detailChip(IconData icon, String value, {Color? color}) {
     final chipColor = color ?? Colors.grey[700]!;
-    return Flexible(
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color: color != null ? color.withOpacity(0.1) : Colors.grey[100],
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: chipColor),
-            SizedBox(width: 3),
-            Flexible(
-              child: Text(
-                value,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: chipColor,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color != null ? color.withOpacity(0.1) : Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(12),
+        border: color != null ? Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ) : null,
+        boxShadow: color == null ? [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 5,
+            offset: Offset(0, 2),
+          ),
+        ] : null,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: chipColor),
+          SizedBox(width: 4),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: chipColor,
             ),
-          ],
-        ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

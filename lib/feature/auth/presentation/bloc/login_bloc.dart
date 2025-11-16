@@ -3,6 +3,8 @@ import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/core/utils/constant.dart';
 import 'package:real/services/fcm_service.dart';
 import 'package:real/core/services/route_persistence_service.dart';
+import 'package:real/core/services/device_service.dart';
+import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'login_event.dart';
 import 'login_state.dart';
@@ -26,7 +28,13 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
   ) async {
     emit(LoginLoading());
     try {
-      final response = await _repository.login(event.request);
+      // Get device information
+      final deviceInfo = await DeviceService.getAllDeviceInfo();
+
+      // Try login with device information
+      final authService = AuthWebServices();
+      final response = await authService.loginWithDevice(event.request, deviceInfo);
+
       await CasheNetwork.insertToCashe(key: "token", value:response.token??'');
 
       // Save user ID for profile API
@@ -45,6 +53,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       print('[LoginBloc] Token: $token');
       print('[LoginBloc] User ID: ${response.user.id}');
       print('[LoginBloc] Global userId: $userId');
+      print('[LoginBloc] Device Info: $deviceInfo');
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
       // ⭐ SEND FCM TOKEN TO BACKEND AFTER SUCCESSFUL LOGIN
@@ -57,6 +66,9 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       }
 
       emit(LoginSuccess(response));
+    } on DeviceLimitException catch (e) {
+      // Special handling for device limit errors
+      emit(LoginDeviceLimitError(e.message, e.devices));
     } catch (e) {
       emit(LoginError(e.toString().replaceAll('Exception: ', '')));
     }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
@@ -10,11 +11,13 @@ import '../../data/services/location_service.dart';
 class SearchFilterBottomSheet extends StatefulWidget {
   final SearchFilter initialFilter;
   final Function(SearchFilter) onApplyFilters;
+  final bool enableRealTimeFilters;
 
   SearchFilterBottomSheet({
     Key? key,
     required this.initialFilter,
     required this.onApplyFilters,
+    this.enableRealTimeFilters = true,
   }) : super(key: key);
 
   @override
@@ -29,6 +32,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
   final LocationService _locationService = LocationService();
   List<String> _availableLocations = [];
   bool _isLoadingLocations = true;
+  Timer? _filterDebounceTimer;
 
   String? _selectedLocation;
   DateTime? _deliveredAtFrom;
@@ -77,6 +81,10 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
     _maxPriceController = TextEditingController(
       text: widget.initialFilter.maxPrice?.toString() ?? '',
     );
+
+    // Add listeners for price text fields
+    _minPriceController.addListener(_applyFiltersWithDebounce);
+    _maxPriceController.addListener(_applyFiltersWithDebounce);
 
     // Set initial values
     _selectedLocation = widget.initialFilter.location;
@@ -143,7 +151,56 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
   void dispose() {
     _minPriceController.dispose();
     _maxPriceController.dispose();
+    _filterDebounceTimer?.cancel();
     super.dispose();
+  }
+
+  void _applyFiltersWithDebounce() {
+    if (!widget.enableRealTimeFilters) return;
+
+    // Cancel previous timer
+    _filterDebounceTimer?.cancel();
+
+    // Start new timer (400ms debounce like web)
+    _filterDebounceTimer = Timer(const Duration(milliseconds: 400), () {
+      _applyFiltersImmediately();
+    });
+  }
+
+  void _applyFiltersImmediately() {
+    // Format deliveredAtFrom as yyyy-MM-dd string
+    String? deliveredAtFromStr;
+    if (_deliveredAtFrom != null) {
+      deliveredAtFromStr = DateFormat('yyyy-MM-dd').format(_deliveredAtFrom!);
+    }
+
+    // Format deliveredAtTo as yyyy-MM-dd string
+    String? deliveredAtToStr;
+    if (_deliveredAtTo != null) {
+      deliveredAtToStr = DateFormat('yyyy-MM-dd').format(_deliveredAtTo!);
+    }
+
+    final filter = SearchFilter(
+      location: _selectedLocation,
+      minPrice: _minPriceController.text.isEmpty
+          ? null
+          : double.tryParse(_minPriceController.text),
+      maxPrice: _maxPriceController.text.isEmpty
+          ? null
+          : double.tryParse(_maxPriceController.text),
+      propertyType: _selectedPropertyType,
+      bedrooms: _selectedBedrooms,
+      finishing: _selectedFinishing,
+      deliveredAtFrom: deliveredAtFromStr,
+      deliveredAtTo: deliveredAtToStr,
+      hasBeenDelivered: _hasBeenDelivered,
+      hasClub: _hasClub ? true : null,
+      hasRoof: _hasRoof ? true : null,
+      hasGarden: _hasGarden ? true : null,
+      sortBy: null, // Sort removed from filter bottom sheet
+    );
+
+    widget.onApplyFilters(filter);
   }
 
   void _clearAllFilters() {
@@ -162,6 +219,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
       _hasGarden = false;
       _selectedSortBy = null;
     });
+    _applyFiltersWithDebounce();
   }
 
   void _applyFilters() {
@@ -328,6 +386,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                               setState(() {
                                 _selectedLocation = value;
                               });
+                              _applyFiltersWithDebounce();
                             },
                           ),
                         ),
@@ -394,6 +453,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                           setState(() {
                             _selectedPropertyType = selected ? type : null;
                           });
+                          _applyFiltersWithDebounce();
                         },
                         backgroundColor: Colors.grey.shade200,
                         selectedColor: AppColors.mainColor.withOpacity(0.2),
@@ -426,6 +486,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                           setState(() {
                             _selectedBedrooms = selected ? beds : null;
                           });
+                          _applyFiltersWithDebounce();
                         },
                         backgroundColor: Colors.grey.shade200,
                         selectedColor: AppColors.mainColor.withOpacity(0.2),
@@ -458,6 +519,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                           setState(() {
                             _selectedFinishing = selected ? finishing : null;
                           });
+                          _applyFiltersWithDebounce();
                         },
                         backgroundColor: Colors.grey.shade200,
                         selectedColor: AppColors.mainColor.withOpacity(0.2),
@@ -502,6 +564,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                         setState(() {
                           _deliveredAtFrom = picked;
                         });
+                        _applyFiltersWithDebounce();
                       }
                     },
                     child: Container(
@@ -537,6 +600,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                                 setState(() {
                                   _deliveredAtFrom = null;
                                 });
+                                _applyFiltersWithDebounce();
                               },
                               padding: EdgeInsets.zero,
                               constraints: BoxConstraints(),
@@ -575,6 +639,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                         setState(() {
                           _deliveredAtTo = picked;
                         });
+                        _applyFiltersWithDebounce();
                       }
                     },
                     child: Container(
@@ -610,6 +675,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                                 setState(() {
                                   _deliveredAtTo = null;
                                 });
+                                _applyFiltersWithDebounce();
                               },
                               padding: EdgeInsets.zero,
                               constraints: BoxConstraints(),
@@ -662,6 +728,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                         setState(() {
                           _hasBeenDelivered = value;
                         });
+                        _applyFiltersWithDebounce();
                       },
                     ),
                   ),
@@ -678,6 +745,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                       setState(() {
                         _hasClub = value ?? false;
                       });
+                      _applyFiltersWithDebounce();
                     },
                     activeColor: AppColors.mainColor,
                     contentPadding: EdgeInsets.zero,
@@ -689,6 +757,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                       setState(() {
                         _hasRoof = value ?? false;
                       });
+                      _applyFiltersWithDebounce();
                     },
                     activeColor: AppColors.mainColor,
                     contentPadding: EdgeInsets.zero,
@@ -700,68 +769,14 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                       setState(() {
                         _hasGarden = value ?? false;
                       });
+                      _applyFiltersWithDebounce();
                     },
                     activeColor: AppColors.mainColor,
                     contentPadding: EdgeInsets.zero,
                   ),
 
-                  SizedBox(height: 24),
-
-                  // Sort By
-                  _buildSectionTitle('Sort By'),
-                  SizedBox(height: 8),
-                  Column(
-                    children: sortOptions.entries.map((entry) {
-                      return RadioListTile<String>(
-                        title: Text(entry.value),
-                        value: entry.key,
-                        groupValue: _selectedSortBy,
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedSortBy = value;
-                          });
-                        },
-                        activeColor: AppColors.mainColor,
-                        contentPadding: EdgeInsets.zero,
-                      );
-                    }).toList(),
-                  ),
-
                   SizedBox(height: 80),
                 ],
-              ),
-            ),
-          ),
-
-          // Apply Button
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
-                  blurRadius: 4,
-                  offset: Offset(0, -2),
-                ),
-              ],
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _applyFilters,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.mainColor,
-                  padding: EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: CustomText18(
-                  'Apply Filters',
-                  color: Colors.white,
-                  bold: true,
-                ),
               ),
             ),
           ),

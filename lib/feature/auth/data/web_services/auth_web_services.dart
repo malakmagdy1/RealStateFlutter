@@ -769,4 +769,243 @@ class AuthWebServices {
         return 'An unexpected error occurred: ${error.message}';
     }
   }
+
+  // ============================================================================
+  // DEVICE MANAGEMENT METHODS
+  // ============================================================================
+
+  /// Login with device information
+  Future<LoginResponse> loginWithDevice(LoginRequest request, Map<String, String> deviceInfo) async {
+    try {
+      // Merge login data with device info
+      final Map<String, dynamic> loginData = {
+        ...request.toJson(),
+        ...deviceInfo,
+      };
+
+      print('═══════════════════════════════════════════════════════');
+      print('🔐 Login with Device Info');
+      print('Email: ${request.email}');
+      print('Device ID: ${deviceInfo['device_id']}');
+      print('Device Name: ${deviceInfo['device_name']}');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.post('/login', data: loginData);
+      print('✅ Login successful');
+      print('Response: ${response.data.toString()}');
+      print('═══════════════════════════════════════════════════════');
+
+      if (response.data is Map<String, dynamic>) {
+        return LoginResponse.fromJson(response.data);
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('❌ Login DioException: ${e.toString()}');
+
+      // Check for device limit error (status code 403 or 429)
+      if (e.response?.statusCode == 403 || e.response?.statusCode == 429) {
+        final errorData = e.response?.data as Map<String, dynamic>?;
+
+        // Check if this is a device limit error
+        if (errorData != null &&
+            (errorData['message']?.toString().contains('Device limit') == true ||
+             errorData['message']?.toString().contains('maximum number of devices') == true)) {
+
+          print('🚫 Device limit reached - parsing devices from response');
+
+          // Parse devices from response data
+          List<Map<String, dynamic>> devicesList = [];
+          if (errorData['data'] != null && errorData['data']['devices'] != null) {
+            devicesList = List<Map<String, dynamic>>.from(errorData['data']['devices']);
+          } else if (errorData['devices'] != null) {
+            devicesList = List<Map<String, dynamic>>.from(errorData['devices']);
+          }
+
+          print('Found ${devicesList.length} devices in error response');
+
+          // Throw special exception with devices data
+          throw DeviceLimitException(
+            message: errorData['message'] ?? 'Device limit exceeded',
+            devices: devicesList,
+          );
+        }
+      }
+
+      // Handle other login errors
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      if (e is DeviceLimitException) rethrow;
+      print('❌ Login Error: ${e.toString()}');
+      throw Exception('Login failed: $e');
+    }
+  }
+
+  /// Get list of user's registered devices
+  Future<List<Map<String, dynamic>>> getUserDevices() async {
+    try {
+      final authToken = token ?? '';
+
+      print('═══════════════════════════════════════════════════════');
+      print('📱 Fetching User Devices');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.get(
+        '/devices',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('✅ User Devices Response: ${response.data.toString()}');
+
+      // Handle response structure: {success: true, data: {devices: [...], device_limit: 5, ...}}
+      if (response.data is Map<String, dynamic> &&
+          response.data['success'] == true &&
+          response.data['data'] != null &&
+          response.data['data']['devices'] != null) {
+        final devices = List<Map<String, dynamic>>.from(response.data['data']['devices']);
+        print('📊 Found ${devices.length} devices');
+        print('═══════════════════════════════════════════════════════');
+        return devices;
+      }
+
+      print('⚠️ No devices found in response');
+      print('═══════════════════════════════════════════════════════');
+      return [];
+    } on DioException catch (e) {
+      print('❌ Get Devices DioException: ${e.toString()}');
+      print('❌ Response: ${e.response?.data}');
+      print('═══════════════════════════════════════════════════════');
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Get Devices Error: ${e.toString()}');
+      print('═══════════════════════════════════════════════════════');
+      throw Exception('Failed to get devices: $e');
+    }
+  }
+
+  /// Remove a specific device by device_id (requires authentication)
+  Future<void> removeDevice(String deviceId) async {
+    try {
+      final authToken = token ?? '';
+
+      print('═══════════════════════════════════════════════════════');
+      print('🗑️  Removing Device: $deviceId');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.delete(
+        '/devices/$deviceId',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('✅ Device removed successfully');
+      print('✅ Response: ${response.data.toString()}');
+      if (response.data is Map<String, dynamic> && response.data['data'] != null) {
+        final remainingSlots = response.data['data']['remaining_slots'];
+        print('✅ Remaining slots: $remainingSlots');
+      }
+      print('═══════════════════════════════════════════════════════');
+    } on DioException catch (e) {
+      print('❌ Remove Device DioException: ${e.toString()}');
+      print('❌ Response: ${e.response?.data}');
+      print('═══════════════════════════════════════════════════════');
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Remove Device Error: ${e.toString()}');
+      print('═══════════════════════════════════════════════════════');
+      throw Exception('Failed to remove device: $e');
+    }
+  }
+
+  /// Get subscription tier information
+  Future<Map<String, dynamic>> getSubscriptionInfo() async {
+    try {
+      final authToken = token ?? '';
+
+      print('═══════════════════════════════════════════════════════');
+      print('💎 Fetching Subscription Info');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.get(
+        '/devices',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('✅ Subscription Info Response: ${response.data.toString()}');
+
+      // Parse subscription info from the devices response
+      // Response structure: {success: true, data: {devices: [...], device_limit: 5, devices_used: 5, remaining_slots: 0, subscription_type: "plus"}}
+      if (response.data is Map<String, dynamic> &&
+          response.data['success'] == true &&
+          response.data['data'] != null) {
+        final data = response.data['data'] as Map<String, dynamic>;
+
+        final subscriptionInfo = {
+          'tier_name': data['subscription_type'] ?? 'Free',
+          'max_devices': data['device_limit'] ?? 3,
+          'current_devices': data['devices_used'] ?? 0,
+          'remaining_slots': data['remaining_slots'] ?? 0,
+        };
+
+        print('📊 Subscription: ${subscriptionInfo['tier_name']}');
+        print('📊 Devices: ${subscriptionInfo['current_devices']}/${subscriptionInfo['max_devices']}');
+        print('📊 Remaining: ${subscriptionInfo['remaining_slots']}');
+        print('═══════════════════════════════════════════════════════');
+
+        return subscriptionInfo;
+      }
+
+      print('⚠️ Using default subscription info');
+      print('═══════════════════════════════════════════════════════');
+      return {
+        'tier_name': 'Free',
+        'max_devices': 3,
+        'current_devices': 0,
+        'remaining_slots': 3,
+      };
+    } on DioException catch (e) {
+      print('❌ Get Subscription DioException: ${e.toString()}');
+      print('❌ Response: ${e.response?.data}');
+      print('═══════════════════════════════════════════════════════');
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Get Subscription Error: ${e.toString()}');
+      print('═══════════════════════════════════════════════════════');
+      throw Exception('Failed to get subscription info: $e');
+    }
+  }
+}
+
+/// Custom exception for device limit errors
+class DeviceLimitException implements Exception {
+  final String message;
+  final List<Map<String, dynamic>> devices;
+
+  DeviceLimitException({
+    required this.message,
+    required this.devices,
+  });
+
+  @override
+  String toString() => message;
 }

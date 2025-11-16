@@ -338,11 +338,13 @@ class _AiChatScreenState extends State<AiChatScreen> {
     if (message.isUser) {
       messageContent = _buildUserMessage(message);
     } else if (message.unit != null) {
-      messageContent = IntrinsicHeight(
+      messageContent = SizedBox(
+        height: 340,
         child: PropertyCardWidget(unit: message.unit!),
       );
     } else if (message.compound != null) {
-      messageContent = IntrinsicHeight(
+      messageContent = SizedBox(
+        height: 340,
         child: PropertyCardWidget(compound: message.compound!),
       );
     } else {

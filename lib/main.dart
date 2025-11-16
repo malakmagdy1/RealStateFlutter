@@ -9,6 +9,7 @@ import 'package:real/core/utils/message_helper.dart';
 import 'package:real/core/locale/locale_cubit.dart';
 import 'package:real/core/locale/language_service.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
+import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
 import 'package:real/core/network/token_manager.dart';
 import 'package:real/core/router/app_router.dart';
 import 'package:real/core/router/auth_state_notifier.dart';
@@ -37,8 +38,9 @@ import 'package:real/feature/auth/presentation/screen/changePasswordScreen.dart'
 import 'package:real/feature/auth/presentation/screen/editNameScreen.dart';
 import 'package:real/feature/auth/presentation/screen/editPhoneScreen.dart';
 import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
+import 'package:real/feature/auth/presentation/screen/device_management_screen.dart';
 import 'package:real/feature/home/presentation/homeScreen.dart';
-import 'package:real/feature/onboarding/onboardingScreen.dart';
+import 'package:real/feature/onboarding/presentation/onboarding_screen.dart';
 import 'package:real/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -83,20 +85,41 @@ void main() async {
   token = await CasheNetwork.getCasheDataAsync(key: 'token');
   userId = await CasheNetwork.getCasheDataAsync(key: 'user_id');
 
-  // Notify router if token exists
-  if (token != null && token != "") {
-    AuthStateNotifier().notifyAuthChanged();
-    print('✅ Notified router of existing token on app startup');
-  }
+  // Validate token if it exists (check if user account still exists)
+  if (token != null && token != "" && token!.isNotEmpty) {
+    print('🔍 Validating stored token...');
+    try {
+      // Try to fetch user data to validate token
+      final authWebServices = AuthWebServices();
+      await authWebServices.getUserByToken();
+      print('✅ Token is valid - user account exists');
 
-  // Load saved route for restoration on refresh (web only)
-  if (kIsWeb && token != null && token != "") {
-    final savedRoute = await RoutePersistenceService.getFullSavedRoute();
-    if (savedRoute != null && savedRoute != '/login') {
-      AppRouter.setInitialSavedRoute(savedRoute);
-      print('✅ Loaded saved route for restoration: $savedRoute');
+      // Notify router that user is authenticated
+      AuthStateNotifier().notifyAuthChanged();
+      print('✅ Notified router of existing token on app startup');
+    } catch (e) {
+      // Token is invalid or user doesn't exist - clear everything
+      print('❌ Token validation failed: $e');
+      print('⚠️  Clearing invalid token and user data...');
+      await CasheNetwork.deletecasheItem(key: "token");
+      await CasheNetwork.deletecasheItem(key: "user_id");
+      await RoutePersistenceService.clearSavedRoute();
+      token = '';
+      userId = '';
+      print('✅ Cleared invalid session data');
     }
   }
+
+  // DISABLED: Route persistence - always start on home screen
+  // Users requested to always start on home screen, not the last visited page
+  // if (kIsWeb && token != null && token != "") {
+  //   final savedRoute = await RoutePersistenceService.getFullSavedRoute();
+  //   if (savedRoute != null && savedRoute != '/login') {
+  //     AppRouter.setInitialSavedRoute(savedRoute);
+  //     print('✅ Loaded saved route for restoration: $savedRoute');
+  //   }
+  // }
+  print('ℹ️  Route persistence disabled - always starting on home screen');
 
   // Initialize LanguageService
   await LanguageService.initialize();
@@ -326,6 +349,7 @@ class _MyAppState extends State<MyApp> {
               SplashScreen.routeName: (context) => SplashScreen(),
               CustomNav.routeName: (context) => CustomNav(),
               LoginScreen.routeName: (context) => LoginScreen(),
+              DeviceManagementScreen.routeName: (context) => DeviceManagementScreen(),
               OnboardingScreen.routeName: (context) => OnboardingScreen(),
               SignUpScreen.routeName: (context) => SignUpScreen(),
               ForgetPasswordScreen.routeName: (context) => ForgetPasswordScreen(),

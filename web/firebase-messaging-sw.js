@@ -3,7 +3,7 @@ importScripts("https://www.gstatic.com/firebasejs/9.10.0/firebase-messaging-comp
 
 firebase.initializeApp({
   apiKey: "AIzaSyDEOZ4rBqoKqJDjoYycza2fpML6gIdUEf4",
-  authDomain: "realstate-4564d.firebaseapp.com",
+  authDomain: "aqar.bdcbiz.com",
   projectId: "realstate-4564d",
   storageBucket: "realstate-4564d.firebasestorage.app",
   messagingSenderId: "832433207149",
