@@ -1295,11 +1295,11 @@ class _CompoundScreenState extends State<CompoundScreen>
         unselectedLabelColor: Colors.grey.shade600,
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
-          color: Colors.grey.shade600,
-          borderRadius: BorderRadius.circular(25),
+          borderRadius: BorderRadius.circular(10),
+          color: AppColors.mainColor,
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.shade400.withOpacity(0.3),
+              color: AppColors.mainColor,
               blurRadius: 8,
               offset: Offset(0, 3),
             ),

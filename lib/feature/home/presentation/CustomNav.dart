@@ -13,6 +13,7 @@ import 'package:real/feature/auth/presentation/screen/blocked_user_screen.dart';
 import 'package:real/feature/home/presentation/profileScreen.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
+import 'package:real/l10n/app_localizations.dart';
 
 import '../../../core/utils/text_style.dart';
 import 'FavoriteScreen.dart';
@@ -20,6 +21,9 @@ import 'HistoryScreen.dart';
 import 'homeScreen.dart';
 import '../../notifications/presentation/screens/notifications_screen.dart';
 import '../../compound/presentation/screen/compounds_screen.dart';
+import '../../ai_chat/presentation/screen/unified_ai_chat_screen.dart';
+import '../../ai_chat/data/services/comparison_list_service.dart';
+import '../../ai_chat/data/models/comparison_item.dart';
 
 class CustomNav extends StatefulWidget {
   static String routeName = '/nav';
@@ -30,6 +34,8 @@ class CustomNav extends StatefulWidget {
 
 class _CustomNavState extends State<CustomNav> {
   int _selectedIndex = 0;
+  DateTime? _lastHomeTap;
+  static const Duration _doubleTapDuration = Duration(milliseconds: 300);
 
   final List<Widget> widgetOptions = [
     HomeScreen(),
@@ -38,6 +44,64 @@ class _CustomNavState extends State<CustomNav> {
     HistoryScreen(),
     ProfileScreen(),
   ];
+
+  void _handleHomeTap() {
+    final now = DateTime.now();
+
+    // Check if already on home screen
+    if (_selectedIndex == 0) {
+      // Check for double tap
+      if (_lastHomeTap != null &&
+          now.difference(_lastHomeTap!) < _doubleTapDuration) {
+        // Double tap detected - refresh the app
+        _refreshApp();
+        _lastHomeTap = null; // Reset to prevent triple tap
+      } else {
+        // First tap - record time
+        _lastHomeTap = now;
+      }
+    } else {
+      // Not on home screen, just navigate to home
+      setState(() {
+        _selectedIndex = 0;
+      });
+      _lastHomeTap = now;
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  void _refreshApp() {
+    final l10n = AppLocalizations.of(context)!;
+
+    // Show a visual feedback
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.refresh, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Text(l10n.refreshing),
+          ],
+        ),
+        duration: Duration(milliseconds: 1500),
+        backgroundColor: AppColors.mainColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
+    );
+
+    // Trigger a full app refresh by rebuilding the widget tree
+    setState(() {
+      // Force rebuild of the current screen
+      _selectedIndex = _selectedIndex;
+    });
+  }
 
   void _handleLogout(BuildContext context) {
     Navigator.of(context).pop(); // Close drawer
@@ -48,20 +112,21 @@ class _CustomNavState extends State<CustomNav> {
     showDialog(
       context: context,
       builder: (BuildContext dialogContext) {
+        final l10n = AppLocalizations.of(dialogContext)!;
         return AlertDialog(
-          title: Text('Logout'),
-          content: Text('Are you sure you want to logout?'),
+          title: Text(l10n.logout),
+          content: Text(l10n.logoutConfirm),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text('Cancel'),
+              child: Text(l10n.cancel),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop();
                 loginBloc.add(LogoutEvent());
               },
-              child: Text('Logout', style: TextStyle(color: Colors.red)),
+              child: Text(l10n.logout, style: TextStyle(color: Colors.red)),
             ),
           ],
         );
@@ -74,6 +139,7 @@ class _CustomNavState extends State<CustomNav> {
     // 👇 get screen width & height
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final l10n = AppLocalizations.of(context)!;
 
     return MultiBlocListener(
       listeners: [
@@ -252,7 +318,7 @@ class _CustomNavState extends State<CustomNav> {
                       size: screenWidth * 0.06,
                     ),
                     SizedBox(width: screenWidth * 0.02),
-                    CustomText16("home", color: AppColors.mainColor),
+                    CustomText16(l10n.home, color: AppColors.mainColor),
                   ],
                 ),
                 onTap: () {
@@ -266,12 +332,12 @@ class _CustomNavState extends State<CustomNav> {
                 title: Row(
                   children: [
                     Icon(
-                      Icons.person_3_outlined,
+                      Icons.smart_toy_outlined,
                       color: AppColors.mainColor,
                       size: screenWidth * 0.06,
                     ),
                     SizedBox(width: screenWidth * 0.02),
-                    CustomText16("profile", color: AppColors.mainColor),
+                    CustomText16(l10n.aiChat, color: AppColors.mainColor),
                   ],
                 ),
                 onTap: () {
@@ -285,12 +351,31 @@ class _CustomNavState extends State<CustomNav> {
                 title: Row(
                   children: [
                     Icon(
+                      Icons.person_3_outlined,
+                      color: AppColors.mainColor,
+                      size: screenWidth * 0.06,
+                    ),
+                    SizedBox(width: screenWidth * 0.02),
+                    CustomText16(l10n.profile, color: AppColors.mainColor),
+                  ],
+                ),
+                onTap: () {
+                  Navigator.of(context).pop(); // Close drawer
+                  setState(() {
+                    _selectedIndex = 5;
+                  });
+                },
+              ),
+              ListTile(
+                title: Row(
+                  children: [
+                    Icon(
                       Icons.business,
                       color: AppColors.mainColor,
                       size: screenWidth * 0.06,
                     ),
                     SizedBox(width: screenWidth * 0.02),
-                    CustomText16("Compounds", color: AppColors.mainColor),
+                    CustomText16(l10n.compounds, color: AppColors.mainColor),
                   ],
                 ),
                 onTap: () {
@@ -309,7 +394,7 @@ class _CustomNavState extends State<CustomNav> {
                       size: screenWidth * 0.06,
                     ),
                     SizedBox(width: screenWidth * 0.02),
-                    CustomText16("favorite", color: AppColors.mainColor),
+                    CustomText16(l10n.favorites, color: AppColors.mainColor),
                   ],
                 ),
                 onTap: () {
@@ -338,7 +423,7 @@ class _CustomNavState extends State<CustomNav> {
                           size: screenWidth * 0.06,
                         ),
                         SizedBox(width: screenWidth * 0.02),
-                        CustomText16("Logout", color: Colors.red),
+                        CustomText16(l10n.logout, color: Colors.red),
                       ],
                     ),
                     onTap: () => _handleLogout(context),
@@ -391,14 +476,58 @@ class _CustomNavState extends State<CustomNav> {
                 ],
                 selectedIndex: _selectedIndex,
                 onTabChange: (index) {
-                  setState(() {
-                    _selectedIndex = index;
-                  });
+                  if (index == 0) {
+                    // Handle home tab with double-tap detection
+                    _handleHomeTap();
+                  } else {
+                    // For other tabs, just change the index
+                    setState(() {
+                      _selectedIndex = index;
+                    });
+                  }
                 },
               ),
             ),
           ),
         ),
+        floatingActionButton: StreamBuilder<List<ComparisonItem>>(
+          stream: ComparisonListService().comparisonStream,
+          builder: (context, snapshot) {
+            final items = snapshot.data ?? [];
+            final count = items.length;
+
+            return Badge(
+              label: Text('$count'),
+              isLabelVisible: count > 0,
+              backgroundColor: Colors.red,
+              textColor: Colors.white,
+              child: FloatingActionButton.extended(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const UnifiedAIChatScreen(),
+                    ),
+                  );
+                },
+                backgroundColor: AppColors.mainColor,
+                icon: Icon(
+                  Icons.smart_toy,
+                  color: Colors.white,
+                ),
+                label: Text(
+                  l10n.aiAssistant,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                elevation: 6,
+              ),
+            );
+          },
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       ),
     );
   }

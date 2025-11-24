@@ -27,6 +27,7 @@ import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/company/presentation/screen/company_detail_screen.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
 import 'package:real/feature/company/presentation/widget/company_card.dart';
+import 'package:real/feature/ai_chat/presentation/widget/floating_comparison_cart.dart';
 
 class CompoundsScreen extends StatefulWidget {
   static String routeName = '/compounds';
@@ -58,9 +59,9 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
   bool _showAllCompounds = false;
   bool _showAllUnits = false;
 
-  // Pagination
+  // Pagination (matching web for faster performance)
   int _currentPage = 1;
-  final int _itemsPerPage = 50;
+  final int _itemsPerPage = 10; // Reduced from 50 to 10 for faster loading like web
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
 
@@ -109,7 +110,12 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+    // Trigger loading when scrolled 80% of the way (like web version)
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    final threshold = maxScroll * 0.8; // Load when 80% scrolled
+
+    if (currentScroll >= threshold && !_isLoadingMore && _hasMoreData) {
       _loadMoreCompounds();
     }
   }
@@ -344,7 +350,9 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Scaffold(
+    return Stack(
+      children: [
+        Scaffold(
       backgroundColor: Colors.grey.shade100,
       body: SafeArea(
         child: Column(
@@ -690,7 +698,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
                             ElevatedButton(
                               onPressed: () {
                                 context.read<CompoundBloc>().add(
-                                  FetchCompoundsEvent(page: 1, limit: 50),
+                                  FetchCompoundsEvent(page: 1, limit: _itemsPerPage),
                                 );
                               },
                               child: Text('Retry'),
@@ -703,15 +711,11 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
                     if (state is CompoundSuccess) {
                       final allCompounds = state.response.data;
 
-                      // Update pagination state
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) {
-                          setState(() {
-                            _isLoadingMore = false;
-                            _hasMoreData = allCompounds.length >= _currentPage * _itemsPerPage;
-                          });
-                        }
-                      });
+                      // Update pagination state directly without setState to avoid rebuilds
+                      if (_isLoadingMore) {
+                        _isLoadingMore = false;
+                        _hasMoreData = allCompounds.length >= _currentPage * _itemsPerPage;
+                      }
 
                       if (allCompounds.isEmpty) {
                         return Center(
@@ -758,29 +762,52 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
                             child: GridView.builder(
                               controller: _scrollController,
                               scrollDirection: Axis.vertical,
-                              physics: ClampingScrollPhysics(), // Faster scrolling
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              physics: const BouncingScrollPhysics(), // Better performance than AlwaysScrollable
+                              padding: const EdgeInsets.only(
+                                left: 8,
+                                right: 8,
+                                top: 8,
+                                bottom: 120, // Extra space at bottom for AI button and card visibility
+                              ),
+                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
                                 childAspectRatio: 0.63,
                                 crossAxisSpacing: 8,
                                 mainAxisSpacing: 8,
                               ),
-                              itemCount: allCompounds.length + (_isLoadingMore ? 1 : 0),
+                              // Add cache extent for better performance
+                              cacheExtent: 500,
+                              itemCount: allCompounds.length + (_isLoadingMore ? 2 : 0), // 2 cells for loading
                               itemBuilder: (context, index) {
-                                // Show loading indicator at the end
-                                if (index == allCompounds.length) {
+                                // Show loading indicator at the end (spans 2 columns)
+                                if (index >= allCompounds.length) {
                                   return Center(
                                     child: Padding(
-                                      padding: EdgeInsets.all(16),
-                                      child: CustomLoadingDots(size: 60),
+                                      padding: const EdgeInsets.all(8),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          CustomLoadingDots(size: 40),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Loading more...',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   );
                                 }
 
                                 final compound = allCompounds[index];
-                                // Remove animation for better scroll performance
-                                return CompoundsName(compound: compound);
+                                // Use key for better performance and widget reuse
+                                return CompoundsName(
+                                  key: ValueKey('compound_${compound.id}'),
+                                  compound: compound,
+                                );
                               },
                             ),
                           ),
@@ -796,6 +823,16 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
           ],
         ),
       ),
+        ),
+
+        // Floating Comparison Cart
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: FloatingComparisonCart(isWeb: false),
+        ),
+      ],
     );
   }
 
@@ -840,30 +877,31 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
         // TabBar
         Container(
           child: TabBar(
+            isScrollable: true,
             controller: _searchTabController,
             indicatorColor: Colors.black,
             indicatorWeight: 3,
             labelColor: Colors.black,
             unselectedLabelColor: Colors.black,
             labelStyle: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: FontWeight.bold,
             ),
             unselectedLabelStyle: TextStyle(
-              fontSize: 14,
+              fontSize: 12,
               fontWeight: FontWeight.normal,
             ),
             tabs: [
               Tab(
-                icon: Icon(Icons.home_work, size: 20),
+                icon: Icon(Icons.home_work, size: 15),
                 text: 'Units (${units.length})',
               ),
               Tab(
-                icon: Icon(Icons.apartment, size: 20),
+                icon: Icon(Icons.apartment, size: 15),
                 text: 'Compounds (${compounds.length})',
               ),
               Tab(
-                icon: Icon(Icons.business, size: 20),
+                icon: Icon(Icons.business, size: 15),
                 text: 'Companies (${companies.length})',
               ),
             ],
@@ -908,18 +946,20 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
     }
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(8),
+      padding: const EdgeInsets.all(8),
       child: Column(
         children: [
           GridView.builder(
             shrinkWrap: true,
-            physics: NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               childAspectRatio: 0.63,
               crossAxisSpacing: 8,
               mainAxisSpacing: 8,
             ),
+            // Add cache extent for better performance
+            cacheExtent: 400,
             itemCount: units.length,
             itemBuilder: (context, index) {
               return _buildUnitResultItem(units[index], l10n);
@@ -986,16 +1026,17 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
     }
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(8),
+      padding: const EdgeInsets.all(8),
       child: GridView.builder(
         shrinkWrap: true,
-        physics: NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           childAspectRatio: 0.63,
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
         ),
+        cacheExtent: 400,
         itemCount: compounds.length,
         itemBuilder: (context, index) {
           return _buildCompoundResultItem(compounds[index], l10n);
@@ -1009,12 +1050,12 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
     if (companies.isEmpty) {
       return Center(
         child: Padding(
-          padding: EdgeInsets.all(24),
+          padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.business_outlined, size: 64, color: Colors.grey[400]),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               CustomText16(
                 'No companies found',
                 color: Colors.grey[600]!,
@@ -1026,16 +1067,17 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
     }
 
     return SingleChildScrollView(
-      padding: EdgeInsets.all(8),
+      padding: const EdgeInsets.all(8),
       child: GridView.builder(
         shrinkWrap: true,
-        physics: NeverScrollableScrollPhysics(),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        physics: const NeverScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           childAspectRatio: 0.63,
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
         ),
+        cacheExtent: 400,
         itemCount: companies.length,
         itemBuilder: (context, index) {
           return _buildCompanyResultItem(companies[index], l10n);

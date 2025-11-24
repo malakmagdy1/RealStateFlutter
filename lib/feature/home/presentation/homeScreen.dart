@@ -40,9 +40,8 @@ import 'package:real/feature/home/presentation/CompoundScreen.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:real/core/animations/animated_list_item.dart';
 import 'package:real/core/animations/page_transitions.dart';
-// AI chat imports
-import 'package:real/feature/ai_chat/presentation/screen/ai_chat_screen.dart';
-import 'package:real/feature/ai_chat/presentation/bloc/chat_bloc.dart';
+// AI chat imports - Unified AI (Property Search + Sales Advice)
+import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.dart';
 
 import '../../compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
@@ -102,9 +101,9 @@ class _HomeScreenState extends State<HomeScreen> {
       });
     });
 
-    // Fetch companies and compounds when screen loads
+    // Fetch companies and AI-recommended compounds when screen loads
     context.read<CompanyBloc>().add(FetchCompaniesEvent());
-    context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: 50));
+    context.read<CompoundBloc>().add(FetchWeeklyRecommendedCompoundsEvent());
 
     // Fetch new arrivals and updated 24h
     _fetchNewArrivals();
@@ -288,15 +287,20 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-
-    return Scaffold(
-      body: Padding(
-        padding: EdgeInsets.all(10.0),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+    return Stack(
+      children: [
+        Scaffold(
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(
+            left: 10.0,
+            right: 10.0,
+            top: 10.0,
+            bottom: 100.0, // Extra space at bottom for comfortable scrolling
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
                 BlocBuilder<UserBloc, UserState>(
                   builder: (context, state) {
                     if (state is UserSuccess) {
@@ -338,7 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     );
                   },
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: 5),
 
                 // Recommended Compounds Section
                 // Active filters chips
@@ -540,22 +544,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         CustomText20(l10n.companiesName),
                       ],
                     ),
-                    TextButton(
-                      onPressed: () {
-                        context.pushSlideFade(CompaniesScreen());
-                      },
-                      child: Row(
-                        children: [
-                          CustomText14('View All', color: AppColors.mainColor),
-                          SizedBox(width: 4),
-                          Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.mainColor),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
                 SizedBox(height: 8),
-
                 BlocBuilder<CompanyBloc, CompanyState>(
                   builder: (context, state) {
                     if (state is CompanyLoading) {
@@ -587,7 +578,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 context.pushSlideFade(
                                   CompanyDetailScreen(company: company),
                                 ).then((_) {
-                                  context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: 50));
+                                  context.read<CompoundBloc>().add(FetchWeeklyRecommendedCompoundsEvent());
                                 });
                               },
                             );
@@ -779,6 +770,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       return SizedBox(
                         height: 280,
                         child: ListView.builder(
+                          clipBehavior: Clip.none,
                           controller: _recommendedScrollController,
                           scrollDirection: Axis.horizontal,
                           physics: BouncingScrollPhysics(),
@@ -797,7 +789,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                             final compound = recommendedCompounds[index];
                             return SizedBox(
-                              width: 190,
+                              width: 175,
                               child: Padding(
                                 padding: EdgeInsets.only(right: 8),
                                 child: CompoundsName(
@@ -807,7 +799,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       CompoundScreen(compound: compound),
                                     ).then((_) {
                                       context.read<CompoundBloc>().add(
-                                        FetchCompoundsEvent(page: 1, limit: 50),
+                                        FetchWeeklyRecommendedCompoundsEvent(),
                                       );
                                     });
                                   },
@@ -834,7 +826,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ElevatedButton(
                                 onPressed: () {
                                   context.read<CompoundBloc>().add(
-                                    FetchCompoundsEvent(),
+                                    FetchWeeklyRecommendedCompoundsEvent(),
                                   );
                                 },
                                 child: CustomText16(l10n.retry, color: AppColors.white),
@@ -844,51 +836,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       );
                     }
-                    return SizedBox(height: 280);
+                    return SizedBox(height: 300);
                   },
                 ),
               ],
             ),
           ),
         ),
-      ),
-      // AI Chat - Property Assistant
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          // Capture BLoCs from current context before navigation
-          final unitFavoriteBloc = context.read<UnitFavoriteBloc>();
-          final compoundFavoriteBloc = context.read<CompoundFavoriteBloc>();
-
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MultiBlocProvider(
-                providers: [
-                  BlocProvider(
-                    create: (context) => ChatBloc(),
-                  ),
-                  BlocProvider.value(
-                    value: unitFavoriteBloc,
-                  ),
-                  BlocProvider.value(
-                    value: compoundFavoriteBloc,
-                  ),
-                ],
-                child: const AiChatScreen(),
-              ),
-            ),
-          );
-        },
-        backgroundColor: AppColors.mainColor,
-        icon: const Icon(Icons.smart_toy, color: Colors.white),
-        label: const Text(
-          'AI Assistant',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -1417,7 +1373,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       physics: BouncingScrollPhysics(),
-                      padding: EdgeInsets.symmetric(horizontal: 8),
+    clipBehavior: Clip.none,
+
+    padding: EdgeInsets.symmetric(horizontal: 8),
                       itemCount: _newArrivals.length,
                       itemBuilder: (context, index) {
                         return Container(
@@ -1682,6 +1640,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     height: 280,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
+                      clipBehavior: Clip.none,
                       physics: BouncingScrollPhysics(),
                       padding: EdgeInsets.symmetric(horizontal: 8),
                       itemCount: _updated24Hours.length,

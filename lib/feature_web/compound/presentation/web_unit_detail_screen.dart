@@ -20,6 +20,7 @@ import '../../../feature/sale/data/models/sale_model.dart';
 import 'package:real/feature/compound/data/web_services/favorites_web_services.dart';
 import 'package:real/core/utils/message_helper.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
+import 'package:real/feature/ai_chat/presentation/widget/floating_comparison_cart.dart';
 
 class WebUnitDetailScreen extends StatefulWidget {
   static String routeName = '/web-unit-detail';
@@ -437,108 +438,120 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
       );
     }
 
-    return Scaffold(
-      backgroundColor: Color(0xFFF8F9FA),
-      body: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 1400),
-            child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Left Column - Main Content
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildImageGallery(),
-                        SizedBox(height: 16),
-                        // Always show price card
-                        _buildPriceCard(l10n),
-                        SizedBox(height: 16),
-                        TabBar(
-                          controller: _tabController,
-                          labelColor: AppColors.white,
-                          indicator: BoxDecoration(
-                            color: AppColors.mainColor,
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          indicatorSize: TabBarIndicatorSize.tab,
-                          unselectedLabelColor: AppColors.grey,
-                          indicatorColor: AppColors.mainColor,
-                          indicatorWeight: 3,
-                          labelStyle: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          unselectedLabelStyle: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.normal,
-                          ),
-                          tabs: [
-                            Tab(text: l10n.details),
-                            Tab(text: l10n.gallery),
-                            Tab(text: l10n.location),
-                            Tab(text: l10n.floorPlan),
-                            Tab(text: l10n.notes),
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: Color(0xFFF8F9FA),
+          body: SingleChildScrollView(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 1400),
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left Column - Main Content
+                      Expanded(
+                        flex: 2,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildImageGallery(),
+                            SizedBox(height: 16),
+                            // Always show price card
+                            _buildPriceCard(l10n),
+                            SizedBox(height: 16),
+                            TabBar(
+                              controller: _tabController,
+                              labelColor: AppColors.white,
+                              indicator: BoxDecoration(
+                                color: AppColors.mainColor,
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              indicatorSize: TabBarIndicatorSize.tab,
+                              unselectedLabelColor: AppColors.grey,
+                              indicatorColor: AppColors.mainColor,
+                              indicatorWeight: 3,
+                              labelStyle: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              unselectedLabelStyle: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.normal,
+                              ),
+                              tabs: [
+                                Tab(text: l10n.details),
+                                Tab(text: l10n.gallery),
+                                Tab(text: l10n.location),
+                                Tab(text: l10n.floorPlan),
+                                Tab(text: l10n.notes),
+                              ],
+                            ),
+                            SizedBox(height: 16),
+                            // Tab Bar View
+                            Container(
+                              height: 600,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.04),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: TabBarView(
+                                controller: _tabController,
+                                children: [
+                                  _buildDetailsTab(l10n),
+                                  _buildGalleryTab(),
+                                  _buildLocationTab(l10n),
+                                  _buildFloorPlanTab(l10n),
+                                  _buildNotesTab(),
+                                ],
+                              ),
+                            ),
                           ],
                         ),
-                        SizedBox(height: 16),
-                        // Tab Bar View
-                        Container(
-                          height: 600,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
-                                blurRadius: 10,
-                                offset: Offset(0, 2),
-                              ),
+                      ),
+                      SizedBox(width: 20),
+                      // Right Column - Price Card & Contact
+                      Container(
+                        width: 320,
+                        child: Column(
+                          children: [
+                            if (_unitSale != null) ...[
+                              _buildSaleSection(_unitSale!, l10n),
+                              SizedBox(height: 16),
                             ],
-                          ),
-                          child: TabBarView(
-                            controller: _tabController,
-                            children: [
-                              _buildDetailsTab(l10n),
-                              _buildGalleryTab(),
-                              _buildLocationTab(l10n),
-                              _buildFloorPlanTab(l10n),
-                              _buildNotesTab(),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(width: 20),
-                  // Right Column - Price Card & Contact
-                  Container(
-                    width: 320,
-                    child: Column(
-                      children: [
-                        if (_unitSale != null) ...[
-                          _buildSaleSection(_unitSale!, l10n),
-                          SizedBox(height: 16),
-                        ],
-                        // Unit Change Notes (if unit has updates)
-                        UnitChangeNotes(unit: _currentUnit!),
+                            // Unit Change Notes (if unit has updates)
+                            UnitChangeNotes(unit: _currentUnit!),
 
-                        // Tab Bar
-                        _buildAgentCard(l10n),
-                      ],
-                    ),
+                            // Tab Bar
+                            _buildAgentCard(l10n),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
         ),
-      ),
+
+        // Floating Comparison Cart
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: FloatingComparisonCart(isWeb: true),
+        ),
+      ],
     );
   }
 
@@ -747,7 +760,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                     Icon(Icons.local_offer, size: 16, color: Colors.white),
                     SizedBox(width: 6),
                     Text(
-                      'SALE',
+                      l10n.sales.toUpperCase(),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -801,7 +814,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Original Price',
+                    l10n.originalPrice,
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.greyText,
@@ -826,7 +839,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Sale Price',
+                    l10n.salePrice,
                     style: TextStyle(
                       fontSize: 12,
                       color: AppColors.mainColor,
@@ -850,7 +863,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'You Save',
+                    l10n.youSave,
                     style: TextStyle(
                       fontSize: 12,
                       color: Colors.green,
@@ -883,7 +896,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                   Icon(Icons.access_time, size: 16, color: Colors.orange),
                   SizedBox(width: 8),
                   Text(
-                    '${sale.daysRemaining.toInt()} days remaining',
+                    '${sale.daysRemaining.toInt()} ${l10n.daysRemaining}',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -1041,7 +1054,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Unit number and favorite button
+          // Unit number and action buttons (favorite & share)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -1055,6 +1068,16 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                   ),
                 ),
               ),
+              // Share button
+              IconButton(
+                icon: Icon(
+                  Icons.share_outlined,
+                  color: AppColors.mainColor,
+                ),
+                onPressed: _shareUnit,
+                tooltip: l10n.share,
+              ),
+              // Favorite button
               BlocBuilder<UnitFavoriteBloc, UnitFavoriteState>(
                 builder: (context, state) {
                   bool isFavorite = false;
@@ -1077,6 +1100,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                         );
                       }
                     },
+                    tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
                   );
                 },
               ),
@@ -1308,7 +1332,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Sales Agent',
+                        l10n.salesAgent,
                         style: TextStyle(
                           fontSize: 12,
                           color: Color(0xFF666666),
@@ -1412,22 +1436,22 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
         children: [
           // About Section
           SizedBox(height: 24),
-          _buildSpecRow('Unit Type', _currentUnit!.unitType ?? 'N/A'),
-          _buildSpecRow('Usage Type', _currentUnit!.usageType ?? 'N/A'),
+          _buildSpecRow(l10n.unitType, _currentUnit!.unitType ?? 'N/A'),
+          _buildSpecRow(l10n.usageType, _currentUnit!.usageType ?? 'N/A'),
           _buildSpecRow(l10n.compound, _currentUnit!.compoundName ?? _currentUnit!.compoundId ?? 'N/A'),
-          _buildSpecRow('Status', _currentUnit!.status ?? 'N/A'),
-          _buildSpecRow('Available', _currentUnit!.available != null ? (_currentUnit!.available! ? 'Yes' : 'No') : 'N/A'),
+          _buildSpecRow(l10n.status, _currentUnit!.status ?? 'N/A'),
+          _buildSpecRow(l10n.available, _currentUnit!.available != null ? (_currentUnit!.available! ? l10n.yes : l10n.no) : 'N/A'),
           _buildSpecRow(l10n.saleType, 'Resale'),
           _buildSpecRow(l10n.finishing, _currentUnit!.finishing ?? 'N/A'),
           _buildSpecRow(l10n.deliveryDate, _formatDate(_currentUnit!.deliveryDate)),
           _buildSpecRow(l10n.builtUpArea, _currentUnit!.builtUpArea != null
             ? '${_currentUnit!.builtUpArea} ${l10n.sqm}'
             : (_currentUnit!.area != '0' ? '${_currentUnit!.area} ${l10n.sqm}' : 'N/A')),
-          _buildSpecRow('Total Area', _currentUnit!.area != '0' ? '${_currentUnit!.area} ${l10n.sqm}' : 'N/A'),
+          _buildSpecRow(l10n.totalArea, _currentUnit!.area != '0' ? '${_currentUnit!.area} ${l10n.sqm}' : 'N/A'),
           _buildSpecRow(l10n.landArea, _currentUnit!.landArea != null
             ? '${_currentUnit!.landArea} ${l10n.sqm}'
             : (_currentUnit!.gardenArea != null && _currentUnit!.gardenArea != '0' ? '${_currentUnit!.gardenArea} ${l10n.sqm}' : 'N/A')),
-          _buildSpecRow('Garden Area', _currentUnit!.gardenArea != null && _currentUnit!.gardenArea != '0' ? '${_currentUnit!.gardenArea} ${l10n.sqm}' : 'N/A'),
+          _buildSpecRow(l10n.gardenArea, _currentUnit!.gardenArea != null && _currentUnit!.gardenArea != '0' ? '${_currentUnit!.gardenArea} ${l10n.sqm}' : 'N/A'),
           _buildSpecRow(l10n.roofArea, _currentUnit!.roofArea != null && _currentUnit!.roofArea != '0' ? '${_currentUnit!.roofArea} ${l10n.sqm}' : 'N/A'),
           _buildSpecRow(l10n.floor, _currentUnit!.floor ?? 'N/A'),
           _buildSpecRow(l10n.building, _currentUnit!.buildingName ?? 'N/A'),
@@ -1752,8 +1776,9 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
 
   // Add note
   Future<void> _addNote() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_noteController.text.trim().isEmpty) {
-      MessageHelper.showError(context, 'Please enter a note');
+      MessageHelper.showError(context, l10n.addingNote);
       return;
     }
 
@@ -1766,32 +1791,33 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
 
       if (response['success'] == true) {
         _noteController.clear();
-        MessageHelper.showSuccess(context, 'Note added successfully');
+        MessageHelper.showSuccess(context, l10n.noteSavedSuccessfully);
         _fetchUnitNotes();
       } else {
-        MessageHelper.showError(context, 'Failed to add note');
+        MessageHelper.showError(context, l10n.failedToSaveNote);
       }
     } catch (e) {
-      MessageHelper.showError(context, 'Error: $e');
+      MessageHelper.showError(context, '${l10n.error}: $e');
     }
   }
 
   // Delete note
   Future<void> _deleteNote(int noteId) async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete Note'),
-        content: Text('Are you sure you want to delete this note?'),
+        title: Text(l10n.deleteNote),
+        content: Text(l10n.areYouSureDeleteNote),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text('Delete'),
+            child: Text(l10n.delete),
           ),
         ],
       ),
@@ -1803,18 +1829,19 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
       final response = await _favoritesWebServices.deleteNote(noteId);
 
       if (response['success'] == true) {
-        MessageHelper.showSuccess(context, 'Note deleted successfully');
+        MessageHelper.showSuccess(context, l10n.noteDeletedSuccessfully);
         _fetchUnitNotes();
       } else {
-        MessageHelper.showError(context, 'Failed to delete note');
+        MessageHelper.showError(context, l10n.failedToDeleteNote);
       }
     } catch (e) {
-      MessageHelper.showError(context, 'Error: $e');
+      MessageHelper.showError(context, '${l10n.error}: $e');
     }
   }
 
   // Build notes tab
   Widget _buildNotesTab() {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       children: [
         // Add note section
@@ -1826,7 +1853,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                 child: TextField(
                   controller: _noteController,
                   decoration: InputDecoration(
-                    hintText: 'Add a note...',
+                    hintText: l10n.addingNote,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -1839,7 +1866,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
               ElevatedButton.icon(
                 onPressed: _addNote,
                 icon: Icon(Icons.add, size: 18),
-                label: Text('Add'),
+                label: Text(l10n.add),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.mainColor,
                   foregroundColor: Colors.white,
@@ -1866,12 +1893,12 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                           Icon(Icons.note_outlined, size: 60, color: Colors.grey),
                           SizedBox(height: 16),
                           Text(
-                            'No notes yet',
+                            l10n.noNotesYet,
                             style: TextStyle(fontSize: 16, color: Colors.grey),
                           ),
                           SizedBox(height: 8),
                           Text(
-                            'Add your first note above',
+                            l10n.addYourFirstNote,
                             style: TextStyle(fontSize: 14, color: Colors.grey.shade400),
                           ),
                         ],
@@ -1945,13 +1972,14 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
       final date = DateTime.parse(dateStr);
       final now = DateTime.now();
       final difference = now.difference(date);
+      final l10n = AppLocalizations.of(context)!;
 
       if (difference.inDays == 0) {
-        return 'Today ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+        return '${l10n.today} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
       } else if (difference.inDays == 1) {
-        return 'Yesterday ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
+        return '${l10n.yesterday} ${date.hour}:${date.minute.toString().padLeft(2, '0')}';
       } else if (difference.inDays < 7) {
-        return '${difference.inDays} days ago';
+        return '${difference.inDays} ${l10n.days}';
       } else {
         return '${date.day}/${date.month}/${date.year}';
       }
@@ -1968,17 +1996,23 @@ class UnitChangeNotes extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('[UNIT CHANGE NOTES] isUpdated=${unit.isUpdated}, changeType=${unit.changeType}, changeProperties=${unit.changeProperties}');
+    print('[UNIT CHANGE NOTES WEB] ========================================');
+    print('[UNIT CHANGE NOTES WEB] Unit ID: ${unit.id}');
+    print('[UNIT CHANGE NOTES WEB] isUpdated: ${unit.isUpdated}');
+    print('[UNIT CHANGE NOTES WEB] changeType: ${unit.changeType}');
+    print('[UNIT CHANGE NOTES WEB] changeProperties: ${unit.changeProperties}');
+    print('[UNIT CHANGE NOTES WEB] lastChangedAt: ${unit.lastChangedAt}');
+    print('[UNIT CHANGE NOTES WEB] ========================================');
 
     if (unit.isUpdated != true) return SizedBox.shrink();
 
     return Container(
-      margin: EdgeInsets.only(bottom: 16),
-      padding: EdgeInsets.all(16),
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.amber.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange, width: 2),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.orange, width: 1.5),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1986,19 +2020,19 @@ class UnitChangeNotes extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.info_outline, color: Colors.orange, size: 24),
-              SizedBox(width: 8),
+              Icon(Icons.info_outline, color: Colors.orange, size: 18),
+              SizedBox(width: 6),
               Text(
-                'Recent Changes',
+                'Recent Changes', // Note: Needs context for localization
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: Colors.orange.shade900,
                 ),
               ),
             ],
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 8),
 
           // Change type
           if (unit.changeType != null)
@@ -2018,21 +2052,21 @@ class UnitChangeNotes extends StatelessWidget {
 
           // Changed fields with values (from changeProperties)
           if (unit.changeProperties != null) ...[
-            SizedBox(height: 12),
+            SizedBox(height: 8),
             Text(
-              'What Changed:',
+              'What Changed:', // Note: Needs context for localization
               style: TextStyle(
                 fontWeight: FontWeight.bold,
-                fontSize: 14,
+                fontSize: 12,
                 color: Colors.grey.shade800,
               ),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 6),
             _buildChangesTable(unit.changeProperties!),
           ] else if (unit.changedFields != null && unit.changedFields!.isNotEmpty) ...[
             SizedBox(height: 8),
             Text(
-              'Changed Fields:',
+              'Changed Fields:', // Note: Needs context for localization
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
@@ -2062,14 +2096,14 @@ class UnitChangeNotes extends StatelessWidget {
 
   Widget _buildInfoRow(String label, String value, Color color) {
     return Padding(
-      padding: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
           Text(
             '$label: ',
             style: TextStyle(
               fontWeight: FontWeight.w600,
-              fontSize: 14,
+              fontSize: 12,
               color: Colors.black,
             ),
           ),
@@ -2077,7 +2111,7 @@ class UnitChangeNotes extends StatelessWidget {
             value,
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 14,
+              fontSize: 12,
               color: color,
             ),
           ),
@@ -2119,7 +2153,7 @@ class UnitChangeNotes extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         border: Border.all(color: Colors.orange.shade200),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
         children: changes.entries.map((entry) {
@@ -2128,7 +2162,7 @@ class UnitChangeNotes extends StatelessWidget {
           final oldValue = original?[fieldName]?.toString() ?? 'N/A';
 
           return Container(
-            padding: EdgeInsets.all(12),
+            padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(color: Colors.orange.shade100, width: 1),
@@ -2143,7 +2177,7 @@ class UnitChangeNotes extends StatelessWidget {
                     _formatFieldName(fieldName),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 11,
                       color: Colors.grey.shade800,
                     ),
                   ),
@@ -2152,37 +2186,37 @@ class UnitChangeNotes extends StatelessWidget {
                 Expanded(
                   flex: 2,
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
                       color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(3),
                     ),
                     child: Text(
                       oldValue,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 10,
                         color: Colors.red.shade900,
                         decoration: TextDecoration.lineThrough,
                       ),
                     ),
                   ),
                 ),
-                SizedBox(width: 8),
-                Icon(Icons.arrow_forward, size: 16, color: Colors.orange),
-                SizedBox(width: 8),
+                SizedBox(width: 6),
+                Icon(Icons.arrow_forward, size: 12, color: Colors.orange),
+                SizedBox(width: 6),
                 // New value
                 Expanded(
                   flex: 2,
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                     decoration: BoxDecoration(
                       color: Colors.green.shade50,
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: BorderRadius.circular(3),
                     ),
                     child: Text(
                       newValue,
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 10,
                         fontWeight: FontWeight.bold,
                         color: Colors.green.shade900,
                       ),

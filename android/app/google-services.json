@@ -59,6 +59,14 @@
           }
         },
         {
+          "client_id": "832433207149-o8754c1c5c37295c1f58ffaa26a91950d6d837.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.realestate.aqar",
+            "certificate_hash": "0887540c1c5c37295c1f58ffaa26a91950d6d837"
+          }
+        },
+        {
           "client_id": "832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com",
           "client_type": 3
         }

@@ -7,6 +7,7 @@ import 'package:real/core/widgets/custom_loading_dots.dart';
 
 import '../../data/models/search_filter_model.dart';
 import '../../data/services/location_service.dart';
+import '../../data/services/company_service.dart';
 
 class SearchFilterBottomSheet extends StatefulWidget {
   final SearchFilter initialFilter;
@@ -30,11 +31,15 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
   late TextEditingController _maxPriceController;
 
   final LocationService _locationService = LocationService();
+  final CompanyService _companyService = CompanyService();
   List<String> _availableLocations = [];
+  Map<String, String> _availableCompanies = {}; // Map of ID -> Name
   bool _isLoadingLocations = true;
+  bool _isLoadingCompanies = true;
   Timer? _filterDebounceTimer;
 
   String? _selectedLocation;
+  String? _selectedCompanyId;
   DateTime? _deliveredAtFrom;
   DateTime? _deliveredAtTo;
   bool? _hasBeenDelivered;
@@ -74,12 +79,16 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
   void initState() {
     super.initState();
 
-    // Initialize controllers
+    // Initialize controllers - convert from full price to millions
     _minPriceController = TextEditingController(
-      text: widget.initialFilter.minPrice?.toString() ?? '',
+      text: widget.initialFilter.minPrice != null
+        ? (widget.initialFilter.minPrice! / 1000000).toString()
+        : '',
     );
     _maxPriceController = TextEditingController(
-      text: widget.initialFilter.maxPrice?.toString() ?? '',
+      text: widget.initialFilter.maxPrice != null
+        ? (widget.initialFilter.maxPrice! / 1000000).toString()
+        : '',
     );
 
     // Add listeners for price text fields
@@ -88,6 +97,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
 
     // Set initial values
     _selectedLocation = widget.initialFilter.location;
+    _selectedCompanyId = widget.initialFilter.companyId;
     _selectedPropertyType = widget.initialFilter.propertyType;
     _selectedBedrooms = widget.initialFilter.bedrooms;
     _selectedFinishing = widget.initialFilter.finishing;
@@ -117,8 +127,9 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
     // Set hasBeenDelivered
     _hasBeenDelivered = widget.initialFilter.hasBeenDelivered;
 
-    // Load locations from database
+    // Load locations and companies from database
     _loadLocations();
+    _loadCompanies();
   }
 
   Future<void> _loadLocations() async {
@@ -141,6 +152,32 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
       if (mounted) {
         setState(() {
           _isLoadingLocations = false;
+        });
+      }
+    }
+    print('[FILTER BOTTOM SHEET] ========================================');
+  }
+
+  Future<void> _loadCompanies() async {
+    print('[FILTER BOTTOM SHEET] ========================================');
+    print('[FILTER BOTTOM SHEET] Loading companies...');
+    try {
+      final companies = await _companyService.getCompanies();
+      print('[FILTER BOTTOM SHEET] ✓ Received ${companies.length} companies');
+      print('[FILTER BOTTOM SHEET] Companies: ${companies.values.take(5).join(", ")}${companies.length > 5 ? "..." : ""}');
+
+      if (mounted) {
+        setState(() {
+          _availableCompanies = companies;
+          _isLoadingCompanies = false;
+        });
+        print('[FILTER BOTTOM SHEET] ✓ UI updated with companies');
+      }
+    } catch (e) {
+      print('[FILTER BOTTOM SHEET] ✗ Error loading companies: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingCompanies = false;
         });
       }
     }
@@ -180,14 +217,19 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
       deliveredAtToStr = DateFormat('yyyy-MM-dd').format(_deliveredAtTo!);
     }
 
+    // Convert millions to full price (multiply by 1,000,000)
+    final minPriceInMillions = _minPriceController.text.isEmpty
+        ? null
+        : double.tryParse(_minPriceController.text);
+    final maxPriceInMillions = _maxPriceController.text.isEmpty
+        ? null
+        : double.tryParse(_maxPriceController.text);
+
     final filter = SearchFilter(
       location: _selectedLocation,
-      minPrice: _minPriceController.text.isEmpty
-          ? null
-          : double.tryParse(_minPriceController.text),
-      maxPrice: _maxPriceController.text.isEmpty
-          ? null
-          : double.tryParse(_maxPriceController.text),
+      companyId: _selectedCompanyId,
+      minPrice: minPriceInMillions != null ? minPriceInMillions * 1000000 : null,
+      maxPrice: maxPriceInMillions != null ? maxPriceInMillions * 1000000 : null,
       propertyType: _selectedPropertyType,
       bedrooms: _selectedBedrooms,
       finishing: _selectedFinishing,
@@ -206,6 +248,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
   void _clearAllFilters() {
     setState(() {
       _selectedLocation = null;
+      _selectedCompanyId = null;
       _minPriceController.clear();
       _maxPriceController.clear();
       _deliveredAtFrom = null;
@@ -235,14 +278,19 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
       deliveredAtToStr = DateFormat('yyyy-MM-dd').format(_deliveredAtTo!);
     }
 
+    // Convert millions to full price (multiply by 1,000,000)
+    final minPriceInMillions = _minPriceController.text.isEmpty
+        ? null
+        : double.tryParse(_minPriceController.text);
+    final maxPriceInMillions = _maxPriceController.text.isEmpty
+        ? null
+        : double.tryParse(_maxPriceController.text);
+
     final filter = SearchFilter(
       location: _selectedLocation,
-      minPrice: _minPriceController.text.isEmpty
-          ? null
-          : double.tryParse(_minPriceController.text),
-      maxPrice: _maxPriceController.text.isEmpty
-          ? null
-          : double.tryParse(_maxPriceController.text),
+      companyId: _selectedCompanyId,
+      minPrice: minPriceInMillions != null ? minPriceInMillions * 1000000 : null,
+      maxPrice: maxPriceInMillions != null ? maxPriceInMillions * 1000000 : null,
       propertyType: _selectedPropertyType,
       bedrooms: _selectedBedrooms,
       finishing: _selectedFinishing,
@@ -329,6 +377,70 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Company Dropdown
+                  _buildSectionTitle('Company'),
+                  SizedBox(height: 8),
+                  _isLoadingCompanies
+                      ? Container(
+                          height: 50,
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CustomLoadingDots(size: 30),
+                                SizedBox(width: 12),
+                                Text('Loading companies...'),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(color: Colors.grey.shade300),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedCompanyId,
+                            decoration: InputDecoration(
+                              hintText: 'Select company',
+                              prefixIcon: Icon(Icons.business_outlined),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            isExpanded: true,
+                            items: [
+                              DropdownMenuItem<String>(
+                                value: null,
+                                child: Text(
+                                  'All Companies',
+                                  style: TextStyle(color: Colors.grey),
+                                ),
+                              ),
+                              ..._availableCompanies.entries.map((entry) {
+                                return DropdownMenuItem<String>(
+                                  value: entry.key, // Company ID
+                                  child: Text(entry.value), // Company Name
+                                );
+                              }).toList(),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedCompanyId = value;
+                              });
+                              _applyFiltersWithDebounce();
+                            },
+                          ),
+                        ),
+
+                  SizedBox(height: 24),
+
                   // Location Dropdown
                   _buildSectionTitle('Location'),
                   SizedBox(height: 8),
@@ -394,16 +506,18 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   SizedBox(height: 24),
 
                   // Price Range
-                  _buildSectionTitle('Price Range (EGP)'),
+                  _buildSectionTitle('Price Range (Million EGP)'),
                   SizedBox(height: 8),
                   Row(
                     children: [
                       Expanded(
                         child: TextField(
                           controller: _minPriceController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: TextInputType.numberWithOptions(decimal: true),
                           decoration: InputDecoration(
-                            hintText: 'Min',
+                            hintText: 'Min (e.g., 3)',
+                            labelText: 'Min',
+                            suffixText: 'M',
                             prefixIcon: Icon(Icons.attach_money),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -419,9 +533,11 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                       Expanded(
                         child: TextField(
                           controller: _maxPriceController,
-                          keyboardType: TextInputType.number,
+                          keyboardType: TextInputType.numberWithOptions(decimal: true),
                           decoration: InputDecoration(
-                            hintText: 'Max',
+                            hintText: 'Max (e.g., 5)',
+                            labelText: 'Max',
+                            suffixText: 'M',
                             prefixIcon: Icon(Icons.attach_money),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),

@@ -15,9 +15,71 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
+  bool _imagesLoaded = false;
+
+  final List<String> _imagePaths = [
+    "assets/images/onboarding1.jpg",
+    "assets/images/onboarding2.jpg",
+    "assets/images/try.jpg",
+  ];
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  // Preload all images to cache
+  Future<void> _preloadImages() async {
+    try {
+      await Future.wait([
+        for (final imagePath in _imagePaths)
+          precacheImage(AssetImage(imagePath), context),
+      ]);
+      if (mounted) {
+        setState(() {
+          _imagesLoaded = true;
+        });
+      }
+    } catch (e) {
+      print('Error preloading images: $e');
+      // Even if preloading fails, show the screen
+      if (mounted) {
+        setState(() {
+          _imagesLoaded = true;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Show loading indicator while images are being preloaded
+    if (!_imagesLoaded) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.mainColor),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Loading...',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: AppColors.mainColor,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: Stack(
         alignment: Alignment.bottomCenter,
@@ -28,12 +90,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               OnboardingTemplate(
                 "Find Your Perfect Home",
                 "assets/images/onboarding1.jpg",
-                "Explore thousands of properties tailored to your lifestyle. Whether you’re buying or renting, we’ll help you find the perfect place with ease.",
+                "Explore thousands of properties tailored to your lifestyle. Whether you're buying or renting, we'll help you find the perfect place with ease.",
               ),
               OnboardingTemplate(
                 "Everything You Need in One App",
                 "assets/images/onboarding2.jpg",
-                "Whether you’re buying, selling, or renting, manage every step with ease — all in one place.",
+                "Whether you're buying, selling, or renting, manage every step with ease — all in one place.",
               ),
               OnboardingTemplate(
                 "Contact Agents Instantly",

@@ -23,16 +23,19 @@ class WebNotificationsScreen extends StatefulWidget {
 class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
   List<NotificationModel> notifications = [];
   bool isLoading = true;
-  String selectedFilter = 'all';
   final NotificationCacheService _cacheService = NotificationCacheService();
   Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
+    print('[WEB NOTIFICATIONS SCREEN] initState called');
+    // First load notifications immediately
     _loadNotifications();
-    // Refresh notifications every 2 seconds to catch new ones
-    _refreshTimer = Timer.periodic(Duration(seconds: 2), (timer) {
+    // Then check for pending notifications from service worker
+    _checkAndMigrateWebNotifications();
+    // Refresh notifications every 5 seconds to catch new ones (reduced from 1 second to avoid spam)
+    _refreshTimer = Timer.periodic(Duration(seconds: 5), (timer) {
       _checkAndMigrateWebNotifications();
     });
   }
@@ -48,64 +51,78 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
       // Check localStorage for pending notifications from service worker (only available on web)
       final pendingNotificationsJson = getLocalStorageItem('pending_web_notifications');
 
+      print('[WEB NOTIFICATIONS] Checking localStorage for pending notifications...');
+      print('[WEB NOTIFICATIONS] Raw JSON: ${pendingNotificationsJson?.substring(0, pendingNotificationsJson.length > 100 ? 100 : pendingNotificationsJson.length) ?? 'null'}...');
+
       if (pendingNotificationsJson != null && pendingNotificationsJson.isNotEmpty) {
-        final List<dynamic> pendingNotifications = jsonDecode(pendingNotificationsJson);
+        try {
+          final List<dynamic> pendingNotifications = jsonDecode(pendingNotificationsJson);
 
-        print('📦 Found ${pendingNotifications.length} pending web notifications');
+          print('📦 Found ${pendingNotifications.length} pending web notifications');
 
-        // Migrate each notification to SharedPreferences
-        for (var notifJson in pendingNotifications) {
-          try {
-            final notification = NotificationModel.fromJson(notifJson);
-            await _cacheService.saveNotification(notification);
-            print('✅ Migrated notification: ${notification.title}');
-          } catch (e) {
-            print('⚠️ Error migrating notification: $e');
+          // Migrate each notification to SharedPreferences
+          int successCount = 0;
+          for (var notifJson in pendingNotifications) {
+            try {
+              final notification = NotificationModel.fromJson(notifJson);
+              await _cacheService.saveNotification(notification);
+              print('✅ Migrated notification: ${notification.title}');
+              successCount++;
+            } catch (e) {
+              print('⚠️ Error migrating notification: $e');
+              print('   Notification JSON: $notifJson');
+            }
           }
+
+          print('📊 Migration complete: $successCount/${pendingNotifications.length} notifications migrated');
+
+          // Clear localStorage after migration
+          removeLocalStorageItem('pending_web_notifications');
+          print('🗑️ Cleared pending notifications from localStorage');
+
+          // Reload notifications to show the new ones
+          await _loadNotifications();
+        } catch (e) {
+          print('❌ Error parsing pending notifications JSON: $e');
+          print('   Raw JSON: $pendingNotificationsJson');
+          await _loadNotifications();
         }
-
-        // Clear localStorage after migration
-        removeLocalStorageItem('pending_web_notifications');
-        print('🗑️ Cleared pending notifications from localStorage');
-
-        // Reload notifications to show the new ones
-        await _loadNotifications();
       } else {
-        // Just refresh the list
+        // Just refresh the list (without logging every time to reduce console spam)
         await _loadNotifications();
       }
     } catch (e) {
       print('❌ Error checking pending notifications: $e');
+      print('   Stack trace: ${StackTrace.current}');
       await _loadNotifications();
     }
   }
 
   Future<void> _loadNotifications() async {
     try {
+      print('[WEB NOTIFICATIONS] Loading notifications from cache...');
       final cachedNotifications = await _cacheService.getAllNotifications();
+      print('[WEB NOTIFICATIONS] Found ${cachedNotifications.length} notifications in cache');
+
+      if (cachedNotifications.isNotEmpty) {
+        print('[WEB NOTIFICATIONS] Sample notification: ${cachedNotifications.first.title}');
+      }
+
       if (mounted) {
         setState(() {
           notifications = cachedNotifications;
           isLoading = false;
         });
+        print('[WEB NOTIFICATIONS] UI updated with ${notifications.length} notifications');
       }
     } catch (e) {
       print('❌ Error loading notifications: $e');
+      print('   Stack trace: ${StackTrace.current}');
       if (mounted) {
         setState(() {
           isLoading = false;
         });
       }
-    }
-  }
-
-  List<NotificationModel> _getFilteredNotifications() {
-    if (selectedFilter == 'all') {
-      return notifications;
-    } else if (selectedFilter == 'unread') {
-      return notifications.where((n) => !n.isRead).toList();
-    } else {
-      return notifications.where((n) => n.type == selectedFilter).toList();
     }
   }
 
@@ -142,7 +159,6 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final filteredNotifications = _getFilteredNotifications();
 
     return Scaffold(
       backgroundColor: Color(0xFFF8F9FA),
@@ -158,10 +174,6 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
                 _buildHeader(l10n),
                 SizedBox(height: 24),
 
-                // Filters
-                _buildFilters(l10n),
-                SizedBox(height: 24),
-
                 // Content
                 Expanded(
                   child: isLoading
@@ -170,9 +182,9 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
                             size: 120,
                           ),
                         )
-                      : filteredNotifications.isEmpty
+                      : notifications.isEmpty
                           ? _buildEmptyState(l10n)
-                          : _buildNotificationsList(filteredNotifications),
+                          : _buildNotificationsList(notifications),
                 ),
               ],
             ),
@@ -222,8 +234,21 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
         ),
         Spacer(),
 
+        // Refresh button
+        _buildActionButton(
+          icon: Icons.refresh_rounded,
+          label: 'Refresh',
+          onPressed: () async {
+            print('[WEB NOTIFICATIONS] Manual refresh triggered');
+            await _checkAndMigrateWebNotifications();
+            MessageHelper.showSuccess(context, 'Notifications refreshed');
+          },
+          isPrimary: false,
+        ),
+
         // Action buttons
         if (notifications.isNotEmpty) ...[
+          SizedBox(width: 12),
           if (_getUnreadCount() > 0)
             _buildActionButton(
               icon: Icons.done_all_rounded,
@@ -281,97 +306,6 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
     );
   }
 
-  Widget _buildFilters(AppLocalizations l10n) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _buildFilterChip('all', l10n.all, Icons.grid_view_rounded, notifications.length),
-          SizedBox(width: 12),
-          _buildFilterChip('unread', l10n.unread, Icons.mark_email_unread_rounded, _getUnreadCount()),
-          SizedBox(width: 12),
-          _buildFilterChip('sale', l10n.sales, Icons.sell_rounded, notifications.where((n) => n.type == 'sale').length),
-          SizedBox(width: 12),
-          _buildFilterChip('unit', l10n.units, Icons.home_work_rounded, notifications.where((n) => n.type == 'unit').length),
-          SizedBox(width: 12),
-          _buildFilterChip('compound', l10n.updates, Icons.location_city_rounded, notifications.where((n) => n.type == 'compound').length),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String filter, String label, IconData icon, int count) {
-    final isSelected = selectedFilter == filter;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          setState(() {
-            selectedFilter = filter;
-          });
-        },
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.mainColor : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isSelected ? AppColors.mainColor : Color(0xFFE0E0E0),
-              width: 1.5,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: AppColors.mainColor.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 18,
-                color: isSelected ? Colors.white : Color(0xFF666666),
-              ),
-              SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : Color(0xFF333333),
-                ),
-              ),
-              if (count > 0) ...[
-                SizedBox(width: 8),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.white.withOpacity(0.3) : Color(0xFFF0F0F0),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    '$count',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: isSelected ? Colors.white : Color(0xFF666666),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
       child: Column(
@@ -391,7 +325,7 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
           ),
           SizedBox(height: 24),
           Text(
-            selectedFilter == 'unread' ? l10n.noUnreadNotifications : l10n.noNotifications,
+            l10n.noNotifications,
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w600,

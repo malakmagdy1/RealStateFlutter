@@ -17,6 +17,10 @@ import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_e
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_state.dart';
 import 'package:real/core/animations/pulse_animation.dart';
 import 'package:real/core/locale/language_service.dart';
+import 'package:real/feature/ai_chat/data/models/comparison_item.dart';
+import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart';
+import 'package:real/feature/ai_chat/presentation/widget/comparison_selection_sheet.dart';
+import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.dart';
 
 class UnitCard extends StatefulWidget {
   final Unit unit;
@@ -33,6 +37,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
   late Animation<double> _elevationAnimation;
   String? _currentNote;
   bool _animateFavorite = false;
+  bool _animateCompare = false;
 
   @override
   void initState() {
@@ -247,6 +252,50 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                   ),
                                 ),
                               ),
+                              SizedBox(width: 4),
+                              // Compare Button with Animation
+                              StreamBuilder<List<ComparisonItem>>(
+                                stream: ComparisonListService().comparisonStream,
+                                builder: (context, snapshot) {
+                                  final items = snapshot.data ?? [];
+                                  final isInComparison = items.any((item) => item.id == widget.unit.id);
+
+                                  return PulseAnimation(
+                                    animate: _animateCompare,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        _toggleCompare(context, isInComparison);
+                                        setState(() {
+                                          _animateCompare = true;
+                                        });
+                                        Future.delayed(Duration(milliseconds: 600), () {
+                                          if (mounted) {
+                                            setState(() {
+                                              _animateCompare = false;
+                                            });
+                                          }
+                                        });
+                                      },
+                                      child: Container(
+                                        height: 28,
+                                        width: 28,
+                                        alignment: Alignment.center,
+                                        decoration: BoxDecoration(
+                                          color: isInComparison
+                                              ? AppColors.mainColor.withOpacity(0.9)
+                                              : Colors.black.withOpacity(0.35),
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          isInComparison ? Icons.compare : Icons.compare_arrows,
+                                          size: 14,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
                             ],
                           ),
                         ],
@@ -306,7 +355,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                 child: Text(
                                   unitName,
                                   style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
                                     height: 1.1,
@@ -323,7 +372,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                           Text(
                             unitType,
                             style: TextStyle(
-                              fontSize: 9,
+                              fontSize: 11,
                               fontWeight: FontWeight.w500,
                               color: Colors.grey[700],
                               height: 1.1,
@@ -342,7 +391,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                 child: Text(
                                   compoundLocation.isNotEmpty ? compoundLocation : 'N/A',
                                   style: TextStyle(
-                                    fontSize: 9,
+                                    fontSize: 10,
                                     color: Colors.grey[600],
                                   ),
                                   maxLines: 1,
@@ -389,7 +438,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                       ? widget.unit.deliveryDate!
                                       : 'N/A',
                                   style: TextStyle(
-                                    fontSize: 9,
+                                    fontSize: 10,
                                     color: Colors.grey[600],
                                   ),
                                   maxLines: 1,
@@ -408,7 +457,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                 child: Text(
                                   'EGP ${_formatPrice(_getBestPrice())}',
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.bold,
                                     color: AppColors.mainColor,
                                   ),
@@ -553,13 +602,13 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 11, color: chipColor),
+            Icon(icon, size: 12, color: chipColor),
             SizedBox(width: 2),
             Flexible(
               child: Text(
                 value,
                 style: TextStyle(
-                  fontSize: 8,
+                  fontSize: 9,
                   fontWeight: FontWeight.w600,
                   color: chipColor,
                 ),
@@ -628,6 +677,83 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
         id: widget.unit.id,
       ),
     );
+  }
+
+  void _toggleCompare(BuildContext context, bool isInComparison) {
+    final comparisonItem = ComparisonItem.fromUnit(widget.unit);
+    final comparisonService = ComparisonListService();
+    final l10n = AppLocalizations.of(context)!;
+
+    if (isInComparison) {
+      // Remove from comparison
+      comparisonService.removeItem(comparisonItem);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.remove_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Removed from comparison',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.grey[700],
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      // Add to comparison list
+      final added = comparisonService.addItem(comparisonItem);
+
+      if (added) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.addedToComparison,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        // Show error (list is full)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.comparisonListFull,
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _showSalespeople(BuildContext context) async {

@@ -20,6 +20,30 @@
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="description" content="A new Flutter project.">
 
+  <!-- Security Headers -->
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://www.gstatic.com https://www.googletagmanager.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://accounts.google.com;
+    font-src 'self' https://fonts.gstatic.com data:;
+    img-src 'self' https: data: blob:;
+    connect-src 'self' https://api.aqarapp.co https://aqar.bdcbiz.com https://accounts.google.com https://www.googleapis.com https://generativelanguage.googleapis.com https://fcm.googleapis.com https://fcmregistrations.googleapis.com https://firebaseinstallations.googleapis.com https://www.gstatic.com https://fonts.gstatic.com wss:;
+    frame-src 'self' https://accounts.google.com;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+  ">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Permissions-Policy" content="geolocation=(self), microphone=(), camera=(), payment=()">
+
+  <!-- Viewport meta tag for proper scaling -->
+  <meta name="viewport" content="width=device-width, initial-scale=0.67, minimum-scale=0.5, maximum-scale=2.0, user-scalable=yes">
+
   <!-- Google Sign-In - Web Client ID -->
   <meta name="google-signin-client_id" content="832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com">
 
@@ -35,6 +59,59 @@
 
   <title>Real Estate</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- Force Cache Clear Script -->
+  <script>
+    // App version - update this when you deploy new version (use pubspec version)
+    const APP_VERSION = "1.0.8";
+    const VERSION_KEY = "app_version";
+
+    // Check if version has changed
+    const currentVersion = localStorage.getItem(VERSION_KEY);
+
+    if (currentVersion !== APP_VERSION) {
+      console.log("New version detected! Clearing cache...");
+
+      // Clear all caches
+      if ('caches' in window) {
+        caches.keys().then(function(names) {
+          for (let name of names) {
+            caches.delete(name);
+          }
+        });
+      }
+
+      // Unregister all service workers
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for(let registration of registrations) {
+            registration.unregister();
+          }
+        });
+      }
+
+      // Clear localStorage except important data (token, user info)
+      const itemsToKeep = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.includes('token') || key.includes('user') || key.includes('auth'))) {
+          itemsToKeep[key] = localStorage.getItem(key);
+        }
+      }
+      localStorage.clear();
+      Object.keys(itemsToKeep).forEach(key => {
+        localStorage.setItem(key, itemsToKeep[key]);
+      });
+
+      // Set new version
+      localStorage.setItem(VERSION_KEY, APP_VERSION);
+
+      // Force reload without cache
+      setTimeout(() => {
+        window.location.reload(true);
+      }, 100);
+    }
+  </script>
 </head>
 <body>
   <!-- Google Sign-In Platform Library - REQUIRED for web -->

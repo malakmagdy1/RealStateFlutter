@@ -476,8 +476,13 @@ class AuthWebServices {
       // Get token from storage
       final authToken = token ?? '';
 
-      Response response = await dio.post(
-        '/update-name.php',
+      print('═══════════════════════════════════════════════════════');
+      print('📝 Updating user name');
+      print('New name: ${request.name}');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.put(
+        '/profile/name',
         data: request.toJson(),
         options: Options(
           headers: {
@@ -485,7 +490,9 @@ class AuthWebServices {
           },
         ),
       );
-      print('Update Name Response: ${response.data.toString()}');
+
+      print('✅ Update Name Response: ${response.data.toString()}');
+      print('═══════════════════════════════════════════════════════');
 
       if (response.data is Map<String, dynamic>) {
         return UpdateNameResponse.fromJson(response.data);
@@ -493,7 +500,8 @@ class AuthWebServices {
         throw Exception('Invalid response format');
       }
     } on DioException catch (e) {
-      print('Update Name DioException: ${e.toString()}');
+      print('❌ Update Name DioException: ${e.toString()}');
+      print('❌ Response: ${e.response?.data}');
       if (e.response?.data != null && e.response?.data is Map) {
         final errorData = e.response?.data as Map<String, dynamic>;
         if (errorData['message'] != null) {
@@ -505,7 +513,7 @@ class AuthWebServices {
       }
       throw _handleError(e);
     } catch (e) {
-      print('Update Name Error: ${e.toString()}');
+      print('❌ Update Name Error: ${e.toString()}');
       throw Exception('Update name failed: $e');
     }
   }
@@ -515,8 +523,13 @@ class AuthWebServices {
       // Get token from storage
       final authToken = token ?? '';
 
-      Response response = await dio.post(
-        '/update-phone.php',
+      print('═══════════════════════════════════════════════════════');
+      print('📱 Updating user phone');
+      print('New phone: ${request.phone}');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.put(
+        '/profile/phone',
         data: request.toJson(),
         options: Options(
           headers: {
@@ -524,7 +537,9 @@ class AuthWebServices {
           },
         ),
       );
-      print('Update Phone Response: ${response.data.toString()}');
+
+      print('✅ Update Phone Response: ${response.data.toString()}');
+      print('═══════════════════════════════════════════════════════');
 
       if (response.data is Map<String, dynamic>) {
         return UpdatePhoneResponse.fromJson(response.data);
@@ -532,7 +547,8 @@ class AuthWebServices {
         throw Exception('Invalid response format');
       }
     } on DioException catch (e) {
-      print('Update Phone DioException: ${e.toString()}');
+      print('❌ Update Phone DioException: ${e.toString()}');
+      print('❌ Response: ${e.response?.data}');
       if (e.response?.data != null && e.response?.data is Map) {
         final errorData = e.response?.data as Map<String, dynamic>;
         if (errorData['message'] != null) {
@@ -544,7 +560,7 @@ class AuthWebServices {
       }
       throw _handleError(e);
     } catch (e) {
-      print('Update Phone Error: ${e.toString()}');
+      print('❌ Update Phone Error: ${e.toString()}');
       throw Exception('Update phone failed: $e');
     }
   }

@@ -33,6 +33,7 @@
   "searchFor": "Search for properties...",
   "noResults": "No results found",
   "loading": "Loading...",
+  "refreshing": "Refreshing...",
   "error": "Error",
 
   "price": "Price",
@@ -76,6 +77,11 @@
   "about": "About",
   "helpSupport": "Help & Support",
   "privacyPolicy": "Privacy Policy",
+
+  "updateAvailable": "Update Available",
+  "updateDescription": "A new version of the app is available with important improvements and bug fixes. Please logout and login again to get the latest updates.",
+  "updateNote": "Your session will be refreshed to apply the new changes. You will need to login again.",
+  "logoutAndUpdate": "Logout and Update",
 
   "developer": "Developer",
   "location": "Location",
@@ -441,6 +447,7 @@
 
   "changeLanguage": "Change Language",
   "aiChat": "AI Chat",
+  "aiAssistant": "AI Assistant",
   "active": "Active",
   "free": "Free",
   "yourCurrentPlan": "Your Current Plan",
@@ -566,5 +573,74 @@
         "type": "String"
       }
     }
-  }
+  },
+
+  "unitCode": "Unit Code",
+  "usageType": "Usage Type",
+  "recentUpdate": "Recent Update",
+  "recentChanges": "Recent Changes",
+  "whatChanged": "What Changed",
+  "changedFields": "Changed Fields",
+  "lastChangedAt": "Last Updated",
+  "originalPrice": "Original Price",
+  "salePrice": "Sale Price",
+  "youSave": "You Save",
+  "daysRemaining": "days remaining",
+  "noImagesAvailable": "No images available",
+  "contactForPrice": "Contact for Price",
+  "salesAgent": "Sales Agent",
+  "addNote": "Add Note",
+  "myNotes": "My Notes",
+  "addYourPersonalNotes": "Add your personal notes about this unit. Your notes are private and only visible to you.",
+  "note": "Note",
+  "updated": "Updated",
+  "oldValue": "Old",
+  "newValue": "New",
+  "deleteNote": "Delete Note",
+  "areYouSureDeleteNote": "Are you sure you want to delete this note?",
+  "noteDeletedSuccessfully": "Note deleted successfully",
+  "noteSavedSuccessfully": "Note saved successfully",
+  "failedToDeleteNote": "Failed to delete note",
+  "failedToSaveNote": "Failed to save note",
+  "addingNote": "Add a note...",
+  "add": "Add",
+  "noNotesYet": "No notes yet",
+  "addYourFirstNote": "Add your first note above",
+  "edit": "Edit",
+  "editNote": "Edit Note",
+  "today": "Today",
+  "yesterday": "Yesterday",
+  "cash": "Cash",
+
+  "compare": "Compare",
+  "aiCompare": "AI Compare",
+  "compareWith": "Compare with",
+  "selectedForComparison": "Selected for Comparison",
+  "selectForComparison": "Select for Comparison",
+  "compareWithAI": "Compare with AI",
+  "selectAtLeast2Items": "Select at least 2 items",
+  "compareInstructions": "Select 2-4 items to compare. You can compare units, compounds, or companies.",
+  "toAddItemsForComparison": "To add items for comparison, go to:",
+  "searchUnitsAndCompare": "• Search for units and tap \"Compare\" button",
+  "viewCompoundAndCompare": "• View compound details and tap \"Compare\"",
+  "browseCompaniesAndCompare": "• Browse companies and select \"Compare\"",
+  "comparisonStarted": "Comparison started",
+  "comparingItems": "Comparing {count} items...",
+  "@comparingItems": {
+    "description": "Message shown when comparison is in progress",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "propertyUnit": "Property Unit",
+  "developmentCompany": "Development Company",
+  "addedToComparison": "Added to comparison list",
+  "comparisonListFull": "Comparison list is full (max 4 items)",
+  "alreadyInComparison": "Already in comparison list",
+  "undo": "Undo",
+  "comparisonList": "Comparison List",
+  "startAIComparisonChat": "Start AI Comparison Chat",
+  "selectAtLeast2Items": "Please select at least 2 items to compare"
 }

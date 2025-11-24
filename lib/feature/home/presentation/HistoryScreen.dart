@@ -334,7 +334,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final double buttonSize = 32.0; // Fixed button size
 
     return GridView.builder(
-      padding: EdgeInsets.all(8),
+      padding: const EdgeInsets.only(
+        left: 8,
+        right: 8,
+        top: 8,
+        bottom: 120, // Extra space at bottom for AI button and card visibility
+      ),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         childAspectRatio: 0.63,

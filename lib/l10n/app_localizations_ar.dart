@@ -84,6 +84,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get loading => 'جاري التحميل...';
 
   @override
+  String get refreshing => 'جاري التحديث...';
+
+  @override
   String get error => 'خطأ';
 
   @override
@@ -193,6 +196,20 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get privacyPolicy => 'سياسة الخصوصية';
+
+  @override
+  String get updateAvailable => 'تحديث متاح';
+
+  @override
+  String get updateDescription =>
+      'يتوفر إصدار جديد من التطبيق يحتوي على تحسينات مهمة وإصلاحات. الرجاء تسجيل الخروج ثم تسجيل الدخول مرة أخرى للحصول على آخر التحديثات.';
+
+  @override
+  String get updateNote =>
+      'سيتم تحديث جلستك لتطبيق التغييرات الجديدة. ستحتاج إلى تسجيل الدخول مرة أخرى.';
+
+  @override
+  String get logoutAndUpdate => 'تسجيل الخروج والتحديث';
 
   @override
   String get developer => 'المطور';
@@ -1012,6 +1029,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get aiChat => 'الذكاء الاصطناعي';
 
   @override
+  String get aiAssistant => 'المساعد الذكي';
+
+  @override
   String get free => 'مجاني';
 
   @override
@@ -1162,4 +1182,185 @@ class AppLocalizationsAr extends AppLocalizations {
   String compoundsWithCount(String count) {
     return '$count كمبوند';
   }
+
+  @override
+  String get unitCode => 'كود الوحدة';
+
+  @override
+  String get usageType => 'نوع الاستخدام';
+
+  @override
+  String get recentUpdate => 'تحديث حديث';
+
+  @override
+  String get recentChanges => 'التغييرات الحديثة';
+
+  @override
+  String get whatChanged => 'ما الذي تغير';
+
+  @override
+  String get changedFields => 'الحقول المتغيرة';
+
+  @override
+  String get lastChangedAt => 'آخر تحديث';
+
+  @override
+  String get originalPrice => 'السعر الأصلي';
+
+  @override
+  String get salePrice => 'سعر البيع';
+
+  @override
+  String get youSave => 'توفر';
+
+  @override
+  String get daysRemaining => 'يوم متبقي';
+
+  @override
+  String get noImagesAvailable => 'لا توجد صور متاحة';
+
+  @override
+  String get contactForPrice => 'اتصل للسعر';
+
+  @override
+  String get salesAgent => 'مندوب المبيعات';
+
+  @override
+  String get addNote => 'إضافة ملاحظة';
+
+  @override
+  String get myNotes => 'ملاحظاتي';
+
+  @override
+  String get addYourPersonalNotes =>
+      'أضف ملاحظاتك الشخصية عن هذه الوحدة. ملاحظاتك خاصة ومرئية لك فقط.';
+
+  @override
+  String get note => 'ملاحظة';
+
+  @override
+  String get updated => 'تم التحديث';
+
+  @override
+  String get oldValue => 'قديم';
+
+  @override
+  String get newValue => 'جديد';
+
+  @override
+  String get deleteNote => 'حذف الملاحظة';
+
+  @override
+  String get areYouSureDeleteNote => 'هل أنت متأكد من حذف هذه الملاحظة؟';
+
+  @override
+  String get noteDeletedSuccessfully => 'تم حذف الملاحظة بنجاح';
+
+  @override
+  String get noteSavedSuccessfully => 'تم حفظ الملاحظة بنجاح';
+
+  @override
+  String get failedToDeleteNote => 'فشل حذف الملاحظة';
+
+  @override
+  String get failedToSaveNote => 'فشل حفظ الملاحظة';
+
+  @override
+  String get addingNote => 'إضافة ملاحظة...';
+
+  @override
+  String get add => 'إضافة';
+
+  @override
+  String get noNotesYet => 'لا توجد ملاحظات بعد';
+
+  @override
+  String get addYourFirstNote => 'أضف ملاحظتك الأولى أعلاه';
+
+  @override
+  String get edit => 'تعديل';
+
+  @override
+  String get editNote => 'تعديل الملاحظة';
+
+  @override
+  String get today => 'اليوم';
+
+  @override
+  String get yesterday => 'أمس';
+
+  @override
+  String get cash => 'نقدي';
+
+  @override
+  String get compare => 'مقارنة';
+
+  @override
+  String get aiCompare => 'مقارنة بالذكاء الاصطناعي';
+
+  @override
+  String get compareWith => 'مقارنة مع';
+
+  @override
+  String get selectedForComparison => 'المحدد للمقارنة';
+
+  @override
+  String get selectForComparison => 'اختر للمقارنة';
+
+  @override
+  String get compareWithAI => 'قارن باستخدام الذكاء الاصطناعي';
+
+  @override
+  String get selectAtLeast2Items => 'يرجى اختيار عنصرين على الأقل للمقارنة';
+
+  @override
+  String get compareInstructions =>
+      'اختر من 2 إلى 4 عناصر للمقارنة. يمكنك مقارنة الوحدات أو الكمبوندات أو الشركات.';
+
+  @override
+  String get toAddItemsForComparison => 'لإضافة عناصر للمقارنة، انتقل إلى:';
+
+  @override
+  String get searchUnitsAndCompare =>
+      '• ابحث عن الوحدات واضغط على زر \"مقارنة\"';
+
+  @override
+  String get viewCompoundAndCompare =>
+      '• اعرض تفاصيل الكمبوند واضغط على \"مقارنة\"';
+
+  @override
+  String get browseCompaniesAndCompare => '• تصفح الشركات واختر \"مقارنة\"';
+
+  @override
+  String get comparisonStarted => 'بدأت المقارنة';
+
+  @override
+  String comparingItems(int count) {
+    return 'جاري مقارنة $count عناصر...';
+  }
+
+  @override
+  String get propertyUnit => 'وحدة عقارية';
+
+  @override
+  String get developmentCompany => 'شركة تطوير عقاري';
+
+  @override
+  String get addedToComparison => 'تمت الإضافة إلى قائمة المقارنة';
+
+  @override
+  String get comparisonListFull =>
+      'قائمة المقارنة ممتلئة (الحد الأقصى 4 عناصر)';
+
+  @override
+  String get alreadyInComparison => 'موجود بالفعل في قائمة المقارنة';
+
+  @override
+  String get undo => 'تراجع';
+
+  @override
+  String get comparisonList => 'قائمة المقارنة';
+
+  @override
+  String get startAIComparisonChat => 'بدء محادثة المقارنة بالذكاء الاصطناعي';
 }

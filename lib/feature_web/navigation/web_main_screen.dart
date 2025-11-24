@@ -23,8 +23,9 @@ import '../favorites/presentation/web_favorites_screen.dart';
 import '../history/presentation/web_history_screen.dart';
 import '../profile/presentation/web_profile_screen.dart';
 import '../notifications/presentation/web_notifications_screen.dart';
-import '../ai_chat/presentation/web_ai_chat_screen.dart';
+import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.dart';
 import 'package:real/core/utils/web_utils_stub.dart' if (dart.library.html) 'package:real/core/utils/web_utils_web.dart';
+import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart';
 
 class WebMainScreen extends StatefulWidget {
   static String routeName = '/web-main';
@@ -38,17 +39,21 @@ class WebMainScreen extends StatefulWidget {
 class _WebMainScreenState extends State<WebMainScreen> {
   int _selectedIndex = 0;
   int _unreadNotifications = 0;
+  int _comparisonCount = 0;
   final NotificationCacheService _cacheService = NotificationCacheService();
+  final ComparisonListService _comparisonService = ComparisonListService();
   Timer? _notificationCheckTimer;
 
-  final List<Widget> _screens = [
-    WebHomeScreen(),
-    const WebCompoundsScreen(),
-    WebFavoritesScreen(),
-    WebHistoryScreen(),
-    const WebAiChatScreen(),
-    WebNotificationsScreen(),
-    WebProfileScreen(),
+  // Screens list - use stable keys to prevent unnecessary rebuilds
+  // Cache the screens list to prevent recreation on every setState
+  late final List<Widget> _screens = [
+    const WebHomeScreen(key: ValueKey('home_screen')),
+    const WebCompoundsScreen(key: ValueKey('compounds_screen')),
+    WebFavoritesScreen(key: ValueKey('favorites_screen')),
+    WebHistoryScreen(key: ValueKey('history_screen')),
+    const UnifiedAIChatScreen(key: ValueKey('ai_chat_screen')),
+    WebNotificationsScreen(key: ValueKey('notifications_screen')),
+    WebProfileScreen(key: ValueKey('profile_screen')),
   ];
 
   @override
@@ -56,15 +61,36 @@ class _WebMainScreenState extends State<WebMainScreen> {
     super.initState();
     _loadSavedScreen();
     _loadUnreadCount();
+    _loadComparisonCount();
+
     // Check for new notifications every 3 seconds
     _notificationCheckTimer = Timer.periodic(Duration(seconds: 3), (timer) {
       _loadUnreadCount();
     });
 
+    // Listen to comparison list changes
+    _comparisonService.addListener(_onComparisonListChanged);
+
     // Load subscription status
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<SubscriptionBloc>().add(LoadSubscriptionStatusEvent());
     });
+  }
+
+  void _onComparisonListChanged() {
+    if (mounted) {
+      setState(() {
+        _comparisonCount = _comparisonService.count;
+      });
+    }
+  }
+
+  Future<void> _loadComparisonCount() async {
+    if (mounted) {
+      setState(() {
+        _comparisonCount = _comparisonService.count;
+      });
+    }
   }
 
   // Load the saved screen from SharedPreferences
@@ -125,6 +151,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
   @override
   void dispose() {
     _notificationCheckTimer?.cancel();
+    _comparisonService.removeListener(_onComparisonListChanged);
     super.dispose();
   }
 
@@ -205,7 +232,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
 
   Widget _buildNavBar(AppLocalizations l10n) {
     return Container(
-      height: 70,
+      height: 50,
       decoration: BoxDecoration(
         color: Colors.white,
         border: const Border(
@@ -228,12 +255,12 @@ class _WebMainScreenState extends State<WebMainScreen> {
           child: SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
                   Container(
-                    width: 30,
-                    height: 30,
+                    width: 60,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: AppColors.mainColor,
                       borderRadius: BorderRadius.circular(15),
@@ -250,7 +277,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 12),
 
                   // Subscription Status Badge (Clickable)
                   BlocBuilder<SubscriptionBloc, SubscriptionState>(
@@ -273,7 +300,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                             }
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: hasActiveSubscription
@@ -301,16 +328,16 @@ class _WebMainScreenState extends State<WebMainScreen> {
                                   hasActiveSubscription
                                       ? Icons.workspace_premium
                                       : Icons.info_outline,
-                                  size: 16,
+                                  size: 14,
                                   color: hasActiveSubscription
                                       ? AppColors.mainColor
                                       : Colors.grey[700],
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: 4),
                                 Text(
                                   planName,
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: hasActiveSubscription
                                         ? AppColors.mainColor
@@ -324,7 +351,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                       );
                     },
                   ),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 16),
 
                   // Language Selector
                   BlocBuilder<LocaleCubit, Locale>(
@@ -333,7 +360,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                         offset: const Offset(0, 50),
                         tooltip: l10n.changeLanguage,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
                             color: Colors.grey[100],
                             borderRadius: BorderRadius.circular(8),
@@ -344,22 +371,22 @@ class _WebMainScreenState extends State<WebMainScreen> {
                             children: [
                               Icon(
                                 Icons.language,
-                                size: 18,
+                                size: 16,
                                 color: Colors.grey[700],
                               ),
-                              const SizedBox(width: 6),
+                              const SizedBox(width: 4),
                               Text(
                                 locale.languageCode == 'ar' ? 'العربية' : 'English',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: Colors.grey[800],
                                 ),
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 3),
                               Icon(
                                 Icons.arrow_drop_down,
-                                size: 18,
+                                size: 16,
                                 color: Colors.grey[700],
                               ),
                             ],
@@ -405,21 +432,21 @@ class _WebMainScreenState extends State<WebMainScreen> {
                       );
                     },
                   ),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 16),
 
                   // Navigation Links
                   _buildNavItem(l10n.home, 0, Icons.home_outlined, Icons.home),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 12),
                   _buildNavItem(l10n.compounds, 1, Icons.apartment_outlined, Icons.apartment),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 12),
                   _buildNavItem(l10n.favorites, 2, Icons.favorite_border, Icons.favorite),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 12),
                   _buildNavItem(l10n.history, 3, Icons.history_outlined, Icons.history),
-                  const SizedBox(width: 24),
-                  _buildNavItem(l10n.aiChat, 4, Icons.smart_toy_outlined, Icons.smart_toy),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 12),
+                  _buildNavItemWithBadge(l10n.aiChat, 4, Icons.smart_toy_outlined, Icons.smart_toy, _comparisonCount, badgeColor: AppColors.mainColor),
+                  const SizedBox(width: 12),
                   _buildNavItemWithBadge(l10n.notifications, 5, Icons.notifications_outlined, Icons.notifications, _unreadNotifications),
-                  const SizedBox(width: 24),
+                  const SizedBox(width: 12),
                   _buildNavItem(l10n.profile, 6, Icons.person_outline, Icons.person),
                 ],
               ),
@@ -447,7 +474,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
         }
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.mainColor.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
@@ -456,14 +483,14 @@ class _WebMainScreenState extends State<WebMainScreen> {
           children: [
             Icon(
               isSelected ? filledIcon : outlinedIcon,
-              size: 20,
+              size: 18,
               color: isSelected ? AppColors.mainColor : const Color(0xFF666666),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               title,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: isSelected ? AppColors.mainColor : const Color(0xFF333333),
               ),
@@ -474,8 +501,9 @@ class _WebMainScreenState extends State<WebMainScreen> {
     );
   }
 
-  Widget _buildNavItemWithBadge(String title, int index, IconData outlinedIcon, IconData filledIcon, int badgeCount) {
+  Widget _buildNavItemWithBadge(String title, int index, IconData outlinedIcon, IconData filledIcon, int badgeCount, {Color? badgeColor}) {
     final isSelected = _selectedIndex == index;
+    final effectiveBadgeColor = badgeColor ?? Colors.red;
 
     return InkWell(
       onTap: () {
@@ -486,10 +514,12 @@ class _WebMainScreenState extends State<WebMainScreen> {
         RoutePersistenceService.saveScreenIndex(index);
         print('[WEB MAIN] Saved screen index: $index');
 
-        _loadUnreadCount(); // Reload count when notifications screen is opened
+        if (index == 5) {
+          _loadUnreadCount(); // Reload count when notifications screen is opened
+        }
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.mainColor.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
@@ -500,7 +530,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
               children: [
                 Icon(
                   isSelected ? filledIcon : outlinedIcon,
-                  size: 20,
+                  size: 18,
                   color: isSelected ? AppColors.mainColor : const Color(0xFF666666),
                 ),
                 if (badgeCount > 0)
@@ -510,7 +540,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.red,
+                        color: effectiveBadgeColor,
                         shape: BoxShape.circle,
                       ),
                       constraints: const BoxConstraints(
@@ -530,11 +560,11 @@ class _WebMainScreenState extends State<WebMainScreen> {
                   ),
               ],
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 6),
             Text(
               title,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                 color: isSelected ? AppColors.mainColor : const Color(0xFF333333),
               ),

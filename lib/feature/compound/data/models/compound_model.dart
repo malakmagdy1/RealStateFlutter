@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../company/data/models/sales_model.dart';
+import '../../../../core/locale/language_service.dart';
 
 class Compound extends Equatable {
   final String id;
@@ -110,13 +111,44 @@ class Compound extends Equatable {
           .toList();
     }
 
+    // Get current language from LanguageService
+    final currentLang = LanguageService.currentLanguage;
+
+    // Determine project name based on language
+    String projectName;
+    if (json['project_localized'] != null) {
+      // If backend sends project_localized, use it
+      projectName = json['project_localized']?.toString() ?? '';
+    } else if (json['project_en'] != null && json['project_ar'] != null) {
+      // If backend sends project_en and project_ar separately
+      projectName = currentLang == 'ar'
+          ? (json['project_ar']?.toString() ?? json['project']?.toString() ?? '')
+          : (json['project_en']?.toString() ?? json['project']?.toString() ?? '');
+    } else {
+      // Fallback to project field
+      projectName = json['project']?.toString() ?? '';
+    }
+
+    // Determine location name based on language
+    String locationName;
+    if (json['location_localized'] != null) {
+      // If backend sends location_localized, use it
+      locationName = json['location_localized']?.toString() ?? '';
+    } else if (json['location_en'] != null && json['location_ar'] != null) {
+      // If backend sends location_en and location_ar separately
+      locationName = currentLang == 'ar'
+          ? (json['location_ar']?.toString() ?? json['location']?.toString() ?? '')
+          : (json['location_en']?.toString() ?? json['location']?.toString() ?? '');
+    } else {
+      // Fallback to location field
+      locationName = json['location']?.toString() ?? '';
+    }
+
     return Compound(
       id: json['id']?.toString() ?? '',
       companyId: json['company_id']?.toString() ?? '',
-      // Use localized project name if available, fallback to original
-      project: json['project_localized']?.toString() ?? json['project']?.toString() ?? '',
-      // Use localized location if available, fallback to original
-      location: json['location_localized']?.toString() ?? json['location']?.toString() ?? '',
+      project: projectName,
+      location: locationName,
       locationUrl: json['location_url']?.toString(),
       images: imagesList,
       builtUpArea: json['built_up_area']?.toString() ?? '0.00',

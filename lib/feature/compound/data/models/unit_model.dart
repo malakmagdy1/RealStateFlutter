@@ -359,10 +359,19 @@ class Unit extends Equatable {
       'available': available,
       'is_sold': isSold,
       'total_price': totalPrice,
+      'normal_price': normalPrice,
       'built_up_area': builtUpArea,
       'land_area': landArea,
       'favorite_id': favoriteId,
       'notes': notes,
+      'note_id': noteId,
+      // Update tracking fields
+      'is_updated': isUpdated,
+      'last_changed_at': lastChangedAt,
+      'change_type': changeType,
+      'changed_fields': changedFields,
+      'change_properties': changeProperties,
+      // Sale fields
       'has_active_sale': hasActiveSale,
       'sale': sale?.toJson(),
     };

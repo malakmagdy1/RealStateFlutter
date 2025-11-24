@@ -9,6 +9,10 @@ String? getLocalStorageItem(String key) {
   return html.window.localStorage[key];
 }
 
+void setLocalStorageItem(String key, String value) {
+  html.window.localStorage[key] = value;
+}
+
 void removeLocalStorageItem(String key) {
   html.window.localStorage.remove(key);
 }
@@ -24,4 +28,8 @@ void showWebNotification(String title, String body) {
       }
     });
   }
+}
+
+void reloadWebPage() {
+  html.window.location.reload();
 }

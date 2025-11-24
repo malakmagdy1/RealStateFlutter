@@ -10,6 +10,7 @@ import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sh
 import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
+import 'package:real/feature/ai_chat/presentation/widget/floating_comparison_cart.dart';
 
 class WebCompanyDetailScreen extends StatefulWidget {
   static String routeName = '/web-company-detail';
@@ -167,84 +168,96 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
       );
     }
 
-    return Scaffold(
-      backgroundColor: Color(0xFFF8F9FA),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 1,
-        automaticallyImplyLeading: false, // Remove back button on web
-        title: Text(
-          _currentCompany!.name,
-          style: TextStyle(
-            color: AppColors.mainColor,
-            fontWeight: FontWeight.w600,
+    return Stack(
+      children: [
+        Scaffold(
+          backgroundColor: Color(0xFFF8F9FA),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 1,
+            automaticallyImplyLeading: false, // Remove back button on web
+            title: Text(
+              _currentCompany!.name,
+              style: TextStyle(
+                color: AppColors.mainColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            actions: [
+              IconButton(
+                icon: Icon(Icons.share, color: AppColors.mainColor),
+                onPressed: () async {
+                  // Fetch compounds for this company to pass to advanced share
+                  final compoundState = context.read<CompoundBloc>().state;
+                  List<Map<String, dynamic>>? compounds;
+
+                  if (compoundState is CompoundSuccess) {
+                    compounds = compoundState.response.data.map((compound) {
+                      return {
+                        'id': compound.id,
+                        'project': compound.project,
+                        'location': compound.location,
+                        'totalUnits': compound.totalUnits,
+                      };
+                    }).toList();
+                  }
+
+                  if (context.mounted) {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => AdvancedShareBottomSheet(
+                        type: 'company',
+                        id: _currentCompany!.id.toString(),
+                        compounds: compounds,
+                      ),
+                    );
+                  }
+                },
+              ),
+              SizedBox(width: 8),
+            ],
           ),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.share, color: AppColors.mainColor),
-            onPressed: () async {
-              // Fetch compounds for this company to pass to advanced share
-              final compoundState = context.read<CompoundBloc>().state;
-              List<Map<String, dynamic>>? compounds;
+          body: SingleChildScrollView(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: 1400),
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildCompanyHeader(l10n),
+                      SizedBox(height: 32),
+                      _buildStatsSection(l10n),
+                      SizedBox(height: 48),
+                      _buildContactInfo(l10n),
+                      SizedBox(height: 48),
+                      _buildCompoundsSection(l10n),
+                      SizedBox(height: 48),
 
-              if (compoundState is CompoundSuccess) {
-                compounds = compoundState.response.data.map((compound) {
-                  return {
-                    'id': compound.id,
-                    'project': compound.project,
-                    'location': compound.location,
-                    'totalUnits': compound.totalUnits,
-                  };
-                }).toList();
-              }
 
-              if (context.mounted) {
-                showModalBottomSheet(
-                  context: context,
-                  isScrollControlled: true,
-                  backgroundColor: Colors.transparent,
-                  builder: (context) => AdvancedShareBottomSheet(
-                    type: 'company',
-                    id: _currentCompany!.id.toString(),
-                    compounds: compounds,
+                      if (_currentCompany!.sales.isNotEmpty) ...[
+                        _buildSalespeopleSection(l10n),
+                        SizedBox(height: 48),
+                      ],
+                    ],
                   ),
-                );
-              }
-            },
-          ),
-          SizedBox(width: 8),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: 1400),
-            child: Padding(
-              padding: EdgeInsets.all(32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildCompanyHeader(l10n),
-                  SizedBox(height: 32),
-                  _buildStatsSection(l10n),
-                  SizedBox(height: 48),
-                  _buildContactInfo(l10n),
-                  SizedBox(height: 48),
-                  _buildCompoundsSection(l10n),
-                  SizedBox(height: 48),
-
-
-                  if (_currentCompany!.sales.isNotEmpty) ...[
-                    _buildSalespeopleSection(l10n),
-                    SizedBox(height: 48),
-                  ],
-                ],
+                ),
               ),
             ),
           ),
         ),
-      ),
+
+        // Floating Comparison Cart
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: FloatingComparisonCart(isWeb: true),
+        ),
+      ],
     );
   }
 
@@ -888,7 +901,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
                 physics: NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
-                  childAspectRatio: 1.1,
+                  childAspectRatio: 0.90, // Adjusted to make cards wider and shorter
                   crossAxisSpacing: 24,
                   mainAxisSpacing: 24,
                 ),

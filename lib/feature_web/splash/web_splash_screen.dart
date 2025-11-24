@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/constant.dart';
 
@@ -39,10 +38,41 @@ class _WebSplashScreenState extends State<WebSplashScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
-        child: SvgPicture.asset(
-          'assets/images/logos/logo.svg',
-          width: MediaQuery.of(context).size.width * 0.4,
-          height: MediaQuery.of(context).size.height * 0.4,
+        child: Container(
+          width: 250,
+          height: 250,
+          padding: EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF1A4D2E),
+                Color(0xFF2D6A4F),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(40),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 30,
+                offset: Offset(0, 15),
+              ),
+            ],
+          ),
+          child: Image.asset(
+            'assets/images/logos/appIcon.png',
+            width: 240,
+            height: 240,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Icon(
+                Icons.apartment,
+                size: 200,
+                color: Colors.white,
+              );
+            },
+          ),
         ),
       ),
     );

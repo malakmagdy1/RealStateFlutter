@@ -19,6 +19,9 @@ import 'package:real/l10n/app_localizations.dart';
 import 'package:real/core/animations/pulse_animation.dart';
 import 'package:real/core/locale/language_service.dart';
 import 'package:real/core/locale/locale_cubit.dart';
+// ADDED: Import for comparison functionality
+import 'package:real/feature/ai_chat/data/models/comparison_item.dart';
+import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart';
 
 class WebUnitCard extends StatefulWidget {
   final Unit unit;
@@ -231,6 +234,40 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                                                   size: 16,
                                                   color: isFavorite ? Colors.red : Colors.white,
                                                 ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    SizedBox(width: 8),
+                                    // Compare Button with Active State
+                                    StreamBuilder<List<ComparisonItem>>(
+                                      stream: ComparisonListService().comparisonStream,
+                                      builder: (context, snapshot) {
+                                        final items = snapshot.data ?? [];
+                                        final isInComparison = items.any((item) =>
+                                          item.id == widget.unit.id && item.type == 'unit'
+                                        );
+
+                                        return MouseRegion(
+                                          cursor: SystemMouseCursors.click,
+                                          child: GestureDetector(
+                                            onTap: () => _showCompareDialog(context),
+                                            child: Container(
+                                              height: 32,
+                                              width: 32,
+                                              alignment: Alignment.center,
+                                              decoration: BoxDecoration(
+                                                color: isInComparison
+                                                    ? AppColors.mainColor.withOpacity(0.9)
+                                                    : Colors.black.withOpacity(0.35),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                isInComparison ? Icons.compare : Icons.compare_arrows,
+                                                size: 16,
+                                                color: Colors.white,
                                               ),
                                             ),
                                           ),
@@ -667,6 +704,69 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
         return 'IN PROGRESS';
       default:
         return status.toUpperCase();
+    }
+  }
+
+  // ADDED: Compare dialog method
+  void _showCompareDialog(BuildContext context) {
+    final comparisonItem = ComparisonItem.fromUnit(widget.unit);
+    final comparisonService = ComparisonListService();
+    final l10n = AppLocalizations.of(context)!;
+
+    // Add to comparison list
+    final added = comparisonService.addItem(comparisonItem);
+
+    if (added) {
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.addedToComparison,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+          action: SnackBarAction(
+            label: l10n.undo,
+            textColor: Colors.white,
+            onPressed: () {
+              comparisonService.removeItem(comparisonItem);
+            },
+          ),
+        ),
+      );
+    } else {
+      // Show error (already in list or list is full)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  comparisonService.isFull
+                      ? l10n.comparisonListFull
+                      : l10n.alreadyInComparison,
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
@@ -32,6 +32,7 @@ import 'package:real/feature/sale/presentation/bloc/sale_bloc.dart';
 import 'package:real/feature/sale/presentation/bloc/sale_event.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
 import 'package:real/feature/ai_chat/presentation/bloc/chat_bloc.dart';
+import 'package:real/feature/ai_chat/presentation/bloc/unified_chat_bloc.dart';
 import 'package:real/feature/auth/presentation/screen/forgetPasswordScreen.dart';
 import 'package:real/feature/auth/presentation/screen/forgot_password_flow_screen.dart';
 import 'package:real/feature/auth/presentation/screen/changePasswordScreen.dart';
@@ -64,6 +65,18 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Suppress mouse tracker assertion in debug mode (known Flutter web issue)
+  if (kIsWeb && kDebugMode) {
+    FlutterError.onError = (FlutterErrorDetails details) {
+      if (details.exception.toString().contains('_debugDuringDeviceUpdate') ||
+          details.exception.toString().contains('mouse_tracker.dart')) {
+        // Silently ignore this specific error
+        return;
+      }
+      FlutterError.presentError(details);
+    };
+  }
 
   // Enable clean URLs for web (remove # from URL)
   if (kIsWeb) {
@@ -264,6 +277,9 @@ class _MyAppState extends State<MyApp> {
         ),
         BlocProvider(
           create: (context) => ChatBloc(),
+        ),
+        BlocProvider(
+          create: (context) => UnifiedChatBloc(),
         ),
       ],
       child: BlocBuilder<LocaleCubit, Locale>(

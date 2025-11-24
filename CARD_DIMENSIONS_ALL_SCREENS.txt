@@ -1,0 +1,213 @@
+========================================================================
+        WEB CARD DIMENSIONS - ALL SCREENS COMPLETE REFERENCE
+========================================================================
+
+==================== CARD COMPONENTS (BASE) ====================
+
+1. WebCompoundCard (lib/feature_web/widgets/web_compound_card.dart:247)
+   └─ AspectRatio: 0.85
+   └─ Meaning: Width is 85% of Height (or Height = Width ÷ 0.85)
+   └─ Used in: All compound card displays
+
+2. WebUnitCard (lib/feature_web/widgets/web_unit_card.dart)
+   └─ NO AspectRatio wrapper
+   └─ Relies on grid's childAspectRatio
+   └─ Used in: All unit card displays
+
+==================== SCREEN LAYOUTS ====================
+
+┌─────────────────────────────────────────────────────────────┐
+│ 1. WEB HOME SCREEN                                          │
+│    (lib/feature_web/home/presentation/web_home_screen.dart) │
+└─────────────────────────────────────────────────────────────┘
+
+Location: Line 720
+Card Type: Compound Cards (AI Recommendations)
+Layout: Horizontal Scroll
+
+  ┌─ SizedBox
+  │  width: 320px (FIXED)
+  │  └─ WebCompoundCard
+  │     aspectRatio: 0.85
+  │
+  └─ CALCULATED DIMENSIONS:
+      • Width: 320px
+      • Height: 376px (320 ÷ 0.85)
+      • Image Height: ~300px (fills most of card)
+
+┌─────────────────────────────────────────────────────────────┐
+│ 2. WEB COMPOUNDS SCREEN                                     │
+│    (lib/feature_web/compounds/presentation/                 │
+│     web_compounds_screen.dart)                              │
+└─────────────────────────────────────────────────────────────┘
+
+══════ GRID 1: Main Compounds List (Line 1516-1520) ══════
+  GridView with:
+    maxCrossAxisExtent: 300px
+    childAspectRatio: 0.85
+    mainAxisSpacing: 10px
+    crossAxisSpacing: 10px
+
+  └─ CALCULATED DIMENSIONS:
+      • Max Width: 300px
+      • Height: 353px (300 ÷ 0.85)
+      • Card Type: Compound
+      • Image Height: ~280px
+
+══════ GRID 2: Search Results - Compounds (Line 1685-1689) ══════
+  GridView with:
+    maxCrossAxisExtent: 300px
+    childAspectRatio: 0.85
+    mainAxisSpacing: 10px
+    crossAxisSpacing: 10px
+
+  └─ CALCULATED DIMENSIONS:
+      • Max Width: 300px
+      • Height: 353px
+      • Card Type: Compound
+      • Image Height: ~280px
+
+══════ GRID 3: Search Results - Units (Line 1733-1737) ══════
+  GridView with:
+    maxCrossAxisExtent: 300px
+    childAspectRatio: 0.85
+    mainAxisSpacing: 10px
+    crossAxisSpacing: 10px
+
+  └─ CALCULATED DIMENSIONS:
+      • Max Width: 300px
+      • Height: 353px
+      • Card Type: Unit
+      • Image Height: ~280px
+
+┌─────────────────────────────────────────────────────────────┐
+│ 3. WEB FAVORITES SCREEN                                     │
+│    (lib/feature_web/favorites/presentation/                 │
+│     web_favorites_screen.dart)                              │
+└─────────────────────────────────────────────────────────────┘
+
+══════ GRID 1: Unit Favorites (Line 93-97) ══════
+  GridView with:
+    maxCrossAxisExtent: 300px
+    childAspectRatio: 0.85
+    crossAxisSpacing: 10px
+    mainAxisSpacing: 10px
+
+  └─ CALCULATED DIMENSIONS:
+      • Max Width: 300px
+      • Height: 353px
+      • Card Type: Unit
+      • Image Height: ~280px
+
+══════ GRID 2: Compound Favorites (Line 122-126) ══════
+  GridView with:
+    maxCrossAxisExtent: 300px
+    childAspectRatio: 0.85
+    crossAxisSpacing: 10px
+    mainAxisSpacing: 10px
+
+  └─ CALCULATED DIMENSIONS:
+      • Max Width: 300px
+      • Height: 353px
+      • Card Type: Compound
+      • Image Height: ~280px
+
+┌─────────────────────────────────────────────────────────────┐
+│ 4. WEB HISTORY SCREEN                                       │
+│    (lib/feature_web/history/presentation/                   │
+│     web_history_screen.dart)                                │
+└─────────────────────────────────────────────────────────────┘
+
+══════ GRID: Mixed Units & Compounds (Line 357-361) ══════
+  GridView with:
+    maxCrossAxisExtent: 300px
+    childAspectRatio: 0.85
+    mainAxisSpacing: 10px
+    crossAxisSpacing: 10px
+
+  └─ CALCULATED DIMENSIONS:
+      • Max Width: 300px
+      • Height: 353px
+      • Card Types: Both Unit & Compound
+      • Image Height: ~280px
+
+┌─────────────────────────────────────────────────────────────┐
+│ 5. WEB COMPANY DETAIL SCREEN                                │
+│    (lib/feature_web/company/presentation/                   │
+│     web_company_detail_screen.dart)                         │
+└─────────────────────────────────────────────────────────────┘
+
+══════ GRID: Company Compounds (Line 902-906) ══════
+  GridView with:
+    crossAxisCount: 3 (FIXED 3 COLUMNS)
+    childAspectRatio: 0.90
+    crossAxisSpacing: 24px
+    mainAxisSpacing: 24px
+
+  └─ CALCULATED DIMENSIONS:
+      • Width: (Container Width - 48) ÷ 3
+      • Height: Width ÷ 0.90
+      • Card Type: Compound
+      • Note: Variable width based on screen size
+
+┌─────────────────────────────────────────────────────────────┐
+│ 6. WEB AI CHAT SCREEN                                       │
+│    (lib/feature_web/ai_chat/presentation/                   │
+│     web_ai_chat_screen.dart)                                │
+└─────────────────────────────────────────────────────────────┘
+
+Location: Line 451
+Card Type: Both Unit & Compound (AI Recommendations)
+
+  ┌─ ConstrainedBox
+  │  maxWidth: 380px
+  │  └─ WebPropertyCardWidget
+  │     └─ WebUnitCard or WebCompoundCard
+  │        (compound has aspectRatio: 0.85)
+  │
+  └─ CALCULATED DIMENSIONS:
+      • Max Width: 380px
+      • Compound Height: 447px (380 ÷ 0.85)
+      • Unit Height: Depends on content
+      • Image Height: ~360px (compound)
+
+==================== SUMMARY TABLE ====================
+
+Screen               | Card Type | Width    | Aspect | Height  | Spacing
+---------------------|-----------|----------|--------|---------|--------
+Home                 | Compound  | 320px    | 0.85   | 376px   | -
+Compounds (Main)     | Compound  | 300px    | 0.85   | 353px   | 10px
+Compounds (Search-C) | Compound  | 300px    | 0.85   | 353px   | 10px
+Compounds (Search-U) | Unit      | 300px    | 0.85   | 353px   | 10px
+Favorites (Units)    | Unit      | 300px    | 0.85   | 353px   | 10px
+Favorites (Compounds)| Compound  | 300px    | 0.85   | 353px   | 10px
+History              | Both      | 300px    | 0.85   | 353px   | 10px
+Company Detail       | Compound  | Variable | 0.90   | W÷0.90  | 24px
+AI Chat              | Both      | 380px    | 0.85   | 447px   | -
+
+==================== KEY NUMBERS ====================
+
+CURRENT STANDARD:
+  • maxCrossAxisExtent: 300px (most screens)
+  • childAspectRatio: 0.85 (most screens)
+  • Calculated Height: 353px
+  • Spacing: 10px (most screens)
+
+EXCEPTIONS:
+  • Home: 320px width (fixed, horizontal scroll)
+  • Company Detail: 0.90 aspect ratio, 24px spacing
+  • AI Chat: 380px max width
+
+==================== HOW TO CALCULATE ====================
+
+Given aspectRatio = 0.85:
+  • Height = Width ÷ 0.85
+  • Example: 300px width → 353px height
+
+To change:
+  • Wider cards: Increase maxCrossAxisExtent
+  • Narrower cards: Decrease maxCrossAxisExtent
+  • Taller cards: Decrease childAspectRatio (e.g., 0.75)
+  • Shorter cards: Increase childAspectRatio (e.g., 0.95)
+
+========================================================================

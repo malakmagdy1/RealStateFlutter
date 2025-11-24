@@ -142,155 +142,159 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: 1400),
-          child: Padding(
-            padding: EdgeInsets.all(32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 32),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.history,
-                      size: 32,
-                      color: AppColors.mainColor,
-                    ),
-                    SizedBox(width: 16),
-                    Text(
-                      l10n.viewingHistory,
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF333333),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.history,
+                        size: 32,
+                        color: AppColors.mainColor,
                       ),
-                    ),
-                    Spacer(),
-                    if (_historyItems.isNotEmpty)
-                      OutlinedButton.icon(
-                        onPressed: _clearAllHistory,
-                        icon: Icon(Icons.delete_outline, color: Colors.red),
-                        label: Text(l10n.clearAll, style: TextStyle(color: Colors.red)),
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.red),
+                      SizedBox(width: 16),
+                      Text(
+                        l10n.viewingHistory,
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF333333),
                         ),
                       ),
-                  ],
-                ),
-                SizedBox(height: 8),
-                Text(
-                  l10n.yourRecentlyViewedPropertiesAndCompounds,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF666666),
+                      Spacer(),
+                      if (_historyItems.isNotEmpty)
+                        OutlinedButton.icon(
+                          onPressed: _clearAllHistory,
+                          icon: Icon(Icons.delete_outline, color: Colors.red),
+                          label: Text(l10n.clearAll, style: TextStyle(color: Colors.red)),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.red),
+                          ),
+                        ),
+                    ],
                   ),
-                ),
-                SizedBox(height: 24),
+                  SizedBox(height: 8),
+                  Text(
+                    l10n.yourRecentlyViewedPropertiesAndCompounds,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF666666),
+                    ),
+                  ),
+                  SizedBox(height: 24),
 
-                // Search and Filters Row
-                Row(
-                  children: [
-                    // Search Bar
-                    Expanded(
-                      flex: 3,
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: (value) {
-                          setState(() => _searchQuery = value);
-                        },
-                        decoration: InputDecoration(
-                          hintText: l10n.searchInHistory,
-                          hintStyle: TextStyle(color: Color(0xFF999999)),
-                          prefixIcon: Icon(Icons.search, color: AppColors.mainColor),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: Icon(Icons.clear, color: Color(0xFF999999)),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() => _searchQuery = '');
-                                  },
-                                )
-                              : null,
-                          filled: true,
-                          fillColor: Colors.white,
-                          contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: BorderSide(color: Color(0xFFE6E6E6)),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: BorderSide(color: Color(0xFFE6E6E6)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(30),
-                            borderSide: BorderSide(color: AppColors.mainColor, width: 2),
+                  // Search and Filters Row
+                  Row(
+                    children: [
+                      // Search Bar
+                      Expanded(
+                        flex: 3,
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() => _searchQuery = value);
+                          },
+                          decoration: InputDecoration(
+                            hintText: l10n.searchInHistory,
+                            hintStyle: TextStyle(color: Color(0xFF999999)),
+                            prefixIcon: Icon(Icons.search, color: AppColors.mainColor),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(Icons.clear, color: Color(0xFF999999)),
+                                    onPressed: () {
+                                      _searchController.clear();
+                                      setState(() => _searchQuery = '');
+                                    },
+                                  )
+                                : null,
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide(color: Color(0xFFE6E6E6)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide(color: Color(0xFFE6E6E6)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(30),
+                              borderSide: BorderSide(color: AppColors.mainColor, width: 2),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    SizedBox(width: 16),
+                      SizedBox(width: 16),
 
-                    // Sort Dropdown
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: Color(0xFFE6E6E6)),
+                      // Sort Dropdown
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Color(0xFFE6E6E6)),
+                        ),
+                        child: DropdownButton<String>(
+                          value: _sortBy,
+                          underline: SizedBox(),
+                          icon: Icon(Icons.arrow_drop_down, color: AppColors.mainColor),
+                          items: [
+                            DropdownMenuItem(value: 'recent', child: Text(l10n.dateDesc)),
+                            DropdownMenuItem(value: 'name', child: Text(l10n.name)),
+                            DropdownMenuItem(value: 'status', child: Text(l10n.status)),
+                          ],
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _sortBy = value);
+                            }
+                          },
+                        ),
                       ),
-                      child: DropdownButton<String>(
-                        value: _sortBy,
-                        underline: SizedBox(),
-                        icon: Icon(Icons.arrow_drop_down, color: AppColors.mainColor),
-                        items: [
-                          DropdownMenuItem(value: 'recent', child: Text(l10n.dateDesc)),
-                          DropdownMenuItem(value: 'name', child: Text(l10n.name)),
-                          DropdownMenuItem(value: 'status', child: Text(l10n.status)),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() => _sortBy = value);
-                          }
-                        },
+                    ],
+                  ),
+
+                  SizedBox(height: 20),
+
+                  // Filter tabs
+                  Row(
+                    children: [
+                      _buildFilterTab('all', l10n.all, _historyItems.length),
+                      SizedBox(width: 12),
+                      _buildFilterTab(
+                        'compounds',
+                        l10n.compounds,
+                        _historyItems.where((i) => i['itemType'] == 'compound').length,
                       ),
-                    ),
-                  ],
-                ),
+                      SizedBox(width: 12),
+                      _buildFilterTab(
+                        'units',
+                        l10n.units,
+                        _historyItems.where((i) => i['itemType'] == 'unit').length,
+                      ),
+                    ],
+                  ),
 
-                SizedBox(height: 20),
+                  SizedBox(height: 24),
 
-                // Filter tabs
-                Row(
-                  children: [
-                    _buildFilterTab('all', l10n.all, _historyItems.length),
-                    SizedBox(width: 12),
-                    _buildFilterTab(
-                      'compounds',
-                      l10n.compounds,
-                      _historyItems.where((i) => i['itemType'] == 'compound').length,
-                    ),
-                    SizedBox(width: 12),
-                    _buildFilterTab(
-                      'units',
-                      l10n.units,
-                      _historyItems.where((i) => i['itemType'] == 'unit').length,
-                    ),
-                  ],
-                ),
-
-                SizedBox(height: 24),
-
-                Expanded(
-                  child: _isLoading
-                      ? Center(child: CustomLoadingDots(size: 120))
+                  _isLoading
+                      ? SizedBox(
+                          height: 400,
+                          child: Center(child: CustomLoadingDots(size: 120)),
+                        )
                       : _filteredItems.isEmpty
-                      ? _buildEmptyState()
-                      : SingleChildScrollView(
-                    child: _buildHistoryGrid(),
-                  ),
-                ),
+                      ? SizedBox(
+                          height: 400,
+                          child: _buildEmptyState(),
+                        )
+                      : _buildHistoryGrid(),
 
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -350,19 +354,17 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
       shrinkWrap: true,
       physics: NeverScrollableScrollPhysics(), // prevent nested scroll
       padding: EdgeInsets.only(bottom: 50),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 4,
-        mainAxisSpacing: 20,
-        crossAxisSpacing: 20,
-        childAspectRatio: 0.9, // balanced card proportions
+      gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 300, // Unified width (increased by 40)
+        mainAxisSpacing: 10,
+        crossAxisSpacing: 10,
+        childAspectRatio: 0.85, // Unified aspect ratio (wider cards, shorter height)
       ),
       itemCount: _filteredItems.length,
       itemBuilder: (context, index) {
         final item = _filteredItems[index];
 
-        return AspectRatio(
-          aspectRatio: 1.2, // enforce consistent height/width
-          child: Stack(
+        return Stack(
             clipBehavior: Clip.none,
             children: [
               // ✅ ensure card (and its background image) fills the stack
@@ -416,7 +418,6 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
                   ),
                 ),
             ],
-          ),
         );
       },
     );

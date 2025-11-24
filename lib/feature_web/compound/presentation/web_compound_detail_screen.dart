@@ -21,6 +21,10 @@ import 'package:real/core/widgets/zoomable_image_viewer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:real/feature_web/widgets/web_unit_card.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_event.dart';
+import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_state.dart';
+import 'package:real/feature/share/presentation/widgets/share_bottom_sheet.dart';
 
 class WebCompoundDetailScreen extends StatefulWidget {
   static String routeName = '/web-compound-detail';
@@ -444,6 +448,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
   Widget _buildCompoundInfo(Map<String, dynamic> compoundData) {
     final companyLogo = _getString(compoundData, 'company_logo');
     final companyName = _getString(compoundData, 'company_name');
+    final compoundId = _getString(compoundData, 'id');
 
     return Container(
       padding: EdgeInsets.all(16),
@@ -478,6 +483,54 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                     color: AppColors.mainColor,
                   ),
                 ),
+              ),
+              // Share button
+              IconButton(
+                icon: Icon(Icons.share_outlined, color: AppColors.mainColor),
+                onPressed: () {
+                  // Share compound functionality
+                  if (_currentCompound != null) {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      builder: (context) => ShareBottomSheet(
+                        type: 'compound',
+                        id: _currentCompound!.id,
+                      ),
+                    );
+                  }
+                },
+                tooltip: 'Share',
+              ),
+              // Favorite button
+              BlocBuilder<CompoundFavoriteBloc, CompoundFavoriteState>(
+                builder: (context, state) {
+                  bool isFavorite = false;
+                  if (state is CompoundFavoriteUpdated && _currentCompound != null) {
+                    isFavorite = state.favorites.any((c) => c.id == _currentCompound!.id);
+                  }
+                  return IconButton(
+                    icon: Icon(
+                      isFavorite ? Icons.favorite : Icons.favorite_border,
+                      color: isFavorite ? Colors.red : AppColors.mainColor,
+                    ),
+                    onPressed: () {
+                      if (_currentCompound != null) {
+                        if (isFavorite) {
+                          context.read<CompoundFavoriteBloc>().add(
+                            RemoveFavoriteCompound(_currentCompound!),
+                          );
+                        } else {
+                          context.read<CompoundFavoriteBloc>().add(
+                            AddFavoriteCompound(_currentCompound!),
+                          );
+                        }
+                      }
+                    },
+                    tooltip: isFavorite ? 'Remove from favorites' : 'Add to favorites',
+                  );
+                },
               ),
             ],
           ),

@@ -20,41 +20,41 @@ class WebFavoritesScreen extends StatelessWidget {
       child: Center(
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: 1400),
-          child: Padding(
-            padding: EdgeInsets.all(32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 32),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.favorite,
-                      size: 32,
-                      color: AppColors.mainColor,
-                    ),
-                    SizedBox(width: 16),
-                    Text(
-                      l10n.myFavorites,
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF333333),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.favorite,
+                        size: 32,
+                        color: AppColors.mainColor,
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8),
-                Text(
-                  l10n.yourSavedCompoundsAndProperties,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF666666),
+                      SizedBox(width: 16),
+                      Text(
+                        l10n.myFavorites,
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF333333),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                SizedBox(height: 48),
-                Expanded(
-                  child: BlocBuilder<CompoundFavoriteBloc, CompoundFavoriteState>(
+                  SizedBox(height: 8),
+                  Text(
+                    l10n.yourSavedCompoundsAndProperties,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF666666),
+                    ),
+                  ),
+                  SizedBox(height: 48),
+                  BlocBuilder<CompoundFavoriteBloc, CompoundFavoriteState>(
                     builder: (context, compoundState) {
                       return BlocBuilder<UnitFavoriteBloc, UnitFavoriteState>(
                         builder: (context, unitState) {
@@ -67,79 +67,81 @@ class WebFavoritesScreen extends StatelessWidget {
 
                           // Check if both are empty
                           if (compoundFavorites.isEmpty && unitFavorites.isEmpty) {
-                            return _buildEmptyState(context);
+                            return SizedBox(
+                              height: 400,
+                              child: _buildEmptyState(context),
+                            );
                           }
 
-                          return SingleChildScrollView(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Display Unit Favorites
-                                if (unitFavorites.isNotEmpty) ...[
-                                  Text(
-                                    '${l10n.favoriteProperties} (${unitFavorites.length})',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF333333),
-                                    ),
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Display Unit Favorites
+                              if (unitFavorites.isNotEmpty) ...[
+                                Text(
+                                  '${l10n.favoriteProperties} (${unitFavorites.length})',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF333333),
                                   ),
-                                  SizedBox(height: 20),
-                                  GridView.builder(
-                                    shrinkWrap: true,
-                                    physics: NeverScrollableScrollPhysics(),
-                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 4,
-                                      childAspectRatio: 0.75,
-                                      crossAxisSpacing: 20,
-                                      mainAxisSpacing: 20,
-                                    ),
-                                    itemCount: unitFavorites.length,
-                                    itemBuilder: (context, index) {
-                                      return WebUnitCard(
-                                        unit: unitFavorites[index],
-                                      );
-                                    },
+                                ),
+                                SizedBox(height: 20),
+                                GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 300, // Unified width (increased by 40)
+                                    childAspectRatio: 0.85, // Unified aspect ratio (wider cards, shorter height)
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
                                   ),
-                                  SizedBox(height: 40),
-                                ],
-                                // Display Compound Favorites
-                                if (compoundFavorites.isNotEmpty) ...[
-                                  Text(
-                                    '${l10n.favoriteCompounds} (${compoundFavorites.length})',
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF333333),
-                                    ),
-                                  ),
-                                  SizedBox(height: 20),
-                                  GridView.builder(
-                                    shrinkWrap: true,
-                                    physics: NeverScrollableScrollPhysics(),
-                                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 4,
-                                      childAspectRatio: 0.75,
-                                      crossAxisSpacing: 20,
-                                      mainAxisSpacing: 20,
-                                    ),
-                                    itemCount: compoundFavorites.length,
-                                    itemBuilder: (context, index) {
-                                      return WebCompoundCard(
-                                        compound: compoundFavorites[index],
-                                      );
-                                    },
-                                  ),
-                                ],
+                                  itemCount: unitFavorites.length,
+                                  itemBuilder: (context, index) {
+                                    return WebUnitCard(
+                                      unit: unitFavorites[index],
+                                    );
+                                  },
+                                ),
+                                SizedBox(height: 40),
                               ],
-                            ),
+                              // Display Compound Favorites
+                              if (compoundFavorites.isNotEmpty) ...[
+                                Text(
+                                  '${l10n.favoriteCompounds} (${compoundFavorites.length})',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF333333),
+                                  ),
+                                ),
+                                SizedBox(height: 20),
+                                GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                                    maxCrossAxisExtent: 300, // Unified width (increased by 40)
+                                    childAspectRatio: 0.85, // Unified aspect ratio (wider cards, shorter height)
+                                    crossAxisSpacing: 10,
+                                    mainAxisSpacing: 10,
+                                  ),
+                                  itemCount: compoundFavorites.length,
+                                  itemBuilder: (context, index) {
+                                    return WebCompoundCard(
+                                      compound: compoundFavorites[index],
+                                    );
+                                  },
+                                ),
+                                SizedBox(height: 40),
+                              ],
+                            ],
                           );
                         },
                       );
                     },
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

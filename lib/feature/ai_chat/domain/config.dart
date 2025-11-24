@@ -19,4 +19,8 @@ class AppConfig {
 
   // Top K sampling parameter
   static const int topK = 40;
+
+  // Sales Assistant Configuration
+  static const String salesAssistantModel = 'gemini-2.0-flash';
+  static const int salesMaxOutputTokens = 500; // Short responses for quick calls
 }

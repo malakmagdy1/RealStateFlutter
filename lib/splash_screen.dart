@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/constant.dart';
@@ -8,6 +7,8 @@ import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
 import 'package:real/feature/home/presentation/CustomNav.dart';
 import 'package:real/feature/onboarding/presentation/onboarding_screen.dart';
+import 'package:real/core/services/version_service.dart';
+import 'package:real/core/widgets/force_logout_dialog.dart';
 
 class SplashScreen extends StatefulWidget {
   static String routeName = '/splash';
@@ -18,7 +19,8 @@ class SplashScreen extends StatefulWidget {
   _SplashScreenState createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   bool _hasNavigated = false;
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
@@ -28,13 +30,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   void initState() {
     super.initState();
 
-    // Initialize animation controller
     _animationController = AnimationController(
-      duration: Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
 
-    // Scale animation: starts from 1.5 (large) and shrinks to 1.0 (normal)
     _scaleAnimation = Tween<double>(begin: 1.5, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
@@ -42,7 +42,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       ),
     );
 
-    // Fade animation: starts from 0.0 and fades to 1.0
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animationController,
@@ -50,7 +49,6 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       ),
     );
 
-    // Start animation
     _animationController.forward();
 
     _navigateToNextScreen();
@@ -63,43 +61,62 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   }
 
   Future<void> _navigateToNextScreen() async {
-    // Wait for splash screen duration
     await Future.delayed(const Duration(seconds: 2));
-
     if (!mounted || _hasNavigated) return;
 
-    // Check if user is logged in
     String tokenValue = '';
     String hasSeenOnboarding = '';
 
     if (kIsWeb) {
-      // For web, use the global token from constant.dart
       tokenValue = token ?? '';
-      hasSeenOnboarding = 'true'; // Web users skip onboarding
+      hasSeenOnboarding = 'true';
     } else {
-      // For mobile, use CasheNetwork
       tokenValue = await CasheNetwork.getCasheDataAsync(key: 'token');
-      hasSeenOnboarding = await CasheNetwork.getCasheDataAsync(key: 'hasSeenOnboarding');
+      hasSeenOnboarding =
+      await CasheNetwork.getCasheDataAsync(key: 'hasSeenOnboarding');
     }
 
     final isLoggedIn = tokenValue.isNotEmpty;
     final shouldShowOnboarding = !kIsWeb && hasSeenOnboarding.isEmpty;
 
-    // Mark as navigated to prevent double navigation
+    // ⚠️ CHECK FOR VERSION UPDATE - FORCE LOGOUT IF NEEDED
+    if (isLoggedIn) {
+      final shouldForceLogout = await VersionService.shouldForceLogout();
+      if (shouldForceLogout && mounted) {
+        print('[SPLASH] 🔄 Version update detected - showing force logout dialog');
+        _hasNavigated = true;
+
+        // Navigate to appropriate screen first
+        if (kIsWeb) {
+          context.go('/');
+        } else {
+          if (shouldShowOnboarding) {
+            await CasheNetwork.insertToCashe(key: 'hasSeenOnboarding', value: 'true');
+            Navigator.pushReplacementNamed(context, OnboardingScreen.routeName);
+          } else {
+            Navigator.pushReplacementNamed(context, CustomNav.routeName);
+          }
+        }
+
+        // Show force logout dialog after navigation
+        await Future.delayed(const Duration(milliseconds: 500));
+        if (mounted) {
+          await ForceLogoutDialog.show(context);
+        }
+        return;
+      }
+    }
+
     _hasNavigated = true;
 
-    // Navigate based on platform and authentication status
     if (kIsWeb) {
-      // Web: Use GoRouter
       if (isLoggedIn) {
         context.go('/');
       } else {
         context.go('/login');
       }
     } else {
-      // Mobile: Check onboarding first
       if (shouldShowOnboarding) {
-        // Show onboarding for first-time users
         await CasheNetwork.insertToCashe(key: 'hasSeenOnboarding', value: 'true');
         Navigator.pushReplacementNamed(context, OnboardingScreen.routeName);
       } else if (isLoggedIn) {
@@ -112,31 +129,34 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-
     return Scaffold(
       backgroundColor: AppColors.mainColor,
-        body: Center(
-          child: AnimatedBuilder(
-            animation: _animationController,
-            builder: (context, child) {
-              return FadeTransition(
-                opacity: _fadeAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: Container(
-                    width: screenWidth * 0.7,   // increase this value more if needed
-                    child: SvgPicture.asset(
-                      'assets/images/logos/logo.svg',
-                      colorFilter: ColorFilter.mode(AppColors.logoColor, BlendMode.srcIn),
-                    ),
-                  ),
+      body: Center(
+        child: AnimatedBuilder(
+          animation: _animationController,
+          builder: (context, child) {
+            return FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: Image.asset(
+                  'assets/images/logos/appIcon.png',
+                  width: 500,
+                  height: 500,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.apartment,
+                      size: 150,
+                      color: AppColors.mainColor,
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        )
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

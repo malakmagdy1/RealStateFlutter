@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Force Logout - Web Version</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .step {
+            background: #e3f2fd;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #2196F3;
+            border-radius: 5px;
+        }
+        .code {
+            background: #263238;
+            color: #aed581;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        button.danger {
+            background: #f44336;
+        }
+        button.danger:hover {
+            background: #d32f2f;
+        }
+        button.success {
+            background: #4CAF50;
+        }
+        button.success:hover {
+            background: #45a049;
+        }
+        .result {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            display: none;
+        }
+        .result.show {
+            display: block;
+        }
+        .success-msg {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error-msg {
+            background: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🧪 Test Force Logout Feature (Web Version)</h1>
+        <p>Use this page to test the force logout dialog on <strong>https://aqarapp.co</strong></p>
+    </div>
+
+    <div class="card">
+        <h2>📋 Testing Steps:</h2>
+
+        <div class="step">
+            <strong>Step 1:</strong> Open <a href="https://aqarapp.co" target="_blank">https://aqarapp.co</a> and login
+        </div>
+
+        <div class="step">
+            <strong>Step 2:</strong> Open Browser Console (Press F12)
+        </div>
+
+        <div class="step">
+            <strong>Step 3:</strong> Copy and paste this code in console:
+            <div class="code">
+// Set old version to trigger force logout
+localStorage.setItem('flutter.app_version', '1.0.5');
+console.log('✅ Set old version: 1.0.5');
+console.log('🔄 Now refresh the page...');
+            </div>
+            <button onclick="copyCode()" class="success">Copy Code</button>
+        </div>
+
+        <div class="step">
+            <strong>Step 4:</strong> Refresh the page (F5 or Ctrl+R)
+        </div>
+
+        <div class="step">
+            <strong>Step 5:</strong> You should see the Force Logout Dialog appear! 🎉
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>🔍 Check Current Version:</h2>
+        <p>Click this button to check what version is currently stored:</p>
+        <button onclick="checkVersion()">Check Stored Version</button>
+        <div id="versionResult" class="result"></div>
+    </div>
+
+    <div class="card">
+        <h2>🛠️ Quick Actions:</h2>
+
+        <button onclick="setOldVersion()" class="danger">
+            Set Old Version (1.0.5)
+        </button>
+
+        <button onclick="setNewVersion()" class="success">
+            Set New Version (1.0.6)
+        </button>
+
+        <button onclick="clearVersion()">
+            Clear Version
+        </button>
+
+        <div id="actionResult" class="result"></div>
+    </div>
+
+    <div class="card">
+        <h2>📊 Expected Console Logs:</h2>
+        <p>When you refresh after setting old version, you should see:</p>
+        <div class="code">
+[VERSION] 🌐 Platform: WEB
+[VERSION] Current version: 1.0.6
+[VERSION] Saved version: 1.0.5
+[VERSION] ⚠️ Version mismatch - forcing logout
+[WEB MAIN] 🔍 Checking version for force logout...
+[WEB MAIN] ⚠️ Version mismatch detected - showing force logout dialog
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>✅ What Should Happen:</h2>
+        <ol>
+            <li>Beautiful dialog appears with "Update Available" title</li>
+            <li>Dialog shows message in your current language (Arabic/English)</li>
+            <li>Dialog cannot be closed by clicking outside</li>
+            <li>User must click "Logout and Update" button</li>
+            <li>App logs out automatically</li>
+            <li>User redirected to login screen</li>
+        </ol>
+    </div>
+
+    <script>
+        function checkVersion() {
+            const version = localStorage.getItem('flutter.app_version');
+            const resultDiv = document.getElementById('versionResult');
+
+            if (version) {
+                resultDiv.innerHTML = `<strong>Current Stored Version:</strong> ${version}`;
+                resultDiv.className = 'result show success-msg';
+            } else {
+                resultDiv.innerHTML = '<strong>No version stored yet</strong> (First time user)';
+                resultDiv.className = 'result show';
+            }
+        }
+
+        function setOldVersion() {
+            localStorage.setItem('flutter.app_version', '1.0.5');
+            const resultDiv = document.getElementById('actionResult');
+            resultDiv.innerHTML = '✅ Set to old version <strong>1.0.5</strong><br>🔄 Now refresh <a href="https://aqarapp.co" target="_blank">aqarapp.co</a> to see the force logout dialog!';
+            resultDiv.className = 'result show success-msg';
+        }
+
+        function setNewVersion() {
+            localStorage.setItem('flutter.app_version', '1.0.6');
+            const resultDiv = document.getElementById('actionResult');
+            resultDiv.innerHTML = '✅ Set to new version <strong>1.0.6</strong><br>No force logout will appear now.';
+            resultDiv.className = 'result show success-msg';
+        }
+
+        function clearVersion() {
+            localStorage.removeItem('flutter.app_version');
+            const resultDiv = document.getElementById('actionResult');
+            resultDiv.innerHTML = '✅ Version cleared!<br>Next time you open the app, it will save the current version.';
+            resultDiv.className = 'result show success-msg';
+        }
+
+        function copyCode() {
+            const code = `localStorage.setItem('flutter.app_version', '1.0.5');
+console.log('✅ Set old version: 1.0.5');
+console.log('🔄 Now refresh the page...');`;
+
+            navigator.clipboard.writeText(code).then(() => {
+                alert('✅ Code copied! Paste it in browser console at aqarapp.co');
+            }).catch(err => {
+                alert('❌ Failed to copy. Please copy manually from the box above.');
+            });
+        }
+    </script>
+</body>
+</html>

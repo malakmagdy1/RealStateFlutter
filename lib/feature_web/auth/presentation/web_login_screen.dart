@@ -1338,50 +1338,61 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                 flex: 1,
                 child: Container(
                   decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/images/onboarding1.jpg'),
-                      fit: BoxFit.cover,
-                    ),
+                    color: AppColors.mainColor.withOpacity(0.1),
                   ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.3),
-                          Colors.black.withOpacity(0.6),
-                        ],
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        'assets/images/onboarding1.jpg',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: AppColors.mainColor.withOpacity(0.2),
+                          );
+                        },
                       ),
-                    ),
-                    child: Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(48),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Find your next home with us.',
-                              style: TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'The best properties, curated just for you. Start your journey to a new beginning today.',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.white.withOpacity(0.9),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.3),
+                              Colors.black.withOpacity(0.6),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(48),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Find your next home with us.',
+                                style: TextStyle(
+                                  fontSize: 36,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'The best properties, curated just for you. Start your journey to a new beginning today.',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white.withOpacity(0.9),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -1395,7 +1406,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                   child: SingleChildScrollView(
                     padding: EdgeInsets.all(48.0),
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: 450),
+                      constraints: BoxConstraints(maxWidth: 380),
                       child: Form(
                         key: _formKey,
                         child: Column(
@@ -1403,67 +1414,74 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             // Logo or Brand Name
-                            Center(
-                              child: Container(
-                                width: 90,
-                                height: 90,
-                                decoration: BoxDecoration(
-                                  color: AppColors.mainColor,
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(15),
-                                  child: Padding(
-                                    padding: EdgeInsets.all(15), // optional padding to make the image smaller inside
-                                    child: SvgPicture.asset(
-                                      'assets/images/logos/logo.svg',
-                                      colorFilter: ColorFilter.mode(AppColors.logoColor, BlendMode.srcIn),
-                                      fit: BoxFit.contain,
-                                    ),
-                                  ),
-                                ),
+                        Center(
+                        child: Container(
+                        width: 90,
+                          height: 90,
+                          decoration: BoxDecoration(
+                            color: AppColors.mainColor,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.mainColor.withOpacity(0.3),
+                                blurRadius: 15,
+                                offset: Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: SvgPicture.asset(
+                                'assets/images/logos/logo_beige.svg',
+                                fit: BoxFit.contain,
                               ),
                             ),
-                            SizedBox(height: 16),
+
+                          ),
+                        ),
+                      ),
+                        SizedBox(height: 10),
                             Center(
                               child: Text(
                                 'RealtyFind',
                                 style: TextStyle(
-                                  fontSize: 28,
+                                  fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                   color: AppColors.mainColor,
                                 ),
                               ),
                             ),
-                            SizedBox(height: 40),
+                            SizedBox(height: 20),
                             Text(
                               "Welcome Back",
                               style: TextStyle(
-                                fontSize: 32,
+                                fontSize: 22,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.black87,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            SizedBox(height: 6),
                             Text(
                               'Sign in to continue your journey with RealtyCo',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 12,
                                 color: Colors.grey[600],
                               ),
                             ),
-                            SizedBox(height: 32),
+                            SizedBox(height: 20),
 
                             // Email Address
                             Text(
                               "Email Address",
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            SizedBox(height: 6),
                             TextFormField(
                               controller: emailController,
                               keyboardType: TextInputType.emailAddress,
@@ -1473,49 +1491,49 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                 filled: true,
                                 fillColor: Colors.grey[50],
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                   borderSide: BorderSide(
                                     color: Colors.grey[300]!,
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                   borderSide: BorderSide(
                                     color: Colors.grey[300]!,
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                   borderSide: BorderSide(
                                     color: AppColors.mainColor,
-                                    width: 2,
+                                    width: 1.5,
                                   ),
                                 ),
                                 errorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                   borderSide: BorderSide(
                                     color: Colors.red,
                                     width: 1,
                                   ),
                                 ),
                                 contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 14,
+                                  horizontal: 12,
+                                  vertical: 10,
                                 ),
                               ),
                             ),
-                            SizedBox(height: 20),
+                            SizedBox(height: 14),
 
                             // Password
                             Text(
                               "Password",
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.black87,
                               ),
                             ),
-                            SizedBox(height: 8),
+                            SizedBox(height: 6),
                             TextFormField(
                               controller: passwordController,
                               obscureText: _obscurePassword,
@@ -1525,34 +1543,34 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                 filled: true,
                                 fillColor: Colors.grey[50],
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                   borderSide: BorderSide(
                                     color: Colors.grey[300]!,
                                   ),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                   borderSide: BorderSide(
                                     color: Colors.grey[300]!,
                                   ),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                   borderSide: BorderSide(
                                     color: AppColors.mainColor,
-                                    width: 2,
+                                    width: 1.5,
                                   ),
                                 ),
                                 errorBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(6),
                                   borderSide: BorderSide(
                                     color: Colors.red,
                                     width: 1,
                                   ),
                                 ),
                                 contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 14,
+                                  horizontal: 12,
+                                  vertical: 10,
                                 ),
                                 suffixIcon: IconButton(
                                   icon: Icon(
@@ -1560,6 +1578,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                         ? Icons.visibility_off
                                         : Icons.visibility,
                                     color: Colors.grey[600],
+                                    size: 20,
                                   ),
                                   onPressed: () {
                                     setState(() {
@@ -1569,7 +1588,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                 ),
                               ),
                             ),
-                            SizedBox(height: 12),
+                            SizedBox(height: 8),
 
                             // Forgot Password
                             Align(
@@ -1587,7 +1606,7 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                 ),
                               ),
                             ),
-                            SizedBox(height: 24),
+                            SizedBox(height: 16),
 
                             // Sign In Button
                             BlocBuilder<LoginBloc, LoginState>(
@@ -1611,18 +1630,18 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppColors.mainColor,
                                     foregroundColor: Colors.white,
-                                    padding: EdgeInsets.symmetric(vertical: 16),
+                                    padding: EdgeInsets.symmetric(vertical: 12),
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
+                                      borderRadius: BorderRadius.circular(6),
                                     ),
                                     elevation: 0,
                                   ),
                                   child: isLoading
-                                      ? CustomLoadingDots(size: 20)
+                                      ? CustomLoadingDots(size: 16)
                                       : Text(
                                           'Sign In',
                                           style: TextStyle(
-                                            fontSize: 16,
+                                            fontSize: 14,
                                             fontWeight: FontWeight.w600,
                                           ),
                                         ),
@@ -1669,6 +1688,13 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                 'assets/images/google.png',
                                 height: 20,
                                 width: 20,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Icon(
+                                    Icons.g_mobiledata,
+                                    size: 20,
+                                    color: Colors.grey[700],
+                                  );
+                                },
                               ),
                               label: Text(
                                 'Continue with Google',

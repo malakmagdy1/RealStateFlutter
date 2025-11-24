@@ -36,9 +36,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   ];
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    // Preload images silently in background (non-blocking)
+    _preloadImages();
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
+  }
+
+  // Preload all images to cache (non-blocking, runs in background)
+  Future<void> _preloadImages() async {
+    try {
+      // Preload placeholder and all images in parallel
+      await Future.wait([
+        precacheImage(AssetImage('assets/images/placeholder.jpg'), context),
+        for (final page in _pages)
+          precacheImage(AssetImage(page.image), context),
+      ]);
+    } catch (e) {
+      // Silently fail - FadeInImage will handle loading
+      print('Background preload: $e');
+    }
   }
 
   void _onPageChanged(int page) {
@@ -74,9 +97,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             onPageChanged: _onPageChanged,
             itemCount: _pages.length,
             itemBuilder: (context, index) {
-              return Image.asset(
-                _pages[index].image,
+              return FadeInImage(
+                placeholder: AssetImage('assets/images/placeholder.jpg'),
+                image: AssetImage(_pages[index].image),
                 fit: BoxFit.cover,
+                fadeInDuration: Duration(milliseconds: 150),
+                fadeOutDuration: Duration(milliseconds: 100),
+                placeholderFit: BoxFit.cover,
                 width: double.infinity,
                 height: double.infinity,
               );

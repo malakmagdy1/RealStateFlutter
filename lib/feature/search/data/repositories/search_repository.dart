@@ -9,6 +9,8 @@ import '../models/search_filter_model.dart';
 import '../models/search_result_model.dart';
 import 'package:real/core/utils/constant.dart' as constants;
 import 'package:real/core/locale/language_service.dart';
+import 'package:real/core/security/input_validator.dart';
+import 'package:real/core/security/rate_limiter.dart';
 
 class SearchRepository {
   // IMPORTANT: For physical devices, replace this with your computer's IP address
@@ -53,9 +55,23 @@ class SearchRepository {
     SearchFilter? filter,
     String? token,
     int page = 1,
-    int limit = 1000,
+    int limit = 30,
   }) async {
     try {
+      // Security: Check rate limit
+      if (!RateLimiter.isRequestAllowed('search')) {
+        throw Exception('Too many search requests. Please wait a moment.');
+      }
+
+      // Security: Validate search query
+      if (query != null && query.isNotEmpty) {
+        final validationError = InputValidator.validateSearchQuery(query);
+        if (validationError != null) {
+          print('[SECURITY] Invalid search query detected: $query');
+          throw Exception(validationError);
+        }
+      }
+
       // Use provided token parameter, or fall back to global token
       final authToken = token ?? constants.token ?? '';
       final currentLang = LanguageService.currentLanguage;
@@ -67,9 +83,11 @@ class SearchRepository {
         'limit': limit,
       };
 
-      // Add search query if provided
+      // Add search query if provided (already validated)
       if (query != null && query.isNotEmpty) {
-        queryParams['search'] = query;
+        // Security: Sanitize the search query
+        final sanitizedQuery = InputValidator.sanitizeText(query, maxLength: 200);
+        queryParams['search'] = sanitizedQuery;
       }
 
       // Add filter parameters if provided

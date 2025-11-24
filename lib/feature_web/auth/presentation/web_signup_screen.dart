@@ -127,50 +127,61 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                 flex: 1,
                 child: Container(
                   decoration: BoxDecoration(
-                    image: DecorationImage(
-                      image: AssetImage('assets/images/onboarding1.jpg'),
-                      fit: BoxFit.cover,
-                    ),
+                    color: AppColors.mainColor.withOpacity(0.1),
                   ),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.3),
-                          Colors.black.withOpacity(0.6),
-                        ],
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Image.asset(
+                        'assets/images/onboarding1.jpg',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: AppColors.mainColor.withOpacity(0.2),
+                          );
+                        },
                       ),
-                    ),
-                    child: Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(48),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Join us today!',
-                              style: TextStyle(
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            SizedBox(height: 16),
-                            Text(
-                              'Create an account to discover your dream property. Your perfect home is just a few steps away.',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.white.withOpacity(0.9),
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withOpacity(0.3),
+                              Colors.black.withOpacity(0.6),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(48),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Join us today!',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'Create an account to discover your dream property. Your perfect home is just a few steps away.',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white.withOpacity(0.9),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -184,7 +195,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                   child: SingleChildScrollView(
                     padding: EdgeInsets.all(48.0),
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: 450),
+                      constraints: BoxConstraints(maxWidth: 380),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -198,14 +209,32 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                             height: 90,
                             decoration: BoxDecoration(
                               color: AppColors.mainColor,
-                              borderRadius: BorderRadius.circular(15),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.mainColor.withOpacity(0.3),
+                                  blurRadius: 15,
+                                  offset: Offset(0, 8),
+                                ),
+                              ],
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(15),
-                              child: Image.asset(
-                                "assets/images/logos/appIcon.png",
-                                fit: BoxFit.fitWidth,
+                              borderRadius: BorderRadius.circular(20),
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Image.asset(
+                                  'assets/images/logos/appIcon.png',
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Icon(
+                                      Icons.apartment,
+                                      size: 60,
+                                      color: Colors.white,
+                                    );
+                                  },
+                                ),
                               ),
+
                             ),
                           ),
                         ),
@@ -214,19 +243,19 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                           child: Text(
                             'RealtyFind',
                             style: TextStyle(
-                              fontSize: 28,
+                              fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: AppColors.mainColor,
                             ),
                           ),
                         ),
-                        SizedBox(height: 40),
+                        SizedBox(height: 12),
 
                         // Title
                         Text(
                           'Create Your Account',
                           style: TextStyle(
-                            fontSize: 32,
+                            fontSize: 22,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
@@ -239,7 +268,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                             color: Colors.grey[600],
                           ),
                         ),
-                        SizedBox(height: 32),
+                        SizedBox(height: 16),
 
                         // Full Name
                         _buildLabel('Full Name'),
@@ -250,7 +279,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                           validator: Validators.validateName,
                           prefixIcon: Icons.person_outline,
                         ),
-                        SizedBox(height: 20),
+                        SizedBox(height: 12),
 
                         // Email
                         _buildLabel('Email Address'),
@@ -262,7 +291,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                           keyboardType: TextInputType.emailAddress,
                           prefixIcon: Icons.email_outlined,
                         ),
-                        SizedBox(height: 20),
+                        SizedBox(height: 12),
 
                         // Phone
                         _buildLabel('Phone Number'),
@@ -274,7 +303,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                           keyboardType: TextInputType.phone,
                           prefixIcon: Icons.phone_outlined,
                         ),
-                        SizedBox(height: 20),
+                        SizedBox(height: 12),
 
                         // Password
                         _buildLabel('Password'),
@@ -339,7 +368,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                             ],
                           ),
                         ],
-                        SizedBox(height: 20),
+                        SizedBox(height: 12),
 
                         // Confirm Password
                         _buildLabel('Confirm Password'),
@@ -366,7 +395,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                             },
                           ),
                         ),
-                        SizedBox(height: 24),
+                        SizedBox(height: 14),
 
                         // Terms Checkbox
                         InkWell(
@@ -433,7 +462,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                             ),
                           ),
                         ),
-                        SizedBox(height: 32),
+                        SizedBox(height: 16),
 
                         // Create Account Button
                         BlocBuilder<RegisterBloc, RegisterState>(
@@ -501,7 +530,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
                             );
                           },
                         ),
-                        SizedBox(height: 24),
+                        SizedBox(height: 14),
 
                         // Already have account
                         Row(
@@ -605,7 +634,7 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.red, width: 2),
         ),
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       ),
     );
   }

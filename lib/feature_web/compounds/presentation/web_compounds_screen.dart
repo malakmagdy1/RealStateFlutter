@@ -28,8 +28,10 @@ import 'package:real/core/animations/animated_list_item.dart';
 import 'package:real/core/animations/page_transitions.dart';
 import 'package:real/feature/search/presentation/widget/search_filter_bottom_sheet.dart';
 import 'package:real/feature/search/data/services/location_service.dart';
+import 'package:real/feature/search/data/services/company_service.dart';
 import 'package:intl/intl.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
+import 'package:real/feature/ai_chat/presentation/widget/floating_comparison_cart.dart';
 
 class WebCompoundsScreen extends StatefulWidget {
   const WebCompoundsScreen({Key? key}) : super(key: key);
@@ -62,7 +64,9 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
   // Filter sidebar state variables
   String? _selectedLocation;
+  String? _selectedCompanyId;
   List<String> _availableLocations = [];
+  Map<String, String> _availableCompanies = {}; // Map of ID -> Name
   final TextEditingController _minPriceController = TextEditingController();
   final TextEditingController _maxPriceController = TextEditingController();
   String? _selectedPropertyType;
@@ -98,6 +102,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     _searchBloc = SearchBloc(repository: SearchRepository());
     _loadSearchHistory();
     _loadLocations();
+    _loadCompanies();
 
     // Listen to focus changes
     _searchFocusNode.addListener(() {
@@ -120,6 +125,15 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     final locations = await locationService.getLocations();
     setState(() {
       _availableLocations = locations;
+    });
+  }
+
+  Future<void> _loadCompanies() async {
+    final companyService = CompanyService();
+    final companies = await companyService.getCompanies();
+    print('[WEB COMPOUNDS] Loaded ${companies.length} companies: ${companies.values.take(10).join(", ")}${companies.length > 10 ? "..." : ""}');
+    setState(() {
+      _availableCompanies = companies;
     });
   }
 
@@ -205,15 +219,20 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     _filterDebounce = Timer(const Duration(milliseconds: 400), () {
       print('🔍 APPLYING FILTERS WITH DEBOUNCE');
 
+      // Convert millions to full price (multiply by 1,000,000)
+      final minPriceInMillions = _minPriceController.text.isEmpty
+          ? null
+          : double.tryParse(_minPriceController.text);
+      final maxPriceInMillions = _maxPriceController.text.isEmpty
+          ? null
+          : double.tryParse(_maxPriceController.text);
+
       setState(() {
         _currentFilter = SearchFilter(
           location: _selectedLocation,
-          minPrice: _minPriceController.text.isEmpty
-              ? null
-              : double.tryParse(_minPriceController.text),
-          maxPrice: _maxPriceController.text.isEmpty
-              ? null
-              : double.tryParse(_maxPriceController.text),
+          companyId: _selectedCompanyId,
+          minPrice: minPriceInMillions != null ? minPriceInMillions * 1000000 : null,
+          maxPrice: maxPriceInMillions != null ? maxPriceInMillions * 1000000 : null,
           propertyType: _selectedPropertyType,
           bedrooms: _selectedBedrooms,
           finishing: _selectedFinishing,
@@ -238,6 +257,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   void _clearAllFilters() {
     setState(() {
       _selectedLocation = null;
+      _selectedCompanyId = null;
       _minPriceController.clear();
       _maxPriceController.clear();
       _selectedPropertyType = null;
@@ -365,18 +385,21 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return Container(
-      color: const Color(0xFFF8F9FA),
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        physics: BouncingScrollPhysics(),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // LEFT SIDEBAR - FILTERS
-            _buildFilterSidebar(l10n),
+    return Stack(
+      children: [
+        // Main content
+        Container(
+          color: const Color(0xFFF8F9FA),
+          child: SingleChildScrollView(
+            controller: _scrollController,
+            physics: BouncingScrollPhysics(),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // LEFT SIDEBAR - FILTERS
+                _buildFilterSidebar(l10n),
 
-            // MAIN CONTENT
+                // MAIN CONTENT
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(32),
@@ -662,6 +685,16 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
               ),))]
         ),
       ),
+        ),
+
+        // Floating Comparison Cart
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: FloatingComparisonCart(isWeb: true),
+        ),
+      ],
     );
   }
 
@@ -696,12 +729,132 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
             ),
             const SizedBox(height: 16),
 
+            // Company Dropdown (Searchable)
+            _buildFilterCard(
+              title: l10n.company,
+              icon: Icons.business,
+              child: Autocomplete<String>(
+                initialValue: _selectedCompanyId != null
+                    ? TextEditingValue(text: _selectedCompanyId!)
+                    : const TextEditingValue(),
+                optionsBuilder: (TextEditingValue textEditingValue) {
+                  // If empty, show all companies
+                  if (textEditingValue.text.isEmpty) {
+                    return ['All Companies', ..._availableCompanies.values];
+                  }
+
+                  // Filter companies based on input
+                  final filtered = _availableCompanies.values.where((String option) {
+                    return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
+                  }).toList();
+
+                  // Add "All Companies" option if it matches
+                  if ('All Companies'.toLowerCase().contains(textEditingValue.text.toLowerCase())) {
+                    return ['All Companies', ...filtered];
+                  }
+
+                  return filtered;
+                },
+                onSelected: (String selection) {
+                  setState(() {
+                    _selectedCompanyId = selection == 'All Companies' ? null : selection;
+                  });
+                  _applyFilters();
+                },
+                fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+                  // Set initial value
+                  if (_selectedCompanyId != null && textEditingController.text.isEmpty) {
+                    textEditingController.text = _selectedCompanyId!;
+                  } else if (_selectedCompanyId == null && textEditingController.text.isEmpty) {
+                    textEditingController.text = '';
+                  }
+
+                  return TextFormField(
+                    controller: textEditingController,
+                    focusNode: focusNode,
+                    decoration: InputDecoration(
+                      hintText: 'Type to search or select company',
+                      hintStyle: TextStyle(fontSize: 13),
+                      suffixIcon: Icon(Icons.arrow_drop_down, size: 24),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      isDense: true,
+                      filled: true,
+                      fillColor: Colors.white,
+                    ),
+                    style: TextStyle(fontSize: 13),
+                    onTap: () {
+                      // Clear text when tapped to show all options
+                      textEditingController.clear();
+                      textEditingController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: 0),
+                      );
+                    },
+                  );
+                },
+                optionsViewBuilder: (context, onSelected, options) {
+                  print('[AUTOCOMPLETE] Showing ${options.length} companies in dropdown');
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: Material(
+                      elevation: 4.0,
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        constraints: BoxConstraints(maxHeight: 300), // Increased from 200 to 300
+                        width: 280,
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          itemCount: options.length,
+                          shrinkWrap: true,
+                          itemBuilder: (BuildContext context, int index) {
+                            final String option = options.elementAt(index);
+                            return InkWell(
+                              onTap: () {
+                                onSelected(option);
+                              },
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                      color: Colors.grey.shade200,
+                                      width: 1,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  option,
+                                  style: TextStyle(fontSize: 13),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
             // Location Dropdown
             _buildFilterCard(
               title: l10n.location,
               icon: Icons.location_on,
               child: DropdownButtonFormField<String>(
                 value: _selectedLocation,
+                icon: Icon(Icons.arrow_drop_down, size: 24),
+                isExpanded: true,
                 decoration: InputDecoration(
                   hintText: l10n.selectLocation,
                   hintStyle: TextStyle(fontSize: 13),
@@ -739,18 +892,19 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             const SizedBox(height: 12),
 
-            // Price Range Card
+            // Price Range Card (in Millions)
             _buildFilterCard(
-              title: l10n.priceRange,
+              title: 'Price Range (Million EGP)',
               icon: Icons.attach_money,
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _minPriceController,
-                      keyboardType: TextInputType.number,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
-                        hintText: l10n.minPrice,
+                        hintText: 'Min (e.g., 3)',
+                        suffixText: 'M',
                         hintStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -770,9 +924,10 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                   Expanded(
                     child: TextField(
                       controller: _maxPriceController,
-                      keyboardType: TextInputType.number,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
-                        hintText: l10n.maxPrice,
+                        hintText: 'Max (e.g., 5)',
+                        suffixText: 'M',
                         hintStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
@@ -1052,6 +1207,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<bool?>(
                     value: _hasBeenDelivered,
+                    icon: Icon(Icons.arrow_drop_down, size: 24),
                     isExpanded: true,
                     hint: Text('All', style: TextStyle(fontSize: 13)),
                     items: [
@@ -1293,7 +1449,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(48.0),
-              child: CustomLoadingDots(size: 120),
+              child: CustomLoadingDots(size: 80),
             ),
           );
         }
@@ -1358,10 +1514,10 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 320,
-                mainAxisSpacing: 20,
-                crossAxisSpacing: 20,
-                childAspectRatio: 0.9, // balanced card proportions
+                maxCrossAxisExtent: 300, // Unified width (increased by 40)
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 0.85, // Unified aspect ratio (wider cards, shorter height)
               ),
               itemCount: _allCompounds.length,
               itemBuilder: (context, index) {
@@ -1527,10 +1683,10 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 320,
-                    mainAxisSpacing: 20,
-                    crossAxisSpacing: 20,
-                    childAspectRatio: 0.9, // balanced card proportions
+                    maxCrossAxisExtent: 300, // Unified width (increased by 40)
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 0.85, // Unified aspect ratio (wider cards, shorter height)
                   ),
                   itemCount: compoundResults.length,
                   itemBuilder: (context, index) {
@@ -1575,10 +1731,10 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 320,
-                    mainAxisSpacing: 20,
-                    crossAxisSpacing: 20,
-                    childAspectRatio: 0.9, // balanced card proportions
+                    maxCrossAxisExtent: 300, // Unified width (increased by 40)
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 0.85, // Unified aspect ratio (wider cards, shorter height)
                   ),
                   itemCount: unitResults.length,
                   itemBuilder: (context, index) {

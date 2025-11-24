@@ -22,6 +22,21 @@ class OnboardingTemplate extends StatelessWidget {
           child: Image.asset(
             imagePath,
             fit: BoxFit.cover,
+            cacheWidth: 1080, // Optimize memory usage
+            gaplessPlayback: true, // Smooth transitions
+            errorBuilder: (context, error, stackTrace) {
+              // Fallback in case image fails to load
+              return Container(
+                color: AppColors.mainColor.withOpacity(0.1),
+                child: Center(
+                  child: Icon(
+                    Icons.image_not_supported,
+                    size: 80,
+                    color: AppColors.mainColor.withOpacity(0.3),
+                  ),
+                ),
+              );
+            },
           ),
         ),
         Align(

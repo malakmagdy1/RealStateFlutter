@@ -208,9 +208,9 @@ class SearchFilter {
     } else if (propertyType != null && propertyType!.isNotEmpty) {
       params['usage_type'] = propertyType;
     }
-    // Add company_id
+    // Add company - use 'company' parameter (company name) instead of 'company_id'
     if (companyId != null && companyId!.isNotEmpty) {
-      params['company_id'] = companyId;
+      params['company'] = companyId;  // Backend expects 'company' parameter with company name
     }
     if (unitType != null && unitType!.isNotEmpty) {
       params['unit_type'] = unitType;

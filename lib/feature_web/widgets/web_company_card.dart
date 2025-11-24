@@ -7,6 +7,10 @@ import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature_web/company/presentation/web_company_detail_screen.dart';
 import 'package:real/core/locale/locale_cubit.dart';
+import 'package:real/feature/ai_chat/data/models/comparison_item.dart';
+import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart';
+import 'package:real/feature/ai_chat/presentation/widget/comparison_selection_sheet.dart';
+import 'package:real/feature_web/widgets/unified_web_card.dart';
 
 class WebCompanyCard extends StatefulWidget {
   final Company company;
@@ -35,7 +39,7 @@ class _WebCompanyCardState extends State<WebCompanyCard> with SingleTickerProvid
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
 
-    _elevationAnimation = Tween<double>(begin: 2.0, end: 8.0).animate(
+    _elevationAnimation = Tween<double>(begin: 4.0, end: 12.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
   }
@@ -59,169 +63,80 @@ class _WebCompanyCardState extends State<WebCompanyCard> with SingleTickerProvid
   Widget _buildCard(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
 
-    return MouseRegion(
-      onEnter: (_) {
-        setState(() => _isHovering = true);
-        _animationController.forward();
+    return UnifiedWebCard(
+      imageUrl: widget.company.logo,
+      onTap: () {
+        print('[COMPANY CARD] Navigating to company: ${widget.company.id} - ${widget.company.name}');
+        try {
+          context.push('/company/${widget.company.id}', extra: widget.company.toJson());
+        } catch (e) {
+          print('[COMPANY CARD] Navigation error: $e');
+        }
       },
-      onExit: (_) {
-        setState(() => _isHovering = false);
-        _animationController.reverse();
-      },
-      child: AnimatedBuilder(
-        animation: _animationController,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: Color(0xFFE6E6E6),
-          width: 1,
+      placeholder: Container(
+        color: AppColors.mainColor.withOpacity(0.1),
+        child: Center(
+          child: Icon(
+            Icons.business,
+            size: 80,
+            color: AppColors.mainColor.withOpacity(0.3),
+          ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: _elevationAnimation.value * 2,
-            offset: Offset(0, _elevationAnimation.value),
+      ),
+      bottomInfo: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Company Name with Logo
+          Row(
+            children: [
+              UnifiedCompanyLogo(logoUrl: widget.company.logo),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  widget.company.name,
+                  style: TextStyle(
+                    fontSize: UnifiedWebCardConfig.titleFontSize,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: UnifiedWebCardConfig.spacing),
+          // Stats Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildStat(
+                  widget.company.numberOfCompounds,
+                  l10n.compounds,
+                ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: _buildStat(
+                  widget.company.numberOfAvailableUnits,
+                  l10n.units,
+                ),
+              ),
+            ],
           ),
         ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            print('[COMPANY CARD] Navigating to company: ${widget.company.id} - ${widget.company.name}');
-            try {
-              context.push('/company/${widget.company.id}', extra: widget.company.toJson());
-            } catch (e) {
-              print('[COMPANY CARD] Navigation error: $e');
-            }
-          },
-          borderRadius: BorderRadius.circular(10),
-          hoverColor: AppColors.mainColor.withOpacity(0.05),
-          child: Padding(
-            padding: EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    if (widget.company.logo != null)
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          width: 50,
-                          height: 550,
-                          color: Color(0xFFF8F9FA),
-                          padding: EdgeInsets.all(6),
-                          child: RobustNetworkImage(
-                            imageUrl: widget.company.logo!,
-                            width: 38,
-                            height: 38,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, url) => _buildPlaceholderLogo(),
-                          ),
-                        ),
-                      )
-                    else
-                      _buildPlaceholderLogo(),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: Text(
-                        widget.company.name,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF333333),
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                Spacer(),
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildStat(
-                        widget.company.numberOfCompounds,
-                        l10n.compounds,
-                      ),
-                    ),
-                    SizedBox(width: 16),
-                    Expanded(
-                      child: _buildStat(
-                        widget.company.numberOfAvailableUnits,
-                        l10n.units,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildPlaceholderLogo() {
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        color: AppColors.mainColor,
-      ),
-      child: Center(
-        child: Text(
-          widget.company.name[0].toUpperCase(),
-          style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
       ),
     );
   }
 
   Widget _buildStat(String value, String label) {
-    return Container(
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Color(0xFFF8F9FA),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: AppColors.mainColor,
-            ),
-          ),
-          SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Color(0xFF666666),
-            ),
-          ),
-        ],
-      ),
+    return UnifiedDetailChip(
+      icon: label == 'Compounds' || label.contains('كمبوند')
+          ? Icons.apartment
+          : Icons.home_work,
+      value: value,
+      color: AppColors.mainColor,
     );
   }
 }

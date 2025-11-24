@@ -19,6 +19,28 @@ const shownNotificationIds = new Set();
 messaging.onBackgroundMessage(function(payload) {
   console.log('[firebase-messaging-sw.js] Received background message ', payload);
 
+  // ⚠️ CHECK IF NOTIFICATIONS ARE DISABLED - MUST BE FIRST!
+  try {
+    // The SharedPreferences key used by notification_preferences.dart is stored with prefix
+    // We need to check localStorage for the Flutter SharedPreferences key
+    const notificationsEnabled = localStorage.getItem('flutter.notifications_enabled');
+
+    console.log('[firebase-messaging-sw.js] Notifications enabled preference:', notificationsEnabled);
+
+    // If explicitly set to false (string 'false'), block the notification completely
+    if (notificationsEnabled === 'false') {
+      console.log('🔕 Notifications are DISABLED by user. Blocking notification completely.');
+      console.log('🔕 NOT saving to storage, NOT showing popup.');
+      return Promise.resolve(); // Exit immediately - don't save, don't show
+    }
+
+    // If null or 'true', allow notifications (default is enabled)
+    console.log('✅ Notifications are enabled. Processing notification.');
+  } catch (e) {
+    console.error('⚠️ Error checking notification preference:', e);
+    // If there's an error, default to allowing notifications
+  }
+
   // Generate unique notification ID
   const notificationId = payload.messageId || payload.data?.notification_id || Date.now().toString();
 

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Web Notifications - Debug Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+        }
+        .section h2 {
+            margin-top: 0;
+            color: #4CAF50;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button.danger {
+            background: #f44336;
+        }
+        button.danger:hover {
+            background: #da190b;
+        }
+        button.secondary {
+            background: #2196F3;
+        }
+        button.secondary:hover {
+            background: #0b7dda;
+        }
+        .log {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 6px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-top: 15px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #333;
+        }
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+        .success { color: #4CAF50; }
+        .error { color: #f44336; }
+        .warning { color: #ff9800; }
+        .info { color: #2196F3; }
+        .status {
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status.enabled {
+            background: #4CAF50;
+            color: white;
+        }
+        .status.disabled {
+            background: #f44336;
+            color: white;
+        }
+        .status.unknown {
+            background: #ff9800;
+            color: white;
+        }
+        code {
+            background: #e8e8e8;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 Web Notifications Debug Tool</h1>
+        <p class="subtitle">Test and debug notification toggle functionality</p>
+
+        <!-- Current Status -->
+        <div class="section">
+            <h2>📊 Current Status</h2>
+            <div id="status" class="status unknown">Checking...</div>
+            <p id="statusText">Loading...</p>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="section">
+            <h2>🎮 Controls</h2>
+            <div class="grid">
+                <div>
+                    <h3>Toggle Notifications</h3>
+                    <button onclick="enableNotifications()">✅ Enable Notifications</button>
+                    <button class="danger" onclick="disableNotifications()">🔕 Disable Notifications</button>
+                </div>
+                <div>
+                    <h3>Refresh & Clear</h3>
+                    <button class="secondary" onclick="checkStatus()">🔄 Refresh Status</button>
+                    <button class="danger" onclick="clearAll()">🗑️ Clear All Data</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Storage Inspector -->
+        <div class="section">
+            <h2>💾 LocalStorage Inspector</h2>
+            <button onclick="inspectStorage()">🔍 Inspect Storage</button>
+            <button class="secondary" onclick="inspectServiceWorker()">⚙️ Check Service Worker</button>
+            <div id="storageInfo" class="log" style="display:none; max-height: 200px;"></div>
+        </div>
+
+        <!-- Activity Log -->
+        <div class="section">
+            <h2>📝 Activity Log</h2>
+            <button class="secondary" onclick="clearLog()">Clear Log</button>
+            <div id="log" class="log"></div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="section">
+            <h2>📖 How to Use</h2>
+            <ol>
+                <li>Click <strong>"Disable Notifications"</strong></li>
+                <li>Check status shows <span class="error">DISABLED</span></li>
+                <li>Go to Firebase Console and send test notification</li>
+                <li>Check console (F12) for: <code>🔕 Notifications are DISABLED by user</code></li>
+                <li>Verify NO notification popup appears</li>
+                <li>Click <strong>"Enable Notifications"</strong></li>
+                <li>Send another test notification</li>
+                <li>Notification SHOULD appear now</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        const log = document.getElementById('log');
+        const statusDiv = document.getElementById('status');
+        const statusText = document.getElementById('statusText');
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function clearLog() {
+            log.innerHTML = '';
+            addLog('Log cleared', 'info');
+        }
+
+        function checkStatus() {
+            const value = localStorage.getItem('flutter.notifications_enabled');
+            addLog(`Checking localStorage key: flutter.notifications_enabled`, 'info');
+            addLog(`Current value: ${value}`, value === 'false' ? 'error' : 'success');
+
+            if (value === 'false') {
+                statusDiv.className = 'status disabled';
+                statusDiv.textContent = '🔕 DISABLED';
+                statusText.textContent = 'Notifications are currently DISABLED. You should NOT receive notifications.';
+            } else if (value === 'true') {
+                statusDiv.className = 'status enabled';
+                statusDiv.textContent = '✅ ENABLED';
+                statusText.textContent = 'Notifications are currently ENABLED. You will receive notifications.';
+            } else {
+                statusDiv.className = 'status unknown';
+                statusDiv.textContent = '❓ UNKNOWN';
+                statusText.textContent = `Value is null or unexpected: ${value}. Default behavior is ENABLED.`;
+            }
+        }
+
+        function enableNotifications() {
+            addLog('Enabling notifications...', 'info');
+            localStorage.setItem('flutter.notifications_enabled', 'true');
+            addLog('✅ Set flutter.notifications_enabled = true', 'success');
+            checkStatus();
+            addLog('Notifications are now ENABLED. Test by sending a notification from Firebase Console.', 'success');
+        }
+
+        function disableNotifications() {
+            addLog('Disabling notifications...', 'info');
+            localStorage.setItem('flutter.notifications_enabled', 'false');
+            addLog('🔕 Set flutter.notifications_enabled = false', 'error');
+            checkStatus();
+            addLog('Notifications are now DISABLED. Test by sending a notification - it should NOT appear.', 'warning');
+        }
+
+        function clearAll() {
+            if (!confirm('Clear all localStorage data? This will reset everything.')) {
+                return;
+            }
+            addLog('Clearing all localStorage...', 'warning');
+            const keys = Object.keys(localStorage);
+            keys.forEach(key => {
+                addLog(`Removing: ${key}`, 'warning');
+            });
+            localStorage.clear();
+            addLog('✅ All data cleared', 'success');
+            checkStatus();
+        }
+
+        function inspectStorage() {
+            const storageInfo = document.getElementById('storageInfo');
+            storageInfo.style.display = 'block';
+            storageInfo.innerHTML = '<div class="log-entry info">📦 LocalStorage Contents:</div>';
+
+            const keys = Object.keys(localStorage);
+            if (keys.length === 0) {
+                storageInfo.innerHTML += '<div class="log-entry warning">Empty - no data stored</div>';
+            } else {
+                keys.forEach(key => {
+                    const value = localStorage.getItem(key);
+                    const displayValue = value.length > 100 ? value.substring(0, 100) + '...' : value;
+                    storageInfo.innerHTML += `<div class="log-entry info"><strong>${key}:</strong> ${displayValue}</div>`;
+                });
+            }
+            addLog('Storage inspection complete', 'info');
+        }
+
+        async function inspectServiceWorker() {
+            const storageInfo = document.getElementById('storageInfo');
+            storageInfo.style.display = 'block';
+            storageInfo.innerHTML = '<div class="log-entry info">⚙️ Service Worker Status:</div>';
+
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                if (registrations.length === 0) {
+                    storageInfo.innerHTML += '<div class="log-entry warning">❌ No service workers registered</div>';
+                    addLog('No service workers found', 'warning');
+                } else {
+                    registrations.forEach((registration, index) => {
+                        storageInfo.innerHTML += `<div class="log-entry success">✅ Service Worker ${index + 1}: ${registration.active?.scriptURL || 'Unknown'}</div>`;
+                        storageInfo.innerHTML += `<div class="log-entry info">   State: ${registration.active?.state || 'Unknown'}</div>`;
+                    });
+                    addLog(`Found ${registrations.length} service worker(s)`, 'success');
+                }
+            } else {
+                storageInfo.innerHTML += '<div class="log-entry error">❌ Service Workers not supported</div>';
+                addLog('Service Workers not supported in this browser', 'error');
+            }
+        }
+
+        // Initialize
+        addLog('Web Notifications Debug Tool loaded', 'success');
+        addLog('Open browser DevTools (F12) to see detailed console logs', 'info');
+        checkStatus();
+    </script>
+</body>
+</html>

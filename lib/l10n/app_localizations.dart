@@ -248,6 +248,12 @@ abstract class AppLocalizations {
   /// **'Loading...'**
   String get loading;
 
+  /// No description provided for @refreshing.
+  ///
+  /// In en, this message translates to:
+  /// **'Refreshing...'**
+  String get refreshing;
+
   /// No description provided for @error.
   ///
   /// In en, this message translates to:
@@ -469,6 +475,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Privacy Policy'**
   String get privacyPolicy;
+
+  /// No description provided for @updateAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Update Available'**
+  String get updateAvailable;
+
+  /// No description provided for @updateDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'A new version of the app is available with important improvements and bug fixes. Please logout and login again to get the latest updates.'**
+  String get updateDescription;
+
+  /// No description provided for @updateNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session will be refreshed to apply the new changes. You will need to login again.'**
+  String get updateNote;
+
+  /// No description provided for @logoutAndUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Logout and Update'**
+  String get logoutAndUpdate;
 
   /// No description provided for @developer.
   ///
@@ -2048,6 +2078,12 @@ abstract class AppLocalizations {
   /// **'AI Chat'**
   String get aiChat;
 
+  /// No description provided for @aiAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Assistant'**
+  String get aiAssistant;
+
   /// No description provided for @free.
   ///
   /// In en, this message translates to:
@@ -2305,6 +2341,354 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} compounds'**
   String compoundsWithCount(String count);
+
+  /// No description provided for @unitCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit Code'**
+  String get unitCode;
+
+  /// No description provided for @usageType.
+  ///
+  /// In en, this message translates to:
+  /// **'Usage Type'**
+  String get usageType;
+
+  /// No description provided for @recentUpdate.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Update'**
+  String get recentUpdate;
+
+  /// No description provided for @recentChanges.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent Changes'**
+  String get recentChanges;
+
+  /// No description provided for @whatChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'What Changed'**
+  String get whatChanged;
+
+  /// No description provided for @changedFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Changed Fields'**
+  String get changedFields;
+
+  /// No description provided for @lastChangedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Last Updated'**
+  String get lastChangedAt;
+
+  /// No description provided for @originalPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Original Price'**
+  String get originalPrice;
+
+  /// No description provided for @salePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale Price'**
+  String get salePrice;
+
+  /// No description provided for @youSave.
+  ///
+  /// In en, this message translates to:
+  /// **'You Save'**
+  String get youSave;
+
+  /// No description provided for @daysRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'days remaining'**
+  String get daysRemaining;
+
+  /// No description provided for @noImagesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No images available'**
+  String get noImagesAvailable;
+
+  /// No description provided for @contactForPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact for Price'**
+  String get contactForPrice;
+
+  /// No description provided for @salesAgent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales Agent'**
+  String get salesAgent;
+
+  /// No description provided for @addNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Note'**
+  String get addNote;
+
+  /// No description provided for @myNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'My Notes'**
+  String get myNotes;
+
+  /// No description provided for @addYourPersonalNotes.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your personal notes about this unit. Your notes are private and only visible to you.'**
+  String get addYourPersonalNotes;
+
+  /// No description provided for @note.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get note;
+
+  /// No description provided for @updated.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated'**
+  String get updated;
+
+  /// No description provided for @oldValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Old'**
+  String get oldValue;
+
+  /// No description provided for @newValue.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get newValue;
+
+  /// No description provided for @deleteNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Note'**
+  String get deleteNote;
+
+  /// No description provided for @areYouSureDeleteNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete this note?'**
+  String get areYouSureDeleteNote;
+
+  /// No description provided for @noteDeletedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Note deleted successfully'**
+  String get noteDeletedSuccessfully;
+
+  /// No description provided for @noteSavedSuccessfully.
+  ///
+  /// In en, this message translates to:
+  /// **'Note saved successfully'**
+  String get noteSavedSuccessfully;
+
+  /// No description provided for @failedToDeleteNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete note'**
+  String get failedToDeleteNote;
+
+  /// No description provided for @failedToSaveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to save note'**
+  String get failedToSaveNote;
+
+  /// No description provided for @addingNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a note...'**
+  String get addingNote;
+
+  /// No description provided for @add.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get add;
+
+  /// No description provided for @noNotesYet.
+  ///
+  /// In en, this message translates to:
+  /// **'No notes yet'**
+  String get noNotesYet;
+
+  /// No description provided for @addYourFirstNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your first note above'**
+  String get addYourFirstNote;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @editNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Note'**
+  String get editNote;
+
+  /// No description provided for @today.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get today;
+
+  /// No description provided for @yesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get yesterday;
+
+  /// No description provided for @cash.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
+  String get cash;
+
+  /// No description provided for @compare.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare'**
+  String get compare;
+
+  /// No description provided for @aiCompare.
+  ///
+  /// In en, this message translates to:
+  /// **'AI Compare'**
+  String get aiCompare;
+
+  /// No description provided for @compareWith.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare with'**
+  String get compareWith;
+
+  /// No description provided for @selectedForComparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected for Comparison'**
+  String get selectedForComparison;
+
+  /// No description provided for @selectForComparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Select for Comparison'**
+  String get selectForComparison;
+
+  /// No description provided for @compareWithAI.
+  ///
+  /// In en, this message translates to:
+  /// **'Compare with AI'**
+  String get compareWithAI;
+
+  /// No description provided for @selectAtLeast2Items.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select at least 2 items to compare'**
+  String get selectAtLeast2Items;
+
+  /// No description provided for @compareInstructions.
+  ///
+  /// In en, this message translates to:
+  /// **'Select 2-4 items to compare. You can compare units, compounds, or companies.'**
+  String get compareInstructions;
+
+  /// No description provided for @toAddItemsForComparison.
+  ///
+  /// In en, this message translates to:
+  /// **'To add items for comparison, go to:'**
+  String get toAddItemsForComparison;
+
+  /// No description provided for @searchUnitsAndCompare.
+  ///
+  /// In en, this message translates to:
+  /// **'• Search for units and tap \"Compare\" button'**
+  String get searchUnitsAndCompare;
+
+  /// No description provided for @viewCompoundAndCompare.
+  ///
+  /// In en, this message translates to:
+  /// **'• View compound details and tap \"Compare\"'**
+  String get viewCompoundAndCompare;
+
+  /// No description provided for @browseCompaniesAndCompare.
+  ///
+  /// In en, this message translates to:
+  /// **'• Browse companies and select \"Compare\"'**
+  String get browseCompaniesAndCompare;
+
+  /// No description provided for @comparisonStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Comparison started'**
+  String get comparisonStarted;
+
+  /// Message shown when comparison is in progress
+  ///
+  /// In en, this message translates to:
+  /// **'Comparing {count} items...'**
+  String comparingItems(int count);
+
+  /// No description provided for @propertyUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Property Unit'**
+  String get propertyUnit;
+
+  /// No description provided for @developmentCompany.
+  ///
+  /// In en, this message translates to:
+  /// **'Development Company'**
+  String get developmentCompany;
+
+  /// No description provided for @addedToComparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Added to comparison list'**
+  String get addedToComparison;
+
+  /// No description provided for @comparisonListFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Comparison list is full (max 4 items)'**
+  String get comparisonListFull;
+
+  /// No description provided for @alreadyInComparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Already in comparison list'**
+  String get alreadyInComparison;
+
+  /// No description provided for @undo.
+  ///
+  /// In en, this message translates to:
+  /// **'Undo'**
+  String get undo;
+
+  /// No description provided for @comparisonList.
+  ///
+  /// In en, this message translates to:
+  /// **'Comparison List'**
+  String get comparisonList;
+
+  /// No description provided for @startAIComparisonChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Start AI Comparison Chat'**
+  String get startAIComparisonChat;
 }
 
 class _AppLocalizationsDelegate

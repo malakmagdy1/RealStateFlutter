@@ -5,8 +5,11 @@ import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/core/animations/hover_scale_animation.dart';
 import 'package:real/core/utils/card_dimensions.dart';
+import 'package:real/feature/ai_chat/data/models/comparison_item.dart';
+import 'package:real/feature/ai_chat/presentation/widget/comparison_selection_sheet.dart';
+import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.dart';
 
-class CompanyCard extends StatelessWidget {
+class CompanyCard extends StatefulWidget {
   final Company company;
   final VoidCallback? onTap;
   final bool showMargin;
@@ -19,12 +22,18 @@ class CompanyCard extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<CompanyCard> createState() => _CompanyCardState();
+}
+
+class _CompanyCardState extends State<CompanyCard> {
+
+  @override
   Widget build(BuildContext context) {
     return HoverScaleAnimation(
       child: GestureDetector(
-        onTap: onTap,
+        onTap: widget.onTap,
         child: Container(
-          margin: showMargin ? EdgeInsets.symmetric(horizontal: 12, vertical: 6) : EdgeInsets.zero,
+          margin: widget.showMargin ? EdgeInsets.symmetric(horizontal: 12, vertical: 6) : EdgeInsets.zero,
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
@@ -42,19 +51,45 @@ class CompanyCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               // Company Logo Section - Fixed height
-              Container(
-                height: 120,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: AppColors.mainColor.withOpacity(0.1),
-                ),
-                child: company.logo != null && company.logo!.isNotEmpty
-                    ? RobustNetworkImage(
-                        imageUrl: company.logo!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error) => _buildPlaceholder(),
-                      )
-                    : _buildPlaceholder(),
+              Stack(
+                children: [
+                  Container(
+                    height: 120,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      color: AppColors.mainColor.withOpacity(0.1),
+                    ),
+                    child: widget.company.logo != null && widget.company.logo!.isNotEmpty
+                        ? RobustNetworkImage(
+                            imageUrl: widget.company.logo!,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error) => _buildPlaceholder(),
+                          )
+                        : _buildPlaceholder(),
+                  ),
+                  // Compare Button
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: GestureDetector(
+                      onTap: () => _showCompareDialog(context),
+                      child: Container(
+                        height: 28,
+                        width: 28,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.35),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.compare_arrows,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
               // Company Info Section - Compact
@@ -71,7 +106,7 @@ class CompanyCard extends StatelessWidget {
                         SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            company.name,
+                            widget.company.name,
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -86,14 +121,14 @@ class CompanyCard extends StatelessWidget {
                     SizedBox(height: 6),
 
                     // Email - Compact
-                    if (company.email.isNotEmpty)
+                    if (widget.company.email.isNotEmpty)
                       Row(
                         children: [
                           Icon(Icons.email_outlined, size: 12, color: AppColors.greyText),
                           SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              company.email,
+                              widget.company.email,
                               style: TextStyle(
                                 fontSize: 11,
                                 color: AppColors.greyText,
@@ -105,7 +140,7 @@ class CompanyCard extends StatelessWidget {
                         ],
                       ),
 
-                    if (company.email.isNotEmpty) SizedBox(height: 6),
+                    if (widget.company.email.isNotEmpty) SizedBox(height: 6),
                     Divider(height: 1, color: Colors.grey.shade200),
                     SizedBox(height: 6),
 
@@ -115,7 +150,7 @@ class CompanyCard extends StatelessWidget {
                       children: [
                         _buildStatItem(
                           Icons.apartment,
-                          company.numberOfCompounds,
+                          widget.company.numberOfCompounds,
                           'Compounds',
                         ),
                         Container(
@@ -125,7 +160,7 @@ class CompanyCard extends StatelessWidget {
                         ),
                         _buildStatItem(
                           Icons.home_work,
-                          company.numberOfAvailableUnits,
+                          widget.company.numberOfAvailableUnits,
                           'Units',
                         ),
                       ],
@@ -137,6 +172,25 @@ class CompanyCard extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _showCompareDialog(BuildContext context) {
+    final comparisonItem = ComparisonItem.fromCompany(widget.company);
+    ComparisonSelectionSheet.show(
+      context,
+      preSelectedItems: [comparisonItem],
+      onCompare: (selectedItems) {
+        // Navigate to AI chat with comparison context
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UnifiedAIChatScreen(
+              comparisonItems: selectedItems,
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -22,6 +22,8 @@ import 'package:real/core/utils/card_dimensions.dart';
 import '../../../../core/utils/colors.dart';
 import '../../../../core/utils/text_style.dart';
 import '../CompoundScreen.dart';
+import '../../../ai_chat/data/models/comparison_item.dart';
+import '../../../ai_chat/data/services/comparison_list_service.dart';
 
 class CompoundsName extends StatefulWidget {
   final Compound compound;
@@ -294,7 +296,38 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 8),
+                              SizedBox(width: 4),
+                              // Compare Button with Active State
+                              StreamBuilder<List<ComparisonItem>>(
+                                stream: ComparisonListService().comparisonStream,
+                                builder: (context, snapshot) {
+                                  final items = snapshot.data ?? [];
+                                  final isInComparison = items.any((item) =>
+                                    item.id == widget.compound.id && item.type == 'compound'
+                                  );
+
+                                  return GestureDetector(
+                                    onTap: () => _showCompareDialog(context),
+                                    child: Container(
+                                      height: 28,
+                                      width: 28,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: isInComparison
+                                            ? AppColors.mainColor.withOpacity(0.9)
+                                            : Colors.black.withOpacity(0.35),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        isInComparison ? Icons.compare : Icons.compare_arrows,
+                                        size: 14,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              SizedBox(width: 4),
                               // Note Button
                               GestureDetector(
                                 onTap: () => _showNoteDialog(context),
@@ -406,7 +439,7 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
                                 child: Text(
                                   widget.compound.project,
                                   style: TextStyle(
-                                    fontSize: 13,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
                                     color: Colors.black87,
                                     height: 1.2,
@@ -423,7 +456,7 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
                           Text(
                             widget.compound.companyName.isNotEmpty ? widget.compound.companyName : 'N/A',
                             style: TextStyle(
-                              fontSize: 10,
+                              fontSize: 12,
                               fontWeight: FontWeight.w500,
                               color: Colors.grey[700],
                               height: 1.2,
@@ -442,7 +475,7 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
                                 child: Text(
                                   widget.compound.location.isNotEmpty ? widget.compound.location : 'N/A',
                                   style: TextStyle(
-                                    fontSize: 10,
+                                    fontSize: 11,
                                     color: Colors.grey[600],
                                   ),
                                   maxLines: 1,
@@ -603,13 +636,13 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 12, color: chipColor),
+            Icon(icon, size: 13, color: chipColor),
             SizedBox(width: 3),
             Flexible(
               child: Text(
                 value,
                 style: TextStyle(
-                  fontSize: 9,
+                  fontSize: 10,
                   fontWeight: FontWeight.w600,
                   color: chipColor,
                 ),
@@ -663,6 +696,68 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
           MessageHelper.showError(context, 'Failed to save note: $e');
         }
       }
+    }
+  }
+
+  void _showCompareDialog(BuildContext context) {
+    final comparisonItem = ComparisonItem.fromCompound(widget.compound);
+    final comparisonService = ComparisonListService();
+    final l10n = AppLocalizations.of(context)!;
+
+    // Add to comparison list
+    final added = comparisonService.addItem(comparisonItem);
+
+    if (added) {
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.addedToComparison,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+          action: SnackBarAction(
+            label: l10n.undo,
+            textColor: Colors.white,
+            onPressed: () {
+              comparisonService.removeItem(comparisonItem);
+            },
+          ),
+        ),
+      );
+    } else {
+      // Show error (already in list or list is full)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  comparisonService.isFull
+                      ? l10n.comparisonListFull
+                      : l10n.alreadyInComparison,
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
     }
   }
 

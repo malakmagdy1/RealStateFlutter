@@ -8,6 +8,9 @@ import 'package:real/core/utils/constant.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/utils/validators.dart';
 import 'package:real/core/utils/message_helper.dart';
+import 'package:real/core/security/input_validator.dart';
+import 'package:real/core/security/rate_limiter.dart';
+import 'package:real/core/security/secure_storage.dart';
 import 'package:real/feature/auth/data/models/login_request.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/feature/auth/presentation/bloc/login_bloc.dart';
@@ -56,9 +59,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     clientId: kIsWeb
         ? '832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com' // Web Client ID
         : null, // Mobile gets clientId from google-services.json (Android) / GoogleService-Info.plist (iOS)
-    serverClientId: kIsWeb
-        ? null // serverClientId is NOT supported on web
-        : '832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com', // Required for Android to get ID tokens
     scopes: ['email', 'profile', 'openid'],
   );
 
@@ -111,14 +111,25 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             idToken: tokenToSend,
           );
 
-          // Save the BACKEND token (not Google ID)
+          // Security: Validate token before saving
+          final receivedToken = response.token ?? '';
+          if (!SecureStorage.isValidTokenFormat(receivedToken)) {
+            print('[SECURITY] Invalid token format from Google login');
+            throw Exception('Invalid authentication response');
+          }
+
+          // Security: Save token securely (encrypted)
+          await SecureStorage.saveToken(receivedToken);
+
+          // Also save to old storage for backward compatibility
           await CasheNetwork.insertToCashe(
             key: "token",
-            value: response.token ?? '',
+            value: receivedToken,
           );
 
           // Save user_id
           if (response.user.id != null) {
+            await SecureStorage.saveUserId(response.user.id!);
             await CasheNetwork.insertToCashe(
               key: "user_id",
               value: response.user.id.toString(),
@@ -130,10 +141,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           }
 
           // IMPORTANT: Update global token variable
-          token = response.token ?? '';
+          token = receivedToken;
 
-          print('Backend Token SAVED: ${response.token}');
-          print('Global token variable updated: $token');
+          print('🔒 Backend Token SAVED securely (encrypted)');
+          print('Token length: ${receivedToken.length}');
+          print('Global token variable updated');
           print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
           // SECURITY CHECKS: Only allow buyers who are verified and not banned
@@ -142,6 +154,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           // Check 1: Only buyers allowed
           if (user.role.toLowerCase() != 'buyer') {
             MessageHelper.showError(context, 'Access denied. Only buyers can access this app.');
+            await SecureStorage.clearAll();
             await CasheNetwork.deletecasheItem(key: "token");
             await CasheNetwork.deletecasheItem(key: "user_id");
             token = null;
@@ -156,6 +169,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
               message: 'Please verify your email address to continue.',
               isSuccess: false,
             );
+            await SecureStorage.clearAll();
             await CasheNetwork.deletecasheItem(key: "token");
             await CasheNetwork.deletecasheItem(key: "user_id");
             token = null;
@@ -190,6 +204,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 ],
               ),
             );
+            await SecureStorage.clearAll();
             await CasheNetwork.deletecasheItem(key: "token");
             await CasheNetwork.deletecasheItem(key: "user_id");
             token = null;
@@ -908,11 +923,48 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                     return SizedBox(
                       width: 280,
                       child: AuthButton(
-                        action: () {
+                        action: () async {
                           if (_formKey.currentState!.validate()) {
+                            final email = emailController.text.trim();
+                            final password = passwordController.text;
+
+                            // Security: Validate email format
+                            final emailError = InputValidator.validateEmail(email);
+                            if (emailError != null) {
+                              MessageHelper.showError(context, emailError);
+                              return;
+                            }
+
+                            // Security: Validate password
+                            final passwordError = InputValidator.validatePassword(password);
+                            if (passwordError != null) {
+                              MessageHelper.showError(context, passwordError);
+                              return;
+                            }
+
+                            // Security: Check if user is blocked
+                            if (RateLimiter.isLoginBlocked(email)) {
+                              final remaining = RateLimiter.getRemainingBlockTime(email);
+                              final minutes = remaining?.inMinutes ?? 0;
+                              MessageHelper.showError(
+                                context,
+                                'Too many failed login attempts. Please try again in $minutes minutes.',
+                              );
+                              return;
+                            }
+
+                            // Security: Check rate limit
+                            if (!RateLimiter.isRequestAllowed('login')) {
+                              MessageHelper.showError(
+                                context,
+                                'Too many requests. Please wait a moment.',
+                              );
+                              return;
+                            }
+
                             final request = LoginRequest(
-                              email: emailController.text,
-                              password: passwordController.text,
+                              email: email,
+                              password: password,
                             );
                             context.read<LoginBloc>().add(
                               LoginSubmitEvent(request),

@@ -13,6 +13,9 @@ import 'package:real/feature/auth/presentation/bloc/register_event.dart';
 import 'package:real/feature/auth/presentation/bloc/register_state.dart';
 import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
 import 'package:real/feature/auth/presentation/screen/email_verification_screen.dart';
+import 'package:real/core/security/input_validator.dart';
+import 'package:real/core/security/rate_limiter.dart';
+import 'package:real/core/security/secure_storage.dart';
 
 import '../../../../core/widget/button/authButton.dart';
 import '../widget/authToggle.dart';
@@ -87,18 +90,35 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
       body: BlocListener<RegisterBloc, RegisterState>(
         listener: (context, state) async {
           if (state is RegisterSuccess) {
-            // Save token and user data from registration
+            // Security: Save token and user data securely
             if (state.response.token != null) {
+              final receivedToken = state.response.token!;
+
+              // Security: Validate token format before storing
+              if (!SecureStorage.isValidTokenFormat(receivedToken)) {
+                print('[SECURITY] Invalid token format received from registration');
+                MessageHelper.showError(
+                  context,
+                  'Invalid authentication response. Please try again.',
+                );
+                return;
+              }
+
+              // Security: Store token securely (encrypted)
+              await SecureStorage.saveToken(receivedToken);
+
+              // Also save to old storage for backward compatibility
               await CasheNetwork.insertToCashe(
                 key: "token",
-                value: state.response.token!
+                value: receivedToken
               );
 
               // Update global token variable
-              token = state.response.token!;
+              token = receivedToken;
 
               // Save user ID if available
               if (state.response.user?.id != null) {
+                await SecureStorage.saveUserId(state.response.user!.id!);
                 await CasheNetwork.insertToCashe(
                   key: "user_id",
                   value: state.response.user!.id.toString()
@@ -107,8 +127,8 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
               }
 
               print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-              print('[SignupScreen] Token saved after registration');
-              print('[SignupScreen] Token: ${state.response.token}');
+              print('[SignupScreen] 🔒 Token saved securely (encrypted) after registration');
+              print('[SignupScreen] Token length: ${receivedToken.length}');
               print('[SignupScreen] User ID: ${state.response.user?.id}');
               print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
             }
@@ -248,15 +268,68 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                         return SizedBox(
                           width: 280,
                           child: AuthButton(
-                            action: () {
+                            action: () async {
                               if (_formKey.currentState!.validate()) {
+                                final name = nameController.text.trim();
+                                final email = emailController.text.trim();
+                                final password = passwordController.text;
+                                final confirmPassword = confirmPasswordController.text;
+                                final phone = phoneController.text.trim();
+
+                                // Security: Check rate limit for registration
+                                if (!RateLimiter.isRequestAllowed('register')) {
+                                  MessageHelper.showError(
+                                    context,
+                                    'Too many registration requests. Please wait a moment.',
+                                  );
+                                  return;
+                                }
+
+                                // Security: Validate name
+                                final nameError = InputValidator.validateName(name);
+                                if (nameError != null) {
+                                  MessageHelper.showError(context, nameError);
+                                  return;
+                                }
+
+                                // Security: Validate email format
+                                final emailError = InputValidator.validateEmail(email);
+                                if (emailError != null) {
+                                  MessageHelper.showError(context, emailError);
+                                  return;
+                                }
+
+                                // Security: Validate password strength
+                                final passwordError = InputValidator.validatePassword(password);
+                                if (passwordError != null) {
+                                  MessageHelper.showError(context, passwordError);
+                                  return;
+                                }
+
+                                // Security: Validate password confirmation
+                                if (password != confirmPassword) {
+                                  MessageHelper.showError(
+                                    context,
+                                    'Passwords do not match',
+                                  );
+                                  return;
+                                }
+
+                                // Security: Validate phone number (optional)
+                                if (phone.isNotEmpty) {
+                                  final phoneError = InputValidator.validatePhone(phone);
+                                  if (phoneError != null) {
+                                    MessageHelper.showError(context, phoneError);
+                                    return;
+                                  }
+                                }
+
                                 final request = RegisterRequest(
-                                  name: nameController.text,
-                                  email: emailController.text,
-                                  password: passwordController.text,
-                                  passwordConfirmation:
-                                      confirmPasswordController.text,
-                                  phone: phoneController.text,
+                                  name: name,
+                                  email: email,
+                                  password: password,
+                                  passwordConfirmation: confirmPassword,
+                                  phone: phone,
                                   role: 'buyer',
                                 );
                                 context.read<RegisterBloc>().add(

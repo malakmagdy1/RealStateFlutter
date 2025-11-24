@@ -19,9 +19,7 @@ class NotificationsScreen extends StatefulWidget {
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _NotificationsScreenState extends State<NotificationsScreen> {
   List<NotificationModel> notifications = [];
   bool isLoading = true;
   final NotificationCacheService _cacheService = NotificationCacheService();
@@ -29,14 +27,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
     _loadNotifications();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   /// Load notifications from cache
@@ -114,58 +105,8 @@ class _NotificationsScreenState extends State<NotificationsScreen>
             tooltip: l10n.clearAll,
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-          tabs: [
-            Tab(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(l10n.all),
-                  if (_getUnreadCount() > 0) ...[
-                    SizedBox(width: 4),
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${_getUnreadCount()}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.mainColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            Tab(text: l10n.sales),
-            Tab(text: l10n.units),
-            Tab(text: l10n.updates),
-          ],
-        ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildNotificationsList('all'),
-          _buildNotificationsList('sale'),
-          _buildNotificationsList('unit'),
-          _buildNotificationsList('compound'),
-        ],
-      ),
+      body: _buildNotificationsList('all'),
     );
   }
 
@@ -212,36 +153,36 @@ class _NotificationsScreenState extends State<NotificationsScreen>
       },
       child: isLoading
           ? Center(
-              child: CircularProgressIndicator(
-                color: AppColors.mainColor,
-              ),
-            )
+        child: CircularProgressIndicator(
+          color: AppColors.mainColor,
+        ),
+      )
           : ListView.builder(
-              padding: EdgeInsets.all(16),
-              itemCount: filteredNotifications.length,
-              itemBuilder: (context, index) {
-                final notification = filteredNotifications[index];
-                return NotificationCard(
-                  notification: notification,
-                  onTap: () async {
-                    // Mark as read in cache
-                    await _cacheService.markAsRead(notification.id);
-                    await _loadNotifications();
-                    if (mounted) {
-                      _showNotificationDetails(notification);
-                    }
-                  },
-                  onDelete: () async {
-                    // Delete from cache
-                    await _cacheService.deleteNotification(notification.id);
-                    await _loadNotifications();
-                    if (mounted) {
-                      MessageHelper.showSuccess(context, l10n.notificationDeleted);
-                    }
-                  },
-                );
-              },
-            ),
+        padding: EdgeInsets.all(16),
+        itemCount: filteredNotifications.length,
+        itemBuilder: (context, index) {
+          final notification = filteredNotifications[index];
+          return NotificationCard(
+            notification: notification,
+            onTap: () async {
+              // Mark as read in cache
+              await _cacheService.markAsRead(notification.id);
+              await _loadNotifications();
+              if (mounted) {
+                _showNotificationDetails(notification);
+              }
+            },
+            onDelete: () async {
+              // Delete from cache
+              await _cacheService.deleteNotification(notification.id);
+              await _loadNotifications();
+              if (mounted) {
+                MessageHelper.showSuccess(context, l10n.notificationDeleted);
+              }
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -304,12 +245,12 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) =>
                             Container(
-                          height: 200,
-                          color: Colors.grey.shade200,
-                          child: Center(
-                            child: Icon(Icons.image, size: 50),
-                          ),
-                        ),
+                              height: 200,
+                              color: Colors.grey.shade200,
+                              child: Center(
+                                child: Icon(Icons.image, size: 50),
+                              ),
+                            ),
                       ),
                     ),
                   SizedBox(height: 24),
@@ -354,7 +295,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     switch (notification.type) {
       case 'sale':
       case 'unit':
-        // Navigate to unit details
+      // Navigate to unit details
         final unitId = data['unit_id'] ?? data['id'];
         if (unitId != null) {
           _navigateToUnitDetails(unitId.toString());
@@ -362,7 +303,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         break;
 
       case 'compound':
-        // Navigate to compound details
+      // Navigate to compound details
         final compoundId = data['compound_id'] ?? data['id'];
         if (compoundId != null) {
           _navigateToCompoundDetails(compoundId.toString());
@@ -371,7 +312,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
 
       case 'general':
       default:
-        // For general notifications, just show a message
+      // For general notifications, just show a message
         MessageHelper.showMessage(
           context: context,
           message: AppLocalizations.of(context)!.noDetailsAvailable,
@@ -388,7 +329,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     NotificationModel? foundNotification;
     try {
       foundNotification = notifications.firstWhere(
-        (n) => n.data?['unit_id']?.toString() == unitId || n.data?['id']?.toString() == unitId,
+            (n) => n.data?['unit_id']?.toString() == unitId || n.data?['id']?.toString() == unitId,
       );
     } catch (e) {
       // Notification not found, use null
@@ -433,7 +374,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     NotificationModel? foundNotification;
     try {
       foundNotification = notifications.firstWhere(
-        (n) => n.data?['compound_id']?.toString() == compoundId || n.data?['id']?.toString() == compoundId,
+            (n) => n.data?['compound_id']?.toString() == compoundId || n.data?['id']?.toString() == compoundId,
       );
     } catch (e) {
       // Notification not found, use null

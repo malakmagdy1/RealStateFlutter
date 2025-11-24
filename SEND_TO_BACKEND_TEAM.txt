@@ -1,0 +1,189 @@
+===================================================================
+📧 MESSAGE TO SEND TO BACKEND TEAM (Copy Everything Below)
+===================================================================
+
+Subject: URGENT: Fix Google Sign-In & Implement FCM Notifications
+
+Hi Backend Team,
+
+We have 2 critical issues that need to be fixed for our mobile app production release:
+
+1. ❌ Google Sign-In works locally but fails on Google Play Store
+2. ❌ FCM Push Notifications need to be implemented
+
+I've prepared a complete guide with all the code, data, and instructions you need.
+
+---
+
+📄 DOCUMENTATION FILES:
+I've created 3 detailed documents for you:
+
+1. BACKEND_FIX_REQUEST.md - Main document with all code and instructions
+2. BACKEND_TESTING_GUIDE.md - Testing guide with examples
+3. GOOGLE_PLAY_RELEASE_GUIDE.md - Mobile app release info
+
+---
+
+🔑 CRITICAL INFORMATION YOU NEED:
+
+GOOGLE CLIENT ID:
+832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com
+
+FIREBASE PROJECT:
+- Project ID: realstate-4564d
+- Project Number: 832433207149
+
+API ENDPOINTS NEEDED:
+- POST /api/login (needs ID token verification!)
+- POST /api/fcm-token
+- DELETE /api/fcm-token
+
+---
+
+🚨 MAIN PROBLEM - GOOGLE SIGN-IN:
+
+The issue is that Google Sign-In sends an "id_token" (JWT) that MUST be verified.
+
+Current Status: Unknown if you're verifying it
+Required Action: Implement Google ID token verification
+
+The mobile app sends this to /api/login:
+{
+  "email": "user@gmail.com",
+  "google_id": "107876543210987654321",
+  "name": "John Doe",
+  "photo_url": "https://...",
+  "login_method": "google",
+  "id_token": "eyJhbGciOiJSUzI1NiIs..." ← THIS MUST BE VERIFIED!
+}
+
+---
+
+⚡ QUICK START STEPS:
+
+Step 1: Install Package
+composer require google/apiclient
+
+Step 2: Add to .env
+GOOGLE_CLIENT_ID=832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com
+
+Step 3: Implement verification (full code in BACKEND_FIX_REQUEST.md)
+$client = new Google\Client(['client_id' => env('GOOGLE_CLIENT_ID')]);
+$payload = $client->verifyIdToken($request->id_token);
+
+Step 4: For FCM, install:
+composer require kreait/firebase-php
+
+Step 5: Download Firebase credentials from:
+https://console.firebase.google.com/project/realstate-4564d/settings/serviceaccounts/adminsdk
+
+---
+
+❓ QUESTIONS WE NEED ANSWERED:
+
+1. Does your /api/login currently verify Google ID tokens?
+   - If NO, please implement it using the code provided
+   - If YES but failing, what error do you get?
+
+2. Do you have FCM endpoints implemented?
+   - If NO, please implement using the code provided
+   - If YES, what's not working?
+
+3. Can you add these columns to users table:
+   - google_id (VARCHAR 100)
+   - photo_url (TEXT)
+   - fcm_token (VARCHAR 500)
+   - fcm_token_updated_at (TIMESTAMP)
+
+4. Can you download Firebase service account credentials?
+   - We need this for sending push notifications
+   - Instructions in BACKEND_FIX_REQUEST.md
+
+5. What backend framework are you using?
+   - Laravel/PHP? Node.js? Python?
+   - We provided Laravel examples, can adapt for others
+
+---
+
+📚 COMPLETE CODE PROVIDED:
+
+The BACKEND_FIX_REQUEST.md file contains:
+✅ Complete Laravel/PHP implementation
+✅ Complete Node.js implementation
+✅ Database migration SQL
+✅ Testing instructions with cURL examples
+✅ Firebase service class code
+✅ Error handling examples
+✅ Security best practices
+
+---
+
+🧪 HOW TO TEST:
+
+1. For Google Sign-In:
+   - Get a real id_token from mobile app logs
+   - Use the cURL command in the docs
+   - Should return success with user data
+
+2. For FCM:
+   - Mobile app will send FCM tokens automatically
+   - Use Firebase Console to send test notification
+   - Or use the test route provided in docs
+
+---
+
+⏰ TIMELINE:
+
+Priority: 🔴 CRITICAL
+Needed By: ASAP (blocking production release)
+Estimated Time: 2-4 hours
+
+---
+
+📞 NEXT STEPS:
+
+1. Read BACKEND_FIX_REQUEST.md (has all the code!)
+2. Answer the 5 questions above
+3. Implement the code provided
+4. Test using the instructions
+5. Let us know if you encounter any issues
+
+---
+
+🔗 IMPORTANT LINKS:
+
+Firebase Console:
+https://console.firebase.google.com/project/realstate-4564d
+
+Google Cloud Console:
+https://console.cloud.google.com/apis/credentials?project=realstate-4564d
+
+Production API:
+https://aqar.bdcbiz.com
+
+---
+
+Please review the documents and let me know:
+- Any questions or clarifications needed
+- Timeline for implementation
+- Any blockers or issues
+
+Thank you!
+
+===================================================================
+END OF MESSAGE
+===================================================================
+
+
+📋 QUICK CHECKLIST FOR YOU:
+
+Before sending, make sure you:
+☐ Attach BACKEND_FIX_REQUEST.md
+☐ Attach BACKEND_TESTING_GUIDE.md
+☐ Attach GOOGLE_PLAY_RELEASE_GUIDE.md
+☐ Include this message in email body
+☐ Set email priority to HIGH
+☐ Request read receipt
+☐ CC relevant stakeholders
+
+===================================================================

@@ -84,6 +84,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get loading => 'Loading...';
 
   @override
+  String get refreshing => 'Refreshing...';
+
+  @override
   String get error => 'Error';
 
   @override
@@ -193,6 +196,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get privacyPolicy => 'Privacy Policy';
+
+  @override
+  String get updateAvailable => 'Update Available';
+
+  @override
+  String get updateDescription =>
+      'A new version of the app is available with important improvements and bug fixes. Please logout and login again to get the latest updates.';
+
+  @override
+  String get updateNote =>
+      'Your session will be refreshed to apply the new changes. You will need to login again.';
+
+  @override
+  String get logoutAndUpdate => 'Logout and Update';
 
   @override
   String get developer => 'Developer';
@@ -1015,6 +1032,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiChat => 'AI Chat';
 
   @override
+  String get aiAssistant => 'AI Assistant';
+
+  @override
   String get free => 'Free';
 
   @override
@@ -1166,4 +1186,186 @@ class AppLocalizationsEn extends AppLocalizations {
   String compoundsWithCount(String count) {
     return '$count compounds';
   }
+
+  @override
+  String get unitCode => 'Unit Code';
+
+  @override
+  String get usageType => 'Usage Type';
+
+  @override
+  String get recentUpdate => 'Recent Update';
+
+  @override
+  String get recentChanges => 'Recent Changes';
+
+  @override
+  String get whatChanged => 'What Changed';
+
+  @override
+  String get changedFields => 'Changed Fields';
+
+  @override
+  String get lastChangedAt => 'Last Updated';
+
+  @override
+  String get originalPrice => 'Original Price';
+
+  @override
+  String get salePrice => 'Sale Price';
+
+  @override
+  String get youSave => 'You Save';
+
+  @override
+  String get daysRemaining => 'days remaining';
+
+  @override
+  String get noImagesAvailable => 'No images available';
+
+  @override
+  String get contactForPrice => 'Contact for Price';
+
+  @override
+  String get salesAgent => 'Sales Agent';
+
+  @override
+  String get addNote => 'Add Note';
+
+  @override
+  String get myNotes => 'My Notes';
+
+  @override
+  String get addYourPersonalNotes =>
+      'Add your personal notes about this unit. Your notes are private and only visible to you.';
+
+  @override
+  String get note => 'Note';
+
+  @override
+  String get updated => 'Updated';
+
+  @override
+  String get oldValue => 'Old';
+
+  @override
+  String get newValue => 'New';
+
+  @override
+  String get deleteNote => 'Delete Note';
+
+  @override
+  String get areYouSureDeleteNote =>
+      'Are you sure you want to delete this note?';
+
+  @override
+  String get noteDeletedSuccessfully => 'Note deleted successfully';
+
+  @override
+  String get noteSavedSuccessfully => 'Note saved successfully';
+
+  @override
+  String get failedToDeleteNote => 'Failed to delete note';
+
+  @override
+  String get failedToSaveNote => 'Failed to save note';
+
+  @override
+  String get addingNote => 'Add a note...';
+
+  @override
+  String get add => 'Add';
+
+  @override
+  String get noNotesYet => 'No notes yet';
+
+  @override
+  String get addYourFirstNote => 'Add your first note above';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get editNote => 'Edit Note';
+
+  @override
+  String get today => 'Today';
+
+  @override
+  String get yesterday => 'Yesterday';
+
+  @override
+  String get cash => 'Cash';
+
+  @override
+  String get compare => 'Compare';
+
+  @override
+  String get aiCompare => 'AI Compare';
+
+  @override
+  String get compareWith => 'Compare with';
+
+  @override
+  String get selectedForComparison => 'Selected for Comparison';
+
+  @override
+  String get selectForComparison => 'Select for Comparison';
+
+  @override
+  String get compareWithAI => 'Compare with AI';
+
+  @override
+  String get selectAtLeast2Items => 'Please select at least 2 items to compare';
+
+  @override
+  String get compareInstructions =>
+      'Select 2-4 items to compare. You can compare units, compounds, or companies.';
+
+  @override
+  String get toAddItemsForComparison => 'To add items for comparison, go to:';
+
+  @override
+  String get searchUnitsAndCompare =>
+      '• Search for units and tap \"Compare\" button';
+
+  @override
+  String get viewCompoundAndCompare =>
+      '• View compound details and tap \"Compare\"';
+
+  @override
+  String get browseCompaniesAndCompare =>
+      '• Browse companies and select \"Compare\"';
+
+  @override
+  String get comparisonStarted => 'Comparison started';
+
+  @override
+  String comparingItems(int count) {
+    return 'Comparing $count items...';
+  }
+
+  @override
+  String get propertyUnit => 'Property Unit';
+
+  @override
+  String get developmentCompany => 'Development Company';
+
+  @override
+  String get addedToComparison => 'Added to comparison list';
+
+  @override
+  String get comparisonListFull => 'Comparison list is full (max 4 items)';
+
+  @override
+  String get alreadyInComparison => 'Already in comparison list';
+
+  @override
+  String get undo => 'Undo';
+
+  @override
+  String get comparisonList => 'Comparison List';
+
+  @override
+  String get startAIComparisonChat => 'Start AI Comparison Chat';
 }

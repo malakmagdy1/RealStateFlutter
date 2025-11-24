@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
-import '../../../feature/ai_chat/presentation/bloc/chat_bloc.dart';
-import '../../../feature/ai_chat/presentation/bloc/chat_event.dart';
-import '../../../feature/ai_chat/presentation/bloc/chat_state.dart';
-import '../../../feature/ai_chat/domain/chat_message.dart';
+import '../../../feature/ai_chat/presentation/bloc/unified_chat_bloc.dart';
+import '../../../feature/ai_chat/presentation/bloc/unified_chat_event.dart';
+import '../../../feature/ai_chat/presentation/bloc/unified_chat_state.dart';
 import '../../widgets/web_property_card_widget.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
+import '../../../feature/ai_chat/data/services/comparison_list_service.dart';
+import '../../../feature/ai_chat/data/models/comparison_item.dart';
 
 /// Web-optimized AI Chat Screen with desktop-friendly layout
 class WebAiChatScreen extends StatefulWidget {
@@ -19,7 +20,7 @@ class WebAiChatScreen extends StatefulWidget {
 class _WebAiChatScreenState extends State<WebAiChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  String _debugInfo = 'Waiting for AI chat...'; // Debug info to display
+  bool _isComparisonExpanded = false;
 
   @override
   void initState() {
@@ -31,7 +32,7 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
     print('');
     // Load chat history when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChatBloc>().add(const LoadChatHistoryEvent());
+      context.read<UnifiedChatBloc>().add(const LoadChatHistoryEvent());
     });
   }
 
@@ -52,7 +53,7 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
     print('==============================================');
     print('');
 
-    context.read<ChatBloc>().add(SendMessageEvent(message));
+    context.read<UnifiedChatBloc>().add(SendMessageEvent(message));
     _messageController.clear();
 
     // Scroll to bottom after messages are added
@@ -96,7 +97,7 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
           ),
           TextButton(
             onPressed: () {
-              this.context.read<ChatBloc>().add(const ClearChatHistoryEvent());
+              this.context.read<UnifiedChatBloc>().add(const ClearChatHistoryEvent());
               Navigator.pop(context);
             },
             style: TextButton.styleFrom(
@@ -111,60 +112,66 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: const Color(0xFFF8F9FA),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 32),
-                // Header
-                Row(
+    return Stack(
+      children: [
+        Container(
+          color: const Color(0xFFF8F9FA),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.smart_toy,
-                      size: 32,
-                      color: AppColors.mainColor,
+                    const SizedBox(height: 32),
+                    // Header
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.smart_toy,
+                          size: 32,
+                          color: AppColors.mainColor,
+                        ),
+                        const SizedBox(width: 16),
+                        const Text(
+                          'AI Property Assistant',
+                          style: TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF333333),
+                          ),
+                        ),
+                        const Spacer(),
+                        // Clear button
+                        OutlinedButton.icon(
+                          onPressed: _clearChat,
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('Clear Chat'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(color: Colors.red),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(height: 8),
                     const Text(
-                      'AI Property Assistant',
+                      'Ask me about properties, units, or compounds',
                       style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF333333),
+                        fontSize: 16,
+                        color: Color(0xFF666666),
                       ),
                     ),
-                    const Spacer(),
-                    // Clear button
-                    OutlinedButton.icon(
-                      onPressed: _clearChat,
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                      label: const Text('Clear Chat'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Ask me about properties, units, or compounds',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF666666),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Messages area
-                Expanded(
-                  child: Container(
+                    const SizedBox(height: 24),
+
+                    // Comparison dropdown
+                    _buildComparisonDropdown(),
+
+                    // Messages area
+                    Expanded(
+                      child: Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
@@ -176,18 +183,10 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
                         ),
                       ],
                     ),
-                    child: BlocConsumer<ChatBloc, ChatState>(
+                    child: BlocConsumer<UnifiedChatBloc, UnifiedChatState>(
                       listener: (context, state) {
                         // Scroll to bottom when new messages arrive
                         if (state is ChatLoaded && state.messages.isNotEmpty) {
-                          // Update debug info from the latest AI message
-                          final latestMessage = state.messages.last;
-                          if (!latestMessage.isUser && latestMessage.debugInfo.isNotEmpty) {
-                            setState(() {
-                              _debugInfo = latestMessage.debugInfo;
-                            });
-                          }
-
                           WidgetsBinding.instance.addPostFrameCallback((_) {
                             _scrollToBottom();
                           });
@@ -234,7 +233,7 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
                 const SizedBox(height: 16),
 
                 // Loading indicator
-                BlocBuilder<ChatBloc, ChatState>(
+                BlocBuilder<UnifiedChatBloc, UnifiedChatState>(
                   builder: (context, state) {
                     if (state is ChatLoaded && state.isLoading) {
                       return Container(
@@ -268,19 +267,41 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
                         ),
                       );
                     }
-                    return const SizedBox.shrink();
-                  },
-                ),
+                      return const SizedBox.shrink();
+                    },
+                    ),
 
-                const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                // Input field
-                _buildInputField(),
+                    // Input field
+                    _buildInputField(),
               ],
             ),
           ),
         ),
       ),
+
+      // Floating Comparison Cart (like mobile)
+      // Positioned(
+      //   bottom: 16,
+      //   right: 16,
+      //   left: 16,
+      //   child: Center(
+      //       child: ConstrainedBox(
+      //         constraints: const BoxConstraints(maxWidth: 600),
+      //         child: StreamBuilder<List<ComparisonItem>>(
+      //           stream: ComparisonListService().comparisonStream,
+      //           builder: (context, snapshot) {
+      //             final items = snapshot.data ?? [];
+      //             if (items.isEmpty) return const SizedBox.shrink();
+
+      //             return _buildFloatingComparisonCart(items);
+      //           },
+      //         ),
+      //       ),
+      //     ),
+      //   ),
+        )],
     );
   }
 
@@ -386,7 +407,7 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
     );
   }
 
-  Widget _buildMessagesList(List<ChatMessage> messages) {
+  Widget _buildMessagesList(List<UnifiedChatMessage> messages) {
     print('🎨 Building messages list with ${messages.length} messages');
     return ListView.builder(
       controller: _scrollController,
@@ -400,16 +421,32 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
     );
   }
 
-  Widget _buildMessageBubble(ChatMessage message) {
-    print('💬 Building message bubble - isUser: ${message.isUser}, hasUnit: ${message.unit != null}, hasCompound: ${message.compound != null}');
+  Widget _buildMessageBubble(UnifiedChatMessage message) {
+    print('💬 Building message bubble - isUser: ${message.isUser}, hasUnits: ${message.units != null && message.units!.isNotEmpty}');
 
     Widget messageContent;
     if (message.isUser) {
       messageContent = _buildUserMessage(message);
-    } else if (message.unit != null) {
-      messageContent = WebPropertyCardWidget(unit: message.unit!);
-    } else if (message.compound != null) {
-      messageContent = WebPropertyCardWidget(compound: message.compound!);
+    } else if (message.units != null && message.units!.isNotEmpty) {
+      // Property results with cards
+      messageContent = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // AI text response
+          if (message.content.isNotEmpty) ...[
+            _buildAiMessage(message),
+            const SizedBox(height: 12),
+          ],
+          // Property cards
+          ...message.units!.map((unit) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: SizedBox(
+                  height: 340,
+                  child: WebPropertyCardWidget(unit: unit),
+                ),
+              )),
+        ],
+      );
     } else {
       messageContent = _buildAiMessage(message);
     }
@@ -439,7 +476,7 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
           Flexible(
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: message.isUser || (message.unit == null && message.compound == null)
+                maxWidth: message.isUser || (message.units == null || message.units!.isEmpty)
                     ? 600  // Text messages keep wider width
                     : 380, // Property cards are narrower (increased height)
               ),
@@ -465,7 +502,7 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
     );
   }
 
-  Widget _buildUserMessage(ChatMessage message) {
+  Widget _buildUserMessage(UnifiedChatMessage message) {
     print('👤 Building user message: "${message.content}"');
 
     return Container(
@@ -492,7 +529,7 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
     );
   }
 
-  Widget _buildAiMessage(ChatMessage message) {
+  Widget _buildAiMessage(UnifiedChatMessage message) {
     final isError = message.isError;
     print('🤖 Building AI message: "${message.content.substring(0, message.content.length > 50 ? 50 : message.content.length)}"');
     print('   isError: $isError');
@@ -605,6 +642,414 @@ class _WebAiChatScreenState extends State<WebAiChatScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildComparisonDropdown() {
+    return StreamBuilder<List<ComparisonItem>>(
+      stream: ComparisonListService().comparisonStream,
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? [];
+        if (items.isEmpty) return const SizedBox.shrink();
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Collapsed header with "Start Compare" button
+              Material(
+                color: AppColors.mainColor.withOpacity(0.1),
+                borderRadius: _isComparisonExpanded
+                    ? const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        topRight: Radius.circular(12),
+                      )
+                    : BorderRadius.circular(12),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _isComparisonExpanded = !_isComparisonExpanded;
+                    });
+                  },
+                  borderRadius: _isComparisonExpanded
+                      ? const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                          topRight: Radius.circular(12),
+                        )
+                      : BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _isComparisonExpanded
+                              ? Icons.keyboard_arrow_down
+                              : Icons.keyboard_arrow_right,
+                          color: AppColors.mainColor,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Icon(
+                          Icons.compare_arrows,
+                          color: AppColors.mainColor,
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            '${items.length} ${items.length == 1 ? 'item' : 'items'} for comparison',
+                            style: TextStyle(
+                              color: AppColors.mainColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            _startComparison(items);
+                          },
+                          icon: const Icon(Icons.play_arrow, size: 20),
+                          label: const Text('Start Compare'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.mainColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Expanded list of items
+              if (_isComparisonExpanded)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: items.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final item = entry.value;
+
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        elevation: 2,
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.mainColor.withOpacity(0.2),
+                            radius: 24,
+                            child: Icon(
+                              item.type == 'unit'
+                                  ? Icons.apartment
+                                  : item.type == 'compound'
+                                      ? Icons.business
+                                      : Icons.domain,
+                              color: AppColors.mainColor,
+                              size: 24,
+                            ),
+                          ),
+                          title: Text(
+                            item.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${item.type.toUpperCase()} • ${item.data['location'] ?? 'Location N/A'}',
+                            style: const TextStyle(
+                              color: Color(0xFF666666),
+                              fontSize: 14,
+                            ),
+                          ),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.close, size: 24),
+                            color: Colors.red,
+                            onPressed: () {
+                              ComparisonListService().removeAt(index);
+                            },
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _startComparison(List<ComparisonItem> items) {
+    if (items.isEmpty) return;
+
+    // Build comparison prompt
+    final itemNames = items.map((item) => '${item.type}: ${item.name}').join(', ');
+    final comparisonPrompt = 'Compare these units: $itemNames';
+
+    print('');
+    print('==============================================');
+    print('📊 WEB START COMPARISON CLICKED');
+    print('Items: ${items.length}');
+    print('Prompt: $comparisonPrompt');
+    print('==============================================');
+    print('');
+
+    // Send comparison event to AI
+    context.read<UnifiedChatBloc>().add(SendComparisonEvent(items));
+
+    // Clear the comparison list
+    ComparisonListService().clear();
+
+    // Collapse the dropdown
+    setState(() {
+      _isComparisonExpanded = false;
+    });
+
+    // Scroll to bottom to see the response
+    _scrollToBottom();
+  }
+
+  Widget _buildFloatingComparisonCart(List<ComparisonItem> items) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 80), // Space above input field
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.15),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            setState(() {
+              _isComparisonExpanded = !_isComparisonExpanded;
+            });
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Row(
+                  children: [
+                    // Icon with badge
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.mainColor.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.compare_arrows,
+                            color: AppColors.mainColor,
+                            size: 24,
+                          ),
+                        ),
+                        Positioned(
+                          top: -4,
+                          right: -4,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Text(
+                              '${items.length}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(width: 16),
+
+                    // Text info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Comparison List',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF333333),
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${items.length} ${items.length == 1 ? 'item' : 'items'} selected',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Action buttons
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        _startComparison(items);
+                      },
+                      icon: const Icon(Icons.play_arrow, size: 20),
+                      label: const Text('Compare'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.mainColor,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    IconButton(
+                      icon: Icon(
+                        _isComparisonExpanded
+                            ? Icons.keyboard_arrow_down
+                            : Icons.keyboard_arrow_up,
+                        color: Colors.grey[600],
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isComparisonExpanded = !_isComparisonExpanded;
+                        });
+                      },
+                    ),
+                  ],
+                ),
+
+                // Expanded list
+                if (_isComparisonExpanded) ...[
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  const SizedBox(height: 12),
+                  ...items.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final item = entry.value;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey[200]!),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              item.type == 'unit'
+                                  ? Icons.home
+                                  : item.type == 'compound'
+                                      ? Icons.apartment
+                                      : Icons.business,
+                              color: AppColors.mainColor,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    item.name,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  if (item.data['location'] != null)
+                                    Text(
+                                      item.data['location'],
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              color: Colors.red,
+                              onPressed: () {
+                                ComparisonListService().removeAt(index);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      ComparisonListService().clear();
+                    },
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('Clear All'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: BorderSide(color: Colors.red.withOpacity(0.5)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

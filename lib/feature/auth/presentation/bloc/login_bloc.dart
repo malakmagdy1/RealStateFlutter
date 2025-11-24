@@ -5,6 +5,9 @@ import 'package:real/services/fcm_service.dart';
 import 'package:real/core/services/route_persistence_service.dart';
 import 'package:real/core/services/device_service.dart';
 import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
+import 'package:real/core/security/secure_storage.dart';
+import 'package:real/core/security/rate_limiter.dart';
+import 'package:real/core/services/version_service.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'login_event.dart';
 import 'login_state.dart';
@@ -35,10 +38,24 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       final authService = AuthWebServices();
       final response = await authService.loginWithDevice(event.request, deviceInfo);
 
-      await CasheNetwork.insertToCashe(key: "token", value:response.token??'');
+      // Security: Validate token before storing
+      final receivedToken = response.token ?? '';
+      if (!SecureStorage.isValidTokenFormat(receivedToken)) {
+        print('[SECURITY] Invalid token format received from server');
+        // Record failed login
+        RateLimiter.recordFailedLogin(event.request.email);
+        throw Exception('Invalid authentication response');
+      }
 
-      // Save user ID for profile API
+      // Security: Store token securely (encrypted)
+      await SecureStorage.saveToken(receivedToken);
+
+      // Also save to old storage for backward compatibility (will migrate later)
+      await CasheNetwork.insertToCashe(key: "token", value: receivedToken);
+
+      // Save user ID
       if (response.user.id != null) {
+        await SecureStorage.saveUserId(response.user.id!);
         await CasheNetwork.insertToCashe(
           key: "user_id",
           value: response.user.id.toString()
@@ -46,15 +63,17 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       }
 
       // IMPORTANT: Update global token and userId variables
-      token = response.token ?? '';
+      token = receivedToken;
       userId = response.user.id?.toString() ?? '';
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-      print('[LoginBloc] Token and User ID saved to cache AND global variables');
-      print('[LoginBloc] Token: $token');
+      print('[LoginBloc] 🔒 Token saved securely (encrypted)');
+      print('[LoginBloc] Token length: ${receivedToken.length}');
       print('[LoginBloc] User ID: ${response.user.id}');
-      print('[LoginBloc] Global userId: $userId');
       print('[LoginBloc] Device Info: $deviceInfo');
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      // Security: Clear failed login attempts on successful login
+      RateLimiter.recordSuccessfulLogin(event.request.email);
 
       // ⭐ SEND FCM TOKEN TO BACKEND AFTER SUCCESSFUL LOGIN
       final fcmToken = FCMService().fcmToken;
@@ -65,11 +84,19 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         print('[LoginBloc] ⚠️ FCM token not available');
       }
 
+      // ⚠️ Update version tracking (for force update feature)
+      await VersionService.updateVersion();
+
       emit(LoginSuccess(response));
     } on DeviceLimitException catch (e) {
+      // Security: Record failed login attempt
+      RateLimiter.recordFailedLogin(event.request.email);
       // Special handling for device limit errors
       emit(LoginDeviceLimitError(e.message, e.devices));
     } catch (e) {
+      // Security: Record failed login attempt
+      RateLimiter.recordFailedLogin(event.request.email);
+      print('[SECURITY] Login failed: ${e.toString()}');
       emit(LoginError(e.toString().replaceAll('Exception: ', '')));
     }
   }
@@ -86,6 +113,9 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
       final response = await _repository.logout();
 
+      // Security: Clear all secure data
+      await SecureStorage.clearAll();
+
       // Clear token and user_id from cache and global variables
       await CasheNetwork.deletecasheItem(key: "token");
       await CasheNetwork.deletecasheItem(key: "user_id");
@@ -95,8 +125,11 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       // Clear saved route
       await RoutePersistenceService.clearSavedRoute();
 
+      // ⚠️ Clear version tracking (for force update feature)
+      await VersionService.clearVersion();
+
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
-      print('[LoginBloc] Logout successful - Token, User ID, FCM token, and saved route cleared');
+      print('[LoginBloc] 🔒 Logout successful - All secure data cleared');
       print('[LoginBloc] Response: $response');
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
 
@@ -114,6 +147,9 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         // Clear FCM token even on error
         await FCMService().clearToken();
 
+        // Security: Clear all secure data
+        await SecureStorage.clearAll();
+
         // Clear token and user_id from cache and global variables
         await CasheNetwork.deletecasheItem(key: "token");
         await CasheNetwork.deletecasheItem(key: "user_id");
@@ -123,11 +159,15 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         // Clear saved route
         await RoutePersistenceService.clearSavedRoute();
 
-        print('[LoginBloc] Token was invalid/expired - Cleared local token, user ID, FCM token, and saved route');
+        print('[LoginBloc] 🔒 Token was invalid/expired - Cleared all secure data');
         emit(LogoutSuccess('Logged out successfully'));
       } else {
         // For other errors, still try to clear everything but show error
         await FCMService().clearToken();
+
+        // Security: Clear all secure data
+        await SecureStorage.clearAll();
+
         await CasheNetwork.deletecasheItem(key: "token");
         await CasheNetwork.deletecasheItem(key: "user_id");
         token = '';

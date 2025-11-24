@@ -1,0 +1,173 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║          ALL CARD NUMBERS - EVERY DIMENSION IN COMPOUND & UNIT CARDS        ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+================================================================================
+1. WEB COMPOUND CARD (lib/feature_web/widgets/web_compound_card.dart)
+================================================================================
+
+┌─ ANIMATIONS ─┐
+Line 55:  duration: 200 milliseconds (AnimationController)
+Line 59:  begin: 1.0, end: 1.03 (scale animation - 3% growth on hover)
+Line 63:  begin: 4.0, end: 12.0 (elevation animation)
+Line 319: delay: 600 milliseconds (pulse animation)
+
+┌─ CARD DIMENSIONS ─┐
+Line 247: aspectRatio: 0.85 ★★★ (Width/Height = 0.85)
+Line 250: borderRadius: 24px (card corners)
+Line 253: opacity: 0.08 (shadow color opacity)
+Line 254: blurRadius: value * 2.5 (4 to 12 → 10 to 30px shadow blur)
+Line 255: offset: (0, value * 0.67) (4 to 12 → 2.7 to 8px shadow offset)
+Line 266: borderRadius: 24px (InkWell corners)
+Line 267: opacity: 0.03 (hover color opacity)
+Line 269: borderRadius: 24px (ClipRRect corners)
+
+┌─ TOP SECTION (Icons & Badges) ─┐
+Line 288: top: 20px (position from top)
+Line 289: left: 12px (position from left)
+Line 290: right: 12px (position from right)
+
+  ┌─ Action Buttons (Favorite, Share, Note, Compare) ─┐
+  Line 328: height: 32px, width: 32px (button size)
+  Line 332: opacity: 0.35 (button background)
+  Line 337: size: 16px (icon size)
+  Line 346: width: 4px (spacing between buttons)
+  Line 354: height: 32px, width: 32px (share button)
+  Line 358: opacity: 0.35
+  Line 363: size: 16px
+  Line 369: width: 4px
+  Line 377: height: 32px, width: 32px (note button)
+  Line 382: opacity: 0.9 (when note exists)
+  Line 383: opacity: 0.35 (when no note)
+  Line 390: size: 16px
+  Line 396: width: 4px
+  Line 403: borderRadius: 16px
+  Line 407: height: 32px, width: 32px (compare button)
+  Line 411: opacity: 0.35
+  Line 416: size: 16px
+
+┌─ UPDATE BADGE ─┐
+Line 433: top: 20px
+Line 434: left: 110px
+Line 436: horizontal: 8px, vertical: 4px (padding)
+Line 443: borderRadius: 12px
+Line 446: opacity: 0.5 (shadow)
+Line 447: blurRadius: 12px
+Line 448: offset: (0, 4px)
+Line 455: size: 14px (icon)
+Line 456: width: 4px (spacing)
+Line 462: fontSize: 12px
+
+┌─ BOTTOM INFO AREA ─┐
+Line 473: padding: 8px (all around)
+Line 475: opacity: 0.90 (white background)
+Line 477: borderRadius: bottomLeft: 24px, bottomRight: 24px
+
+  ┌─ Company Logo ─┐
+  Line 490: padding right: 8px
+  Line 492: radius: 12px (CircleAvatar)
+  Line 497: width: 24px, height: 24px
+  Line 502: size: 14px (error icon)
+
+  ┌─ Compound Name ─┐
+  Line 513: fontSize: 18px
+  Line 517: maxLines: 1
+
+  ┌─ Company Name ─┐
+  Line 525: padding left: 32px (if logo exists) or 0
+  Line 529: fontSize: 13px
+  Line 533: maxLines: 1
+
+  ┌─ Location Row ─┐
+  Line 540: size: 14px (location icon)
+  Line 541: width: 4px (spacing)
+  Line 546: fontSize: 13px
+  Line 550: maxLines: 1
+  Line 553: width: 8px (spacing before call button)
+
+  ┌─ Call Button ─┐
+  Line 558: width: 35px, height: 35px
+  Line 566: opacity: 0.4 (shadow)
+  Line 567: blurRadius: 12px
+  Line 568: offset: (0, 4px)
+  Line 575: size: 20px (phone icon)
+
+  ┌─ Info Rows ─┐
+  Line 581: height: 2px (spacing between location and first info row)
+  Line 586: width: 2px (spacing between info items)
+  Line 588: width: 2px
+  Line 591: height: 2px (spacing between info rows)
+  Line 600: width: 2px
+  Line 605: width: 2px
+
+┌─ INFO ICON WIDGET ─┐
+Line 661: horizontal: 8px, vertical: 4px (padding)
+Line 664: borderRadius: 12px
+Line 667: opacity: 0.05 (shadow)
+Line 668: blurRadius: 5px
+Line 669: offset: (0, 2px)
+Line 675: size: 14px (icon)
+Line 676: width: 4px (spacing)
+Line 680: fontSize: 12px
+
+┌─ PLACEHOLDER (No Image) ─┐
+Line 698: size: 60px (apartment icon)
+Line 699: opacity: 0.3
+
+┌─ INFO BADGE WIDGET ─┐
+Line 707: horizontal: 4px, vertical: 2px (padding)
+Line 710: borderRadius: 3px
+Line 713: width: 0.5px (border)
+Line 719: size: 8px (icon)
+Line 720: width: 2px (spacing)
+Line 724: fontSize: 8px
+
+┌─ DETAIL CHIP WIDGET ─┐
+Line 738: horizontal: 8px, vertical: 4px (padding)
+Line 741: borderRadius: 12px
+Line 744: width: 1px (border)
+Line 750: size: 14px (icon)
+Line 751: width: 4px (spacing)
+Line 755: fontSize: 12px
+
+┌─ SNACKBAR (Compare) ─┐
+Line 165: width: 12px (spacing in success snackbar)
+Line 169: fontSize: 14px
+Line 176: duration: 2 seconds
+Line 193: width: 12px
+Line 199: fontSize: 14px
+Line 206: duration: 2 seconds
+
+================================================================================
+            SUMMARY OF KEY WEB COMPOUND CARD DIMENSIONS
+================================================================================
+
+CARD STRUCTURE:
+  • aspectRatio: 0.85
+  • borderRadius: 24px (all corners)
+  • Hover scale: 1.0 → 1.03 (3% growth)
+  • Shadow blur: 10px → 30px (on hover)
+  • Shadow offset: 2.7px → 8px (on hover)
+
+ACTION BUTTONS (Top):
+  • Size: 32x32px each
+  • Icon size: 16px
+  • Spacing: 4px between buttons
+  • Position: 20px from top, 12px from sides
+  • Background opacity: 0.35
+
+INFO AREA (Bottom):
+  • Padding: 8px all around
+  • Background opacity: 0.90 (white)
+  • Name font: 18px bold
+  • Location/Company font: 13px
+  • Info chips font: 12px
+  • Icon sizes: 14px
+
+SPACING:
+  • Between info rows: 2px
+  • Between info items: 2px
+  • Logo to text: 8px
+  • Icon to text: 4px
+
+================================================================================

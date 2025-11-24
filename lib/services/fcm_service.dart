@@ -9,6 +9,7 @@ import 'package:real/core/utils/constant.dart';
 import 'package:real/feature/notifications/data/services/notification_cache_service.dart';
 import 'package:real/feature/notifications/data/models/notification_model.dart';
 import 'package:real/core/utils/web_utils_stub.dart' if (dart.library.html) 'package:real/core/utils/web_utils_web.dart';
+import 'package:real/services/notification_preferences.dart';
 
 // ============================================================
 // BACKGROUND MESSAGE HANDLER (Top-level function required)
@@ -17,6 +18,13 @@ import 'package:real/core/utils/web_utils_stub.dart' if (dart.library.html) 'pac
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   print('📬 Background Message: ${message.notification?.title}');
+
+  // Check if notifications are enabled
+  final notificationsEnabled = await NotificationPreferences.getNotificationsEnabled();
+  if (!notificationsEnabled) {
+    print('🔕 Background notification blocked - user has disabled notifications');
+    return; // Don't save or show the notification
+  }
 
   // Save notification to cache (works on mobile, not on web service worker)
   final notificationModel = NotificationModel(
@@ -282,6 +290,96 @@ class FCMService {
   }
 
   // ============================================================
+  // TOGGLE NOTIFICATIONS (Enable/Disable)
+  // ============================================================
+  Future<void> toggleNotifications(bool enabled) async {
+    try {
+      print('');
+      print('═══════════════════════════════════════════════════════');
+      print('🔔 ${enabled ? "Enabling" : "Disabling"} notifications...');
+      print('═══════════════════════════════════════════════════════');
+
+      // Save preference locally
+      await NotificationPreferences.setNotificationsEnabled(enabled);
+
+      if (enabled) {
+        // Enable: Subscribe to topic and register token
+        if (!kIsWeb) {
+          await _firebaseMessaging.subscribeToTopic('all');
+          print('✅ Subscribed to "all" topic');
+        }
+
+        // Re-register token with backend
+        if (_fcmToken != null) {
+          await sendTokenToBackend(_fcmToken!);
+        }
+      } else {
+        // Disable: Unsubscribe from topic but keep token for re-enabling
+        if (!kIsWeb) {
+          await _firebaseMessaging.unsubscribeFromTopic('all');
+          print('✅ Unsubscribed from "all" topic');
+        }
+
+        // Inform backend to stop sending notifications
+        await _disableNotificationsOnBackend();
+      }
+
+      print('✅ Notifications ${enabled ? "enabled" : "disabled"}');
+      print('═══════════════════════════════════════════════════════');
+      print('');
+    } catch (e) {
+      print('❌ Error toggling notifications: $e');
+      print('═══════════════════════════════════════════════════════');
+      print('');
+    }
+  }
+
+  // ============================================================
+  // DISABLE NOTIFICATIONS ON BACKEND
+  // ============================================================
+  Future<void> _disableNotificationsOnBackend() async {
+    try {
+      final authToken = CasheNetwork.getCasheData(key: 'token');
+
+      if (authToken.isEmpty) {
+        print('⚠️ No auth token found. Cannot disable on backend.');
+        return;
+      }
+
+      if (_fcmToken == null || _fcmToken!.isEmpty) {
+        print('⚠️ No FCM token available to delete.');
+        return;
+      }
+
+      print('🗑️ Deleting FCM token from backend...');
+
+      // Delete the FCM token from backend
+      final response = await http.delete(
+        Uri.parse('$API_BASE/api/fcm-token'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $authToken',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'fcm_token': _fcmToken,
+        }),
+      );
+
+      print('📥 Backend delete response: ${response.statusCode}');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        print('✅ FCM token deleted from backend successfully');
+      } else {
+        print('⚠️ Failed to delete FCM token: ${response.statusCode}');
+        print('📥 Response: ${response.body}');
+      }
+    } catch (e) {
+      print('⚠️ Error disabling notifications on backend: $e');
+    }
+  }
+
+  // ============================================================
   // HANDLE FOREGROUND MESSAGES (App is open)
   // ============================================================
   void handleForegroundMessage(RemoteMessage message) async {
@@ -295,6 +393,14 @@ class FCMService {
     print('Data: ${message.data}');
     print('═══════════════════════════════════════════════════════');
     print('');
+
+    // Check if notifications are enabled
+    final notificationsEnabled = await NotificationPreferences.getNotificationsEnabled();
+    if (!notificationsEnabled) {
+      print('🔕 Notifications are disabled by user. Saving to cache but not showing.');
+      await _saveNotificationToCache(message);
+      return;
+    }
 
     // Check for duplicate notifications
     final notificationId = message.messageId ??
@@ -491,6 +597,23 @@ class FCMService {
     // Handle notification when app is opened from notification
     FirebaseMessaging.onMessageOpenedApp.listen(handleNotificationTap);
 
+    // On web, periodically check for pending notifications from service worker
+    if (kIsWeb) {
+      _startPeriodicNotificationMigration();
+    }
+
     print('✅ FCM message listeners set up');
+  }
+
+  // ============================================================
+  // PERIODIC NOTIFICATION MIGRATION (WEB ONLY) - DISABLED TO PREVENT SPAM
+  // ============================================================
+  void _startPeriodicNotificationMigration() {
+    // DISABLED: This was causing excessive logging and potential performance issues
+    // Check every 5 seconds for new notifications from service worker
+    // Stream.periodic(const Duration(seconds: 5)).listen((_) async {
+    //   await _migrateWebNotificationsFromLocalStorage();
+    // });
+    print('ℹ️  Periodic notification migration disabled');
   }
 }

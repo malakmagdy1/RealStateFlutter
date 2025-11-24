@@ -20,6 +20,7 @@ import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
 import 'package:real/feature/auth/presentation/screen/device_management_screen.dart';
 import 'package:real/feature/home/presentation/widget/customListTile.dart';
 import 'package:real/feature/notifications/presentation/screens/notifications_screen.dart';
+import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.dart';
 import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_event.dart';
@@ -28,6 +29,7 @@ import 'package:real/feature/subscription/presentation/screens/subscription_plan
 import 'package:real/core/utils/message_helper.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
 import 'package:real/services/fcm_service.dart';
+import 'package:real/services/notification_preferences.dart';
 
 class ProfileScreen extends StatefulWidget {
   ProfileScreen({super.key});
@@ -39,12 +41,49 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   File? _imageFile;
   final ImagePicker _picker = ImagePicker();
+  bool _notificationsEnabled = true;
+  bool _loadingNotifications = true;
 
   @override
   void initState() {
     super.initState();
     // Load subscription status when profile screen loads
     context.read<SubscriptionBloc>().add(LoadSubscriptionStatusEvent());
+    // Load notification preference
+    _loadNotificationPreference();
+  }
+
+  Future<void> _loadNotificationPreference() async {
+    final enabled = await NotificationPreferences.getNotificationsEnabled();
+    setState(() {
+      _notificationsEnabled = enabled;
+      _loadingNotifications = false;
+    });
+  }
+
+  Future<void> _toggleNotifications(bool value) async {
+    setState(() => _loadingNotifications = true);
+
+    try {
+      await FCMService().toggleNotifications(value);
+
+      setState(() {
+        _notificationsEnabled = value;
+        _loadingNotifications = false;
+      });
+
+      if (mounted) {
+        MessageHelper.showSuccess(
+          context,
+          value ? 'Notifications enabled' : 'Notifications disabled',
+        );
+      }
+    } catch (e) {
+      setState(() => _loadingNotifications = false);
+      if (mounted) {
+        MessageHelper.showError(context, 'Failed to toggle notifications');
+      }
+    }
   }
 
   void _showImagePickerModal() {
@@ -199,14 +238,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Future<String?> _getFCMToken() async {
-    try {
-      final fcmService = FCMService();
-      return fcmService.fcmToken;
-    } catch (e) {
-      print('Error getting FCM token: $e');
-      return null;
-    }
+  Widget _buildFeatureChip(String label) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.mainColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          color: AppColors.mainColor,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
   }
 
   @override
@@ -269,82 +316,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             imageUrl = userState.user.imageUrl;
                           }
 
-                          return Stack(
-                            children: [
-                              Container(
-                                width: screenWidth * 0.28,
-                                height: screenWidth * 0.28,
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppColors.mainColor.withOpacity(0.2),
-                                      AppColors.mainColor.withOpacity(0.1),
-                                    ],
-                                  ),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: AppColors.mainColor.withOpacity(0.3),
-                                    width: 2,
-                                  ),
-                                ),
-                                child: _imageFile != null
+                          return Container(
+                            width: screenWidth * 0.28,
+                            height: screenWidth * 0.28,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.mainColor.withOpacity(0.2),
+                                  AppColors.mainColor.withOpacity(0.1),
+                                ],
+                              ),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.mainColor.withOpacity(0.3),
+                                width: 2,
+                              ),
+                            ),
+                            child: _imageFile != null
+                                ? ClipOval(
+                                    child: Image.file(
+                                      _imageFile!,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  )
+                                : imageUrl != null && imageUrl.isNotEmpty
                                     ? ClipOval(
-                                        child: Image.file(
-                                          _imageFile!,
+                                        child: Image.network(
+                                          imageUrl,
                                           fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return Icon(
+                                              Icons.person,
+                                              size: screenWidth * 0.12,
+                                              color: AppColors.mainColor,
+                                            );
+                                          },
                                         ),
                                       )
-                                    : imageUrl != null && imageUrl.isNotEmpty
-                                        ? ClipOval(
-                                            child: Image.network(
-                                              imageUrl,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (context, error, stackTrace) {
-                                                return Icon(
-                                                  Icons.person,
-                                                  size: screenWidth * 0.12,
-                                                  color: AppColors.mainColor,
-                                                );
-                                              },
-                                            ),
-                                          )
-                                        : Icon(
-                                            Icons.person,
-                                            size: screenWidth * 0.12,
-                                            color: AppColors.mainColor,
-                                          ),
-                              ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: GestureDetector(
-                                  onTap: _showImagePickerModal,
-                                  child: Container(
-                                    padding: EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.mainColor,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 3,
+                                    : Icon(
+                                        Icons.person,
+                                        size: screenWidth * 0.12,
+                                        color: AppColors.mainColor,
                                       ),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.mainColor.withOpacity(0.3),
-                                          blurRadius: 8,
-                                          offset: Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(
-                                      Icons.camera_alt,
-                                      size: 16,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
                           );
                         },
                       ),
@@ -646,9 +659,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                      onTap: () {
-                        Navigator.pushNamed(context, EditNameScreen.routeName);
-                      },
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => EditNameScreen(),  // الودجت اللي جهزناه
+                          );
+                        },
                     ),
                     Divider(height: 1, indent: 72, endIndent: 16),
                     ListTile(
@@ -668,9 +686,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
-                      onTap: () {
-                        Navigator.pushNamed(context, EditPhoneScreen.routeName);
-                      },
+                        onTap: () {
+                          showModalBottomSheet(
+                            context: context,
+                            isScrollControlled: true,
+                            backgroundColor: Colors.transparent,
+                            builder: (_) => EditPhoneScreen(), // الودجت الجديد اللي هنعمله تحت
+                          );
+                        },
                     ),
                     Divider(height: 1, indent: 72, endIndent: 16),
                     BlocBuilder<LocaleCubit, Locale>(
@@ -708,60 +731,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: AppColors.mainColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.notifications_active_outlined, color: AppColors.mainColor, size: 24),
-                      ),
-                      title: Text(
-                        'FCM Token',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      subtitle: FutureBuilder<String?>(
-                        future: _getFCMToken(),
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return Text(
-                              'Loading...',
-                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                            );
-                          }
-                          final token = snapshot.data;
-                          if (token == null || token.isEmpty) {
-                            return Text(
-                              'No token available',
-                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                            );
-                          }
-                          return Text(
-                            '${token.substring(0, token.length > 30 ? 30 : token.length)}...',
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                          );
-                        },
-                      ),
-                      trailing: Icon(Icons.copy, size: 16, color: Colors.grey),
-                      onTap: () async {
-                        final token = await _getFCMToken();
-                        if (token != null && token.isNotEmpty) {
-                          await Clipboard.setData(ClipboardData(text: token));
-                          if (mounted) {
-                            MessageHelper.showSuccess(context, 'FCM token copied to clipboard!');
-                          }
-                        } else {
-                          if (mounted) {
-                            MessageHelper.showError(context, 'No FCM token available');
-                          }
-                        }
-                      },
-                    ),
-                    Divider(height: 1, indent: 72, endIndent: 16),
-                    ListTile(
-                      leading: Container(
-                        padding: EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.mainColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
                         child: Icon(Icons.devices_other, color: AppColors.mainColor, size: 24),
                       ),
                       title: Text(
@@ -781,6 +750,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       },
                     ),
                     Divider(height: 1, indent: 72, endIndent: 16),
+                    // Notification Toggle
                     ListTile(
                       leading: Container(
                         padding: EdgeInsets.all(8),
@@ -788,32 +758,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           color: AppColors.mainColor.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Icon(Icons.language, color: AppColors.mainColor, size: 24),
+                        child: Icon(
+                          _notificationsEnabled ? Icons.notifications_active : Icons.notifications_off,
+                          color: AppColors.mainColor,
+                          size: 24,
+                        ),
                       ),
                       title: Text(
-                        'Website',
+                        l10n.notifications,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       subtitle: Text(
-                        'https://aqarapp.co/',
+                        _notificationsEnabled ? 'Receive push notifications' : 'Notifications disabled',
                         style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
-                      trailing: Icon(Icons.open_in_new, size: 16, color: Colors.grey),
-                      onTap: () async {
-                        await Clipboard.setData(ClipboardData(text: 'https://aqarapp.co/'));
-                        if (mounted) {
-                          MessageHelper.showSuccess(context, 'Website URL copied to clipboard!');
-                        }
-                      },
+                      trailing: _loadingNotifications
+                          ? SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.mainColor),
+                              ),
+                            )
+                          : Switch(
+                              value: _notificationsEnabled,
+                              onChanged: _toggleNotifications,
+                              activeColor: AppColors.mainColor,
+                            ),
                     ),
+                    Divider(height: 1, indent: 72, endIndent: 16),
                   ],
                 ),
               ),
 
-              SizedBox(height: screenHeight * 0.04),
+              SizedBox(height: screenHeight * 0.03),
 
               // Logout Button - Centered with limited width
               Center(

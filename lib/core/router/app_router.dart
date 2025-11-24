@@ -15,6 +15,9 @@ import 'package:real/feature_web/subscription/presentation/web_subscription_plan
 import 'package:real/feature/auth/presentation/screen/device_management_screen.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
+import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.dart';
+import 'package:real/feature/ai_chat/data/models/comparison_item.dart';
+import 'package:real/feature/sales_assistant/presentation/screen/sales_assistant_screen_OLD.dart';
 
 class AppRouter {
   static final _authStateNotifier = AuthStateNotifier();
@@ -121,6 +124,31 @@ class AppRouter {
         path: '/device-management',
         name: 'device-management',
         builder: (context, state) => DeviceManagementScreen(),
+      ),
+
+      // AI Chat Route (with optional comparison items)
+      GoRoute(
+        path: '/ai-chat',
+        name: 'ai-chat',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          final comparisonItems = extra?['comparison_items'] as List<ComparisonItem>?;
+          return UnifiedAIChatScreen(comparisonItems: comparisonItems);
+        },
+      ),
+
+      // Sales Assistant (NEW - Unified with BLoC)
+      GoRoute(
+        path: '/sales-assistant',
+        name: 'sales-assistant',
+        builder: (context, state) => const UnifiedAIChatScreen(),
+      ),
+
+      // Sales Assistant (OLD - Algorithm 2 Only) - FOR TESTING
+      GoRoute(
+        path: '/sales-assistant-test',
+        name: 'sales-assistant-test',
+        builder: (context, state) => const SalesAssistantScreenOLD(),
       ),
     ],
 
