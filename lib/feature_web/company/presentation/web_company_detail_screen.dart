@@ -91,6 +91,12 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
     }
   }
 
+  String _getCompanyName(AppLocalizations l10n) {
+    if (_currentCompany == null) return '';
+    final isArabic = l10n.localeName == 'ar';
+    return isArabic ? _currentCompany!.nameAr : _currentCompany!.nameEn;
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
@@ -177,7 +183,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
             elevation: 1,
             automaticallyImplyLeading: false, // Remove back button on web
             title: Text(
-              _currentCompany!.name,
+              _getCompanyName(l10n),
               style: TextStyle(
                 color: AppColors.mainColor,
                 fontWeight: FontWeight.w600,
@@ -324,7 +330,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
               ),
               child: Center(
                 child: Text(
-                  _currentCompany!.name[0].toUpperCase(),
+                  _getCompanyName(l10n)[0].toUpperCase(),
                   style: TextStyle(
                     fontSize: 56,
                     fontWeight: FontWeight.w700,
@@ -345,7 +351,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    'DEVELOPER',
+                    l10n.developer.toUpperCase(),
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -356,7 +362,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
                 ),
                 SizedBox(height: 12),
                 Text(
-                  _currentCompany!.name,
+                  _getCompanyName(l10n),
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w700,
@@ -404,7 +410,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
           child: _buildStatCard(
             Icons.apartment,
             _currentCompany!.numberOfCompounds,
-            l10n.compounds ?? 'Compounds',
+            l10n.compounds,
             AppColors.mainColor,
           ),
         ),
@@ -413,7 +419,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
           child: _buildStatCard(
             Icons.home_outlined,
             _currentCompany!.numberOfAvailableUnits,
-            'Available Units',
+            l10n.availableUnits,
             Color(0xFF4CAF50),
           ),
         ),
@@ -422,7 +428,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
           child: _buildStatCard(
             Icons.people_outline,
             _currentCompany!.salesCount.toString(),
-            'Sales Team',
+            l10n.salesTeam,
             Color(0xFFFF9800),
           ),
         ),
@@ -452,7 +458,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
               Icon(Icons.contact_phone, size: 28, color: AppColors.mainColor),
               SizedBox(width: 12),
               Text(
-                'Contact Information',
+                l10n.contactInformation,
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
@@ -478,7 +484,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Head Office',
+                      l10n.headOffice,
                       style: TextStyle(
                         fontSize: 14,
                         color: Color(0xFF999999),
@@ -486,7 +492,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
                     ),
                     SizedBox(height: 4),
                     Text(
-                      'Cairo, Egypt',
+                      l10n.cairoEgypt,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -515,7 +521,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Email',
+                      l10n.email,
                       style: TextStyle(
                         fontSize: 14,
                         color: Color(0xFF999999),
@@ -597,7 +603,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
             Icon(Icons.support_agent, size: 28, color: AppColors.mainColor),
             SizedBox(width: 12),
             Text(
-              'Sales Team',
+              l10n.salesTeam,
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w700,
@@ -731,7 +737,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
                   Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
                   SizedBox(width: 12),
                   Text(
-                    'Our Projects',
+                    l10n.ourProjects,
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
@@ -760,7 +766,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
                   Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
                   SizedBox(width: 12),
                   Text(
-                    'Our Projects',
+                    l10n.ourProjects,
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,
@@ -828,7 +834,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
                     Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
                     SizedBox(width: 12),
                     Text(
-                      'Our Projects',
+                      l10n.ourProjects,
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
@@ -886,7 +892,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
                   Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
                   SizedBox(width: 12),
                   Text(
-                    'Our Projects',
+                    l10n.ourProjects,
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.w700,

@@ -1434,4 +1434,90 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get allDurations => 'كل المدد';
+
+  @override
+  String get enterYourName => 'أدخل اسمك';
+
+  @override
+  String get enterYourPhoneNumber => 'أدخل رقم هاتفك';
+
+  @override
+  String get update => 'تحديث';
+
+  @override
+  String get manageDevices => 'إدارة الأجهزة';
+
+  @override
+  String get viewAndRemoveDevices => 'عرض وإزالة الأجهزة';
+
+  @override
+  String get receivePushNotifications => 'استقبال الإشعارات الفورية';
+
+  @override
+  String get notificationsDisabled => 'الإشعارات معطلة';
+
+  @override
+  String get chooseProfilePhoto => 'اختر صورة الملف الشخصي';
+
+  @override
+  String get camera => 'الكاميرا';
+
+  @override
+  String get noConnection => 'لا يوجد اتصال بالإنترنت';
+
+  @override
+  String get checkInternetConnection =>
+      'يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.';
+
+  @override
+  String get checkWifi => 'تحقق من اتصال Wi-Fi';
+
+  @override
+  String get checkMobileData => 'تحقق من بيانات الهاتف';
+
+  @override
+  String get checkAirplaneMode => 'أوقف وضع الطيران';
+
+  @override
+  String get waitingForConnection => 'في انتظار الاتصال...';
+
+  @override
+  String get yearsOfExperience => 'سنوات الخبرة';
+
+  @override
+  String get unitsDelivered => 'الوحدات المسلمة';
+
+  @override
+  String get cairoEgypt => 'القاهرة، مصر';
+
+  @override
+  String companyAboutDescription(String companyName, String year) {
+    return '$companyName هي شركة رائدة في تطوير الوجهات الحياتية المميزة في مصر. منذ تأسيسها في عام $year، كانت مساهماً رئيسياً في سوق العقارات في البلاد، وتشتهر بمجتمعاتها الكبيرة والمتكاملة.';
+  }
+
+  @override
+  String get noImageAvailable => 'لا توجد صورة متاحة';
+
+  @override
+  String get manage => 'إدارة';
+
+  @override
+  String get upgrade => 'ترقية';
+
+  @override
+  String searchesLeft(int remaining, int limit) {
+    return '$remaining / $limit عملية بحث متبقية';
+  }
+
+  @override
+  String get notificationsEnabled => 'الإشعارات مفعلة';
+
+  @override
+  String get contactInformation => 'معلومات الاتصال';
+
+  @override
+  String get headOffice => 'المقر الرئيسي';
+
+  @override
+  String get ourProjects => 'مشاريعنا';
 }

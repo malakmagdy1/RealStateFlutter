@@ -39,6 +39,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final isArabic = l10n.localeName == 'ar';
 
     // Calculate years of experience
     final yearsOfExp = _calculateYearsOfExperience(widget.company.createdAt);
@@ -184,14 +185,14 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
               child: Column(
                 children: [
                   CustomText24(
-                    widget.company.name,
+                    isArabic ? widget.company.nameAr : widget.company.nameEn,
                     bold: true,
                     color: AppColors.black,
                     align: TextAlign.center,
                   ),
                   SizedBox(height: 8),
                   CustomText16(
-                    'Cairo, Egypt', // Default location
+                    l10n.cairoEgypt,
                     color: AppColors.greyText,
                     align: TextAlign.center,
                   ),
@@ -204,7 +205,10 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: CustomText16(
-                '${widget.company.name} is a leading developer of premium lifestyle destinations in Egypt. Since its inception in ${_getYearFromDate(widget.company.createdAt)}, it has been a key contributor to the country\'s real estate market, renowned for its large-scale, integrated communities.',
+                l10n.companyAboutDescription(
+                  isArabic ? widget.company.nameAr : widget.company.nameEn,
+                  _getYearFromDate(widget.company.createdAt),
+                ),
                 color: AppColors.greyText,
                 align: TextAlign.center,
               ),
@@ -236,7 +240,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                       Expanded(
                         child: _buildStatItem(
                           value: '$yearsOfExp+',
-                          label: 'Years of Exp.',
+                          label: l10n.yearsOfExperience,
                         ),
                       ),
                       Expanded(
@@ -248,7 +252,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                       Expanded(
                         child: _buildStatItem(
                           value: unitsDelivered > 0 ? '${_formatNumber(unitsDelivered)}+' : '1,200+',
-                          label: 'Units Delivered',
+                          label: l10n.unitsDelivered,
                         ),
                       ),
                     ],
@@ -260,7 +264,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
 
             // Compounds Section
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.all(15),
               child: CustomText20(
                 l10n.compounds,
                 bold: true,
@@ -270,17 +274,66 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
             SizedBox(height: 16),
 
             // Compounds Grid
-            BlocBuilder<CompoundBloc, CompoundState>(
-              builder: (context, state) {
-                if (state is CompoundLoading) {
-                  return SizedBox(
-                    height: 220,
-                    child: Center(
-                      child: CircularProgressIndicator(color: AppColors.black),
-                    ),
-                  );
-                } else if (state is CompoundSuccess) {
-                  if (state.response.data.isEmpty) {
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18.0),
+              child: BlocBuilder<CompoundBloc, CompoundState>(
+                builder: (context, state) {
+                  if (state is CompoundLoading) {
+                    return SizedBox(
+                      height: 120,
+                      child: Center(
+                        child: CircularProgressIndicator(color: AppColors.black),
+                      ),
+                    );
+                  } else if (state is CompoundSuccess) {
+                    if (state.response.data.isEmpty) {
+                      return Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Container(
+                          height: 150,
+                          decoration: BoxDecoration(
+                            color: AppColors.greyText.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.apartment,
+                                  size: 48,
+                                  color: AppColors.greyText,
+                                ),
+                                SizedBox(height: 8),
+                                CustomText16(
+                                  l10n.noCompoundsAvailable,
+                                  color: AppColors.greyText,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+
+                    final compounds = state.response.data;
+
+                    return GridView.builder(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.65,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                      ),
+                      itemCount: compounds.length,
+                      itemBuilder: (context, index) {
+                        final compound = compounds[index];
+                        return CompoundsName(compound: compound);
+                      },
+                    );
+                  } else if (state is CompoundError) {
                     return Padding(
                       padding: EdgeInsets.symmetric(horizontal: 20),
                       child: Container(
@@ -294,14 +347,28 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                Icons.apartment,
+                                Icons.error_outline,
                                 size: 48,
                                 color: AppColors.greyText,
                               ),
                               SizedBox(height: 8),
                               CustomText16(
-                                l10n.noCompoundsAvailable,
+                                l10n.error,
                                 color: AppColors.greyText,
+                              ),
+                              SizedBox(height: 8),
+                              ElevatedButton(
+                                onPressed: () {
+                                  context.read<CompoundBloc>().add(
+                                        FetchCompoundsByCompanyEvent(
+                                          companyId: widget.company.id,
+                                        ),
+                                      );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.black,
+                                ),
+                                child: CustomText16(l10n.retry, color: AppColors.white),
                               ),
                             ],
                           ),
@@ -309,69 +376,9 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                       ),
                     );
                   }
-
-                  final compounds = state.response.data;
-
-                  return GridView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.65,
-                      crossAxisSpacing: 10,
-                      mainAxisSpacing: 10,
-                    ),
-                    itemCount: compounds.length,
-                    itemBuilder: (context, index) {
-                      final compound = compounds[index];
-                      return CompoundsName(compound: compound);
-                    },
-                  );
-                } else if (state is CompoundError) {
-                  return Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 20),
-                    child: Container(
-                      height: 150,
-                      decoration: BoxDecoration(
-                        color: AppColors.greyText.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.error_outline,
-                              size: 48,
-                              color: AppColors.greyText,
-                            ),
-                            SizedBox(height: 8),
-                            CustomText16(
-                              l10n.error,
-                              color: AppColors.greyText,
-                            ),
-                            SizedBox(height: 8),
-                            ElevatedButton(
-                              onPressed: () {
-                                context.read<CompoundBloc>().add(
-                                      FetchCompoundsByCompanyEvent(
-                                        companyId: widget.company.id,
-                                      ),
-                                    );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.black,
-                              ),
-                              child: CustomText16(l10n.retry, color: AppColors.white),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  );
-                }
-                return SizedBox(height: 220);
-              },
+                  return SizedBox(height: 220);
+                },
+              ),
             ),
             SizedBox(height: 30),
           ],

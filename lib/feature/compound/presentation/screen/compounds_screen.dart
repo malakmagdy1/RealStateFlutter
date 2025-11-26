@@ -38,7 +38,7 @@ class CompoundsScreen extends StatefulWidget {
   State<CompoundsScreen> createState() => _CompoundsScreenState();
 }
 
-class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProviderStateMixin {
+class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   final GlobalKey _searchKey = GlobalKey();
@@ -53,6 +53,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
   List<String> _searchHistory = [];
   SearchFilter _currentFilter = SearchFilter.empty();
   String? _currentSortBy;
+  String? _lastLocale;
 
   // Track expanded state for search results
   bool _showAllCompanies = false;
@@ -71,12 +72,13 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _searchBloc = SearchBloc(repository: SearchRepository());
     _searchTabController = TabController(length: 3, vsync: this);
     _loadSearchHistory();
 
     // Fetch first page of compounds
-    context.read<CompoundBloc>().add(FetchCompoundsEvent(page: _currentPage, limit: _itemsPerPage));
+    _refreshData();
 
     // Listen to focus changes
     _searchFocusNode.addListener(() {
@@ -91,6 +93,35 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
     _scrollController.addListener(_onScroll);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Check if locale changed
+    final l10n = AppLocalizations.of(context);
+    final currentLocale = l10n?.localeName;
+    if (_lastLocale != null && _lastLocale != currentLocale) {
+      // Locale changed, refresh data
+      _currentPage = 1;
+      _hasMoreData = true;
+      _refreshData();
+    }
+    _lastLocale = currentLocale;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // App resumed from background, refresh data
+      _currentPage = 1;
+      _hasMoreData = true;
+      _refreshData();
+    }
+  }
+
+  void _refreshData() {
+    context.read<CompoundBloc>().add(FetchCompoundsEvent(page: _currentPage, limit: _itemsPerPage));
+  }
+
   Future<void> _loadSearchHistory() async {
     final history = await _searchHistoryService.getSearchHistory();
     setState(() {
@@ -100,6 +131,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     _searchFocusNode.dispose();
     _scrollController.dispose();
@@ -475,7 +507,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
 
                   // Active filters and sort chips
                   if (_currentFilter.activeFiltersCount > 0 || _currentSortBy != null) ...[
-                    SizedBox(height: 12),
+                    SizedBox(height: 2),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -617,59 +649,58 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
             // Search Results
             if (_showSearchResults) ...[
               Expanded(
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(16),
-                  child: BlocBuilder<SearchBloc, SearchState>(
-                    bloc: _searchBloc,
-                    builder: (context, state) {
-                      if (state is SearchLoading) {
-                        return Padding(
+                child: BlocBuilder<SearchBloc, SearchState>(
+                  bloc: _searchBloc,
+                  builder: (context, state) {
+                    if (state is SearchLoading) {
+                      return Center(
+                        child: Padding(
                           padding: EdgeInsets.all(24.0),
-                          child: Center(child: CustomLoadingDots(size: 80)),
-                        );
-                      } else if (state is SearchEmpty) {
-                        return Padding(
+                          child: CustomLoadingDots(size: 80),
+                        ),
+                      );
+                    } else if (state is SearchEmpty) {
+                      return Center(
+                        child: Padding(
                           padding: EdgeInsets.all(24.0),
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
-                                SizedBox(height: 8),
-                                CustomText16(
-                                  l10n.noResults,
-                                  color: Colors.grey[600]!,
-                                ),
-                              ],
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
+                              SizedBox(height: 8),
+                              CustomText16(
+                                l10n.noResults,
+                                color: Colors.grey[600]!,
+                              ),
+                            ],
                           ),
-                        );
-                      } else if (state is SearchError) {
-                        return Padding(
+                        ),
+                      );
+                    } else if (state is SearchError) {
+                      return Center(
+                        child: Padding(
                           padding: EdgeInsets.all(24.0),
-                          child: Center(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.error_outline, size: 48, color: Colors.red[400]),
-                                SizedBox(height: 8),
-                                CustomText16(
-                                  'Error: ${state.message}',
-                                  color: Colors.red,
-                                  align: TextAlign.center,
-                                ),
-                              ],
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.error_outline, size: 48, color: Colors.red[400]),
+                              SizedBox(height: 8),
+                              CustomText16(
+                                'Error: ${state.message}',
+                                color: Colors.red,
+                                align: TextAlign.center,
+                              ),
+                            ],
                           ),
-                        );
-                      } else if (state is SearchSuccess) {
-                        return _buildSearchResults(state.response, l10n, state);
-                      } else if (state is SearchLoadingMore) {
-                        return _buildSearchResults(state.currentResponse, l10n, state);
-                      }
-                      return SizedBox.shrink();
-                    },
-                  ),
+                        ),
+                      );
+                    } else if (state is SearchSuccess) {
+                      return _buildSearchResults(state.response, l10n, state);
+                    } else if (state is SearchLoadingMore) {
+                      return _buildSearchResults(state.currentResponse, l10n, state);
+                    }
+                    return SizedBox.shrink();
+                  },
                 ),
               ),
             ]
@@ -718,7 +749,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
                                   FetchCompoundsEvent(page: 1, limit: _itemsPerPage),
                                 );
                               },
-                              child: Text('Retry'),
+                              child: Text(l10n.retry),
                             ),
                           ],
                         ),
@@ -736,7 +767,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
                               Icon(Icons.search_off, size: 64, color: Colors.grey),
                               SizedBox(height: 16),
                               Text(
-                                'No compounds found',
+                                l10n.noCompounds,
                                 style: TextStyle(
                                   fontSize: 18,
                                   color: Colors.grey,
@@ -856,9 +887,9 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Header
+        // Header - minimal padding for mobile
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
           color: Colors.white,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -866,11 +897,11 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
               Expanded(
                 child: Row(
                   children: [
-                    Icon(Icons.search, size: 24, color: AppColors.mainColor),
-                    SizedBox(width: 8),
+                    Icon(Icons.search, size: 20, color: AppColors.mainColor),
+                    SizedBox(width: 6),
                     Flexible(
-                      child: CustomText18(
-                        'Found ${response.totalResults} result${response.totalResults == 1 ? '' : 's'}',
+                      child: CustomText16(
+                        l10n.foundResults(response.totalResults),
                         bold: true,
                       ),
                     ),
@@ -878,50 +909,71 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
                 ),
               ),
               IconButton(
-                icon: Icon(Icons.close, color: Colors.grey[700]),
+                icon: Icon(Icons.close, color: Colors.grey[700], size: 20),
+                padding: EdgeInsets.zero,
+                constraints: BoxConstraints(minWidth: 32, minHeight: 32),
                 onPressed: _clearSearch,
               ),
             ],
           ),
         ),
 
-        // TabBar
-        Container(
-          child: TabBar(
-            isScrollable: true,
-            controller: _searchTabController,
-            indicatorColor: Colors.black,
-            indicatorWeight: 3,
-            labelColor: Colors.black,
-            unselectedLabelColor: Colors.black,
-            labelStyle: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-            unselectedLabelStyle: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.normal,
-            ),
-            tabs: [
-              Tab(
-                icon: Icon(Icons.home_work, size: 15),
-                text: 'Units (${response.totalResults})',
-              ),
-              Tab(
-                icon: Icon(Icons.apartment, size: 15),
-                text: 'Compounds (${compounds.length})',
-              ),
-              Tab(
-                icon: Icon(Icons.business, size: 15),
-                text: 'Companies (${companies.length})',
-              ),
-            ],
+        // TabBar - compact
+        TabBar(
+          isScrollable: true,
+          controller: _searchTabController,
+          indicatorColor: AppColors.mainColor,
+          indicatorWeight: 2,
+          labelColor: AppColors.mainColor,
+          unselectedLabelColor: Colors.grey[600],
+          labelPadding: EdgeInsets.symmetric(horizontal: 12),
+          labelStyle: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.bold,
           ),
+          unselectedLabelStyle: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.normal,
+          ),
+          tabs: [
+            Tab(
+              height: 40,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.home_work, size: 14),
+                  SizedBox(width: 4),
+                  Text('${l10n.units} (${response.totalResults})'),
+                ],
+              ),
+            ),
+            Tab(
+              height: 40,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.apartment, size: 14),
+                  SizedBox(width: 4),
+                  Text('${l10n.compounds} (${compounds.length})'),
+                ],
+              ),
+            ),
+            Tab(
+              height: 40,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.business, size: 14),
+                  SizedBox(width: 4),
+                  Text('${l10n.companies} (${companies.length})'),
+                ],
+              ),
+            ),
+          ],
         ),
 
-        // SizedBox with fixed height for TabBarView
-        SizedBox(
-          height: 500, // Fixed height for the tab content area
+        // Expanded TabBarView to fill available space
+        Expanded(
           child: TabBarView(
             controller: _searchTabController,
             children: [
@@ -947,7 +999,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
               Icon(Icons.home_work_outlined, size: 64, color: Colors.grey[400]),
               SizedBox(height: 16),
               CustomText16(
-                'No units found',
+                l10n.noUnits,
                 color: Colors.grey[600]!,
               ),
             ],
@@ -956,108 +1008,78 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(8),
-      child: Column(
-        children: [
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              childAspectRatio: 0.63,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            // Add cache extent for better performance
-            cacheExtent: 400,
-            itemCount: units.length,
-            itemBuilder: (context, index) {
-              return _buildUnitResultItem(units[index], l10n);
-            },
-          ),
-
-          // Pagination controls
-          if (searchState is SearchSuccess && searchState.totalPages > 1)
-            Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Previous button
-                  IconButton(
-                    onPressed: searchState.currentPage > 1
-                        ? () {
-                            _searchBloc.add(
-                              SearchQueryEvent(
-                                query: _searchController.text,
-                                filter: _currentFilter,
-                                page: searchState.currentPage - 1,
-                              ),
-                            );
-                          }
-                        : null,
-                    icon: Icon(Icons.chevron_left),
-                    style: IconButton.styleFrom(
-                      backgroundColor: searchState.currentPage > 1
-                          ? AppColors.mainColor
-                          : Colors.grey.shade300,
-                      foregroundColor: searchState.currentPage > 1
-                          ? Colors.white
-                          : Colors.grey,
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  // Page indicator
-                  Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${searchState.currentPage} / ${searchState.totalPages}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  // Next button
-                  IconButton(
-                    onPressed: searchState.hasMorePages
-                        ? () {
-                            _searchBloc.add(
-                              SearchQueryEvent(
-                                query: _searchController.text,
-                                filter: _currentFilter,
-                                page: searchState.currentPage + 1,
-                              ),
-                            );
-                          }
-                        : null,
-                    icon: Icon(Icons.chevron_right),
-                    style: IconButton.styleFrom(
-                      backgroundColor: searchState.hasMorePages
-                          ? AppColors.mainColor
-                          : Colors.grey.shade300,
-                      foregroundColor: searchState.hasMorePages
-                          ? Colors.white
-                          : Colors.grey,
-                    ),
-                  ),
-                ],
+    return NotificationListener<ScrollNotification>(
+      onNotification: (ScrollNotification scrollInfo) {
+        // Load more when reaching near the end (80% of scroll)
+        // Only trigger if not already loading and has more pages
+        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent * 0.8) {
+          final currentState = _searchBloc.state;
+          if (currentState is SearchSuccess && currentState.hasMorePages) {
+            _searchBloc.add(
+              LoadMoreSearchResultsEvent(
+                query: _searchController.text,
+                filter: _currentFilter,
+                page: currentState.currentPage + 1,
               ),
+            );
+          }
+        }
+        return false;
+      },
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(8),
+        child: Column(
+          children: [
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 0.63,
+                crossAxisSpacing: 8,
+                mainAxisSpacing: 8,
+              ),
+              cacheExtent: 400,
+              itemCount: units.length,
+              itemBuilder: (context, index) {
+                return _buildUnitResultItem(units[index], l10n);
+              },
             ),
 
-          // Loading indicator when loading
-          if (searchState is SearchLoading)
-            Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(child: CustomLoadingDots(size: 60)),
-            ),
-        ],
+            // Page info
+            if (searchState is SearchSuccess && searchState.totalPages > 1)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  l10n.showingResults(units.length, response.totalResults),
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+
+            // Loading indicator when loading more
+            if (searchState is SearchLoadingMore)
+              Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CustomLoadingDots(size: 60)),
+              ),
+
+            // End of results indicator
+            if (searchState is SearchSuccess && !searchState.hasMorePages && units.length > 0)
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Text(
+                  '${l10n.units}: ${response.totalResults}',
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1074,7 +1096,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
               Icon(Icons.apartment_outlined, size: 64, color: Colors.grey[400]),
               SizedBox(height: 16),
               CustomText16(
-                'No compounds found',
+                l10n.noCompounds,
                 color: Colors.grey[600]!,
               ),
             ],
@@ -1115,7 +1137,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
               Icon(Icons.business_outlined, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 16),
               CustomText16(
-                'No companies found',
+                l10n.noCompanies,
                 color: Colors.grey[600]!,
               ),
             ],
@@ -1149,6 +1171,8 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
     final company = Company(
       id: data.id,
       name: data.name,
+      nameEn: data.name,
+      nameAr: data.name,
       email: data.email,
       logo: data.logo,
       numberOfCompounds: data.numberOfCompounds,

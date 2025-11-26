@@ -2827,6 +2827,168 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'All Durations'**
   String get allDurations;
+
+  /// No description provided for @enterYourName.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your name'**
+  String get enterYourName;
+
+  /// No description provided for @enterYourPhoneNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your phone number'**
+  String get enterYourPhoneNumber;
+
+  /// No description provided for @update.
+  ///
+  /// In en, this message translates to:
+  /// **'Update'**
+  String get update;
+
+  /// No description provided for @manageDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage Devices'**
+  String get manageDevices;
+
+  /// No description provided for @viewAndRemoveDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'View and remove devices'**
+  String get viewAndRemoveDevices;
+
+  /// No description provided for @receivePushNotifications.
+  ///
+  /// In en, this message translates to:
+  /// **'Receive push notifications'**
+  String get receivePushNotifications;
+
+  /// No description provided for @notificationsDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications disabled'**
+  String get notificationsDisabled;
+
+  /// No description provided for @chooseProfilePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose Profile Photo'**
+  String get chooseProfilePhoto;
+
+  /// No description provided for @camera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get camera;
+
+  /// No description provided for @noConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'No Internet Connection'**
+  String get noConnection;
+
+  /// No description provided for @checkInternetConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Please check your internet connection and try again.'**
+  String get checkInternetConnection;
+
+  /// No description provided for @checkWifi.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your Wi-Fi connection'**
+  String get checkWifi;
+
+  /// No description provided for @checkMobileData.
+  ///
+  /// In en, this message translates to:
+  /// **'Check your mobile data'**
+  String get checkMobileData;
+
+  /// No description provided for @checkAirplaneMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off airplane mode'**
+  String get checkAirplaneMode;
+
+  /// No description provided for @waitingForConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for connection...'**
+  String get waitingForConnection;
+
+  /// No description provided for @yearsOfExperience.
+  ///
+  /// In en, this message translates to:
+  /// **'Years of Exp.'**
+  String get yearsOfExperience;
+
+  /// No description provided for @unitsDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Units Delivered'**
+  String get unitsDelivered;
+
+  /// No description provided for @cairoEgypt.
+  ///
+  /// In en, this message translates to:
+  /// **'Cairo, Egypt'**
+  String get cairoEgypt;
+
+  /// About description for company
+  ///
+  /// In en, this message translates to:
+  /// **'{companyName} is a leading developer of premium lifestyle destinations in Egypt. Since its inception in {year}, it has been a key contributor to the country\'s real estate market, renowned for its large-scale, integrated communities.'**
+  String companyAboutDescription(String companyName, String year);
+
+  /// No description provided for @noImageAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No Image Available'**
+  String get noImageAvailable;
+
+  /// No description provided for @manage.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage'**
+  String get manage;
+
+  /// No description provided for @upgrade.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade'**
+  String get upgrade;
+
+  /// No description provided for @searchesLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'{remaining} / {limit} searches left'**
+  String searchesLeft(int remaining, int limit);
+
+  /// No description provided for @notificationsEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications enabled'**
+  String get notificationsEnabled;
+
+  /// No description provided for @contactInformation.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Information'**
+  String get contactInformation;
+
+  /// No description provided for @headOffice.
+  ///
+  /// In en, this message translates to:
+  /// **'Head Office'**
+  String get headOffice;
+
+  /// No description provided for @ourProjects.
+  ///
+  /// In en, this message translates to:
+  /// **'Our Projects'**
+  String get ourProjects;
 }
 
 class _AppLocalizationsDelegate

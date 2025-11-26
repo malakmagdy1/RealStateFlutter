@@ -20,22 +20,62 @@ class CompaniesScreen extends StatefulWidget {
   State<CompaniesScreen> createState() => _CompaniesScreenState();
 }
 
-class _CompaniesScreenState extends State<CompaniesScreen> {
+class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   String _searchQuery = '';
   String _sortBy = 'name'; // 'name', 'compounds', 'units'
+  String? _lastLocale;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Fetch companies when screen loads
+    _refreshData();
+    // Add scroll listener for pagination
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Check if locale changed
+    final l10n = AppLocalizations.of(context);
+    final currentLocale = l10n?.localeName;
+    if (_lastLocale != null && _lastLocale != currentLocale) {
+      // Locale changed, refresh data
+      _refreshData();
+    }
+    _lastLocale = currentLocale;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // App resumed from background, refresh data
+      _refreshData();
+    }
+  }
+
+  void _refreshData() {
     context.read<CompanyBloc>().add(FetchCompaniesEvent());
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      // Load more when near bottom
+      context.read<CompanyBloc>().add(LoadMoreCompaniesEvent());
+    }
   }
 
   List<Company> _filterAndSortCompanies(List<Company> companies) {
@@ -235,7 +275,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                     child: CircularProgressIndicator(color: AppColors.mainColor),
                   );
                 } else if (state is CompanySuccess) {
-                  final companies = _filterAndSortCompanies(state.response.companies);
+                  final companies = _filterAndSortCompanies(state.allCompanies);
 
                   if (companies.isEmpty) {
                     return Center(
@@ -260,14 +300,27 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                   }
 
                   return ListView.builder(
+                    controller: _scrollController,
                     padding: EdgeInsets.all(16),
-                    itemCount: companies.length,
+                    itemCount: companies.length + (state.hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
+                      // Show loading indicator at the end
+                      if (index >= companies.length) {
+                        return Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.mainColor,
+                            ),
+                          ),
+                        );
+                      }
                       final company = companies[index];
+                      final isArabic = l10n.localeName == 'ar';
                       return AnimatedListItem(
                         index: index,
                         delay: Duration(milliseconds: 50),
-                        child: _buildCompanyCard(company, context),
+                        child: _buildCompanyCard(company, context, isArabic),
                       );
                     },
                   );
@@ -311,7 +364,8 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
     );
   }
 
-  Widget _buildCompanyCard(Company company, BuildContext context) {
+  Widget _buildCompanyCard(Company company, BuildContext context, bool isArabic) {
+    final displayName = company.getLocalizedName(isArabic);
     return Container(
       margin: EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -356,10 +410,10 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                             width: 60,
                             height: 60,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, url) => _buildPlaceholderLogo(company),
+                            errorBuilder: (context, url) => _buildPlaceholderLogo(company, isArabic),
                           ),
                         )
-                      : _buildPlaceholderLogo(company),
+                      : _buildPlaceholderLogo(company, isArabic),
                 ),
                 SizedBox(width: 16),
 
@@ -369,7 +423,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       CustomText16(
-                        company.name,
+                        displayName,
                         bold: true,
                         color: AppColors.black,
                         maxLines: 1,
@@ -423,7 +477,8 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
     );
   }
 
-  Widget _buildPlaceholderLogo(Company company) {
+  Widget _buildPlaceholderLogo(Company company, bool isArabic) {
+    final displayName = company.getLocalizedName(isArabic);
     return Container(
       width: 30,
       height: 30,
@@ -433,7 +488,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> {
       ),
       child: Center(
         child: Text(
-          company.name.isNotEmpty ? company.name[0].toUpperCase() : '?',
+          displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,

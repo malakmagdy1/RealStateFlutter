@@ -90,9 +90,10 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
         });
         print('✅ [WEB PROFILE] State updated: _notificationsEnabled = $value');
 
+        final l10n = AppLocalizations.of(context)!;
         MessageHelper.showSuccess(
           context,
-          value ? 'Notifications enabled' : 'Notifications disabled',
+          value ? l10n.notificationsEnabled : l10n.notificationsDisabled,
         );
         print('✅ [WEB PROFILE] Success message shown to user');
       }
@@ -241,7 +242,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                           validator: Validators.validateName,
                           decoration: InputDecoration(
                             labelText: l10n.editName,
-                            hintText: 'Enter your name',
+                            hintText: l10n.enterYourName,
                             prefixIcon: Icon(Icons.person, color: AppColors.mainColor),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(7)),
                             focusedBorder: OutlineInputBorder(
@@ -273,7 +274,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                     ),
                     child: isLoading
                         ? SizedBox(width: 12, height: 12, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 1.2))
-                        : Text('Update', style: TextStyle(fontWeight: FontWeight.bold)),
+                        : Text(l10n.update, style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               );
@@ -332,7 +333,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                           keyboardType: TextInputType.phone,
                           decoration: InputDecoration(
                             labelText: l10n.editPhoneNumber,
-                            hintText: 'Enter your phone number',
+                            hintText: l10n.enterYourPhoneNumber,
                             prefixIcon: Icon(Icons.phone, color: AppColors.mainColor),
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(7)),
                             focusedBorder: OutlineInputBorder(
@@ -364,7 +365,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                     ),
                     child: isLoading
                         ? SizedBox(width: 12, height: 12, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 1.2))
-                        : Text('Update', style: TextStyle(fontWeight: FontWeight.bold)),
+                        : Text(l10n.update, style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ],
               );
@@ -918,7 +919,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                                 Text(
                                   status.hasUnlimitedSearches
                                       ? l10n.unlimitedSearches
-                                      : '${status.searchesUsed} / ${status.searchLimit} ${l10n.search}es',
+                                      : l10n.searchesLeft(status.remainingSearches, status.searchLimit),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w600,
@@ -950,7 +951,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                         SizedBox(height: 5),
                         Text(
                           status.canSearch
-                              ? '${status.remainingSearches} ${l10n.search}es remaining'
+                              ? l10n.searchesRemaining(status.remainingSearches)
                               : l10n.noSearchesRemaining,
                           style: TextStyle(
                             fontSize: 12,
@@ -1304,7 +1305,8 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
     );
   }
 
-  Widget _buildDeviceManagementSection(AppLocalizations l10n) {
+  Widget _buildDeviceManagementSection(AppLocalizations l10n)
+  {
     final AuthWebServices authService = AuthWebServices();
 
     return FutureBuilder<Map<String, dynamic>>(

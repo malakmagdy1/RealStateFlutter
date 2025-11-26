@@ -190,17 +190,13 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
                           : _buildPlaceholder(),
                     ),
 
-                    // Top Row: Action Buttons (Left)
-                    Positioned(
+                    // Top Row: Action Buttons (positioned based on text direction)
+                    PositionedDirectional(
                       top: 8,
-                      left: 8,
-                      right: 8,
+                      start: 8,
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Action Buttons Row
-                          Row(
-                            children: [
                               // Favorite Button
                               BlocBuilder<CompoundFavoriteBloc, CompoundFavoriteState>(
                                 builder: (context, state) {
@@ -352,17 +348,15 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
                               ),
                             ],
                           ),
-                        ],
-                      ),
                     ),
 
                     // Update Badge (NEW units)
                     if (widget.compound.updatedUnitsCount > 0)
-                      Positioned(
+                      PositionedDirectional(
                         top: 8,
-                        right: -35,
+                        end: -35,
                         child: Transform.rotate(
-                          angle: 0.785398, // 45 degrees
+                          angle: Directionality.of(context) == TextDirection.rtl ? -0.785398 : 0.785398, // 45 degrees, mirrored for RTL
                           child: Container(
                             width: 140,
                             height: 25,
@@ -587,6 +581,7 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
   }
 
   Widget _buildPlaceholder() {
+    final l10n = AppLocalizations.of(context);
     return Container(
       width: double.infinity,
       height: double.infinity,
@@ -611,7 +606,7 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
             ),
             SizedBox(height: 8),
             Text(
-              'No Image Available',
+              l10n?.noImageAvailable ?? 'No Image Available',
               style: TextStyle(
                 color: Colors.grey[600],
                 fontSize: 12,
@@ -657,10 +652,11 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
   }
 
   Future<void> _showNoteDialog(BuildContext context) async {
+    final l10n = AppLocalizations.of(context)!;
     final result = await NoteDialog.show(
       context,
       initialNote: _currentNote,
-      title: _currentNote != null && _currentNote!.isNotEmpty ? 'Edit Note' : 'Add Note',
+      title: _currentNote != null && _currentNote!.isNotEmpty ? l10n.editNote : l10n.addNote,
     );
 
     if (result != null && mounted) {

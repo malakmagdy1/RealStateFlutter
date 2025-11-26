@@ -1439,4 +1439,90 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get allDurations => 'All Durations';
+
+  @override
+  String get enterYourName => 'Enter your name';
+
+  @override
+  String get enterYourPhoneNumber => 'Enter your phone number';
+
+  @override
+  String get update => 'Update';
+
+  @override
+  String get manageDevices => 'Manage Devices';
+
+  @override
+  String get viewAndRemoveDevices => 'View and remove devices';
+
+  @override
+  String get receivePushNotifications => 'Receive push notifications';
+
+  @override
+  String get notificationsDisabled => 'Notifications disabled';
+
+  @override
+  String get chooseProfilePhoto => 'Choose Profile Photo';
+
+  @override
+  String get camera => 'Camera';
+
+  @override
+  String get noConnection => 'No Internet Connection';
+
+  @override
+  String get checkInternetConnection =>
+      'Please check your internet connection and try again.';
+
+  @override
+  String get checkWifi => 'Check your Wi-Fi connection';
+
+  @override
+  String get checkMobileData => 'Check your mobile data';
+
+  @override
+  String get checkAirplaneMode => 'Turn off airplane mode';
+
+  @override
+  String get waitingForConnection => 'Waiting for connection...';
+
+  @override
+  String get yearsOfExperience => 'Years of Exp.';
+
+  @override
+  String get unitsDelivered => 'Units Delivered';
+
+  @override
+  String get cairoEgypt => 'Cairo, Egypt';
+
+  @override
+  String companyAboutDescription(String companyName, String year) {
+    return '$companyName is a leading developer of premium lifestyle destinations in Egypt. Since its inception in $year, it has been a key contributor to the country\'s real estate market, renowned for its large-scale, integrated communities.';
+  }
+
+  @override
+  String get noImageAvailable => 'No Image Available';
+
+  @override
+  String get manage => 'Manage';
+
+  @override
+  String get upgrade => 'Upgrade';
+
+  @override
+  String searchesLeft(int remaining, int limit) {
+    return '$remaining / $limit searches left';
+  }
+
+  @override
+  String get notificationsEnabled => 'Notifications enabled';
+
+  @override
+  String get contactInformation => 'Contact Information';
+
+  @override
+  String get headOffice => 'Head Office';
+
+  @override
+  String get ourProjects => 'Our Projects';
 }

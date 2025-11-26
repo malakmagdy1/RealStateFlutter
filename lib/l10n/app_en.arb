@@ -665,5 +665,53 @@
   "minMonthly": "Min Monthly",
   "maxMonthly": "Max Monthly",
   "thousandEgp": "K EGP",
-  "allDurations": "All Durations"
+  "allDurations": "All Durations",
+  "enterYourName": "Enter your name",
+  "enterYourPhoneNumber": "Enter your phone number",
+  "update": "Update",
+  "manageDevices": "Manage Devices",
+  "viewAndRemoveDevices": "View and remove devices",
+  "receivePushNotifications": "Receive push notifications",
+  "notificationsDisabled": "Notifications disabled",
+  "chooseProfilePhoto": "Choose Profile Photo",
+  "camera": "Camera",
+  "gallery": "Gallery",
+  "noConnection": "No Internet Connection",
+  "checkInternetConnection": "Please check your internet connection and try again.",
+  "checkWifi": "Check your Wi-Fi connection",
+  "checkMobileData": "Check your mobile data",
+  "checkAirplaneMode": "Turn off airplane mode",
+  "waitingForConnection": "Waiting for connection...",
+  "yearsOfExperience": "Years of Exp.",
+  "unitsDelivered": "Units Delivered",
+  "cairoEgypt": "Cairo, Egypt",
+  "companyAboutDescription": "{companyName} is a leading developer of premium lifestyle destinations in Egypt. Since its inception in {year}, it has been a key contributor to the country's real estate market, renowned for its large-scale, integrated communities.",
+  "@companyAboutDescription": {
+    "description": "About description for company",
+    "placeholders": {
+      "companyName": {
+        "type": "String"
+      },
+      "year": {
+        "type": "String"
+      }
+    }
+  },
+  "noImageAvailable": "No Image Available",
+  "manage": "Manage",
+  "upgrade": "Upgrade",
+  "searchesLeft": "{remaining} / {limit} searches left",
+  "@searchesLeft": {
+    "placeholders": {
+      "remaining": {"type": "int"},
+      "limit": {"type": "int"}
+    }
+  },
+  "notificationsEnabled": "Notifications enabled",
+  "developer": "Developer",
+  "availableUnits": "Available Units",
+  "salesTeam": "Sales Team",
+  "contactInformation": "Contact Information",
+  "headOffice": "Head Office",
+  "ourProjects": "Our Projects"
 }

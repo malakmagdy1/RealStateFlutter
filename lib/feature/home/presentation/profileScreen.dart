@@ -30,6 +30,10 @@ import 'package:real/core/utils/message_helper.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
 import 'package:real/services/fcm_service.dart';
 import 'package:real/services/notification_preferences.dart';
+import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
+import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
+import 'package:real/feature/company/presentation/bloc/company_bloc.dart';
+import 'package:real/feature/company/presentation/bloc/company_event.dart';
 
 class ProfileScreen extends StatefulWidget {
   ProfileScreen({super.key});
@@ -211,7 +215,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _languageOption(
-    BuildContext context,
+    BuildContext dialogContext,
     LocaleCubit localeCubit,
     String languageName,
     String languageCode,
@@ -229,13 +233,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
       trailing: isSelected
           ? Icon(Icons.check_circle, color: AppColors.mainColor)
           : null,
-      onTap: () {
-        localeCubit.changeLocale(Locale(languageCode));
-        Navigator.of(context).pop();
-        final l10n = AppLocalizations.of(context)!;
-        MessageHelper.showSuccess(context, l10n.languageChanged);
+      onTap: () async {
+        await localeCubit.changeLocale(Locale(languageCode));
+        Navigator.of(dialogContext).pop();
+
+        // Refresh all data after language change
+        _refreshAllData();
+
+        if (mounted) {
+          final l10n = AppLocalizations.of(context)!;
+          MessageHelper.showSuccess(context, l10n.languageChanged);
+        }
       },
     );
+  }
+
+  void _refreshAllData() {
+    // Refresh compounds data
+    try {
+      context.read<CompoundBloc>().add(FetchCompoundsEvent());
+    } catch (e) {
+      print('[ProfileScreen] CompoundBloc not available: $e');
+    }
+
+    // Refresh companies data
+    try {
+      context.read<CompanyBloc>().add(FetchCompaniesEvent());
+    } catch (e) {
+      print('[ProfileScreen] CompanyBloc not available: $e');
+    }
+
+    // Refresh subscription data
+    try {
+      context.read<SubscriptionBloc>().add(LoadSubscriptionStatusEvent());
+    } catch (e) {
+      print('[ProfileScreen] SubscriptionBloc not available: $e');
+    }
   }
 
   Widget _buildFeatureChip(String label) {
@@ -280,7 +313,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           elevation: 0,
           automaticallyImplyLeading: false,
           title: Text(
-            'Profile',
+            l10n.profile,
             style: TextStyle(
               color: AppColors.mainColor,
               fontSize: 18,
@@ -485,7 +518,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
-                                    status.hasActiveSubscription ? 'ACTIVE' : 'INACTIVE',
+                                    status.hasActiveSubscription ? l10n.active.toUpperCase() : l10n.inactive.toUpperCase(),
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 10,
@@ -509,7 +542,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 SizedBox(width: 6),
                                 if (status.hasUnlimitedSearches)
                                   Text(
-                                    'Unlimited Searches',
+                                    l10n.unlimitedSearches,
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
@@ -518,7 +551,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   )
                                 else
                                   Text(
-                                    '${status.remainingSearches} / ${status.searchLimit} searches left',
+                                    l10n.searchesLeft(status.remainingSearches, status.searchLimit),
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
@@ -593,8 +626,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                   child: Text(
                                     status.hasActiveSubscription
-                                        ? 'Manage'
-                                        : 'Upgrade',
+                                        ? l10n.manage
+                                        : l10n.upgrade,
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -679,7 +712,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Icon(Icons.phone_outlined, color: AppColors.mainColor, size: 24),
                       ),
                       title: Text(
-                        'Edit Phone Number',
+                        l10n.editPhoneNumber,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -691,7 +724,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             context: context,
                             isScrollControlled: true,
                             backgroundColor: Colors.transparent,
-                            builder: (_) => EditPhoneScreen(), // الودجت الجديد اللي هنعمله تحت
+                            builder: (_) => EditPhoneScreen(),
                           );
                         },
                     ),
@@ -734,14 +767,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         child: Icon(Icons.devices_other, color: AppColors.mainColor, size: 24),
                       ),
                       title: Text(
-                        'Manage Devices',
+                        l10n.manageDevices,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
                       subtitle: Text(
-                        'View and remove devices',
+                        l10n.viewAndRemoveDevices,
                         style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                       trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
@@ -772,7 +805,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       subtitle: Text(
-                        _notificationsEnabled ? 'Receive push notifications' : 'Notifications disabled',
+                        _notificationsEnabled ? l10n.receivePushNotifications : l10n.notificationsDisabled,
                         style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                       trailing: _loadingNotifications
@@ -962,44 +995,54 @@ class _AnimatedImagePickerSheetState extends State<AnimatedImagePickerSheet>
               ),
             ),
 
-            Text(
-              'Choose Profile Photo',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
+            Builder(
+              builder: (context) {
+                final l10n = AppLocalizations.of(context)!;
+                return Text(
+                  l10n.chooseProfilePhoto,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                );
+              },
             ),
 
             SizedBox(height: 20),
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                // Camera Option
-                ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: _buildPickerOption(
-                    icon: Icons.camera_alt,
-                    label: 'Camera',
-                    color: AppColors.mainColor,
-                    onTap: widget.onCameraTap,
-                    delay: 0,
-                  ),
-                ),
+            Builder(
+              builder: (context) {
+                final l10n = AppLocalizations.of(context)!;
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Camera Option
+                    ScaleTransition(
+                      scale: _scaleAnimation,
+                      child: _buildPickerOption(
+                        icon: Icons.camera_alt,
+                        label: l10n.camera,
+                        color: AppColors.mainColor,
+                        onTap: widget.onCameraTap,
+                        delay: 0,
+                      ),
+                    ),
 
-                // Gallery Option
-                ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: _buildPickerOption(
-                    icon: Icons.photo_library,
-                    label: 'Gallery',
-                    color: Colors.blue,
-                    onTap: widget.onGalleryTap,
-                    delay: 100,
-                  ),
-                ),
-              ],
+                    // Gallery Option
+                    ScaleTransition(
+                      scale: _scaleAnimation,
+                      child: _buildPickerOption(
+                        icon: Icons.photo_library,
+                        label: l10n.gallery,
+                        color: Colors.blue,
+                        onTap: widget.onGalleryTap,
+                        delay: 100,
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
 
             SizedBox(height: 20),

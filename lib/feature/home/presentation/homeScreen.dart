@@ -55,7 +55,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   late SearchBloc _searchBloc;
@@ -72,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoadingMoreAvailable = false;
   List<String> _searchHistory = [];
   SearchFilter _currentFilter = SearchFilter.empty();
+  String? _lastLocale;
 
   // All search results shown by default (no "show more" buttons)
 
@@ -89,6 +90,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _searchBloc = SearchBloc(repository: SearchRepository());
     _loadSearchHistory();
 
@@ -102,16 +104,39 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     // Fetch companies and AI-recommended compounds when screen loads
-    context.read<CompanyBloc>().add(FetchCompaniesEvent());
-    context.read<CompoundBloc>().add(FetchWeeklyRecommendedCompoundsEvent());
-
-    // Fetch new arrivals and updated 24h
-    _fetchNewArrivals();
-    _fetchUpdated24Hours();
+    _refreshAllData();
 
     // Add scroll listeners for pagination
     _recommendedScrollController.addListener(_onRecommendedScroll);
     _availableScrollController.addListener(_onAvailableScroll);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Check if locale changed
+    final l10n = AppLocalizations.of(context);
+    final currentLocale = l10n?.localeName;
+    if (_lastLocale != null && _lastLocale != currentLocale) {
+      // Locale changed, refresh data
+      _refreshAllData();
+    }
+    _lastLocale = currentLocale;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // App resumed from background, refresh data
+      _refreshAllData();
+    }
+  }
+
+  void _refreshAllData() {
+    context.read<CompanyBloc>().add(FetchCompaniesEvent());
+    context.read<CompoundBloc>().add(FetchWeeklyRecommendedCompoundsEvent());
+    _fetchNewArrivals();
+    _fetchUpdated24Hours();
   }
 
   void _onRecommendedScroll() {
@@ -171,6 +196,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     _searchFocusNode.dispose();
     _searchBloc.close();
@@ -557,7 +583,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       );
                     } else if (state is CompanySuccess) {
-                      if (state.response.companies.isEmpty) {
+                      if (state.allCompanies.isEmpty) {
                         return SizedBox(
                           height: 100,
                           child: Center(
@@ -569,9 +595,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         height: 100,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
-                          itemCount: state.response.companies.length,
+                          itemCount: state.allCompanies.length,
                           itemBuilder: (context, index) {
-                            final company = state.response.companies[index];
+                            final company = state.allCompanies[index];
                             return CompanyName(
                               company: company,
                               onTap: () {
@@ -960,6 +986,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final company = Company(
       id: data.id,
       name: data.name,
+      nameEn: data.name,
+      nameAr: data.name,
       email: data.email,
       logo: data.logo,
       numberOfCompounds: data.numberOfCompounds,
