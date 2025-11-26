@@ -1363,4 +1363,75 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get startAIComparisonChat => 'بدء محادثة المقارنة بالذكاء الاصطناعي';
+
+  @override
+  String get paymentPlan => 'خطة الدفع';
+
+  @override
+  String get totalPrice => 'السعر الإجمالي';
+
+  @override
+  String get duration => 'المدة';
+
+  @override
+  String get years => 'سنوات';
+
+  @override
+  String get downPayment => 'المقدم';
+
+  @override
+  String get downPaymentPercentage => 'نسبة المقدم';
+
+  @override
+  String get monthlyInstallment => 'القسط الشهري';
+
+  @override
+  String get quarterlyInstallment => 'القسط الربع سنوي';
+
+  @override
+  String get finishingType => 'نوع التشطيب';
+
+  @override
+  String get maintenanceDeposit => 'وديعة الصيانة';
+
+  @override
+  String get clubMembership => 'عضوية النادي';
+
+  @override
+  String get garagePrice => 'سعر الجراج';
+
+  @override
+  String get additionalFees => 'رسوم إضافية';
+
+  @override
+  String get paymentPlanFilters => 'فلاتر خطة الدفع';
+
+  @override
+  String get paymentDuration => 'مدة الدفع';
+
+  @override
+  String get selectDuration => 'اختر المدة';
+
+  @override
+  String get cashOnly => 'كاش فقط';
+
+  @override
+  String yearsInstallment(Object count) {
+    return '$count سنوات';
+  }
+
+  @override
+  String get monthlyPaymentRange => 'نطاق القسط الشهري';
+
+  @override
+  String get minMonthly => 'الحد الأدنى';
+
+  @override
+  String get maxMonthly => 'الحد الأقصى';
+
+  @override
+  String get thousandEgp => 'ألف جنيه';
+
+  @override
+  String get allDurations => 'كل المدد';
 }

@@ -71,32 +71,18 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
 
   Future<void> _initializeUnit() async {
     if (widget.unit != null) {
-      // Unit passed from previous screen
+      // Unit passed from previous screen - use it for initial display
       _currentUnit = widget.unit;
-
-      // Check if unit has complete price data
-      // If unit has a sale but missing price data, refetch from API to get complete info
-      bool hasSale = _currentUnit!.hasActiveSale == true || _currentUnit!.sale != null;
-      bool missingPriceData = (_currentUnit!.originalPrice == null || _currentUnit!.originalPrice!.isEmpty) &&
-                               (_currentUnit!.normalPrice == null || _currentUnit!.normalPrice!.isEmpty) &&
-                               (_currentUnit!.price.isEmpty || _currentUnit!.price == '0');
 
       print('[WEB UNIT DETAIL] ========================================');
       print('[WEB UNIT DETAIL] Unit passed from navigation - ID: ${_currentUnit!.id}');
-      print('[WEB UNIT DETAIL] Has sale: $hasSale');
-      print('[WEB UNIT DETAIL] Missing price data: $missingPriceData');
-      print('[WEB UNIT DETAIL] originalPrice: ${_currentUnit!.originalPrice}');
-      print('[WEB UNIT DETAIL] normalPrice: ${_currentUnit!.normalPrice}');
-      print('[WEB UNIT DETAIL] price: ${_currentUnit!.price}');
-
-      if (hasSale && missingPriceData) {
-        print('[WEB UNIT DETAIL] Unit has sale but missing price data - refetching from API...');
-        await _fetchUnit(); // Refetch to get complete data
-      } else {
-        print('[WEB UNIT DETAIL] Unit has complete data - using passed unit');
-        _setupUnit();
-      }
+      print('[WEB UNIT DETAIL] Payment plans: ${_currentUnit!.paymentPlans?.length ?? 0}');
       print('[WEB UNIT DETAIL] ========================================');
+
+      // Always fetch full unit details from API to get payment plans and complete data
+      // The list API doesn't include payment_plans, so we need to fetch by ID
+      print('[WEB UNIT DETAIL] Fetching full unit details from API...');
+      await _fetchUnit();
     } else {
       // Fetch from API if not passed
       print('[WEB UNIT DETAIL] No unit passed - fetching from API...');
@@ -112,7 +98,11 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
 
     try {
       final unitData = await _unitWebServices.getUnitById(widget.unitId); // ✅ Correct param type: String
+      print('[WEB UNIT DETAIL] Fetched unit data: ${unitData.keys.toList()}');
+      print('[WEB UNIT DETAIL] Payment plans in response: ${unitData['payment_plans']}');
+
       final unit = Unit.fromJson(unitData);
+      print('[WEB UNIT DETAIL] Parsed unit - payment plans count: ${unit.paymentPlans?.length ?? 0}');
 
       setState(() {
         _currentUnit = unit;
@@ -462,6 +452,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                             // Always show price card
                             _buildPriceCard(l10n),
                             SizedBox(height: 16),
+
                             TabBar(
                               controller: _tabController,
                               labelColor: AppColors.white,
@@ -530,7 +521,12 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                             ],
                             // Unit Change Notes (if unit has updates)
                             UnitChangeNotes(unit: _currentUnit!),
-
+                            SizedBox(height: 16),
+                            // Payment plans section
+                            if (_currentUnit!.paymentPlans != null && _currentUnit!.paymentPlans!.isNotEmpty)
+                              _buildPaymentPlansSection(l10n),
+                            if (_currentUnit!.paymentPlans != null && _currentUnit!.paymentPlans!.isNotEmpty)
+                              SizedBox(height: 16),
                             // Tab Bar
                             _buildAgentCard(l10n),
                           ],
@@ -1232,6 +1228,255 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPaymentPlansSection(AppLocalizations l10n) {
+    final paymentPlans = _currentUnit!.paymentPlans!;
+
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Icon(Icons.account_balance_wallet, size: 22, color: AppColors.mainColor),
+              SizedBox(width: 10),
+              Text(
+                l10n.paymentPlans,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF333333),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 20),
+          // Payment Plans List
+          ...paymentPlans.map((plan) => _buildPaymentPlanCard(plan, l10n)).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentPlanCard(PaymentPlan plan, AppLocalizations l10n) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.mainColor.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Plan Name Header
+          Row(
+            children: [
+              Icon(Icons.bookmark, size: 18, color: AppColors.mainColor),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  plan.planName ?? l10n.paymentPlan,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mainColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          Divider(height: 1, color: Colors.grey.withOpacity(0.2)),
+          SizedBox(height: 12),
+          // Price and Duration Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildPaymentPlanInfoItem(
+                  Icons.monetization_on_outlined,
+                  l10n.totalPrice,
+                  plan.unitTotalWithFinishPrice != null && plan.unitTotalWithFinishPrice != '0'
+                      ? 'EGP ${_formatPrice(plan.unitTotalWithFinishPrice!)}'
+                      : plan.price != null && plan.price != '0'
+                          ? 'EGP ${_formatPrice(plan.price!)}'
+                          : '-',
+                ),
+              ),
+              Expanded(
+                child: _buildPaymentPlanInfoItem(
+                  Icons.calendar_today_outlined,
+                  l10n.duration,
+                  plan.durationYears != null && plan.durationYears != '0'
+                      ? '${plan.durationYears} ${l10n.years}'
+                      : '-',
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          // Down Payment Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildPaymentPlanInfoItem(
+                  Icons.savings_outlined,
+                  l10n.downPayment,
+                  plan.downPaymentAmount != null && plan.downPaymentAmount != '0'
+                      ? 'EGP ${_formatPrice(plan.downPaymentAmount!)}'
+                      : '-',
+                ),
+              ),
+              Expanded(
+                child: _buildPaymentPlanInfoItem(
+                  Icons.percent_outlined,
+                  l10n.downPaymentPercentage,
+                  plan.downPaymentPercentage != null && plan.downPaymentPercentage != '0'
+                      ? '${plan.downPaymentPercentage}%'
+                      : '-',
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          // Installments Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildPaymentPlanInfoItem(
+                  Icons.event_repeat_outlined,
+                  l10n.monthlyInstallment,
+                  plan.monthlyInstallment != null && plan.monthlyInstallment != '0'
+                      ? 'EGP ${_formatPrice(plan.monthlyInstallment!)}'
+                      : '-',
+                ),
+              ),
+              Expanded(
+                child: _buildPaymentPlanInfoItem(
+                  Icons.date_range_outlined,
+                  l10n.quarterlyInstallment,
+                  plan.quarterlyInstallment != null && plan.quarterlyInstallment != '0'
+                      ? 'EGP ${_formatPrice(plan.quarterlyInstallment!)}'
+                      : '-',
+                ),
+              ),
+            ],
+          ),
+          // Additional Details
+          if ((plan.deliveryDate != null && plan.deliveryDate!.isNotEmpty) ||
+              (plan.finishingType != null && plan.finishingType!.isNotEmpty) ||
+              (plan.totalArea != null && plan.totalArea != '0')) ...[
+          ],
+          // Extra fees if available
+          if ((plan.maintenanceDeposit != null && plan.maintenanceDeposit != '0') ||
+              (plan.clubMembership != null && plan.clubMembership != '0') ||
+              (plan.garagePrice != null && plan.garagePrice != '0')) ...[
+            SizedBox(height: 12),
+            Divider(height: 1, color: Colors.grey.withOpacity(0.2)),
+            SizedBox(height: 12),
+            Text(
+              l10n.additionalFees,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF666666),
+              ),
+            ),
+            SizedBox(height: 8),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: [
+                if (plan.maintenanceDeposit != null && plan.maintenanceDeposit != '0')
+                  _buildPaymentPlanChip(Icons.build_outlined, l10n.maintenanceDeposit, 'EGP ${_formatPrice(plan.maintenanceDeposit!)}'),
+                if (plan.clubMembership != null && plan.clubMembership != '0')
+                  _buildPaymentPlanChip(Icons.sports_tennis, l10n.clubMembership, 'EGP ${_formatPrice(plan.clubMembership!)}'),
+                if (plan.garagePrice != null && plan.garagePrice != '0')
+                  _buildPaymentPlanChip(Icons.garage_outlined, l10n.garagePrice, 'EGP ${_formatPrice(plan.garagePrice!)}'),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentPlanInfoItem(IconData icon, String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: Color(0xFF999999)),
+            SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: Color(0xFF999999),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF333333),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPaymentPlanChip(IconData icon, String label, String value) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.mainColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.mainColor),
+          SizedBox(width: 6),
+          Text(
+            '$label: ',
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF666666),
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.mainColor,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

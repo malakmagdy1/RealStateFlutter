@@ -51,6 +51,14 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
   bool _hasGarden = false;
   String? _selectedSortBy;
 
+  // Payment plan filter state
+  int? _selectedPaymentDuration;
+  late TextEditingController _minMonthlyPaymentController;
+  late TextEditingController _maxMonthlyPaymentController;
+
+  // Payment duration options: 0 = Cash, others are years
+  final List<int> paymentDurationOptions = [0, 5, 7, 10];
+
   final List<String> propertyTypes = [
     'Villa',
     'Apartment',
@@ -91,9 +99,25 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
         : '',
     );
 
+    // Initialize payment plan controllers - use raw values
+    _minMonthlyPaymentController = TextEditingController(
+      text: widget.initialFilter.minMonthlyPayment != null
+        ? widget.initialFilter.minMonthlyPayment!.toInt().toString()
+        : '',
+    );
+    _maxMonthlyPaymentController = TextEditingController(
+      text: widget.initialFilter.maxMonthlyPayment != null
+        ? widget.initialFilter.maxMonthlyPayment!.toInt().toString()
+        : '',
+    );
+
     // Add listeners for price text fields
     _minPriceController.addListener(_applyFiltersWithDebounce);
     _maxPriceController.addListener(_applyFiltersWithDebounce);
+
+    // Add listeners for payment plan text fields
+    _minMonthlyPaymentController.addListener(_applyFiltersWithDebounce);
+    _maxMonthlyPaymentController.addListener(_applyFiltersWithDebounce);
 
     // Set initial values
     _selectedLocation = widget.initialFilter.location;
@@ -105,6 +129,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
     _hasRoof = widget.initialFilter.hasRoof ?? false;
     _hasGarden = widget.initialFilter.hasGarden ?? false;
     _selectedSortBy = widget.initialFilter.sortBy;
+    _selectedPaymentDuration = widget.initialFilter.paymentPlanDuration;
 
     // Parse deliveredAtFrom date
     if (widget.initialFilter.deliveredAtFrom != null && widget.initialFilter.deliveredAtFrom!.isNotEmpty) {
@@ -188,6 +213,8 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
   void dispose() {
     _minPriceController.dispose();
     _maxPriceController.dispose();
+    _minMonthlyPaymentController.dispose();
+    _maxMonthlyPaymentController.dispose();
     _filterDebounceTimer?.cancel();
     super.dispose();
   }
@@ -225,6 +252,14 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
         ? null
         : double.tryParse(_maxPriceController.text);
 
+    // Monthly payment - use raw values (no multiplication)
+    final minMonthlyPayment = _minMonthlyPaymentController.text.isEmpty
+        ? null
+        : double.tryParse(_minMonthlyPaymentController.text);
+    final maxMonthlyPayment = _maxMonthlyPaymentController.text.isEmpty
+        ? null
+        : double.tryParse(_maxMonthlyPaymentController.text);
+
     final filter = SearchFilter(
       location: _selectedLocation,
       companyId: _selectedCompanyId,
@@ -240,6 +275,10 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
       hasRoof: _hasRoof ? true : null,
       hasGarden: _hasGarden ? true : null,
       sortBy: null, // Sort removed from filter bottom sheet
+      // Payment plan filters
+      paymentPlanDuration: _selectedPaymentDuration,
+      minMonthlyPayment: minMonthlyPayment,
+      maxMonthlyPayment: maxMonthlyPayment,
     );
 
     widget.onApplyFilters(filter);
@@ -261,6 +300,10 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
       _hasRoof = false;
       _hasGarden = false;
       _selectedSortBy = null;
+      // Clear payment plan filters
+      _selectedPaymentDuration = null;
+      _minMonthlyPaymentController.clear();
+      _maxMonthlyPaymentController.clear();
     });
     _applyFiltersWithDebounce();
   }
@@ -286,6 +329,14 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
         ? null
         : double.tryParse(_maxPriceController.text);
 
+    // Monthly payment - use raw values (no multiplication)
+    final minMonthlyPayment = _minMonthlyPaymentController.text.isEmpty
+        ? null
+        : double.tryParse(_minMonthlyPaymentController.text);
+    final maxMonthlyPayment = _maxMonthlyPaymentController.text.isEmpty
+        ? null
+        : double.tryParse(_maxMonthlyPaymentController.text);
+
     final filter = SearchFilter(
       location: _selectedLocation,
       companyId: _selectedCompanyId,
@@ -301,6 +352,10 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
       hasRoof: _hasRoof ? true : null,
       hasGarden: _hasGarden ? true : null,
       sortBy: _selectedSortBy,
+      // Payment plan filters
+      paymentPlanDuration: _selectedPaymentDuration,
+      minMonthlyPayment: minMonthlyPayment,
+      maxMonthlyPayment: maxMonthlyPayment,
     );
 
     print('═══════════════════════════════════════════════');
@@ -318,6 +373,9 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
     print('[FILTER] Has Roof: ${filter.hasRoof}');
     print('[FILTER] Has Garden: ${filter.hasGarden}');
     print('[FILTER] Sort By: ${filter.sortBy}');
+    print('[FILTER] Payment Duration: ${filter.paymentPlanDuration}');
+    print('[FILTER] Min Monthly: ${filter.minMonthlyPayment}');
+    print('[FILTER] Max Monthly: ${filter.maxMonthlyPayment}');
     print('[FILTER] isEmpty: ${filter.isEmpty}');
     print('[FILTER] activeFiltersCount: ${filter.activeFiltersCount}');
     print('[FILTER] Query Parameters: ${filter.toQueryParameters()}');
@@ -653,6 +711,113 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
 
                   SizedBox(height: 24),
 
+                  // Payment Duration
+                  _buildSectionTitle('Payment Duration'),
+                  SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      // "All" option
+                      ChoiceChip(
+                        label: Text('All'),
+                        selected: _selectedPaymentDuration == null,
+                        onSelected: (selected) {
+                          setState(() {
+                            _selectedPaymentDuration = null;
+                          });
+                          _applyFiltersWithDebounce();
+                        },
+                        backgroundColor: Colors.grey.shade200,
+                        selectedColor: AppColors.mainColor.withOpacity(0.2),
+                        labelStyle: TextStyle(
+                          color: _selectedPaymentDuration == null
+                              ? AppColors.mainColor
+                              : Colors.black,
+                          fontWeight: _selectedPaymentDuration == null
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                      // Duration options
+                      ...paymentDurationOptions.map((duration) {
+                        final isSelected = _selectedPaymentDuration == duration;
+                        final label = duration == 0 ? 'Cash' : '$duration Years';
+                        return ChoiceChip(
+                          label: Text(label),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            setState(() {
+                              _selectedPaymentDuration = selected ? duration : null;
+                            });
+                            _applyFiltersWithDebounce();
+                          },
+                          backgroundColor: Colors.grey.shade200,
+                          selectedColor: AppColors.mainColor.withOpacity(0.2),
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? AppColors.mainColor
+                                : Colors.black,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        );
+                      }).toList(),
+                    ],
+                  ),
+
+                  SizedBox(height: 24),
+
+                  // Monthly Payment Range
+                  _buildSectionTitle('Monthly Payment (EGP)'),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _minMonthlyPaymentController,
+                          keyboardType: TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            hintText: 'Min (e.g., 10000)',
+                            labelText: 'Min',
+                            suffixText: 'EGP',
+                            prefixIcon: Icon(Icons.payments_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 16),
+                      Expanded(
+                        child: TextField(
+                          controller: _maxMonthlyPaymentController,
+                          keyboardType: TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            hintText: 'Max (e.g., 100000)',
+                            labelText: 'Max',
+                            suffixText: 'EGP',
+                            prefixIcon: Icon(Icons.payments_outlined),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  SizedBox(height: 24),
+
                   // Delivered From Date
                   _buildSectionTitle('Delivered From Date'),
                   SizedBox(height: 8),
@@ -891,7 +1056,36 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     contentPadding: EdgeInsets.zero,
                   ),
 
-                  SizedBox(height: 80),
+                  SizedBox(height: 24),
+
+                  // Apply Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _applyFiltersImmediately();
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.mainColor,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: Text(
+                        'Apply Filters',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 30),
                 ],
               ),
             ),

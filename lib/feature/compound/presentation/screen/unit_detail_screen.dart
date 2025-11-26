@@ -71,27 +71,13 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     print('[UNIT DETAIL] Unit ID: ${widget.unit.id}');
     print('[UNIT DETAIL] Note ID: ${widget.unit.noteId}');
     print('[UNIT DETAIL] Has active sale: ${widget.unit.hasActiveSale}');
-    print('[UNIT DETAIL] Unit originalPrice: ${widget.unit.originalPrice}');
-    print('[UNIT DETAIL] Unit normalPrice: ${widget.unit.normalPrice}');
-    print('[UNIT DETAIL] Unit price: ${widget.unit.price}');
-
-    // Check if unit has sale but missing price data
-    bool hasSale = widget.unit.hasActiveSale == true || widget.unit.sale != null;
-    bool missingPriceData = (widget.unit.originalPrice == null || widget.unit.originalPrice!.isEmpty) &&
-                             (widget.unit.normalPrice == null || widget.unit.normalPrice!.isEmpty) &&
-                             (widget.unit.price.isEmpty || widget.unit.price == '0');
-
-    print('[UNIT DETAIL] Has sale: $hasSale');
-    print('[UNIT DETAIL] Missing price data: $missingPriceData');
-
-    if (hasSale && missingPriceData) {
-      print('[UNIT DETAIL] Unit has sale but missing price data - refetching from API...');
-      _refetchUnitData();
-    } else {
-      print('[UNIT DETAIL] Unit data complete - proceeding normally');
-      _setupSale();
-    }
+    print('[UNIT DETAIL] Payment plans: ${widget.unit.paymentPlans?.length ?? 0}');
     print('[UNIT DETAIL] ========================================');
+
+    // Always fetch full unit data from API to get payment plans and complete data
+    // The list API doesn't include payment_plans, so we need to fetch by ID
+    print('[UNIT DETAIL] Fetching full unit details from API...');
+    _refetchUnitData();
 
     _startAutoSlide();
     _fetchSalesPeople();
@@ -102,6 +88,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     try {
       print('[UNIT DETAIL] Fetching complete unit data from API...');
       final unitData = await _unitWebServices.getUnitById(widget.unit.id);
+      print('[UNIT DETAIL] Payment plans in response: ${unitData['payment_plans']}');
+
       final refreshedUnit = Unit.fromJson(unitData);
 
       setState(() {
@@ -109,9 +97,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       });
 
       print('[UNIT DETAIL] ✓ Unit data refreshed');
-      print('[UNIT DETAIL] Refreshed originalPrice: ${refreshedUnit.originalPrice}');
-      print('[UNIT DETAIL] Refreshed normalPrice: ${refreshedUnit.normalPrice}');
-      print('[UNIT DETAIL] Refreshed price: ${refreshedUnit.price}');
+      print('[UNIT DETAIL] Refreshed payment plans count: ${refreshedUnit.paymentPlans?.length ?? 0}');
 
       _setupSale();
     } catch (e) {
@@ -144,11 +130,13 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   void _startAutoSlide() {
+    final unit = _currentUnit ?? widget.unit;
     // Only start auto-slide if there are multiple images
-    if (widget.unit.images.length > 1) {
+    if (unit.images.length > 1) {
       _autoSlideTimer = Timer.periodic(Duration(seconds: 4), (timer) {
         if (mounted) {
-          final nextIndex = (_currentImageIndex + 1) % widget.unit.images.length;
+          final currentUnit = _currentUnit ?? widget.unit;
+          final nextIndex = (_currentImageIndex + 1) % currentUnit.images.length;
           _imagePageController.animateToPage(
             nextIndex,
             duration: Duration(milliseconds: 500),
@@ -173,9 +161,10 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   String _calculatePricePerSqm() {
+    final unit = _currentUnit ?? widget.unit;
     try {
-      final numPrice = double.parse(widget.unit.price);
-      final numArea = double.parse(widget.unit.area);
+      final numPrice = double.parse(unit.price);
+      final numArea = double.parse(unit.area);
       if (numArea > 0) {
         return (numPrice / numArea).toStringAsFixed(2);
       }
@@ -201,7 +190,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Color _getStatusColor() {
-    final statusLower = widget.unit.status.toLowerCase();
+    final unit = _currentUnit ?? widget.unit;
+    final statusLower = unit.status.toLowerCase();
     // Handle both English and Arabic status values
     if (statusLower == 'available' || statusLower == 'متاح') {
       return Colors.green;
@@ -220,8 +210,9 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Future<void> _fetchSalesPeople() async {
+    final unit = _currentUnit ?? widget.unit;
     // Check if unit has companyId
-    if (widget.unit.companyId == null || widget.unit.companyId!.isEmpty) {
+    if (unit.companyId == null || unit.companyId!.isEmpty) {
       print('[UNIT DETAIL] No companyId available for this unit');
       return;
     }
@@ -233,7 +224,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     });
 
     try {
-      final companyData = await _companyWebServices.getCompanyById(widget.unit.companyId!);
+      final companyData = await _companyWebServices.getCompanyById(unit.companyId!);
 
       print('[UNIT DETAIL] Company data: $companyData');
 
@@ -417,9 +408,10 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Future<void> _showSalespeople() async {
+    final unit = _currentUnit ?? widget.unit;
     try {
       // Use compound ID as the search parameter since we don't have compound name in Unit model
-      final response = await _compoundWebServices.getSalespeopleByCompound(widget.unit.compoundId);
+      final response = await _compoundWebServices.getSalespeopleByCompound(unit.compoundId);
 
       if (response['success'] == true && response['salespeople'] != null) {
         final salespeople = (response['salespeople'] as List)
@@ -451,19 +443,21 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   void _shareUnit() {
+    final unit = _currentUnit ?? widget.unit;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => AdvancedShareBottomSheet(
         type: 'unit',
-        id: widget.unit.id,
+        id: unit.id,
       ),
     );
   }
 
   void _callNow() async {
-    final phone = widget.unit.salesNumber ?? '';
+    final unit = _currentUnit ?? widget.unit;
+    final phone = unit.salesNumber ?? '';
     if (phone.isNotEmpty) {
       final uri = Uri.parse('tel:$phone');
       if (await canLaunchUrl(uri)) {
@@ -475,7 +469,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   void _openWhatsApp() async {
-    final phone = widget.unit.salesNumber ?? '';
+    final unit = _currentUnit ?? widget.unit;
+    final phone = unit.salesNumber ?? '';
     if (phone.isNotEmpty) {
       final uri = Uri.parse('https://wa.me/$phone');
       if (await canLaunchUrl(uri)) {
@@ -489,7 +484,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final hasImages = widget.unit.images.isNotEmpty;
+    final unit = _currentUnit ?? widget.unit;
+    final hasImages = unit.images.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -511,7 +507,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
             builder: (context, state) {
               bool isFavorite = false;
               if (state is UnitFavoriteUpdated) {
-                isFavorite = state.favorites.any((u) => u.id == widget.unit.id);
+                isFavorite = state.favorites.any((u) => u.id == unit.id);
               }
               return IconButton(
                 icon: Icon(
@@ -521,11 +517,11 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                 onPressed: () {
                   if (isFavorite) {
                     context.read<UnitFavoriteBloc>().add(
-                      RemoveFavoriteUnit(widget.unit),
+                      RemoveFavoriteUnit(unit),
                     );
                   } else {
                     context.read<UnitFavoriteBloc>().add(
-                      AddFavoriteUnit(widget.unit),
+                      AddFavoriteUnit(unit),
                     );
                   }
                 },
@@ -604,6 +600,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       );
     }
 
+    final unit = _currentUnit ?? widget.unit;
+
     return Column(
       children: [
         Container(
@@ -613,13 +611,13 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
               // Open zoomable image viewer
               ZoomableImageViewer.show(
                 context,
-                images: widget.unit.images,
+                images: unit.images,
                 initialIndex: _currentImageIndex,
               );
             },
             child: PageView.builder(
               controller: _imagePageController,
-              itemCount: widget.unit.images.length,
+              itemCount: unit.images.length,
               onPageChanged: (index) {
                 setState(() {
                   _currentImageIndex = index;
@@ -627,7 +625,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
               },
               itemBuilder: (context, index) {
                 return RobustNetworkImage(
-                  imageUrl: widget.unit.images[index],
+                  imageUrl: unit.images[index],
                   fit: BoxFit.cover,
                 loadingBuilder: (context) => Container(
                   color: Colors.grey.shade200,
@@ -647,13 +645,13 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           ),
         ),
         // Dot Indicators - Now under the image
-        if (widget.unit.images.length > 1)
+        if (unit.images.length > 1)
           Padding(
             padding: EdgeInsets.only(top: 12, bottom: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                widget.unit.images.length,
+                unit.images.length,
                 (index) => AnimatedContainer(
                   duration: Duration(milliseconds: 300),
                   margin: EdgeInsets.symmetric(horizontal: 4),
@@ -674,6 +672,9 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Widget _buildUnitHeader(AppLocalizations l10n) {
+    // Use refreshed unit data from API if available, fallback to widget.unit
+    final unit = _currentUnit ?? widget.unit;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -681,7 +682,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           children: [
             Expanded(
               child: CustomText24(
-                widget.unit.unitNumber ?? 'Unit ${widget.unit.id}',
+                unit.unitNumber ?? 'Unit ${unit.id}',
                 bold: true,
                 color: Colors.black,
               ),
@@ -693,7 +694,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                 borderRadius: BorderRadius.circular(20),
               ),
               child: CustomText14(
-                widget.unit.status.toUpperCase(),
+                unit.status.toUpperCase(),
                 bold: true,
                 color: Colors.white,
               ),
@@ -701,9 +702,16 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           ],
         ),
         SizedBox(height: 4),
-        if (widget.unit.companyName != null && widget.unit.companyName!.isNotEmpty)
+        // Show compound name
+        if (unit.compoundName != null && unit.compoundName!.isNotEmpty)
           CustomText16(
-            widget.unit.companyName!,
+            unit.compoundName!,
+            color: AppColors.greyText,
+          ),
+        // Show company name
+        if (unit.companyName != null && unit.companyName!.isNotEmpty)
+          CustomText14(
+            unit.companyName!,
             color: AppColors.greyText,
           ),
         SizedBox(height: 12),
@@ -742,9 +750,9 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           ),
         ] else ...[
           // Check if price is 0 or empty
-          if (widget.unit.price != null && widget.unit.price != '0' && widget.unit.price.isNotEmpty)
+          if (unit.price != '0' && unit.price.isNotEmpty)
             CustomText32(
-              'EGP ${_formatPrice(widget.unit.price)}',
+              'EGP ${_formatPrice(unit.price)}',
               bold: true,
               color: AppColors.mainColor,
             )
@@ -756,9 +764,9 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
             ),
         ],
         // Only show price per sqm if both price and area are not 0
-        if (widget.unit.price != null && widget.unit.price != '0' &&
-            widget.unit.area != null && widget.unit.area != '0' &&
-            widget.unit.price.isNotEmpty && widget.unit.area.isNotEmpty)
+        if (unit.price != '0' &&
+            unit.area != '0' &&
+            unit.price.isNotEmpty && unit.area.isNotEmpty)
           CustomText14(
             'EGP ${_calculatePricePerSqm()} ${l10n.perSqm}',
             color: AppColors.greyText,
@@ -768,6 +776,9 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Widget _buildStatsRow(AppLocalizations l10n) {
+    // Use refreshed unit data from API if available, fallback to widget.unit
+    final unit = _currentUnit ?? widget.unit;
+
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -789,21 +800,21 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _buildStatItem(
-            widget.unit.area != null && widget.unit.area != '0' && widget.unit.area.isNotEmpty
-                ? widget.unit.area : '-',
+            unit.area != '0' && unit.area.isNotEmpty
+                ? unit.area : '-',
             l10n.sqm,
           ),
           Container(width: 1, height: 30, color: AppColors.mainColor.withOpacity(0.3)),
           _buildStatItem(
-            widget.unit.bedrooms != null && widget.unit.bedrooms != '0' && widget.unit.bedrooms.isNotEmpty
-                ? widget.unit.bedrooms : '-',
+            unit.bedrooms != '0' && unit.bedrooms.isNotEmpty
+                ? unit.bedrooms : '-',
             l10n.bedrooms,
             icon: Icons.bed_outlined,
           ),
           Container(width: 1, height: 30, color: AppColors.mainColor.withOpacity(0.3)),
           _buildStatItem(
-            widget.unit.bathrooms != null && widget.unit.bathrooms != '0' && widget.unit.bathrooms.isNotEmpty
-                ? widget.unit.bathrooms : '-',
+            unit.bathrooms != '0' && unit.bathrooms.isNotEmpty
+                ? unit.bathrooms : '-',
             l10n.bathrooms,
             icon: Icons.bathtub_outlined,
           ),
@@ -911,19 +922,22 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Widget _buildDetailsTab(AppLocalizations l10n) {
+    // Use refreshed unit data from API if available, fallback to widget.unit
+    final unit = _currentUnit ?? widget.unit;
+
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Property Specifications - Show all fields even if null
-          _buildSpecRow(l10n.unitCode, widget.unit.code ?? widget.unit.unitNumber ?? 'N/A'),
-          _buildSpecRow(l10n.unitType, widget.unit.unitType ?? 'N/A'),
-          _buildSpecRow(l10n.usageType, widget.unit.usageType ?? 'N/A'),
-          _buildSpecRow(l10n.compound, widget.unit.compoundName ?? widget.unit.compoundId ?? 'N/A'),
-          _buildSpecRow(l10n.status, widget.unit.status ?? 'N/A'),
-          _buildSpecRow(l10n.available, widget.unit.available != null ? (widget.unit.available! ? l10n.yes : l10n.no) : 'N/A'),
+          _buildSpecRow(l10n.unitCode, unit.code ?? unit.unitNumber ?? 'N/A'),
+          _buildSpecRow(l10n.unitType, unit.unitType ?? 'N/A'),
+          _buildSpecRow(l10n.usageType, unit.usageType ?? 'N/A'),
+          _buildSpecRow(l10n.compound, unit.compoundName ?? unit.compoundId ?? 'N/A'),
+          _buildSpecRow(l10n.status, unit.status ?? 'N/A'),
+          _buildSpecRow(l10n.available, unit.available != null ? (unit.available! ? l10n.yes : l10n.no) : 'N/A'),
           // Update Notes - Show if unit was recently updated
-          if (widget.unit.notes != null && widget.unit.notes!.isNotEmpty)
+          if (unit.notes != null && unit.notes!.isNotEmpty)
             Container(
               margin: EdgeInsets.only(bottom: 12),
               padding: EdgeInsets.all(12),
@@ -950,7 +964,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                         ),
                         SizedBox(height: 4),
                         Text(
-                          widget.unit.notes!,
+                          unit.notes!,
                           style: TextStyle(
                             fontSize: 13,
                             color: Colors.black,
@@ -963,21 +977,21 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
               ),
             ),
           _buildSpecRow(l10n.saleType, 'Resale'),
-          _buildSpecRow(l10n.finishing, widget.unit.finishing ?? 'N/A'),
-          _buildSpecRow(l10n.deliveryDate, widget.unit.deliveryDate != null && widget.unit.deliveryDate!.isNotEmpty
-            ? _formatDate(widget.unit.deliveryDate!) : 'N/A'),
-          _buildSpecRow(l10n.builtUpArea, widget.unit.builtUpArea != null
-            ? '${widget.unit.builtUpArea} ${l10n.sqm}'
-            : (widget.unit.area != '0' ? '${widget.unit.area} ${l10n.sqm}' : 'N/A')),
-          _buildSpecRow(l10n.totalArea, widget.unit.area != '0' ? '${widget.unit.area} ${l10n.sqm}' : 'N/A'),
-          _buildSpecRow(l10n.landArea, widget.unit.landArea != null
-            ? '${widget.unit.landArea} ${l10n.sqm}'
-            : (widget.unit.gardenArea != null && widget.unit.gardenArea != '0' ? '${widget.unit.gardenArea} ${l10n.sqm}' : 'N/A')),
-          _buildSpecRow(l10n.gardenArea, widget.unit.gardenArea != null && widget.unit.gardenArea != '0' ? '${widget.unit.gardenArea} ${l10n.sqm}' : 'N/A'),
-          _buildSpecRow(l10n.roofArea, widget.unit.roofArea != null && widget.unit.roofArea != '0' ? '${widget.unit.roofArea} ${l10n.sqm}' : 'N/A'),
-          _buildSpecRow(l10n.floor, widget.unit.floor != '0' ? widget.unit.floor : 'N/A'),
-          _buildSpecRow(l10n.building, widget.unit.buildingName ?? 'N/A'),
-          _buildSpecRow(l10n.company, widget.unit.companyName ?? 'N/A'),
+          _buildSpecRow(l10n.finishing, unit.finishing ?? 'N/A'),
+          _buildSpecRow(l10n.deliveryDate, unit.deliveryDate != null && unit.deliveryDate!.isNotEmpty
+            ? _formatDate(unit.deliveryDate!) : 'N/A'),
+          _buildSpecRow(l10n.builtUpArea, unit.builtUpArea != null
+            ? '${unit.builtUpArea} ${l10n.sqm}'
+            : (unit.area != '0' ? '${unit.area} ${l10n.sqm}' : 'N/A')),
+          _buildSpecRow(l10n.totalArea, unit.area != '0' ? '${unit.area} ${l10n.sqm}' : 'N/A'),
+          _buildSpecRow(l10n.landArea, unit.landArea != null
+            ? '${unit.landArea} ${l10n.sqm}'
+            : (unit.gardenArea != null && unit.gardenArea != '0' ? '${unit.gardenArea} ${l10n.sqm}' : 'N/A')),
+          _buildSpecRow(l10n.gardenArea, unit.gardenArea != null && unit.gardenArea != '0' ? '${unit.gardenArea} ${l10n.sqm}' : 'N/A'),
+          _buildSpecRow(l10n.roofArea, unit.roofArea != null && unit.roofArea != '0' ? '${unit.roofArea} ${l10n.sqm}' : 'N/A'),
+          _buildSpecRow(l10n.floor, unit.floor != '0' ? unit.floor : 'N/A'),
+          _buildSpecRow(l10n.building, unit.buildingName ?? 'N/A'),
+          _buildSpecRow(l10n.company, unit.companyName ?? 'N/A'),
         ],
       ),
     );
@@ -1009,7 +1023,9 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
 
   Widget _buildGalleryTab() {
     final l10n = AppLocalizations.of(context)!;
-    if (widget.unit.images.isEmpty) {
+    final unit = _currentUnit ?? widget.unit;
+
+    if (unit.images.isEmpty) {
       return Center(
         child: CustomText16(l10n.noImagesAvailable, color: AppColors.grey),
       );
@@ -1022,21 +1038,21 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
-      itemCount: widget.unit.images.length,
+      itemCount: unit.images.length,
       itemBuilder: (context, index) {
         return GestureDetector(
           onTap: () {
             // Open zoomable image viewer
             ZoomableImageViewer.show(
               context,
-              images: widget.unit.images,
+              images: unit.images,
               initialIndex: index,
             );
           },
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: RobustNetworkImage(
-              imageUrl: widget.unit.images[index],
+              imageUrl: unit.images[index],
               fit: BoxFit.cover,
               errorBuilder: (context, url) => Container(
                 color: Colors.grey.shade200,
@@ -1335,57 +1351,297 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Widget _buildPaymentPlansTab(AppLocalizations l10n) {
+    final paymentPlans = _currentUnit?.paymentPlans;
+
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CustomText20(
-            l10n.paymentPlans,
-            bold: true,
-            color: Colors.black,
+          // Header
+          Row(
+            children: [
+              Icon(Icons.account_balance_wallet, size: 22, color: AppColors.mainColor),
+              SizedBox(width: 10),
+              CustomText20(
+                l10n.paymentPlans,
+                bold: true,
+                color: Colors.black,
+              ),
+            ],
           ),
-          SizedBox(height: 12),
-          Container(
-            padding: EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade50,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade300),
+          SizedBox(height: 16),
+
+          // Payment Plans List
+          if (paymentPlans != null && paymentPlans.isNotEmpty)
+            ...paymentPlans.map((plan) => _buildPaymentPlanCard(plan, l10n)).toList()
+          else
+            // Fallback: Show basic cash option if no payment plans from API
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.payments, color: AppColors.mainColor),
+                      SizedBox(width: 8),
+                      CustomText18('Cash', bold: true, color: Colors.black),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  CustomText24(
+                    'EGP ${_formatPrice(_currentUnit?.price ?? widget.unit.price)}',
+                    bold: true,
+                    color: AppColors.mainColor,
+                  ),
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 16),
+                      SizedBox(width: 4),
+                      CustomText14(
+                        l10n.noMortgageAvailable,
+                        color: Colors.green,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.payments, color: AppColors.mainColor),
-                    SizedBox(width: 8),
-                    CustomText18('Cash', bold: true, color: Colors.black),
-                  ],
-                ),
-                SizedBox(height: 8),
-                CustomText24(
-                  'EGP ${_formatPrice(widget.unit.price)}',
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentPlanCard(PaymentPlan plan, AppLocalizations l10n) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.mainColor.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Plan Name Header
+          Row(
+            children: [
+              Icon(Icons.bookmark, size: 20, color: AppColors.mainColor),
+              SizedBox(width: 8),
+              Expanded(
+                child: CustomText18(
+                  plan.planName ?? l10n.paymentPlan,
                   bold: true,
                   color: AppColors.mainColor,
                 ),
-                SizedBox(height: 4),
-                Row(
-                  children: [
-                    Icon(Icons.check_circle, color: Colors.green, size: 16),
-                    SizedBox(width: 4),
-                    CustomText14(
-                      l10n.noMortgageAvailable,
-                      color: Colors.green,
-                    ),
-                  ],
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          Divider(height: 1, color: Colors.grey.shade300),
+          SizedBox(height: 12),
+
+          // Price and Duration Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildPaymentInfoColumn(
+                  Icons.monetization_on_outlined,
+                  l10n.totalPrice,
+                  plan.unitTotalWithFinishPrice != null && plan.unitTotalWithFinishPrice != '0'
+                      ? 'EGP ${_formatPrice(plan.unitTotalWithFinishPrice!)}'
+                      : plan.price != null && plan.price != '0'
+                          ? 'EGP ${_formatPrice(plan.price!)}'
+                          : '-',
                 ),
+              ),
+              Expanded(
+                child: _buildPaymentInfoColumn(
+                  Icons.calendar_today_outlined,
+                  l10n.duration,
+                  plan.durationYears != null && plan.durationYears != '0'
+                      ? '${plan.durationYears} ${l10n.years}'
+                      : '-',
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+
+          // Down Payment Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildPaymentInfoColumn(
+                  Icons.savings_outlined,
+                  l10n.downPayment,
+                  plan.downPaymentAmount != null && plan.downPaymentAmount != '0'
+                      ? 'EGP ${_formatPrice(plan.downPaymentAmount!)}'
+                      : '-',
+                ),
+              ),
+              Expanded(
+                child: _buildPaymentInfoColumn(
+                  Icons.percent_outlined,
+                  l10n.downPaymentPercentage,
+                  plan.downPaymentPercentage != null && plan.downPaymentPercentage != '0'
+                      ? '${plan.downPaymentPercentage}%'
+                      : '-',
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+
+          // Installments Row
+          Row(
+            children: [
+              Expanded(
+                child: _buildPaymentInfoColumn(
+                  Icons.event_repeat_outlined,
+                  l10n.monthlyInstallment,
+                  plan.monthlyInstallment != null && plan.monthlyInstallment != '0'
+                      ? 'EGP ${_formatPrice(plan.monthlyInstallment!)}'
+                      : '-',
+                ),
+              ),
+              Expanded(
+                child: _buildPaymentInfoColumn(
+                  Icons.date_range_outlined,
+                  l10n.quarterlyInstallment,
+                  plan.quarterlyInstallment != null && plan.quarterlyInstallment != '0'
+                      ? 'EGP ${_formatPrice(plan.quarterlyInstallment!)}'
+                      : '-',
+                ),
+              ),
+            ],
+          ),
+
+          // Additional Info Chips (Delivery, Finishing, Area)
+          if ((plan.deliveryDate != null && plan.deliveryDate!.isNotEmpty) ||
+              (plan.finishingType != null && plan.finishingType!.isNotEmpty) ||
+              (plan.totalArea != null && plan.totalArea != '0')) ...[
+            SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (plan.deliveryDate != null && plan.deliveryDate!.isNotEmpty)
+                  _buildInfoChip(Icons.event_available, l10n.deliveryDate, _formatDeliveryDate(plan.deliveryDate!)),
+                if (plan.finishingType != null && plan.finishingType!.isNotEmpty)
+                  _buildInfoChip(Icons.home_repair_service, l10n.finishingType, plan.finishingType!),
+                if (plan.totalArea != null && plan.totalArea != '0')
+                  _buildInfoChip(Icons.square_foot, l10n.totalArea, '${plan.totalArea} ${l10n.sqm}'),
               ],
+            ),
+          ],
+
+          // Additional Fees Section
+          if ((plan.maintenanceDeposit != null && plan.maintenanceDeposit != '0') ||
+              (plan.clubMembership != null && plan.clubMembership != '0') ||
+              (plan.garagePrice != null && plan.garagePrice != '0')) ...[
+            SizedBox(height: 12),
+            Divider(height: 1, color: Colors.grey.shade300),
+            SizedBox(height: 12),
+            Text(
+              l10n.additionalFees,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey.shade700,
+              ),
+            ),
+            SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (plan.maintenanceDeposit != null && plan.maintenanceDeposit != '0')
+                  _buildInfoChip(Icons.build_outlined, l10n.maintenanceDeposit, 'EGP ${_formatPrice(plan.maintenanceDeposit!)}'),
+                if (plan.clubMembership != null && plan.clubMembership != '0')
+                  _buildInfoChip(Icons.sports_tennis, l10n.clubMembership, 'EGP ${_formatPrice(plan.clubMembership!)}'),
+                if (plan.garagePrice != null && plan.garagePrice != '0')
+                  _buildInfoChip(Icons.garage_outlined, l10n.garagePrice, 'EGP ${_formatPrice(plan.garagePrice!)}'),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentInfoColumn(IconData icon, String label, String value) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: Colors.grey.shade600),
+            SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
+        SizedBox(height: 4),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF333333),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String label, String value) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.mainColor.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.mainColor),
+          SizedBox(width: 6),
+          Text(
+            '$label: ',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.mainColor,
             ),
           ),
         ],
       ),
     );
+  }
+
+  String _formatDeliveryDate(String dateString) {
+    try {
+      final date = DateTime.parse(dateString);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return dateString;
+    }
   }
 
   // Sales People Section
@@ -1555,6 +1811,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Widget _buildPaymentPlans(AppLocalizations l10n) {
+    final unit = _currentUnit ?? widget.unit;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1583,7 +1841,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
               ),
               SizedBox(height: 8),
               CustomText24(
-                'EGP ${_formatPrice(widget.unit.price)}',
+                'EGP ${_formatPrice(unit.price)}',
                 bold: true,
                 color: AppColors.mainColor,
               ),

@@ -80,6 +80,12 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   bool _hasGarden = false;
   String? _selectedSortBy;
 
+  // Payment plan filter state variables
+  int? _selectedPaymentDuration;
+  final TextEditingController _minMonthlyPaymentController = TextEditingController();
+  final TextEditingController _maxMonthlyPaymentController = TextEditingController();
+  final List<int> paymentDurationOptions = [0, 5, 7, 10]; // 0 = Cash
+
   final List<String> propertyTypes = ['Villa', 'Apartment', 'Studio', 'Duplex', 'Penthouse'];
   final List<int> bedroomOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9];
   final List<String> finishingOptions = ['Finished', 'Semi-Finished', 'Core & Shell'];
@@ -146,6 +152,8 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     _scrollController.dispose();
     _minPriceController.dispose();
     _maxPriceController.dispose();
+    _minMonthlyPaymentController.dispose();
+    _maxMonthlyPaymentController.dispose();
     _searchBloc.close();
     super.dispose();
   }
@@ -227,6 +235,14 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
           ? null
           : double.tryParse(_maxPriceController.text);
 
+      // Monthly payment - use raw values (no multiplication)
+      final minMonthlyPayment = _minMonthlyPaymentController.text.isEmpty
+          ? null
+          : double.tryParse(_minMonthlyPaymentController.text);
+      final maxMonthlyPayment = _maxMonthlyPaymentController.text.isEmpty
+          ? null
+          : double.tryParse(_maxMonthlyPaymentController.text);
+
       setState(() {
         _currentFilter = SearchFilter(
           location: _selectedLocation,
@@ -247,6 +263,10 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
           hasRoof: _hasRoof,
           hasGarden: _hasGarden,
           sortBy: _selectedSortBy,
+          // Payment plan filters
+          paymentPlanDuration: _selectedPaymentDuration,
+          minMonthlyPayment: minMonthlyPayment,
+          maxMonthlyPayment: maxMonthlyPayment,
         );
       });
 
@@ -270,6 +290,10 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
       _hasRoof = false;
       _hasGarden = false;
       _selectedSortBy = null;
+      // Clear payment plan filters
+      _selectedPaymentDuration = null;
+      _minMonthlyPaymentController.clear();
+      _maxMonthlyPaymentController.clear();
       _currentFilter = SearchFilter.empty();
       _showSearchResults = false;
       _showSearchHistory = false;
@@ -1269,6 +1293,117 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             const SizedBox(height: 12),
 
+            // Payment Plan Duration Filter
+            _buildFilterCard(
+              title: l10n.paymentDuration,
+              icon: Icons.calendar_month,
+              child: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  // All Durations option
+                  ChoiceChip(
+                    label: Text(l10n.allDurations, style: const TextStyle(fontSize: 11)),
+                    selected: _selectedPaymentDuration == null,
+                    onSelected: (selected) {
+                      setState(() {
+                        _selectedPaymentDuration = null;
+                      });
+                      _applyFilters();
+                    },
+                    backgroundColor: Colors.grey.shade200,
+                    selectedColor: AppColors.mainColor.withOpacity(0.2),
+                    labelStyle: TextStyle(
+                      color: _selectedPaymentDuration == null ? AppColors.mainColor : Colors.black,
+                      fontWeight: _selectedPaymentDuration == null ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  ),
+                  // Duration options
+                  ...paymentDurationOptions.map((duration) {
+                    final isSelected = _selectedPaymentDuration == duration;
+                    final label = duration == 0 ? l10n.cashOnly : '$duration ${l10n.years}';
+                    return ChoiceChip(
+                      label: Text(label, style: const TextStyle(fontSize: 11)),
+                      selected: isSelected,
+                      onSelected: (selected) {
+                        setState(() {
+                          _selectedPaymentDuration = selected ? duration : null;
+                        });
+                        _applyFilters();
+                      },
+                      backgroundColor: Colors.grey.shade200,
+                      selectedColor: AppColors.mainColor.withOpacity(0.2),
+                      labelStyle: TextStyle(
+                        color: isSelected ? AppColors.mainColor : Colors.black,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // Monthly Payment Range Filter
+            _buildFilterCard(
+              title: l10n.monthlyPaymentRange,
+              icon: Icons.payments,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _minMonthlyPaymentController,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        hintText: l10n.minMonthly,
+                        suffixText: 'EGP',
+                        hintStyle: TextStyle(fontSize: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 10,
+                        ),
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      onChanged: (value) => _applyFilters(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _maxMonthlyPaymentController,
+                      keyboardType: TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        hintText: l10n.maxMonthly,
+                        suffixText: 'EGP',
+                        hintStyle: TextStyle(fontSize: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 10,
+                        ),
+                        isDense: true,
+                        filled: true,
+                        fillColor: Colors.white,
+                      ),
+                      onChanged: (value) => _applyFilters(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
             // Sort By Card
             _buildFilterCard(
               title: l10n.sortBy,
@@ -1424,18 +1559,19 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     return BlocConsumer<CompoundBloc, CompoundState>(
       listener: (context, state) {
         if (state is CompoundSuccess) {
-          setState(() {
-            if (_currentPage == 1) {
-              // First page - replace all compounds
-              _allCompounds = List.from(state.response.data);
-            } else {
-              // Subsequent pages - append new compounds
-              _allCompounds.addAll(state.response.data);
-            }
+          // Update data immediately
+          _allCompounds = List.from(state.response.data);
+          _hasMorePages = state.response.page < state.response.totalPages;
 
-            // Check if there are more pages
-            _hasMorePages = state.response.page < state.response.totalPages;
-            _isLoadingMore = false;
+          print('[WEB COMPOUNDS] Page ${state.response.page}/${state.response.totalPages}: Loaded ${_allCompounds.length}/${state.response.total} compounds');
+
+          // Reset loading indicator after frame completes (so it shows during loading)
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _isLoadingMore = false;
+              });
+            }
           });
         } else if (state is CompoundError) {
           setState(() {

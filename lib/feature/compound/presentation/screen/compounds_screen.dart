@@ -59,9 +59,9 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
   bool _showAllCompounds = false;
   bool _showAllUnits = false;
 
-  // Pagination (matching web for faster performance)
+  // Pagination settings
   int _currentPage = 1;
-  final int _itemsPerPage = 10; // Reduced from 50 to 10 for faster loading like web
+  final int _itemsPerPage = 20; // Load 20 items per page
   bool _isLoadingMore = false;
   bool _hasMoreData = true;
 
@@ -676,9 +676,26 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
             // Compounds List (shown when not searching)
             else ...[
               Expanded(
-                child: BlocBuilder<CompoundBloc, CompoundState>(
+                child: BlocConsumer<CompoundBloc, CompoundState>(
+                  listener: (context, state) {
+                    if (state is CompoundSuccess) {
+                      // Update pagination state in listener (runs after build)
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (mounted) {
+                          setState(() {
+                            _isLoadingMore = false;
+                            _hasMoreData = state.response.page < state.response.totalPages;
+                          });
+                        }
+                      });
+                    } else if (state is CompoundError) {
+                      setState(() {
+                        _isLoadingMore = false;
+                      });
+                    }
+                  },
                   builder: (context, state) {
-                    if (state is CompoundLoading) {
+                    if (state is CompoundLoading && _currentPage == 1) {
                       return Center(child: CustomLoadingDots(size: 80));
                     }
 
@@ -710,12 +727,6 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
 
                     if (state is CompoundSuccess) {
                       final allCompounds = state.response.data;
-
-                      // Update pagination state directly without setState to avoid rebuilds
-                      if (_isLoadingMore) {
-                        _isLoadingMore = false;
-                        _hasMoreData = allCompounds.length >= _currentPage * _itemsPerPage;
-                      }
 
                       if (allCompounds.isEmpty) {
                         return Center(
@@ -894,7 +905,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
             tabs: [
               Tab(
                 icon: Icon(Icons.home_work, size: 15),
-                text: 'Units (${units.length})',
+                text: 'Units (${response.totalResults})',
               ),
               Tab(
                 icon: Icon(Icons.apartment, size: 15),
@@ -966,35 +977,82 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
             },
           ),
 
-          // Load more button if there are more pages
-          if (searchState is SearchSuccess && searchState.hasMorePages)
+          // Pagination controls
+          if (searchState is SearchSuccess && searchState.totalPages > 1)
             Padding(
               padding: EdgeInsets.symmetric(vertical: 16),
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _searchBloc.add(
-                    LoadMoreSearchResultsEvent(
-                      query: _searchController.text,
-                      filter: _currentFilter,
-                      page: searchState.currentPage + 1,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Previous button
+                  IconButton(
+                    onPressed: searchState.currentPage > 1
+                        ? () {
+                            _searchBloc.add(
+                              SearchQueryEvent(
+                                query: _searchController.text,
+                                filter: _currentFilter,
+                                page: searchState.currentPage - 1,
+                              ),
+                            );
+                          }
+                        : null,
+                    icon: Icon(Icons.chevron_left),
+                    style: IconButton.styleFrom(
+                      backgroundColor: searchState.currentPage > 1
+                          ? AppColors.mainColor
+                          : Colors.grey.shade300,
+                      foregroundColor: searchState.currentPage > 1
+                          ? Colors.white
+                          : Colors.grey,
                     ),
-                  );
-                },
-                icon: Icon(Icons.refresh, size: 18),
-                label: Text('Load More (${response.totalResults - units.length} remaining)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.mainColor,
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
+                  SizedBox(width: 8),
+                  // Page indicator
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${searchState.currentPage} / ${searchState.totalPages}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  // Next button
+                  IconButton(
+                    onPressed: searchState.hasMorePages
+                        ? () {
+                            _searchBloc.add(
+                              SearchQueryEvent(
+                                query: _searchController.text,
+                                filter: _currentFilter,
+                                page: searchState.currentPage + 1,
+                              ),
+                            );
+                          }
+                        : null,
+                    icon: Icon(Icons.chevron_right),
+                    style: IconButton.styleFrom(
+                      backgroundColor: searchState.hasMorePages
+                          ? AppColors.mainColor
+                          : Colors.grey.shade300,
+                      foregroundColor: searchState.hasMorePages
+                          ? Colors.white
+                          : Colors.grey,
+                    ),
+                  ),
+                ],
               ),
             ),
 
-          // Loading indicator when loading more
-          if (searchState is SearchLoadingMore)
+          // Loading indicator when loading
+          if (searchState is SearchLoading)
             Padding(
               padding: EdgeInsets.all(16),
               child: Center(child: CustomLoadingDots(size: 60)),

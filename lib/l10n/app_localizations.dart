@@ -2689,6 +2689,144 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Start AI Comparison Chat'**
   String get startAIComparisonChat;
+
+  /// No description provided for @paymentPlan.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Plan'**
+  String get paymentPlan;
+
+  /// No description provided for @totalPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Price'**
+  String get totalPrice;
+
+  /// No description provided for @duration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get duration;
+
+  /// No description provided for @years.
+  ///
+  /// In en, this message translates to:
+  /// **'Years'**
+  String get years;
+
+  /// No description provided for @downPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Down Payment'**
+  String get downPayment;
+
+  /// No description provided for @downPaymentPercentage.
+  ///
+  /// In en, this message translates to:
+  /// **'Down Payment %'**
+  String get downPaymentPercentage;
+
+  /// No description provided for @monthlyInstallment.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly Installment'**
+  String get monthlyInstallment;
+
+  /// No description provided for @quarterlyInstallment.
+  ///
+  /// In en, this message translates to:
+  /// **'Quarterly Installment'**
+  String get quarterlyInstallment;
+
+  /// No description provided for @finishingType.
+  ///
+  /// In en, this message translates to:
+  /// **'Finishing Type'**
+  String get finishingType;
+
+  /// No description provided for @maintenanceDeposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Maintenance Deposit'**
+  String get maintenanceDeposit;
+
+  /// No description provided for @clubMembership.
+  ///
+  /// In en, this message translates to:
+  /// **'Club Membership'**
+  String get clubMembership;
+
+  /// No description provided for @garagePrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Garage Price'**
+  String get garagePrice;
+
+  /// No description provided for @additionalFees.
+  ///
+  /// In en, this message translates to:
+  /// **'Additional Fees'**
+  String get additionalFees;
+
+  /// No description provided for @paymentPlanFilters.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Plan Filters'**
+  String get paymentPlanFilters;
+
+  /// No description provided for @paymentDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment Duration'**
+  String get paymentDuration;
+
+  /// No description provided for @selectDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Select Duration'**
+  String get selectDuration;
+
+  /// No description provided for @cashOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash Only'**
+  String get cashOnly;
+
+  /// No description provided for @yearsInstallment.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} Years'**
+  String yearsInstallment(Object count);
+
+  /// No description provided for @monthlyPaymentRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly Payment Range'**
+  String get monthlyPaymentRange;
+
+  /// No description provided for @minMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Min Monthly'**
+  String get minMonthly;
+
+  /// No description provided for @maxMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Max Monthly'**
+  String get maxMonthly;
+
+  /// No description provided for @thousandEgp.
+  ///
+  /// In en, this message translates to:
+  /// **'K EGP'**
+  String get thousandEgp;
+
+  /// No description provided for @allDurations.
+  ///
+  /// In en, this message translates to:
+  /// **'All Durations'**
+  String get allDurations;
 }
 
 class _AppLocalizationsDelegate

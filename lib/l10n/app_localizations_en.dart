@@ -1368,4 +1368,75 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get startAIComparisonChat => 'Start AI Comparison Chat';
+
+  @override
+  String get paymentPlan => 'Payment Plan';
+
+  @override
+  String get totalPrice => 'Total Price';
+
+  @override
+  String get duration => 'Duration';
+
+  @override
+  String get years => 'Years';
+
+  @override
+  String get downPayment => 'Down Payment';
+
+  @override
+  String get downPaymentPercentage => 'Down Payment %';
+
+  @override
+  String get monthlyInstallment => 'Monthly Installment';
+
+  @override
+  String get quarterlyInstallment => 'Quarterly Installment';
+
+  @override
+  String get finishingType => 'Finishing Type';
+
+  @override
+  String get maintenanceDeposit => 'Maintenance Deposit';
+
+  @override
+  String get clubMembership => 'Club Membership';
+
+  @override
+  String get garagePrice => 'Garage Price';
+
+  @override
+  String get additionalFees => 'Additional Fees';
+
+  @override
+  String get paymentPlanFilters => 'Payment Plan Filters';
+
+  @override
+  String get paymentDuration => 'Payment Duration';
+
+  @override
+  String get selectDuration => 'Select Duration';
+
+  @override
+  String get cashOnly => 'Cash Only';
+
+  @override
+  String yearsInstallment(Object count) {
+    return '$count Years';
+  }
+
+  @override
+  String get monthlyPaymentRange => 'Monthly Payment Range';
+
+  @override
+  String get minMonthly => 'Min Monthly';
+
+  @override
+  String get maxMonthly => 'Max Monthly';
+
+  @override
+  String get thousandEgp => 'K EGP';
+
+  @override
+  String get allDurations => 'All Durations';
 }

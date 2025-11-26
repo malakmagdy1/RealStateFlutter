@@ -50,6 +50,16 @@ class SearchFilter {
   final String? usageType;
   final String? search;
 
+  // Payment plan filter parameters
+  final int? paymentPlanDuration; // 0 for cash, 5, 7 years etc
+  final double? minMonthlyPayment;
+  final double? maxMonthlyPayment;
+  final double? minYearlyPayment;
+  final double? maxYearlyPayment;
+  final String? paymentPlanName; // 'Cash', '5 Years', '7 Years'
+  final double? minPlanPrice;
+  final double? maxPlanPrice;
+
   SearchFilter({
     this.location,
     this.minPrice,
@@ -97,6 +107,15 @@ class SearchFilter {
     this.companyId,
     this.usageType,
     this.search,
+    // Payment plan parameters
+    this.paymentPlanDuration,
+    this.minMonthlyPayment,
+    this.maxMonthlyPayment,
+    this.minYearlyPayment,
+    this.maxYearlyPayment,
+    this.paymentPlanName,
+    this.minPlanPrice,
+    this.maxPlanPrice,
   });
 
   // Create an empty filter
@@ -151,7 +170,15 @@ class SearchFilter {
       maxGarageArea == null &&
       companyId == null &&
       usageType == null &&
-      search == null;
+      search == null &&
+      paymentPlanDuration == null &&
+      minMonthlyPayment == null &&
+      maxMonthlyPayment == null &&
+      minYearlyPayment == null &&
+      maxYearlyPayment == null &&
+      paymentPlanName == null &&
+      minPlanPrice == null &&
+      maxPlanPrice == null;
 
   // Count active filters
   int get activeFiltersCount {
@@ -191,6 +218,11 @@ class SearchFilter {
     if (companyId != null && companyId!.isNotEmpty) count++;
     if (usageType != null && usageType!.isNotEmpty) count++;
     if (search != null && search!.isNotEmpty) count++;
+    if (paymentPlanDuration != null) count++;
+    if (minMonthlyPayment != null || maxMonthlyPayment != null) count++;
+    if (minYearlyPayment != null || maxYearlyPayment != null) count++;
+    if (paymentPlanName != null && paymentPlanName!.isNotEmpty) count++;
+    if (minPlanPrice != null || maxPlanPrice != null) count++;
     return count;
   }
 
@@ -339,6 +371,32 @@ class SearchFilter {
       params['limit'] = limit;
     }
 
+    // Payment plan filters
+    if (paymentPlanDuration != null) {
+      params['payment_plan_duration'] = paymentPlanDuration;
+    }
+    if (minMonthlyPayment != null) {
+      params['min_monthly_payment'] = minMonthlyPayment!.toInt();
+    }
+    if (maxMonthlyPayment != null) {
+      params['max_monthly_payment'] = maxMonthlyPayment!.toInt();
+    }
+    if (minYearlyPayment != null) {
+      params['min_yearly_payment'] = minYearlyPayment!.toInt();
+    }
+    if (maxYearlyPayment != null) {
+      params['max_yearly_payment'] = maxYearlyPayment!.toInt();
+    }
+    if (paymentPlanName != null && paymentPlanName!.isNotEmpty) {
+      params['payment_plan_name'] = paymentPlanName;
+    }
+    if (minPlanPrice != null) {
+      params['min_plan_price'] = minPlanPrice!.toInt();
+    }
+    if (maxPlanPrice != null) {
+      params['max_plan_price'] = maxPlanPrice!.toInt();
+    }
+
     return params;
   }
 
@@ -396,6 +454,14 @@ class SearchFilter {
       companyId: json['company_id']?.toString(),
       usageType: json['usage_type']?.toString(),
       search: json['search']?.toString(),
+      paymentPlanDuration: json['payment_plan_duration'] != null ? int.tryParse(json['payment_plan_duration'].toString()) : null,
+      minMonthlyPayment: json['min_monthly_payment'] != null ? double.tryParse(json['min_monthly_payment'].toString()) : null,
+      maxMonthlyPayment: json['max_monthly_payment'] != null ? double.tryParse(json['max_monthly_payment'].toString()) : null,
+      minYearlyPayment: json['min_yearly_payment'] != null ? double.tryParse(json['min_yearly_payment'].toString()) : null,
+      maxYearlyPayment: json['max_yearly_payment'] != null ? double.tryParse(json['max_yearly_payment'].toString()) : null,
+      paymentPlanName: json['payment_plan_name']?.toString(),
+      minPlanPrice: json['min_plan_price'] != null ? double.tryParse(json['min_plan_price'].toString()) : null,
+      maxPlanPrice: json['max_plan_price'] != null ? double.tryParse(json['max_plan_price'].toString()) : null,
     );
   }
 
@@ -447,6 +513,15 @@ class SearchFilter {
     String? companyId,
     String? usageType,
     String? search,
+    // Payment plan parameters
+    int? paymentPlanDuration,
+    double? minMonthlyPayment,
+    double? maxMonthlyPayment,
+    double? minYearlyPayment,
+    double? maxYearlyPayment,
+    String? paymentPlanName,
+    double? minPlanPrice,
+    double? maxPlanPrice,
     bool clearLocation = false,
     bool clearMinPrice = false,
     bool clearMaxPrice = false,
@@ -488,6 +563,14 @@ class SearchFilter {
     bool clearCompanyId = false,
     bool clearUsageType = false,
     bool clearSearch = false,
+    bool clearPaymentPlanDuration = false,
+    bool clearMinMonthlyPayment = false,
+    bool clearMaxMonthlyPayment = false,
+    bool clearMinYearlyPayment = false,
+    bool clearMaxYearlyPayment = false,
+    bool clearPaymentPlanName = false,
+    bool clearMinPlanPrice = false,
+    bool clearMaxPlanPrice = false,
   }) {
     return SearchFilter(
       location: clearLocation ? null : (location ?? this.location),
@@ -536,6 +619,14 @@ class SearchFilter {
       companyId: clearCompanyId ? null : (companyId ?? this.companyId),
       usageType: clearUsageType ? null : (usageType ?? this.usageType),
       search: clearSearch ? null : (search ?? this.search),
+      paymentPlanDuration: clearPaymentPlanDuration ? null : (paymentPlanDuration ?? this.paymentPlanDuration),
+      minMonthlyPayment: clearMinMonthlyPayment ? null : (minMonthlyPayment ?? this.minMonthlyPayment),
+      maxMonthlyPayment: clearMaxMonthlyPayment ? null : (maxMonthlyPayment ?? this.maxMonthlyPayment),
+      minYearlyPayment: clearMinYearlyPayment ? null : (minYearlyPayment ?? this.minYearlyPayment),
+      maxYearlyPayment: clearMaxYearlyPayment ? null : (maxYearlyPayment ?? this.maxYearlyPayment),
+      paymentPlanName: clearPaymentPlanName ? null : (paymentPlanName ?? this.paymentPlanName),
+      minPlanPrice: clearMinPlanPrice ? null : (minPlanPrice ?? this.minPlanPrice),
+      maxPlanPrice: clearMaxPlanPrice ? null : (maxPlanPrice ?? this.maxPlanPrice),
     );
   }
 
