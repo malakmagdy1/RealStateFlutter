@@ -583,7 +583,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ),
                       );
                     } else if (state is CompanySuccess) {
-                      if (state.allCompanies.isEmpty) {
+                      if (state.response.companies.isEmpty) {
                         return SizedBox(
                           height: 100,
                           child: Center(
@@ -595,9 +595,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         height: 100,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
-                          itemCount: state.allCompanies.length,
+                          itemCount: state.response.companies.length,
                           itemBuilder: (context, index) {
-                            final company = state.allCompanies[index];
+                            final company = state.response.companies[index];
                             return CompanyName(
                               company: company,
                               onTap: () {
@@ -986,8 +986,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final company = Company(
       id: data.id,
       name: data.name,
-      nameEn: data.name,
-      nameAr: data.name,
       email: data.email,
       logo: data.logo,
       numberOfCompounds: data.numberOfCompounds,

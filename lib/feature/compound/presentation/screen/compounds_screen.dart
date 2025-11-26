@@ -1171,8 +1171,6 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
     final company = Company(
       id: data.id,
       name: data.name,
-      nameEn: data.name,
-      nameAr: data.name,
       email: data.email,
       logo: data.logo,
       numberOfCompounds: data.numberOfCompounds,

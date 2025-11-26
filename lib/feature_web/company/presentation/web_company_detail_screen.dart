@@ -93,8 +93,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
 
   String _getCompanyName(AppLocalizations l10n) {
     if (_currentCompany == null) return '';
-    final isArabic = l10n.localeName == 'ar';
-    return isArabic ? _currentCompany!.nameAr : _currentCompany!.nameEn;
+    return _currentCompany!.name;
   }
 
   @override

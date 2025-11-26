@@ -71,7 +71,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     print('[UNIT DETAIL] Unit ID: ${widget.unit.id}');
     print('[UNIT DETAIL] Note ID: ${widget.unit.noteId}');
     print('[UNIT DETAIL] Has active sale: ${widget.unit.hasActiveSale}');
-    print('[UNIT DETAIL] Payment plans: ${widget.unit.paymentPlans?.length ?? 0}');
+    // PaymentPlans feature not yet implemented in Unit model
+    // print('[UNIT DETAIL] Payment plans: ${widget.unit.paymentPlans?.length ?? 0}');
     print('[UNIT DETAIL] ========================================');
 
     // Always fetch full unit data from API to get payment plans and complete data
@@ -97,7 +98,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       });
 
       print('[UNIT DETAIL] ✓ Unit data refreshed');
-      print('[UNIT DETAIL] Refreshed payment plans count: ${refreshedUnit.paymentPlans?.length ?? 0}');
+      // PaymentPlans feature not yet implemented in Unit model
+      // print('[UNIT DETAIL] Refreshed payment plans count: ${refreshedUnit.paymentPlans?.length ?? 0}');
 
       _setupSale();
     } catch (e) {
@@ -1351,7 +1353,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Widget _buildPaymentPlansTab(AppLocalizations l10n) {
-    final paymentPlans = _currentUnit?.paymentPlans;
+    // PaymentPlans feature not yet implemented in Unit model
+    // final paymentPlans = _currentUnit?.paymentPlans;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
@@ -1372,12 +1375,9 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           ),
           SizedBox(height: 16),
 
-          // Payment Plans List
-          if (paymentPlans != null && paymentPlans.isNotEmpty)
-            ...paymentPlans.map((plan) => _buildPaymentPlanCard(plan, l10n)).toList()
-          else
-            // Fallback: Show basic cash option if no payment plans from API
-            Container(
+          // PaymentPlans feature not yet implemented - showing cash option
+          // Fallback: Show basic cash option if no payment plans from API
+          Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.grey.shade50,
@@ -1419,164 +1419,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildPaymentPlanCard(PaymentPlan plan, AppLocalizations l10n) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 12),
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.mainColor.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Plan Name Header
-          Row(
-            children: [
-              Icon(Icons.bookmark, size: 20, color: AppColors.mainColor),
-              SizedBox(width: 8),
-              Expanded(
-                child: CustomText18(
-                  plan.planName ?? l10n.paymentPlan,
-                  bold: true,
-                  color: AppColors.mainColor,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-          Divider(height: 1, color: Colors.grey.shade300),
-          SizedBox(height: 12),
-
-          // Price and Duration Row
-          Row(
-            children: [
-              Expanded(
-                child: _buildPaymentInfoColumn(
-                  Icons.monetization_on_outlined,
-                  l10n.totalPrice,
-                  plan.unitTotalWithFinishPrice != null && plan.unitTotalWithFinishPrice != '0'
-                      ? 'EGP ${_formatPrice(plan.unitTotalWithFinishPrice!)}'
-                      : plan.price != null && plan.price != '0'
-                          ? 'EGP ${_formatPrice(plan.price!)}'
-                          : '-',
-                ),
-              ),
-              Expanded(
-                child: _buildPaymentInfoColumn(
-                  Icons.calendar_today_outlined,
-                  l10n.duration,
-                  plan.durationYears != null && plan.durationYears != '0'
-                      ? '${plan.durationYears} ${l10n.years}'
-                      : '-',
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-
-          // Down Payment Row
-          Row(
-            children: [
-              Expanded(
-                child: _buildPaymentInfoColumn(
-                  Icons.savings_outlined,
-                  l10n.downPayment,
-                  plan.downPaymentAmount != null && plan.downPaymentAmount != '0'
-                      ? 'EGP ${_formatPrice(plan.downPaymentAmount!)}'
-                      : '-',
-                ),
-              ),
-              Expanded(
-                child: _buildPaymentInfoColumn(
-                  Icons.percent_outlined,
-                  l10n.downPaymentPercentage,
-                  plan.downPaymentPercentage != null && plan.downPaymentPercentage != '0'
-                      ? '${plan.downPaymentPercentage}%'
-                      : '-',
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
-
-          // Installments Row
-          Row(
-            children: [
-              Expanded(
-                child: _buildPaymentInfoColumn(
-                  Icons.event_repeat_outlined,
-                  l10n.monthlyInstallment,
-                  plan.monthlyInstallment != null && plan.monthlyInstallment != '0'
-                      ? 'EGP ${_formatPrice(plan.monthlyInstallment!)}'
-                      : '-',
-                ),
-              ),
-              Expanded(
-                child: _buildPaymentInfoColumn(
-                  Icons.date_range_outlined,
-                  l10n.quarterlyInstallment,
-                  plan.quarterlyInstallment != null && plan.quarterlyInstallment != '0'
-                      ? 'EGP ${_formatPrice(plan.quarterlyInstallment!)}'
-                      : '-',
-                ),
-              ),
-            ],
-          ),
-
-          // Additional Info Chips (Delivery, Finishing, Area)
-          if ((plan.deliveryDate != null && plan.deliveryDate!.isNotEmpty) ||
-              (plan.finishingType != null && plan.finishingType!.isNotEmpty) ||
-              (plan.totalArea != null && plan.totalArea != '0')) ...[
-            SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (plan.deliveryDate != null && plan.deliveryDate!.isNotEmpty)
-                  _buildInfoChip(Icons.event_available, l10n.deliveryDate, _formatDeliveryDate(plan.deliveryDate!)),
-                if (plan.finishingType != null && plan.finishingType!.isNotEmpty)
-                  _buildInfoChip(Icons.home_repair_service, l10n.finishingType, plan.finishingType!),
-                if (plan.totalArea != null && plan.totalArea != '0')
-                  _buildInfoChip(Icons.square_foot, l10n.totalArea, '${plan.totalArea} ${l10n.sqm}'),
-              ],
-            ),
-          ],
-
-          // Additional Fees Section
-          if ((plan.maintenanceDeposit != null && plan.maintenanceDeposit != '0') ||
-              (plan.clubMembership != null && plan.clubMembership != '0') ||
-              (plan.garagePrice != null && plan.garagePrice != '0')) ...[
-            SizedBox(height: 12),
-            Divider(height: 1, color: Colors.grey.shade300),
-            SizedBox(height: 12),
-            Text(
-              l10n.additionalFees,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey.shade700,
-              ),
-            ),
-            SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                if (plan.maintenanceDeposit != null && plan.maintenanceDeposit != '0')
-                  _buildInfoChip(Icons.build_outlined, l10n.maintenanceDeposit, 'EGP ${_formatPrice(plan.maintenanceDeposit!)}'),
-                if (plan.clubMembership != null && plan.clubMembership != '0')
-                  _buildInfoChip(Icons.sports_tennis, l10n.clubMembership, 'EGP ${_formatPrice(plan.clubMembership!)}'),
-                if (plan.garagePrice != null && plan.garagePrice != '0')
-                  _buildInfoChip(Icons.garage_outlined, l10n.garagePrice, 'EGP ${_formatPrice(plan.garagePrice!)}'),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
+  // PaymentPlan feature not yet implemented - _buildPaymentPlanCard method removed
+  // Widget _buildPaymentPlanCard(PaymentPlan plan, AppLocalizations l10n) { ... }
 
   Widget _buildPaymentInfoColumn(IconData icon, String label, String value) {
     return Column(

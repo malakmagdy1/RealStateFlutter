@@ -101,9 +101,16 @@ class FCMService {
     }
 
     // Get FCM token (with VAPID key for web)
-    _fcmToken = kIsWeb
-        ? await _firebaseMessaging.getToken(vapidKey: VAPID_KEY)
-        : await _firebaseMessaging.getToken();
+    try {
+      _fcmToken = kIsWeb
+          ? await _firebaseMessaging.getToken(vapidKey: VAPID_KEY)
+          : await _firebaseMessaging.getToken();
+    } catch (e) {
+      // On iOS simulators, APNS token is not available - this is expected
+      print('⚠️ Could not get FCM token (expected on simulators): $e');
+      _fcmToken = null;
+    }
+
     if (_fcmToken != null) {
       print('');
       print('╔════════════════════════════════════════════════════════════╗');

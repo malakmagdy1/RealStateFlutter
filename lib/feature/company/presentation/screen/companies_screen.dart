@@ -71,11 +71,12 @@ class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingOb
   }
 
   void _onScroll() {
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      // Load more when near bottom
-      context.read<CompanyBloc>().add(LoadMoreCompaniesEvent());
-    }
+    // Pagination not yet implemented - using simple company list for now
+    // if (_scrollController.position.pixels >=
+    //     _scrollController.position.maxScrollExtent - 200) {
+    //   // Load more when near bottom
+    //   context.read<CompanyBloc>().add(LoadMoreCompaniesEvent());
+    // }
   }
 
   List<Company> _filterAndSortCompanies(List<Company> companies) {
@@ -275,7 +276,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingOb
                     child: CircularProgressIndicator(color: AppColors.mainColor),
                   );
                 } else if (state is CompanySuccess) {
-                  final companies = _filterAndSortCompanies(state.allCompanies);
+                  final companies = _filterAndSortCompanies(state.response.companies);
 
                   if (companies.isEmpty) {
                     return Center(
@@ -302,7 +303,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingOb
                   return ListView.builder(
                     controller: _scrollController,
                     padding: EdgeInsets.all(16),
-                    itemCount: companies.length + (state.hasMore ? 1 : 0),
+                    itemCount: companies.length,
                     itemBuilder: (context, index) {
                       // Show loading indicator at the end
                       if (index >= companies.length) {
@@ -365,7 +366,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingOb
   }
 
   Widget _buildCompanyCard(Company company, BuildContext context, bool isArabic) {
-    final displayName = company.getLocalizedName(isArabic);
+    final displayName = company.name;
     return Container(
       margin: EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -478,7 +479,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingOb
   }
 
   Widget _buildPlaceholderLogo(Company company, bool isArabic) {
-    final displayName = company.getLocalizedName(isArabic);
+    final displayName = company.name;
     return Container(
       width: 30,
       height: 30,

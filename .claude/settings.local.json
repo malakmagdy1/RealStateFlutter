@@ -91,7 +91,13 @@
       "Bash(md5sum:*)",
       "Bash(tr:*)",
       "Bash(fold:*)",
-      "Bash(C:UsersB-SmartAndroidStudioProjectsrealCOMPARE_BUTTON_STATUS.txt)"
+      "Bash(C:UsersB-SmartAndroidStudioProjectsrealCOMPARE_BUTTON_STATUS.txt)",
+      "Bash(flutter doctor:*)",
+      "Bash(pod install)",
+      "Bash(~/.zshrc)",
+      "Bash(source ~/.zshrc)",
+      "Bash(open:*)",
+      "Bash(sips -g hasAlpha:*)"
     ],
     "deny": [],
     "ask": []

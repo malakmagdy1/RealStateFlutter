@@ -185,7 +185,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
               child: Column(
                 children: [
                   CustomText24(
-                    isArabic ? widget.company.nameAr : widget.company.nameEn,
+                    widget.company.name,
                     bold: true,
                     color: AppColors.black,
                     align: TextAlign.center,
@@ -206,7 +206,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: CustomText16(
                 l10n.companyAboutDescription(
-                  isArabic ? widget.company.nameAr : widget.company.nameEn,
+                  widget.company.name,
                   _getYearFromDate(widget.company.createdAt),
                 ),
                 color: AppColors.greyText,
