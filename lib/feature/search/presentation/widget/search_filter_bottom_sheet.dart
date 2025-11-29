@@ -4,6 +4,7 @@ import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:intl/intl.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
+import 'package:real/l10n/app_localizations.dart';
 
 import '../../data/models/search_filter_model.dart';
 import '../../data/services/location_service.dart';
@@ -32,8 +33,8 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
 
   final LocationService _locationService = LocationService();
   final CompanyService _companyService = CompanyService();
-  List<String> _availableLocations = [];
-  Map<String, String> _availableCompanies = {}; // Map of ID -> Name
+  List<LocationFilterItem> _availableLocations = []; // List with localized names
+  List<CompanyFilterItem> _availableCompanies = []; // List with localized names
   bool _isLoadingLocations = true;
   bool _isLoadingCompanies = true;
   Timer? _filterDebounceTimer;
@@ -161,9 +162,9 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
     print('[FILTER BOTTOM SHEET] ========================================');
     print('[FILTER BOTTOM SHEET] Loading locations...');
     try {
-      final locations = await _locationService.getLocations();
+      final locations = await _locationService.getLocationsWithLocalization();
       print('[FILTER BOTTOM SHEET] ✓ Received ${locations.length} locations');
-      print('[FILTER BOTTOM SHEET] Locations: ${locations.take(5).join(", ")}${locations.length > 5 ? "..." : ""}');
+      print('[FILTER BOTTOM SHEET] Locations: ${locations.take(5).map((l) => l.location).join(", ")}${locations.length > 5 ? "..." : ""}');
 
       if (mounted) {
         setState(() {
@@ -187,9 +188,9 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
     print('[FILTER BOTTOM SHEET] ========================================');
     print('[FILTER BOTTOM SHEET] Loading companies...');
     try {
-      final companies = await _companyService.getCompanies();
+      final companies = await _companyService.getCompaniesWithLocalization();
       print('[FILTER BOTTOM SHEET] ✓ Received ${companies.length} companies');
-      print('[FILTER BOTTOM SHEET] Companies: ${companies.values.take(5).join(", ")}${companies.length > 5 ? "..." : ""}');
+      print('[FILTER BOTTOM SHEET] Companies: ${companies.take(5).map((c) => c.name).join(", ")}${companies.length > 5 ? "..." : ""}');
 
       if (mounted) {
         setState(() {
@@ -435,7 +436,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Company Dropdown
+                  // Company Selector with Search
                   _buildSectionTitle('Company'),
                   SizedBox(height: 8),
                   _isLoadingCompanies
@@ -456,50 +457,61 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                             ),
                           ),
                         )
-                      : Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedCompanyId,
-                            decoration: InputDecoration(
-                              hintText: 'Select company',
-                              prefixIcon: Icon(Icons.business_outlined),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                            ),
-                            isExpanded: true,
-                            items: [
-                              DropdownMenuItem<String>(
-                                value: null,
-                                child: Text(
-                                  'All Companies',
-                                  style: TextStyle(color: Colors.grey),
+                      : Builder(
+                          builder: (context) {
+                            final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+                            final selectedCompany = _selectedCompanyId != null
+                                ? _availableCompanies.where((c) => c.id == _selectedCompanyId).firstOrNull
+                                : null;
+                            final displayName = selectedCompany?.getLocalizedName(isArabic) ?? 'All Companies';
+
+                            return InkWell(
+                              onTap: () => _showCompanySearchDialog(),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey.shade300),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.business_outlined, color: Colors.grey.shade600),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        displayName,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: _selectedCompanyId != null
+                                              ? Colors.black87
+                                              : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                    if (_selectedCompanyId != null)
+                                      IconButton(
+                                        icon: Icon(Icons.clear, size: 20),
+                                        onPressed: () {
+                                          setState(() {
+                                            _selectedCompanyId = null;
+                                          });
+                                          _applyFiltersWithDebounce();
+                                        },
+                                        padding: EdgeInsets.zero,
+                                        constraints: BoxConstraints(),
+                                      )
+                                    else
+                                      Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
+                                  ],
                                 ),
                               ),
-                              ..._availableCompanies.entries.map((entry) {
-                                return DropdownMenuItem<String>(
-                                  value: entry.key, // Company ID
-                                  child: Text(entry.value), // Company Name
-                                );
-                              }).toList(),
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedCompanyId = value;
-                              });
-                              _applyFiltersWithDebounce();
-                            },
-                          ),
+                            );
+                          },
                         ),
 
                   SizedBox(height: 24),
 
-                  // Location Dropdown
+                  // Location Selector with Search
                   _buildSectionTitle('Location'),
                   SizedBox(height: 8),
                   _isLoadingLocations
@@ -520,45 +532,56 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                             ),
                           ),
                         )
-                      : Container(
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: DropdownButtonFormField<String>(
-                            value: _selectedLocation,
-                            decoration: InputDecoration(
-                              hintText: 'Select location',
-                              prefixIcon: Icon(Icons.location_on_outlined),
-                              border: InputBorder.none,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                            ),
-                            isExpanded: true,
-                            items: [
-                              DropdownMenuItem<String>(
-                                value: null,
-                                child: Text(
-                                  'All Locations',
-                                  style: TextStyle(color: Colors.grey),
+                      : Builder(
+                          builder: (context) {
+                            final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+                            final selectedLoc = _selectedLocation != null
+                                ? _availableLocations.where((l) => l.location == _selectedLocation).firstOrNull
+                                : null;
+                            final displayName = selectedLoc?.getLocalizedName(isArabic) ?? (isArabic ? 'جميع المواقع' : 'All Locations');
+
+                            return InkWell(
+                              onTap: () => _showLocationSearchDialog(),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: Colors.grey.shade300),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.location_on_outlined, color: Colors.grey.shade600),
+                                    SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        displayName,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: _selectedLocation != null
+                                              ? Colors.black87
+                                              : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                    if (_selectedLocation != null)
+                                      IconButton(
+                                        icon: Icon(Icons.clear, size: 20),
+                                        onPressed: () {
+                                          setState(() {
+                                            _selectedLocation = null;
+                                          });
+                                          _applyFiltersWithDebounce();
+                                        },
+                                        padding: EdgeInsets.zero,
+                                        constraints: BoxConstraints(),
+                                      )
+                                    else
+                                      Icon(Icons.arrow_drop_down, color: Colors.grey.shade600),
+                                  ],
                                 ),
                               ),
-                              ..._availableLocations.map((location) {
-                                return DropdownMenuItem<String>(
-                                  value: location,
-                                  child: Text(location),
-                                );
-                              }).toList(),
-                            ],
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedLocation = value;
-                              });
-                              _applyFiltersWithDebounce();
-                            },
-                          ),
+                            );
+                          },
                         ),
 
                   SizedBox(height: 24),
@@ -1097,5 +1120,351 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
 
   Widget _buildSectionTitle(String title) {
     return CustomText18(title, bold: true, color: AppColors.black);
+  }
+
+  void _showLocationSearchDialog() {
+    String searchQuery = '';
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            // Filter locations based on search (search in both languages)
+            final filteredLocations = _availableLocations.where((loc) {
+              if (searchQuery.isEmpty) return true;
+              final query = searchQuery.toLowerCase();
+              return loc.location.toLowerCase().contains(query) ||
+                     loc.locationEn.toLowerCase().contains(query) ||
+                     loc.locationAr.toLowerCase().contains(query);
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.6,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  // Header
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.close),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                            CustomText18(isArabic ? 'اختر الموقع' : 'Select Location', bold: true, color: AppColors.black),
+                            SizedBox(width: 48), // Balance the close button
+                          ],
+                        ),
+                        SizedBox(height: 12),
+                        // Search TextField
+                        TextField(
+                          autofocus: true,
+                          decoration: InputDecoration(
+                            hintText: isArabic ? 'ابحث عن موقع...' : 'Search locations...',
+                            prefixIcon: Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppColors.mainColor),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          onChanged: (value) {
+                            setModalState(() {
+                              searchQuery = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Location List
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      children: [
+                        // "All Locations" option
+                        ListTile(
+                          leading: Icon(
+                            Icons.location_on_outlined,
+                            color: _selectedLocation == null ? AppColors.mainColor : Colors.grey,
+                          ),
+                          title: Text(
+                            isArabic ? 'جميع المواقع' : 'All Locations',
+                            style: TextStyle(
+                              fontWeight: _selectedLocation == null ? FontWeight.bold : FontWeight.normal,
+                              color: _selectedLocation == null ? AppColors.mainColor : Colors.black87,
+                            ),
+                          ),
+                          trailing: _selectedLocation == null
+                              ? Icon(Icons.check, color: AppColors.mainColor)
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              _selectedLocation = null;
+                            });
+                            _applyFiltersWithDebounce();
+                            Navigator.pop(context);
+                          },
+                        ),
+                        Divider(height: 1),
+                        // Filtered locations with localized names
+                        ...filteredLocations.map((loc) {
+                          final isSelected = _selectedLocation == loc.location;
+                          return ListTile(
+                            leading: Icon(
+                              Icons.location_on,
+                              color: isSelected ? AppColors.mainColor : Colors.grey,
+                            ),
+                            title: Text(
+                              loc.getLocalizedName(isArabic),
+                              style: TextStyle(
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: isSelected ? AppColors.mainColor : Colors.black87,
+                              ),
+                            ),
+                            trailing: isSelected
+                                ? Icon(Icons.check, color: AppColors.mainColor)
+                                : null,
+                            onTap: () {
+                              setState(() {
+                                _selectedLocation = loc.location;
+                              });
+                              _applyFiltersWithDebounce();
+                              Navigator.pop(context);
+                            },
+                          );
+                        }).toList(),
+                        // No results
+                        if (filteredLocations.isEmpty && searchQuery.isNotEmpty)
+                          Padding(
+                            padding: EdgeInsets.all(32),
+                            child: Column(
+                              children: [
+                                Icon(Icons.search_off, size: 48, color: Colors.grey),
+                                SizedBox(height: 12),
+                                Text(
+                                  isArabic
+                                      ? 'لا توجد مواقع تطابق "$searchQuery"'
+                                      : 'No locations found for "$searchQuery"',
+                                  style: TextStyle(color: Colors.grey),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showCompanySearchDialog() {
+    String searchQuery = '';
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            // Filter companies based on search (search in both languages)
+            final filteredCompanies = _availableCompanies.where((company) {
+              if (searchQuery.isEmpty) return true;
+              final query = searchQuery.toLowerCase();
+              return company.name.toLowerCase().contains(query) ||
+                     company.nameEn.toLowerCase().contains(query) ||
+                     company.nameAr.toLowerCase().contains(query);
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.6,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  // Header
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              icon: Icon(Icons.close),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                            CustomText18(isArabic ? 'اختر الشركة' : 'Select Company', bold: true, color: AppColors.black),
+                            SizedBox(width: 48), // Balance the close button
+                          ],
+                        ),
+                        SizedBox(height: 12),
+                        // Search TextField
+                        TextField(
+                          autofocus: true,
+                          decoration: InputDecoration(
+                            hintText: isArabic ? 'ابحث عن شركة...' : 'Search companies...',
+                            prefixIcon: Icon(Icons.search),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: Colors.grey.shade300),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(color: AppColors.mainColor),
+                            ),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          onChanged: (value) {
+                            setModalState(() {
+                              searchQuery = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Company List
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      children: [
+                        // "All Companies" option
+                        ListTile(
+                          leading: Icon(
+                            Icons.business_outlined,
+                            color: _selectedCompanyId == null ? AppColors.mainColor : Colors.grey,
+                          ),
+                          title: Text(
+                            isArabic ? 'جميع الشركات' : 'All Companies',
+                            style: TextStyle(
+                              fontWeight: _selectedCompanyId == null ? FontWeight.bold : FontWeight.normal,
+                              color: _selectedCompanyId == null ? AppColors.mainColor : Colors.black87,
+                            ),
+                          ),
+                          trailing: _selectedCompanyId == null
+                              ? Icon(Icons.check, color: AppColors.mainColor)
+                              : null,
+                          onTap: () {
+                            setState(() {
+                              _selectedCompanyId = null;
+                            });
+                            _applyFiltersWithDebounce();
+                            Navigator.pop(context);
+                          },
+                        ),
+                        Divider(height: 1),
+                        // Filtered companies with localized names
+                        ...filteredCompanies.map((company) {
+                          final isSelected = _selectedCompanyId == company.id;
+                          return ListTile(
+                            leading: Icon(
+                              Icons.business,
+                              color: isSelected ? AppColors.mainColor : Colors.grey,
+                            ),
+                            title: Text(
+                              company.getLocalizedName(isArabic),
+                              style: TextStyle(
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: isSelected ? AppColors.mainColor : Colors.black87,
+                              ),
+                            ),
+                            trailing: isSelected
+                                ? Icon(Icons.check, color: AppColors.mainColor)
+                                : null,
+                            onTap: () {
+                              setState(() {
+                                _selectedCompanyId = company.id;
+                              });
+                              _applyFiltersWithDebounce();
+                              Navigator.pop(context);
+                            },
+                          );
+                        }).toList(),
+                        // No results
+                        if (filteredCompanies.isEmpty && searchQuery.isNotEmpty)
+                          Padding(
+                            padding: EdgeInsets.all(32),
+                            child: Column(
+                              children: [
+                                Icon(Icons.search_off, size: 48, color: Colors.grey),
+                                SizedBox(height: 12),
+                                Text(
+                                  isArabic
+                                      ? 'لا توجد شركات تطابق "$searchQuery"'
+                                      : 'No companies found for "$searchQuery"',
+                                  style: TextStyle(color: Colors.grey),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }

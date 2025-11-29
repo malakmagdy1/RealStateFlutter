@@ -308,6 +308,48 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _user = null);
   }
 
+  // Apple Sign-In Handler - TODO: Implement with sign_in_with_apple package
+  Future<void> _handleAppleSignIn() async {
+    // TODO: Implement Apple Sign-In
+    // 1. Add sign_in_with_apple package to pubspec.yaml
+    // 2. Configure iOS capabilities and entitlements
+    // 3. Set up Apple Developer account with Sign in with Apple
+    // 4. Implement the sign-in flow similar to Google
+
+    MessageHelper.showMessage(
+      context: context,
+      message: 'Apple Sign-In coming soon!',
+      isSuccess: false,
+    );
+
+    // Example implementation (uncomment when ready):
+    /*
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      // Send to backend
+      final repository = context.read<LoginBloc>().repository;
+      final response = await repository.appleLogin(
+        appleId: credential.userIdentifier ?? '',
+        email: credential.email ?? '',
+        name: '${credential.givenName ?? ''} ${credential.familyName ?? ''}'.trim(),
+        identityToken: credential.identityToken ?? '',
+        authorizationCode: credential.authorizationCode,
+      );
+
+      // Handle response similar to Google Sign-In
+      // ...
+    } catch (e) {
+      MessageHelper.showError(context, 'Apple Sign-In failed: $e');
+    }
+    */
+  }
+
   // Check subscription status after login
   void _checkSubscriptionStatus(BuildContext context) {
     context.read<SubscriptionBloc>().add(LoadSubscriptionStatusEvent());
@@ -773,265 +815,293 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      body: BlocListener<LoginBloc, LoginState>(
-        listener: (context, state) {
-          if (state is LoginSuccess) {
-            // SECURITY CHECKS: Only allow buyers who are verified and not banned
-            final user = state.response.user;
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 22.0),
+        child: BlocListener<LoginBloc, LoginState>(
+          listener: (context, state) {
+            if (state is LoginSuccess) {
+              // SECURITY CHECKS: Only allow buyers who are verified and not banned
+              final user = state.response.user;
 
-            // Check 1: Only buyers allowed
-            if (user.role.toLowerCase() != 'buyer') {
-              MessageHelper.showError(context, 'Access denied. Only buyers can access this app.');
-              // Clear token and logout
-              CasheNetwork.deletecasheItem(key: "token");
-              CasheNetwork.deletecasheItem(key: "user_id");
-              token = null;
-              userId = null;
-              return;
-            }
+              // Check 1: Only buyers allowed
+              if (user.role.toLowerCase() != 'buyer') {
+                MessageHelper.showError(context, 'Access denied. Only buyers can access this app.');
+                // Clear token and logout
+                CasheNetwork.deletecasheItem(key: "token");
+                CasheNetwork.deletecasheItem(key: "user_id");
+                token = null;
+                userId = null;
+                return;
+              }
 
-            // Check 2: User must be verified
-            if (!user.isVerified) {
-              MessageHelper.showMessage(
-                context: context,
-                message: 'Please verify your email address to continue.',
-                isSuccess: false,
-              );
-              // Clear token and logout
-              CasheNetwork.deletecasheItem(key: "token");
-              CasheNetwork.deletecasheItem(key: "user_id");
-              token = null;
-              userId = null;
-              return;
-            }
+              // Check 2: User must be verified
+              if (!user.isVerified) {
+                MessageHelper.showMessage(
+                  context: context,
+                  message: 'Please verify your email address to continue.',
+                  isSuccess: false,
+                );
+                // Clear token and logout
+                CasheNetwork.deletecasheItem(key: "token");
+                CasheNetwork.deletecasheItem(key: "user_id");
+                token = null;
+                userId = null;
+                return;
+              }
 
-            // Check 3: User must not be banned
-            if (user.isBanned) {
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => AlertDialog(
-                  title: Row(
-                    children: [
-                      Icon(Icons.block, color: Colors.red, size: 28),
-                      SizedBox(width: 8),
-                      Text('Account Suspended'),
+              // Check 3: User must not be banned
+              if (user.isBanned) {
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (context) => AlertDialog(
+                    title: Row(
+                      children: [
+                        Icon(Icons.block, color: Colors.red, size: 28),
+                        SizedBox(width: 8),
+                        Text('Account Suspended'),
+                      ],
+                    ),
+                    content: Text(
+                      'Your account has been suspended. Please contact support for assistance.',
+                      style: TextStyle(fontSize: 15),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.pop(context);
+                        },
+                        child: Text('OK'),
+                      ),
                     ],
                   ),
-                  content: Text(
-                    'Your account has been suspended. Please contact support for assistance.',
-                    style: TextStyle(fontSize: 15),
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
-                      child: Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-              // Clear token and logout
-              CasheNetwork.deletecasheItem(key: "token");
-              CasheNetwork.deletecasheItem(key: "user_id");
-              token = null;
-              userId = null;
-              return;
+                );
+                // Clear token and logout
+                CasheNetwork.deletecasheItem(key: "token");
+                CasheNetwork.deletecasheItem(key: "user_id");
+                token = null;
+                userId = null;
+                return;
+              }
+
+              // All checks passed - proceed with login
+              MessageHelper.showSuccess(context, state.response.message);
+              // Refresh user data with new token
+              context.read<UserBloc>().add(RefreshUserEvent());
+
+              // Reload favorites with the new token-specific key
+              context.read<CompoundFavoriteBloc>().add(LoadFavoriteCompounds());
+              context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
+
+              // Check subscription status after login
+              _checkSubscriptionStatus(context);
+            } else if (state is LoginDeviceLimitError) {
+              // Show device limit dialog
+              _showDeviceLimitDialog(context, state.message, state.devices);
+            } else if (state is LoginError) {
+              MessageHelper.showError(context, state.message);
             }
-
-            // All checks passed - proceed with login
-            MessageHelper.showSuccess(context, state.response.message);
-            // Refresh user data with new token
-            context.read<UserBloc>().add(RefreshUserEvent());
-
-            // Reload favorites with the new token-specific key
-            context.read<CompoundFavoriteBloc>().add(LoadFavoriteCompounds());
-            context.read<UnitFavoriteBloc>().add(LoadFavoriteUnits());
-
-            // Check subscription status after login
-            _checkSubscriptionStatus(context);
-          } else if (state is LoginDeviceLimitError) {
-            // Show device limit dialog
-            _showDeviceLimitDialog(context, state.message, state.devices);
-          } else if (state is LoginError) {
-            MessageHelper.showError(context, state.message);
-          }
-        },
-        child: Center(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: EdgeInsets.all(10.0),
-              child: Form(key: _formKey,
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                  SizedBox(height: 20),
-                  Center(
-                    child: Text(
-                      "Welcome Back",
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+          },
+          child: Center(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.all(10.0),
+                child: Form(key: _formKey,
+                  child: FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: SlideTransition(
+                      position: _slideAnimation,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                    SizedBox(height: 20),
+                    Center(
+                      child: Text(
+                        "Welcome Back",
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                        ),
                       ),
                     ),
-                  ),
-              SizedBox(height: 20),
-              AuthToggle(
-                isSignUp: false,
-                onSignUpPressed: () {
-                  Navigator.pushReplacementNamed(context, SignUpScreen.routeName);
-                },
-                onLoginPressed: () {},
-              ),
-              SizedBox(height: 20),
-              CustomText16("Email",bold: true,color: AppColors.mainColor,),
-              SizedBox(height: 8),
-              CustomTextField(
-                controller: emailController,
-                hintText: 'Enter your email',
-                keyboardType: TextInputType.emailAddress,
-                validator: Validators.validateEmail,
-              ),
-              SizedBox(height: 16),
-              CustomText16("Password",bold: true,color: AppColors.mainColor,),
-              SizedBox(height: 8),
-              CustomTextField(
-                controller: passwordController,
-                hintText: 'Enter your password',
-                obscureText: _obscurePassword,
-                validator: Validators.validatePassword,
-                suffixIcon: _obscurePassword
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                onSuffixTap: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
-              ),
-              SizedBox(height: 8),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.pushNamed(context, ForgotPasswordFlowScreen.routeName);
+                SizedBox(height: 20),
+                AuthToggle(
+                  isSignUp: false,
+                  onSignUpPressed: () {
+                    Navigator.pushReplacementNamed(context, SignUpScreen.routeName);
                   },
-                  child: CustomText16(
-                    'Forget Password?',
-                    color: AppColors.mainColor,
-                    bold: false,
+                  onLoginPressed: () {},
+                ),
+                SizedBox(height: 20),
+                CustomText16("Email",bold: true,color: AppColors.mainColor,),
+                SizedBox(height: 8),
+                CustomTextField(
+                  controller: emailController,
+                  hintText: 'Enter your email',
+                  keyboardType: TextInputType.emailAddress,
+                  validator: Validators.validateEmail,
+                ),
+                SizedBox(height: 16),
+                CustomText16("Password",bold: true,color: AppColors.mainColor,),
+                SizedBox(height: 8),
+                CustomTextField(
+                  controller: passwordController,
+                  hintText: 'Enter your password',
+                  obscureText: _obscurePassword,
+                  validator: Validators.validatePassword,
+                  suffixIcon: _obscurePassword
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
+                  onSuffixTap: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
+                ),
+                SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, ForgotPasswordFlowScreen.routeName);
+                    },
+                    child: CustomText16(
+                      'Forget Password?',
+                      color: AppColors.mainColor,
+                      bold: false,
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(height: 16),
-              Center(
-                child: BlocBuilder<LoginBloc, LoginState>(
-                  builder: (context, state) {
-                    final isLoading = state is LoginLoading;
-                    return SizedBox(
-                      width: 280,
-                      child: AuthButton(
-                        action: () async {
-                          if (_formKey.currentState!.validate()) {
-                            final email = emailController.text.trim();
-                            final password = passwordController.text;
+                SizedBox(height: 16),
+                Center(
+                  child: BlocBuilder<LoginBloc, LoginState>(
+                    builder: (context, state) {
+                      final isLoading = state is LoginLoading;
+                      return SizedBox(
+                        width: 280,
+                        child: AuthButton(
+                          action: () async {
+                            if (_formKey.currentState!.validate()) {
+                              final email = emailController.text.trim();
+                              final password = passwordController.text;
 
-                            // Security: Validate email format
-                            final emailError = InputValidator.validateEmail(email);
-                            if (emailError != null) {
-                              MessageHelper.showError(context, emailError);
-                              return;
-                            }
+                              // Security: Validate email format
+                              final emailError = InputValidator.validateEmail(email);
+                              if (emailError != null) {
+                                MessageHelper.showError(context, emailError);
+                                return;
+                              }
 
-                            // Security: Validate password
-                            final passwordError = InputValidator.validatePassword(password);
-                            if (passwordError != null) {
-                              MessageHelper.showError(context, passwordError);
-                              return;
-                            }
+                              // Security: Validate password
+                              final passwordError = InputValidator.validatePassword(password);
+                              if (passwordError != null) {
+                                MessageHelper.showError(context, passwordError);
+                                return;
+                              }
 
-                            // Security: Check if user is blocked
-                            if (RateLimiter.isLoginBlocked(email)) {
-                              final remaining = RateLimiter.getRemainingBlockTime(email);
-                              final minutes = remaining?.inMinutes ?? 0;
-                              MessageHelper.showError(
-                                context,
-                                'Too many failed login attempts. Please try again in $minutes minutes.',
+                              // Security: Check if user is blocked
+                              if (RateLimiter.isLoginBlocked(email)) {
+                                final remaining = RateLimiter.getRemainingBlockTime(email);
+                                final minutes = remaining?.inMinutes ?? 0;
+                                MessageHelper.showError(
+                                  context,
+                                  'Too many failed login attempts. Please try again in $minutes minutes.',
+                                );
+                                return;
+                              }
+
+                              // Security: Check rate limit
+                              if (!RateLimiter.isRequestAllowed('login')) {
+                                MessageHelper.showError(
+                                  context,
+                                  'Too many requests. Please wait a moment.',
+                                );
+                                return;
+                              }
+
+                              final request = LoginRequest(
+                                email: email,
+                                password: password,
                               );
-                              return;
-                            }
-
-                            // Security: Check rate limit
-                            if (!RateLimiter.isRequestAllowed('login')) {
-                              MessageHelper.showError(
-                                context,
-                                'Too many requests. Please wait a moment.',
+                              context.read<LoginBloc>().add(
+                                LoginSubmitEvent(request),
                               );
-                              return;
                             }
-
-                            final request = LoginRequest(
-                              email: email,
-                              password: password,
-                            );
-                            context.read<LoginBloc>().add(
-                              LoginSubmitEvent(request),
-                            );
-                          }
-                        },
-                        text: isLoading ? 'Logging in...' : 'Login',
-                        isLoading: isLoading,
+                          },
+                          text: isLoading ? 'Logging in...' : 'Login',
+                          isLoading: isLoading,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(height: 20),
+                SizedBox(
+                  width: 280,
+                  child: Row(
+                    children: [
+                      Expanded(child: Divider(color: Colors.grey[400])),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: CustomText16('OR', color: AppColors.greyText),
                       ),
-                    );
-                  },
+                      Expanded(child: Divider(color: Colors.grey[400])),
+                    ],
+                  ),
                 ),
-              ),
-              SizedBox(height: 20),
-              SizedBox(
-                width: 280,
-                child: Row(
-                  children: [
-                    Expanded(child: Divider(color: Colors.grey[400])),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16),
-                      child: CustomText16('OR', color: AppColors.greyText),
+                SizedBox(height: 20),
+                SizedBox(
+                  width: 280,
+                  child: OutlinedButton.icon(
+                    onPressed: _handleSignIn,
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      side: BorderSide(color: Colors.grey[400]!),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                     ),
-                    Expanded(child: Divider(color: Colors.grey[400])),
-                  ],
-                ),
-              ),
-              SizedBox(height: 20),
-              SizedBox(
-                width: 280,
-                child: OutlinedButton.icon(
-                  onPressed: _handleSignIn,
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                    side: BorderSide(color: Colors.grey[400]!),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+                    icon: Image.asset(
+                      'assets/images/google.png',
+                      height: 24,
+                      width: 24,
+                    ),
+                    label: CustomText16(
+                      'Continue with Google',
+                      color: AppColors.black,
                     ),
                   ),
-                  icon: Image.asset(
-                    'assets/images/google.png',
-                    height: 24,
-                    width: 24,
-                  ),
-                  label: CustomText16(
-                    'Continue with Google',
-                    color: AppColors.black,
+                ),
+                SizedBox(height: 12),
+                // Apple Sign-In Button
+                SizedBox(
+                  width: 280,
+                  child: OutlinedButton.icon(
+                    onPressed: _handleAppleSignIn,
+                    style: OutlinedButton.styleFrom(
+                      padding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      backgroundColor: Colors.black,
+                      side: BorderSide(color: Colors.black),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: Icon(
+                      Icons.apple,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                    label: CustomText16(
+                      'Continue with Apple',
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(height: 20),
-                      ],
+                SizedBox(height: 20),
+                        ],
+                      ),
                     ),
                   ),
                 ),

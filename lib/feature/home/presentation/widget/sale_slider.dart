@@ -75,14 +75,6 @@ class _SaleSliderState extends State<SaleSlider> {
 
               print('==================== SALE DEBUG ====================');
               print('[SALE SLIDER] Sale Name: ${sale.saleName}');
-              print('[SALE SLIDER] Old Price: ${sale.oldPrice}');
-              print('[SALE SLIDER] New Price: ${sale.newPrice}');
-              print('[SALE SLIDER] Savings: ${sale.savings}');
-              print('[SALE SLIDER] Discount: ${sale.discountPercentage}%');
-              print('[SALE SLIDER] Images count: ${sale.images.length}');
-              print('[SALE SLIDER] Company Logo: ${sale.companyLogo ?? "NULL"}');
-              print('===================================================');
-
               return GestureDetector(
                 onTap: () {
                   // Only navigate if this is a unit sale (not compound sale)

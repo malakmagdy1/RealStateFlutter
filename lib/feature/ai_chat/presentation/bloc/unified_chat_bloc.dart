@@ -518,14 +518,17 @@ class UnifiedChatBloc extends Bloc<UnifiedChatEvent, UnifiedChatState> {
   String _getErrorMessage(dynamic error) {
     final errorStr = error.toString().toLowerCase();
 
+    // Print the full error for debugging
+    print('[UnifiedChatBloc] 🔴 Full error details: $error');
+
     if (errorStr.contains('api key') || errorStr.contains('invalid_api_key')) {
-      return 'API key غير صحيح. تأكد من الإعدادات.';
+      return 'API key غير صحيح. تأكد من الإعدادات.\n\nError: $error';
     } else if (errorStr.contains('network') || errorStr.contains('connection')) {
-      return 'مشكلة في الإنترنت. تأكد من الاتصال وحاول مرة أخرى.';
+      return 'مشكلة في الإنترنت. تأكد من الاتصال وحاول مرة أخرى.\n\nError: $error';
     } else if (errorStr.contains('quota') || errorStr.contains('rate limit')) {
-      return 'وصلت للحد الأقصى من الاستخدام. حاول بعد قليل.';
+      return 'وصلت للحد الأقصى من الاستخدام. حاول بعد قليل.\n\nError: $error';
     } else {
-      return 'حدث خطأ. حاول مرة أخرى.';
+      return 'حدث خطأ. حاول مرة أخرى.\n\nError: $error';
     }
   }
 

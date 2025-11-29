@@ -24,11 +24,7 @@ class _AiChatScreenState extends State<AiChatScreen> {
   @override
   void initState() {
     super.initState();
-    print('');
-    print('==============================================');
     print('🤖 AI CHAT SCREEN OPENED');
-    print('==============================================');
-    print('');
     // Load chat history when screen opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ChatBloc>().add(const LoadChatHistoryEvent());

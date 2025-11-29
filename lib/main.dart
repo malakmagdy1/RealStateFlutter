@@ -54,6 +54,7 @@ import 'package:real/feature_web/auth/presentation/web_signup_screen.dart';
 import 'package:real/feature_web/auth/presentation/web_forgot_password_screen.dart';
 import 'package:real/feature/subscription/presentation/screens/subscription_plans_screen.dart';
 import 'package:real/feature_web/subscription/presentation/web_subscription_plans_screen.dart';
+import 'package:real/core/widgets/offline_wrapper.dart';
 
 import 'feature/auth/presentation/screen/SignupScreen.dart';
 import 'feature/company/data/models/company_model.dart';
@@ -321,6 +322,11 @@ class _MyAppState extends State<MyApp> {
                   brightness: Brightness.light,
                 ),
               ),
+
+              // Wrap with OfflineWrapper for offline detection
+              builder: (context, child) {
+                return OfflineWrapper(child: child ?? const SizedBox.shrink());
+              },
             );
           }
 
@@ -361,6 +367,11 @@ class _MyAppState extends State<MyApp> {
                 brightness: Brightness.light,
               ),
             ),
+
+            // Wrap with OfflineWrapper for offline detection
+            builder: (context, child) {
+              return OfflineWrapper(child: child ?? const SizedBox.shrink());
+            },
 
             routes: {
               SplashScreen.routeName: (context) => SplashScreen(),

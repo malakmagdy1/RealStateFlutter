@@ -24,7 +24,7 @@ import 'package:real/core/widgets/custom_loading_dots.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_event.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_state.dart';
-import 'package:real/feature/share/presentation/widgets/share_bottom_sheet.dart';
+import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sheet.dart';
 
 class WebCompoundDetailScreen extends StatefulWidget {
   static String routeName = '/web-compound-detail';
@@ -490,13 +490,24 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
                 onPressed: () {
                   // Share compound functionality
                   if (_currentCompound != null) {
+                    // Get units from bloc state
+                    final unitState = context.read<UnitBloc>().state;
+                    List<Map<String, dynamic>>? units;
+                    if (unitState is UnitSuccess) {
+                      units = unitState.response.data.map((unit) => {
+                        'id': unit.id,
+                        'unit_name': unit.unitNumber ?? 'Unit ${unit.id}',
+                        'unit_code': unit.code ?? unit.unitNumber,
+                      }).toList();
+                    }
                     showModalBottomSheet(
                       context: context,
                       isScrollControlled: true,
                       backgroundColor: Colors.transparent,
-                      builder: (context) => ShareBottomSheet(
+                      builder: (context) => AdvancedShareBottomSheet(
                         type: 'compound',
                         id: _currentCompound!.id,
+                        units: units,
                       ),
                     );
                   }

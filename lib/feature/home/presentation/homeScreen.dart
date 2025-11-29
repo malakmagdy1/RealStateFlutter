@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
@@ -73,6 +74,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   List<String> _searchHistory = [];
   SearchFilter _currentFilter = SearchFilter.empty();
   String? _lastLocale;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  bool _wasOffline = false;
 
   // All search results shown by default (no "show more" buttons)
 
@@ -86,6 +89,21 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _isLoadingRecommendedUnits = false;
   bool _isLoadingUpdated24Hours = false;
   final CompoundWebServices _webServices = CompoundWebServices();
+
+  // Pagination state for New Arrivals
+  int _newArrivalsPage = 1;
+  int _newArrivalsTotal = 0;
+  bool _newArrivalsHasMore = false;
+  bool _isLoadingMoreNewArrivals = false;
+
+  // Pagination state for Recently Updated
+  int _recentlyUpdatedPage = 1;
+  int _recentlyUpdatedTotal = 0;
+  bool _recentlyUpdatedHasMore = false;
+  bool _isLoadingMoreRecentlyUpdated = false;
+
+  // Pagination limit
+  static const int _pageLimit = 20;
 
   @override
   void initState() {
@@ -109,6 +127,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Add scroll listeners for pagination
     _recommendedScrollController.addListener(_onRecommendedScroll);
     _availableScrollController.addListener(_onAvailableScroll);
+
+    // Setup connectivity listener for auto-retry
+    _setupConnectivityListener();
+  }
+
+  Future<void> _setupConnectivityListener() async {
+    // Check initial connectivity state
+    final initialResults = await Connectivity().checkConnectivity();
+    _wasOffline = initialResults.contains(ConnectivityResult.none);
+
+    // Listen for connectivity changes
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((results) {
+      final isConnected = !results.contains(ConnectivityResult.none);
+      if (isConnected) {
+        // Check if we need to refresh companies
+        final companyBloc = context.read<CompanyBloc>();
+        final compoundBloc = context.read<CompoundBloc>();
+        if (_wasOffline || companyBloc.state is CompanyError || compoundBloc.state is CompoundError) {
+          // Internet is back, refresh data
+          _refreshAllData();
+        }
+      }
+      _wasOffline = !isConnected;
+    });
+
+    // If we're online but bloc is in error state, retry after a short delay
+    if (!_wasOffline) {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          final companyBloc = context.read<CompanyBloc>();
+          final compoundBloc = context.read<CompoundBloc>();
+          if (companyBloc.state is CompanyError) {
+            context.read<CompanyBloc>().add(FetchCompaniesEvent());
+          }
+          if (compoundBloc.state is CompoundError) {
+            context.read<CompoundBloc>().add(FetchWeeklyRecommendedCompoundsEvent());
+          }
+        }
+      });
+    }
   }
 
   @override
@@ -197,6 +255,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _connectivitySubscription?.cancel();
     _searchController.dispose();
     _searchFocusNode.dispose();
     _searchBloc.close();
@@ -238,25 +297,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
     });
   }
-
-  void _openFilterBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => SearchFilterBottomSheet(
-        initialFilter: _currentFilter,
-        onApplyFilters: (filter) {
-          setState(() {
-            _currentFilter = filter;
-          });
-          // Re-run search with new filters (works with or without query text)
-          _performSearch(_searchController.text);
-        },
-      ),
-    );
-  }
-
   void _clearFilters() {
     setState(() {
       _currentFilter = SearchFilter.empty();
@@ -986,6 +1026,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final company = Company(
       id: data.id,
       name: data.name,
+      nameEn: data.name,
+      nameAr: data.name,
       email: data.email,
       logo: data.logo,
       numberOfCompounds: data.numberOfCompounds,
@@ -1066,7 +1108,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       id: data.id,
       compoundId: data.compound.id,
       unitType: data.unitType,
-      area: data.area ?? '0',
+      area: data.totalArea?.toString() ?? data.area ?? '0',
       price: unitPrice,
       bedrooms: data.numberOfBeds ?? '0',
       bathrooms: data.numberOfBaths ?? '0',
@@ -1075,9 +1117,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       unitNumber: data.unitName?.isNotEmpty == true
           ? data.unitName!
           : (data.name.isNotEmpty ? data.name : data.code),
-      deliveryDate: null,
+      code: data.unitCode?.isNotEmpty == true ? data.unitCode! : data.code,
+      deliveryDate: data.deliveryDate,
       view: null,
-      finishing: null,
+      finishing: data.finishingType,
       createdAt: '',
       updatedAt: '',
       images: images,
@@ -1085,40 +1128,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       companyName: data.compound.company.name,
       companyLogo: data.compound.company.logo,
       compoundName: data.compound.name,
+      compoundLocation: data.compound.location,
       companyId: data.compound.company.id,
     );
 
     // Use the full UnitCard widget for consistent UI
     return UnitCard(unit: unit);
   }
-
-  String _formatUnitPrice(String? price, String? totalPrice, AppLocalizations l10n) {
-    // Try price first, then totalPrice
-    final priceStr = price ?? totalPrice;
-
-    // If both are null or empty or "0", show Contact for Price
-    if (priceStr == null || priceStr.isEmpty || priceStr == '0' || priceStr == '0.0') {
-      return 'Contact for Price';
-    }
-
-    try {
-      final numPrice = double.parse(priceStr);
-      if (numPrice == 0) {
-        return 'Contact for Price';
-      }
-
-      // Format the price
-      if (numPrice >= 1000000) {
-        return '${l10n.egp} ${(numPrice / 1000000).toStringAsFixed(2)}M';
-      } else if (numPrice >= 1000) {
-        return '${l10n.egp} ${(numPrice / 1000).toStringAsFixed(0)}K';
-      }
-      return '${l10n.egp} ${numPrice.toStringAsFixed(0)}';
-    } catch (e) {
-      return 'Contact for Price';
-    }
-  }
-
   Widget _buildFilterChip(String label, VoidCallback onRemove) {
     return Container(
       margin: EdgeInsets.only(right: 8),
@@ -1136,16 +1152,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  // Fetch new arrivals
-  Future<void> _fetchNewArrivals() async {
-    if (_isLoadingNewArrivals) return;
+  // Fetch new arrivals with pagination
+  Future<void> _fetchNewArrivals({bool loadMore = false}) async {
+    if (_isLoadingNewArrivals || _isLoadingMoreNewArrivals) return;
+    if (loadMore && !_newArrivalsHasMore) return;
 
     setState(() {
-      _isLoadingNewArrivals = true;
+      if (loadMore) {
+        _isLoadingMoreNewArrivals = true;
+      } else {
+        _isLoadingNewArrivals = true;
+        _newArrivalsPage = 1;
+      }
     });
 
     try {
-      final response = await _webServices.getNewArrivals(limit: 10);
+      final page = loadMore ? _newArrivalsPage + 1 : 1;
+      final response = await _webServices.getNewArrivals(limit: _pageLimit, page: page);
 
       if (response['success'] == true && response['data'] != null) {
         final data = response['data'];
@@ -1179,10 +1202,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               .toList();
         }
 
+        // Get pagination info from response
+        final total = response['total'] ?? 0;
+        final pagination = response['pagination'];
+        final hasMore = pagination?['has_more'] ?? false;
+
         if (mounted) {
           setState(() {
-            _newArrivals = units;
+            if (loadMore) {
+              _newArrivals.addAll(units);
+              _newArrivalsPage = page;
+            } else {
+              _newArrivals = units;
+            }
+            _newArrivalsTotal = total;
+            _newArrivalsHasMore = hasMore;
             _isLoadingNewArrivals = false;
+            _isLoadingMoreNewArrivals = false;
           });
         }
       }
@@ -1191,21 +1227,29 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (mounted) {
         setState(() {
           _isLoadingNewArrivals = false;
+          _isLoadingMoreNewArrivals = false;
         });
       }
     }
   }
 
-  // Fetch recently updated
-  Future<void> _fetchRecentlyUpdated() async {
-    if (_isLoadingRecentlyUpdated) return;
+  // Fetch recently updated with pagination
+  Future<void> _fetchRecentlyUpdated({bool loadMore = false}) async {
+    if (_isLoadingRecentlyUpdated || _isLoadingMoreRecentlyUpdated) return;
+    if (loadMore && !_recentlyUpdatedHasMore) return;
 
     setState(() {
-      _isLoadingRecentlyUpdated = true;
+      if (loadMore) {
+        _isLoadingMoreRecentlyUpdated = true;
+      } else {
+        _isLoadingRecentlyUpdated = true;
+        _recentlyUpdatedPage = 1;
+      }
     });
 
     try {
-      final response = await _webServices.getRecentlyUpdated(limit: 10);
+      final page = loadMore ? _recentlyUpdatedPage + 1 : 1;
+      final response = await _webServices.getRecentlyUpdated(limit: _pageLimit, page: page);
 
       if (response['success'] == true && response['data'] != null) {
         final data = response['data'];
@@ -1223,10 +1267,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               .toList();
         }
 
+        // Get pagination info from response
+        final total = response['total'] ?? 0;
+        final pagination = response['pagination'];
+        final hasMore = pagination?['has_more'] ?? false;
+
         if (mounted) {
           setState(() {
-            _recentlyUpdated = units;
+            if (loadMore) {
+              _recentlyUpdated.addAll(units);
+              _recentlyUpdatedPage = page;
+            } else {
+              _recentlyUpdated = units;
+            }
+            _recentlyUpdatedTotal = total;
+            _recentlyUpdatedHasMore = hasMore;
             _isLoadingRecentlyUpdated = false;
+            _isLoadingMoreRecentlyUpdated = false;
           });
         }
       }
@@ -1235,44 +1292,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (mounted) {
         setState(() {
           _isLoadingRecentlyUpdated = false;
+          _isLoadingMoreRecentlyUpdated = false;
         });
       }
     }
   }
-
-  // Fetch recommended units (last 24 hours)
-  Future<void> _fetchRecommendedUnits() async {
-    if (_isLoadingRecommendedUnits) return;
-
-    setState(() {
-      _isLoadingRecommendedUnits = true;
-    });
-
-    try {
-      final response = await _webServices.getNewUnitsLast24Hours(limit: 10);
-
-      if (response['success'] == true && response['data'] != null) {
-        final units = (response['data'] as List)
-            .map((unit) => Unit.fromJson(unit as Map<String, dynamic>))
-            .toList();
-
-        if (mounted) {
-          setState(() {
-            _recommendedUnits = units;
-            _isLoadingRecommendedUnits = false;
-          });
-        }
-      }
-    } catch (e) {
-      print('[HomeScreen] Error fetching recommended units: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingRecommendedUnits = false;
-        });
-      }
-    }
-  }
-
   // Fetch updated units (last 24 hours)
   Future<void> _fetchUpdated24Hours() async {
     if (_isLoadingUpdated24Hours) return;
@@ -1282,7 +1306,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     });
 
     try {
-      final response = await _webServices.getUpdatedUnitsLast24Hours(limit: 10);
+      final response = await _webServices.getUpdatedUnitsLast24Hours(limit: 100);
 
       if (response['success'] == true && response['data'] != null) {
         // The data is nested in activities object
@@ -1342,7 +1366,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             Icon(Icons.fiber_new, color: AppColors.mainColor, size: 24),
             SizedBox(width: 8),
             CustomText20(
-              'New Arrivals',
+              l10n.newArrivals,
               bold: true,
               color: AppColors.black,
             ),
@@ -1352,11 +1376,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Colors.teal, Colors.tealAccent],                  ),
+                    colors: [Colors.teal, Colors.tealAccent],
+                  ),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${_newArrivals.length}',
+                  "$_newArrivalsTotal" ,
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -1387,7 +1412,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           Icon(Icons.inbox, size: 48, color: AppColors.grey),
                           SizedBox(height: 8),
                           Text(
-                            'No new arrivals yet',
+                            l10n.noNewArrivals,
                             style: TextStyle(color: AppColors.grey),
                           ),
                         ],
@@ -1399,11 +1424,70 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       physics: BouncingScrollPhysics(),
-    clipBehavior: Clip.none,
-
-    padding: EdgeInsets.symmetric(horizontal: 8),
-                      itemCount: _newArrivals.length,
+                      clipBehavior: Clip.none,
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      itemCount: _newArrivals.length + (_newArrivalsHasMore ? 1 : 0),
                       itemBuilder: (context, index) {
+                        // Load More button at the end
+                        if (index == _newArrivals.length) {
+                          return Container(
+                            width: 120,
+                            margin: EdgeInsets.only(right: 8),
+                            child: Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: InkWell(
+                                onTap: _isLoadingMoreNewArrivals
+                                    ? null
+                                    : () => _fetchNewArrivals(loadMore: true),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Center(
+                                  child: _isLoadingMoreNewArrivals
+                                      ? CircularProgressIndicator(
+                                          color: AppColors.mainColor,
+                                          strokeWidth: 2,
+                                        )
+                                      : Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Container(
+                                              padding: EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.mainColor.withOpacity(0.1),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                Icons.add,
+                                                color: AppColors.mainColor,
+                                                size: 28,
+                                              ),
+                                            ),
+                                            SizedBox(height: 8),
+                                            Text(
+                                              l10n.localeName == 'ar' ? 'المزيد' : 'Load More',
+                                              style: TextStyle(
+                                                color: AppColors.mainColor,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            SizedBox(height: 4),
+                                            Text(
+                                              '${_newArrivalsTotal - _newArrivals.length}',
+                                              style: TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
                         return Container(
                           width: 190,
                           margin: EdgeInsets.only(
@@ -1411,7 +1495,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           child: AnimatedListItem(
                             index: index,
-                            delay: Duration(milliseconds: 100),
+                            delay: Duration(milliseconds: 30),
                             child: UnitCard(unit: _newArrivals[index]),
                           ),
                         );
@@ -1432,7 +1516,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             Icon(Icons.update, color: Colors.orange, size: 24),
             SizedBox(width: 8),
             CustomText20(
-              'Recently Updated',
+              l10n.localeName == 'ar' ? 'تم تحديثه مؤخراً' : 'Recently Updated',
               bold: true,
               color: AppColors.black,
             ),
@@ -1447,7 +1531,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${_recentlyUpdated.length}',
+                  _recentlyUpdatedTotal > 0
+                      ? '${_recentlyUpdated.length} / $_recentlyUpdatedTotal'
+                      : '${_recentlyUpdated.length}',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -1478,7 +1564,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           Icon(Icons.inbox, size: 48, color: AppColors.grey),
                           SizedBox(height: 8),
                           Text(
-                            'No recent updates',
+                            l10n.localeName == 'ar' ? 'لا توجد تحديثات حديثة' : 'No recent updates',
                             style: TextStyle(color: AppColors.grey),
                           ),
                         ],
@@ -1490,8 +1576,70 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
                       physics: BouncingScrollPhysics(),
-                      itemCount: _recentlyUpdated.length,
+                      clipBehavior: Clip.none,
+                      padding: EdgeInsets.symmetric(horizontal: 8),
+                      itemCount: _recentlyUpdated.length + (_recentlyUpdatedHasMore ? 1 : 0),
                       itemBuilder: (context, index) {
+                        // Load More button at the end
+                        if (index == _recentlyUpdated.length) {
+                          return Container(
+                            width: 120,
+                            margin: EdgeInsets.only(right: 8),
+                            child: Card(
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: InkWell(
+                                onTap: _isLoadingMoreRecentlyUpdated
+                                    ? null
+                                    : () => _fetchRecentlyUpdated(loadMore: true),
+                                borderRadius: BorderRadius.circular(12),
+                                child: Center(
+                                  child: _isLoadingMoreRecentlyUpdated
+                                      ? CircularProgressIndicator(
+                                          color: Colors.orange,
+                                          strokeWidth: 2,
+                                        )
+                                      : Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Container(
+                                              padding: EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: Colors.orange.withOpacity(0.1),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                Icons.add,
+                                                color: Colors.orange,
+                                                size: 28,
+                                              ),
+                                            ),
+                                            SizedBox(height: 8),
+                                            Text(
+                                              l10n.localeName == 'ar' ? 'المزيد' : 'Load More',
+                                              style: TextStyle(
+                                                color: Colors.orange,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            SizedBox(height: 4),
+                                            Text(
+                                              '${_recentlyUpdatedTotal - _recentlyUpdated.length}',
+                                              style: TextStyle(
+                                                color: Colors.grey,
+                                                fontSize: 11,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }
                         return Container(
                           width: 200,
                           margin: EdgeInsets.only(
@@ -1499,7 +1647,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           child: AnimatedListItem(
                             index: index,
-                            delay: Duration(milliseconds: 100),
+                            delay: Duration(milliseconds: 30),
                             child: UnitCard(unit: _recentlyUpdated[index]),
                           ),
                         );
@@ -1588,7 +1736,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           child: AnimatedListItem(
                             index: index,
-                            delay: Duration(milliseconds: 100),
+                            delay: Duration(milliseconds: 30),
                             child: UnitCard(unit: _recommendedUnits[index]),
                           ),
                         );
@@ -1609,7 +1757,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             Icon(Icons.history_toggle_off, color: Colors.teal, size: 24),
             SizedBox(width: 8),
             CustomText20(
-              'Updated in Last 24 Hours',
+              l10n.updatedInLast24Hours,
               bold: true,
               color: AppColors.black,
             ),
@@ -1655,7 +1803,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           Icon(Icons.inbox, size: 48, color: AppColors.grey),
                           SizedBox(height: 8),
                           Text(
-                            'No units updated in the last 24 hours',
+                            l10n.noUnitsUpdatedLast24Hours,
                             style: TextStyle(color: AppColors.grey),
                           ),
                         ],
@@ -1678,7 +1826,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ),
                           child: AnimatedListItem(
                             index: index,
-                            delay: Duration(milliseconds: 100),
+                            delay: Duration(milliseconds: 30),
                             child: UnitCard(unit: _updated24Hours[index]),
                           ),
                         );

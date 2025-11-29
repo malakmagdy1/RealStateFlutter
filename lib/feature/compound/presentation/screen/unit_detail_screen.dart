@@ -91,7 +91,45 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       final unitData = await _unitWebServices.getUnitById(widget.unit.id);
       print('[UNIT DETAIL] Payment plans in response: ${unitData['payment_plans']}');
 
-      final refreshedUnit = Unit.fromJson(unitData);
+      // Merge original unit data with fetched data to preserve fields that might be missing
+      // The search API returns different fields than the unit detail API
+      final mergedData = Map<String, dynamic>.from(unitData);
+
+      // Preserve original data if API response is missing these critical fields
+      if ((mergedData['total_area'] == null || mergedData['total_area'].toString() == '0') &&
+          widget.unit.area.isNotEmpty && widget.unit.area != '0') {
+        mergedData['total_area'] = widget.unit.area;
+        print('[UNIT DETAIL] Preserving original area: ${widget.unit.area}');
+      }
+      if ((mergedData['delivered_at'] == null || mergedData['delivered_at'].toString().isEmpty) &&
+          widget.unit.deliveryDate != null && widget.unit.deliveryDate!.isNotEmpty) {
+        mergedData['delivered_at'] = widget.unit.deliveryDate;
+        print('[UNIT DETAIL] Preserving original delivery date: ${widget.unit.deliveryDate}');
+      }
+      if ((mergedData['finishing_type'] == null || mergedData['finishing_type'].toString().isEmpty) &&
+          widget.unit.finishing != null && widget.unit.finishing!.isNotEmpty) {
+        mergedData['finishing_type'] = widget.unit.finishing;
+        print('[UNIT DETAIL] Preserving original finishing: ${widget.unit.finishing}');
+      }
+      if ((mergedData['number_of_beds'] == null || mergedData['number_of_beds'].toString() == '0') &&
+          widget.unit.bedrooms.isNotEmpty && widget.unit.bedrooms != '0') {
+        mergedData['number_of_beds'] = widget.unit.bedrooms;
+        print('[UNIT DETAIL] Preserving original bedrooms: ${widget.unit.bedrooms}');
+      }
+      if ((mergedData['number_of_bathrooms'] == null || mergedData['number_of_bathrooms'].toString() == '0') &&
+          widget.unit.bathrooms.isNotEmpty && widget.unit.bathrooms != '0') {
+        mergedData['number_of_bathrooms'] = widget.unit.bathrooms;
+        print('[UNIT DETAIL] Preserving original bathrooms: ${widget.unit.bathrooms}');
+      }
+      // Preserve compound location data
+      if (mergedData['compound'] == null && widget.unit.compoundLocation != null) {
+        mergedData['compound_location'] = widget.unit.compoundLocation;
+        mergedData['compound_location_en'] = widget.unit.compoundLocationEn;
+        mergedData['compound_location_ar'] = widget.unit.compoundLocationAr;
+        print('[UNIT DETAIL] Preserving original compound location');
+      }
+
+      final refreshedUnit = Unit.fromJson(mergedData);
 
       setState(() {
         _currentUnit = refreshedUnit;
@@ -495,13 +533,13 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: AppColors.greyText),
           onPressed: () => Navigator.pop(context),
         ),
         title: CustomText18(
           l10n.unitDetails,
           bold: true,
-          color: Colors.black,
+          color: AppColors.greyText,
         ),
         centerTitle: true,
         actions: [
@@ -531,11 +569,11 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
             },
           ),
           IconButton(
-            icon: Icon(Icons.compare_arrows, color: Colors.black),
+            icon: Icon(Icons.compare_arrows, color: AppColors.greyText),
             onPressed: _showCompareDialog,
           ),
           IconButton(
-            icon: Icon(Icons.share, color: Colors.black),
+            icon: Icon(Icons.share, color: AppColors.greyText),
             onPressed: _shareUnit,
           ),
         ],
@@ -684,9 +722,11 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           children: [
             Expanded(
               child: CustomText24(
-                unit.unitNumber ?? 'Unit ${unit.id}',
+                unit.unitNumber?.isNotEmpty == true
+                    ? unit.unitNumber!
+                    : (unit.code?.isNotEmpty == true ? unit.code! : 'Unit ${unit.id}'),
                 bold: true,
-                color: Colors.black,
+                color: AppColors.greyText,
               ),
             ),
             Container(
@@ -830,18 +870,18 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       mainAxisSize: MainAxisSize.min,
       children: [
         if (icon != null) ...[
-          Icon(icon, color: Colors.grey.shade600, size: 24),
+          Icon(icon, color: AppColors.greyText, size: 24),
           SizedBox(height: 4),
         ],
         CustomText24(
           value,
           bold: true,
-          color: Colors.black,
+          color: AppColors.greyText,
         ),
         SizedBox(height: 4),
         CustomText14(
           label,
-          color: Colors.black,
+          color: AppColors.greyText,
         ),
       ],
     );
@@ -854,14 +894,14 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         controller: _tabController,
         isScrollable: true,
         labelColor: Colors.white,
-        unselectedLabelColor: AppColors.grey,
+        unselectedLabelColor: Colors.grey.shade600,
         indicatorSize: TabBarIndicatorSize.tab,
         indicator: BoxDecoration(
           borderRadius: BorderRadius.circular(10),
           color: AppColors.mainColor,
           boxShadow: [
             BoxShadow(
-              color: AppColors.mainColor.withOpacity(0.3),
+              color: AppColors.mainColor,
               blurRadius: 8,
               offset: Offset(0, 3),
             ),
@@ -969,7 +1009,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                           unit.notes!,
                           style: TextStyle(
                             fontSize: 13,
-                            color: Colors.black,
+                            color: AppColors.greyText,
                           ),
                         ),
                       ],
@@ -978,7 +1018,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                 ],
               ),
             ),
-          _buildSpecRow(l10n.saleType, 'Resale'),
+          _buildSpecRow(l10n.saleType, l10n.resale),
           _buildSpecRow(l10n.finishing, unit.finishing ?? 'N/A'),
           _buildSpecRow(l10n.deliveryDate, unit.deliveryDate != null && unit.deliveryDate!.isNotEmpty
             ? _formatDate(unit.deliveryDate!) : 'N/A'),
@@ -1000,22 +1040,37 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Widget _buildSpecRow(String label, String value) {
+    final isRtl = Directionality.of(context) == TextDirection.rtl;
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CustomText16(
-            label,
-            color: AppColors.greyText,
-            bold: false,
-          ),
+          // Label - takes up to 40% of width
           Expanded(
-            child: CustomText16(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.greyText,
+              ),
+              textAlign: isRtl ? TextAlign.right : TextAlign.left,
+            ),
+          ),
+          // Spacing - minimum 16px gap
+          SizedBox(width: 16),
+          // Value - takes up to 60% of width
+          Expanded(
+            flex: 3,
+            child: Text(
               value,
-              bold: true,
-              color: Colors.black,
-              align: TextAlign.right,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.greyText,
+              ),
+              textAlign: isRtl ? TextAlign.left : TextAlign.right,
             ),
           ),
         ],
@@ -1227,7 +1282,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.black,
+                      color: AppColors.greyText,
                     ),
                   ),
                 ],
@@ -1279,7 +1334,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                         children: [
                           Expanded(
                             child: Text(
-                              note['title'] ?? 'Note',
+                              note['title'] ?? l10n.note,
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
@@ -1318,7 +1373,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                         note['content'] ?? '',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.black,
+                          color: AppColors.greyText,
                           height: 1.5,
                         ),
                       ),
@@ -1369,7 +1424,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
               CustomText20(
                 l10n.paymentPlans,
                 bold: true,
-                color: Colors.black,
+                color: AppColors.greyText,
               ),
             ],
           ),
@@ -1391,7 +1446,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                     children: [
                       Icon(Icons.payments, color: AppColors.mainColor),
                       SizedBox(width: 8),
-                      CustomText18('Cash', bold: true, color: Colors.black),
+                      CustomText18(l10n.cash, bold: true, color: AppColors.greyText),
                     ],
                   ),
                   SizedBox(height: 8),
@@ -1429,11 +1484,11 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: Colors.grey.shade600),
+            Icon(icon, size: 14, color: AppColors.greyText),
             SizedBox(width: 4),
             Text(
               label,
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+              style: TextStyle(fontSize: 11, color: AppColors.greyText),
             ),
           ],
         ),
@@ -1443,51 +1498,12 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF333333),
+            color: AppColors.greyText,
           ),
         ),
       ],
     );
   }
-
-  Widget _buildInfoChip(IconData icon, String label, String value) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.mainColor.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: AppColors.mainColor),
-          SizedBox(width: 6),
-          Text(
-            '$label: ',
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.mainColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDeliveryDate(String dateString) {
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year}';
-    } catch (e) {
-      return dateString;
-    }
-  }
-
   // Sales People Section
   Widget _buildSaleSection(Sale sale, AppLocalizations l10n) {
     return SaleCard(sale: sale);
@@ -1513,7 +1529,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         CustomText20(
           l10n.contactSales,
           bold: true,
-          color: Colors.black,
+          color: AppColors.greyText,
         ),
         SizedBox(height: 12),
         CustomText16(
@@ -1587,7 +1603,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                 CustomText16(
                   salesPerson.name,
                   bold: true,
-                  color: Colors.black,
+                  color: AppColors.greyText,
                 ),
                 SizedBox(height: 4),
                 Row(
@@ -1654,59 +1670,11 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     );
   }
 
-  Widget _buildPaymentPlans(AppLocalizations l10n) {
-    final unit = _currentUnit ?? widget.unit;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        CustomText20(
-          l10n.paymentPlans,
-          bold: true,
-          color: Colors.black,
-        ),
-        SizedBox(height: 12),
-        Container(
-          padding: EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade300),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.payments, color: AppColors.mainColor),
-                  SizedBox(width: 8),
-                  CustomText18(l10n.cash, bold: true, color: Colors.black),
-                ],
-              ),
-              SizedBox(height: 8),
-              CustomText24(
-                'EGP ${_formatPrice(unit.price)}',
-                bold: true,
-                color: AppColors.mainColor,
-              ),
-              SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.check_circle, color: Colors.green, size: 16),
-                  SizedBox(width: 4),
-                  CustomText14(
-                    l10n.noMortgageAvailable,
-                    color: Colors.green,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
   Widget _buildBottomButtons(AppLocalizations l10n) {
+    final unit = _currentUnit ?? widget.unit;
+    final hasPhone = unit.salesNumber != null && unit.salesNumber!.isNotEmpty;
+    final hasSalesPeople = _salesPeople.isNotEmpty;
+
     return Container(
       padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1721,39 +1689,78 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       ),
       child: Row(
         children: [
-          Expanded(
-            child: SizedBox(
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: _callNow,
-                icon: Icon(Icons.phone, color: Colors.white),
-                label: CustomText16(l10n.callNow, bold: true, color: Colors.white),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.mainColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+          // Show Call/WhatsApp buttons only if phone number is available
+          if (hasPhone) ...[
+            Expanded(
+              child: SizedBox(
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: _callNow,
+                  icon: Icon(Icons.phone, color: Colors.white),
+                  label: CustomText16(l10n.callNow, bold: true, color: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mainColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          SizedBox(width: 12),
-          Expanded(
-            child: SizedBox(
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: _openWhatsApp,
-                icon: Icon(Icons.chat, color: Colors.white),
-                label: CustomText16('WhatsApp', bold: true, color: Colors.white),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF25D366),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+            SizedBox(width: 12),
+            Expanded(
+              child: SizedBox(
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: _openWhatsApp,
+                  icon: Icon(Icons.chat, color: Colors.white),
+                  label: CustomText16('WhatsApp', bold: true, color: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF25D366),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
+          ] else if (hasSalesPeople) ...[
+            // Show "Contact Sales" button if salespeople are available
+            Expanded(
+              child: SizedBox(
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: _showSalespeople,
+                  icon: Icon(Icons.support_agent, color: Colors.white),
+                  label: CustomText16(l10n.contactSales, bold: true, color: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mainColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ] else ...[
+            // Show share button as fallback when no contact info is available
+            Expanded(
+              child: SizedBox(
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: _shareUnit,
+                  icon: Icon(Icons.share, color: Colors.white),
+                  label: CustomText16(l10n.share, bold: true, color: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.mainColor,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -2052,7 +2059,7 @@ class UnitChangeNotes extends StatelessWidget {
           // Change type
           if (unit.changeType != null)
             _buildInfoRow(
-              'Status',
+              AppLocalizations.of(context)!.status,
               unit.changeType!.toUpperCase(),
               _getChangeColor(unit.changeType!),
             ),
@@ -2060,7 +2067,7 @@ class UnitChangeNotes extends StatelessWidget {
           // Last changed date
           if (unit.lastChangedAt != null)
             _buildInfoRow(
-              'Last Updated',
+              AppLocalizations.of(context)!.updated,
               _formatDate(unit.lastChangedAt!),
               Colors.grey.shade800,
             ),
@@ -2069,7 +2076,7 @@ class UnitChangeNotes extends StatelessWidget {
           if (unit.changeProperties != null) ...[
             SizedBox(height: 8),
             Text(
-              'What Changed:', // Note: Needs context for localization
+              '${AppLocalizations.of(context)!.whatChanged}:',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 12,

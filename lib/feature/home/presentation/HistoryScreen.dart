@@ -8,6 +8,7 @@ import 'package:real/feature/home/presentation/widget/compunds_name.dart';
 import 'package:real/feature/compound/presentation/widget/unit_card.dart';
 import 'package:real/core/utils/card_dimensions.dart';
 import 'package:real/core/animations/animated_list_item.dart';
+import 'package:real/l10n/app_localizations.dart';
 
 class HistoryScreen extends StatefulWidget {
   HistoryScreen({super.key});
@@ -46,19 +47,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Future<void> _clearAllHistory() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: CustomText18('Clear History', bold: true),
-        content: Text('Are you sure you want to clear all viewing history?'),
+        title: CustomText18(l10n.clearHistory, bold: true),
+        content: Text(l10n.confirmClearHistory),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Clear', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.clear, style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -111,22 +113,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return items;
   }
 
-  String _getTimeAgo(String dateTimeString) {
+  String _getTimeAgo(String dateTimeString, AppLocalizations l10n) {
     try {
       final viewedAt = DateTime.parse(dateTimeString);
       final now = DateTime.now();
       final difference = now.difference(viewedAt);
 
       if (difference.inMinutes < 1) {
-        return 'Just now';
+        return l10n.justNow;
       } else if (difference.inHours < 1) {
-        return '${difference.inMinutes}m ago';
+        return l10n.minutesAgo(difference.inMinutes);
       } else if (difference.inDays < 1) {
-        return '${difference.inHours}h ago';
+        return l10n.hoursAgo(difference.inHours);
       } else if (difference.inDays < 7) {
-        return '${difference.inDays}d ago';
+        return l10n.daysAgo(difference.inDays);
       } else {
-        return '${(difference.inDays / 7).floor()}w ago';
+        return l10n.weeksAgo((difference.inDays / 7).floor());
       }
     } catch (e) {
       return '';
@@ -135,6 +137,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -146,17 +149,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  CustomText24("View History", bold: true, color: AppColors.black),
+                  CustomText24(l10n.viewHistory, bold: true, color: AppColors.black),
                   if (_historyItems.isNotEmpty)
                     TextButton.icon(
                       onPressed: _clearAllHistory,
                       icon: Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                      label: CustomText14('Clear All', color: Colors.red),
+                      label: CustomText14(l10n.clearAll, color: Colors.red),
                     ),
                 ],
               ),
               SizedBox(height: 8),
-              CustomText14('Recently viewed properties', color: AppColors.greyText),
+              CustomText14(l10n.recentlyViewedProperties, color: AppColors.greyText),
               SizedBox(height: 16),
 
               // Search bar
@@ -166,7 +169,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   setState(() => _searchQuery = value);
                 },
                 decoration: InputDecoration(
-                  hintText: "Search in history...",
+                  hintText: l10n.searchInHistory,
                   hintStyle: TextStyle(color: AppColors.greyText),
                   prefixIcon: Icon(Icons.search, color: AppColors.greyText),
                   suffixIcon: _searchQuery.isNotEmpty
@@ -194,17 +197,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    _buildFilterTab('all', 'All', _historyItems.length),
+                    _buildFilterTab('all', l10n.all, _historyItems.length),
                     SizedBox(width: 8),
                     _buildFilterTab(
                       'compounds',
-                      'Compounds',
+                      l10n.compounds,
                       _historyItems.where((i) => i['itemType'] == 'compound').length,
                     ),
                     SizedBox(width: 8),
                     _buildFilterTab(
                       'units',
-                      'Units',
+                      l10n.units,
                       _historyItems.where((i) => i['itemType'] == 'unit').length,
                     ),
                   ],
@@ -273,6 +276,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context)!;
     final hasSearch = _searchQuery.isNotEmpty;
     final hasFilter = _filter != 'all';
 
@@ -288,20 +292,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
           SizedBox(height: 16),
           CustomText20(
             hasSearch
-                ? 'No results found'
+                ? l10n.noResults
                 : _filter == 'all'
-                    ? 'No viewing history yet'
+                    ? l10n.noViewingHistoryYet
                     : _filter == 'compounds'
-                        ? 'No compound views yet'
-                        : 'No unit views yet',
+                        ? l10n.noCompoundViewsYet
+                        : l10n.noUnitViewsYet,
             bold: true,
             color: AppColors.grey,
           ),
           SizedBox(height: 8),
           CustomText14(
             hasSearch
-                ? 'Try adjusting your search'
-                : 'Properties you view will appear here',
+                ? l10n.tryAdjustingYourSearch
+                : l10n.propertiesYouViewWillAppearHere,
             color: AppColors.greyText,
           ),
           if (hasSearch || hasFilter) ...[
@@ -315,7 +319,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 });
               },
               icon: Icon(Icons.clear_all, size: 18),
-              label: Text('Clear Filters'),
+              label: Text(l10n.clearFilters),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.mainColor,
                 foregroundColor: Colors.white,
@@ -329,6 +333,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   }
 
   Widget _buildHistoryList() {
+    final l10n = AppLocalizations.of(context)!;
     final screenWidth = MediaQuery.of(context).size.width;
     final double iconSize = 16.0; // Fixed icon size
     final double buttonSize = 32.0; // Fixed button size
@@ -378,7 +383,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ],
                     ),
                     child: Text(
-                      _getTimeAgo(viewedAt),
+                      _getTimeAgo(viewedAt, l10n),
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.white,
@@ -445,7 +450,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       ],
                     ),
                     child: Text(
-                      _getTimeAgo(viewedAt),
+                      _getTimeAgo(viewedAt, l10n),
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.white,

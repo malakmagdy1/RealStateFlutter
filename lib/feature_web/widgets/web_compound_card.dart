@@ -9,7 +9,6 @@ import 'package:real/feature/compound/presentation/bloc/favorite/compound_favori
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_state.dart';
 import 'package:real/feature/sale/data/models/sale_model.dart';
 import 'package:real/feature/sale/presentation/widgets/sales_person_selector.dart';
-import 'package:real/feature/share/presentation/widgets/share_bottom_sheet.dart';
 import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sheet.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
@@ -221,6 +220,8 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
                   top: 20,
                   left: 12,
                   right: 12,
+                    child: Directionality(
+                      textDirection: TextDirection.ltr,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -361,7 +362,7 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
                       // Status badge (right side)
                     ],
                   ),
-                ),
+                ),),
 
                 if (compound.updatedUnitsCount > 0)
                   Positioned(
@@ -632,36 +633,6 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
           size: 60,
           color: AppColors.mainColor.withOpacity(0.3),
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoBadge(IconData icon, String label, Color color) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(3),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-          width: 0.5,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 8, color: color),
-          SizedBox(width: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 8,
-              fontWeight: FontWeight.w600,
-              color: color,
-              height: 1,
-            ),
-          ),
-        ],
       ),
     );
   }

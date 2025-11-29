@@ -79,13 +79,20 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
     final unitImages = widget.unit.images ?? [];
     final bool hasImages = unitImages.isNotEmpty;
 
-    final compoundLocation = widget.unit.compoundLocation?.isNotEmpty == true
-        ? widget.unit.compoundLocation!
+    // Get localized compound location based on current locale
+    final l10n = AppLocalizations.of(context);
+    final isArabic = l10n?.localeName == 'ar';
+    final localizedCompoundLocation = widget.unit.getLocalizedCompoundLocation(isArabic);
+    final compoundLocation = localizedCompoundLocation?.isNotEmpty == true
+        ? localizedCompoundLocation!
         : 'N/A';
 
     final unitType = widget.unit.usageType ?? widget.unit.unitType ?? 'Unit';
     final unitNumber = widget.unit.unitNumber ?? '';
-    String unitName = unitNumber.isNotEmpty ? unitNumber : 'Unit';
+    final unitCode = widget.unit.code ?? '';
+    String unitName = unitNumber.isNotEmpty
+        ? unitNumber
+        : (unitCode.isNotEmpty ? unitCode : 'Unit');
 
     // Hide sold units completely
     if (widget.unit.status?.toLowerCase() == 'sold') {
@@ -206,7 +213,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                   );
                                 },
                               ),
-                              SizedBox(width: 4),
+                              SizedBox(width: 2),
                               // Note Button
                               GestureDetector(
                                 onTap: () => _showNoteDialog(context),
@@ -229,7 +236,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 4),
+                              SizedBox(width: 2),
                               // Share Button
                               GestureDetector(
                                 onTap: () => _showShareDialog(context),
@@ -248,7 +255,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                                   ),
                                 ),
                               ),
-                              SizedBox(width: 4),
+                              SizedBox(width: 2),
                               // Compare Button with Animation
                               StreamBuilder<List<ComparisonItem>>(
                                 stream: ComparisonListService().comparisonStream,
@@ -412,11 +419,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                             children: [
                               _detailChip(Icons.square_foot, widget.unit.area.isNotEmpty && widget.unit.area != '0' ? '${widget.unit.area}m²' : 'N/A'),
                               SizedBox(width: 2),
-                              widget.unit.status.toLowerCase().contains('progress')
-                                  ? _detailChip(Icons.pending, 'Progress', color: Colors.orange)
-                                  : widget.unit.status.toLowerCase() == 'available'
-                                      ? _detailChip(Icons.check_circle, 'Available', color: Colors.green)
-                                      : _detailChip(Icons.info_outline, widget.unit.status),
+                              _buildStatusChip(context),
                             ],
                           ),
 
@@ -428,9 +431,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                               SizedBox(width: 2),
                               Expanded(
                                 child: Text(
-                                  widget.unit.deliveryDate != null && widget.unit.deliveryDate!.isNotEmpty
-                                      ? widget.unit.deliveryDate!
-                                      : 'N/A',
+                                  _formatDeliveryDate(widget.unit.deliveryDate),
                                   style: TextStyle(
                                     fontSize: 10,
                                     color: Colors.grey[600],
@@ -583,6 +584,49 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
     } catch (e) {
       return 'Contact for Price';
     }
+  }
+
+  /// Format delivery date - removes ISO format (T00:00:00.000Z) and shows clean date
+  String _formatDeliveryDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return 'N/A';
+
+    try {
+      // Parse ISO date format
+      final date = DateTime.parse(dateStr);
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    } catch (e) {
+      // If parsing fails, try to extract just the date part before 'T'
+      if (dateStr.contains('T')) {
+        return dateStr.split('T')[0];
+      }
+      return dateStr;
+    }
+  }
+
+  Widget _buildStatusChip(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final statusLower = widget.unit.status.toLowerCase();
+
+    // Check for in_progress status (English and Arabic)
+    if (statusLower.contains('progress') || statusLower == 'قيد الإنشاء' || statusLower == 'قيد التنفيذ') {
+      return _detailChip(Icons.pending, l10n.inProgress, color: Colors.orange);
+    }
+    // Check for available status (English and Arabic)
+    else if (statusLower == 'available' || statusLower == 'متاح') {
+      return _detailChip(Icons.check_circle, l10n.available, color: Colors.green);
+    }
+    // Check for reserved status (English and Arabic)
+    else if (statusLower == 'reserved' || statusLower == 'محجوز') {
+      return _detailChip(Icons.bookmark, l10n.reserved, color: Colors.orange);
+    }
+    // Check for sold status (English and Arabic)
+    else if (statusLower == 'sold' || statusLower == 'مباع') {
+      return _detailChip(Icons.sell, l10n.sold, color: Colors.red);
+    }
+    // Default: show the status as-is
+    return _detailChip(Icons.info_outline, widget.unit.status);
   }
 
   Widget _detailChip(IconData icon, String value, {Color? color}) {

@@ -170,7 +170,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
               Text(l10n.logout),
             ],
           ),
-          content: Text(l10n.logoutConfirm),
+          content: Text(l10n.logoutConfirm,style: TextStyle(color:Colors.white),),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),

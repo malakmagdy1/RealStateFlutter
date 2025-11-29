@@ -248,6 +248,7 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       isSold: unit.isSold,
       status: unit.status,
       numberOfBeds: unit.numberOfBeds.toString(),
+      area: unit.totalArea.toString(),
       compound: CompoundInfo(
         id: unit.compoundId,
         name: unit.compoundName,
@@ -259,6 +260,12 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
         ),
       ),
       images: unit.images,
+      // Pass additional fields for card display
+      deliveryDate: unit.deliveredAt,
+      finishingType: unit.finishingType,
+      totalArea: unit.totalArea,
+      unitName: unit.unitName,
+      unitCode: unit.unitCode,
     );
   }
 

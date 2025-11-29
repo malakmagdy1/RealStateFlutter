@@ -391,7 +391,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
           children: [
             // Header with search and filter
             Container(
-              padding: EdgeInsets.all(16),
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
               color: AppColors.white,
               child: Column(
                 children: [
@@ -507,7 +507,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
 
                   // Active filters and sort chips
                   if (_currentFilter.activeFiltersCount > 0 || _currentSortBy != null) ...[
-                    SizedBox(height: 2),
+                    SizedBox(height: 4),
                     SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(
@@ -568,10 +568,13 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
                             ),
                           TextButton.icon(
                             onPressed: _clearFilters,
-                            icon: Icon(Icons.close, size: 14),
-                            label: Text(l10n.clearFilters),
+                            icon: Icon(Icons.close, size: 12),
+                            label: Text(l10n.clearFilters, style: TextStyle(fontSize: 11)),
                             style: TextButton.styleFrom(
                               foregroundColor: Colors.red,
+                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              minimumSize: Size(0, 28),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                           ),
                         ],
@@ -1032,10 +1035,11 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
           children: [
             GridView.builder(
               shrinkWrap: true,
+              primary: false, // <<< IMPORTANT: prevents extra space
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                childAspectRatio: 0.63,
+                childAspectRatio: 0.75, // Less tall → removes vertical empty space
                 crossAxisSpacing: 8,
                 mainAxisSpacing: 8,
               ),
@@ -1049,7 +1053,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
             // Page info
             if (searchState is SearchSuccess && searchState.totalPages > 1)
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
                   l10n.showingResults(units.length, response.totalResults),
                   style: TextStyle(
@@ -1059,17 +1063,19 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
                 ),
               ),
 
-            // Loading indicator when loading more
+            // Loading more
             if (searchState is SearchLoadingMore)
               Padding(
-                padding: EdgeInsets.all(16),
+                padding: const EdgeInsets.all(16),
                 child: Center(child: CustomLoadingDots(size: 60)),
               ),
 
-            // End of results indicator
-            if (searchState is SearchSuccess && !searchState.hasMorePages && units.length > 0)
+            // End of results
+            if (searchState is SearchSuccess &&
+                !searchState.hasMorePages &&
+                units.isNotEmpty)
               Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Text(
                   '${l10n.units}: ${response.totalResults}',
                   style: TextStyle(
@@ -1171,6 +1177,8 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
     final company = Company(
       id: data.id,
       name: data.name,
+      nameEn: data.name,
+      nameAr: data.name,
       email: data.email,
       logo: data.logo,
       numberOfCompounds: data.numberOfCompounds,
@@ -1255,7 +1263,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
       id: data.id,
       compoundId: data.compound.id,
       unitType: data.unitType,
-      area: data.area ?? '0',
+      area: data.totalArea?.toString() ?? data.area ?? '0',
       price: unitPrice,
       bedrooms: data.numberOfBeds ?? '0',
       bathrooms: data.numberOfBaths ?? '0',
@@ -1264,9 +1272,10 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
       unitNumber: data.unitName?.isNotEmpty == true
           ? data.unitName!
           : (data.name.isNotEmpty ? data.name : data.code),
-      deliveryDate: null,
+      code: data.unitCode?.isNotEmpty == true ? data.unitCode! : data.code,
+      deliveryDate: data.deliveryDate,
       view: null,
-      finishing: null,
+      finishing: data.finishingType,
       createdAt: '',
       updatedAt: '',
       images: images,
@@ -1274,6 +1283,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
       companyName: data.compound.company.name,
       companyLogo: data.compound.company.logo,
       compoundName: data.compound.name,
+      compoundLocation: data.compound.location,
       companyId: data.compound.company.id,
     );
 
@@ -1446,15 +1456,18 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
 
   Widget _buildFilterChip(String label, VoidCallback onRemove) {
     return Container(
-      margin: EdgeInsets.only(right: 8),
+      margin: EdgeInsets.only(right: 6),
       child: Chip(
         label: Text(label),
         onDeleted: onRemove,
-        deleteIcon: Icon(Icons.close, size: 16),
+        deleteIcon: Icon(Icons.close, size: 14),
         backgroundColor: AppColors.mainColor.withOpacity(0.1),
+        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        visualDensity: VisualDensity.compact,
+        padding: EdgeInsets.symmetric(horizontal: 4),
         labelStyle: TextStyle(
           color: AppColors.mainColor,
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w500,
         ),
       ),

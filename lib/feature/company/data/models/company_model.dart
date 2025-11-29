@@ -5,7 +5,11 @@ class CompanyCompound extends Equatable {
   final String id;
   final String name;
   final String project;
+  final String projectEn;
+  final String projectAr;
   final String location;
+  final String locationEn;
+  final String locationAr;
   final String status;
   final String? completionProgress;
   final List<String> images;
@@ -14,11 +18,31 @@ class CompanyCompound extends Equatable {
     required this.id,
     required this.name,
     required this.project,
+    required this.projectEn,
+    required this.projectAr,
     required this.location,
+    required this.locationEn,
+    required this.locationAr,
     required this.status,
     this.completionProgress,
     required this.images,
   });
+
+  /// Get localized project name based on locale
+  String getLocalizedProject(bool isArabic) {
+    if (isArabic) {
+      return projectAr.isNotEmpty ? projectAr : project;
+    }
+    return projectEn.isNotEmpty ? projectEn : project;
+  }
+
+  /// Get localized location based on locale
+  String getLocalizedLocation(bool isArabic) {
+    if (isArabic) {
+      return locationAr.isNotEmpty ? locationAr : location;
+    }
+    return locationEn.isNotEmpty ? locationEn : location;
+  }
 
   factory CompanyCompound.fromJson(Map<String, dynamic> json) {
     // Parse images list - store URLs as-is from API
@@ -32,12 +56,13 @@ class CompanyCompound extends Equatable {
     return CompanyCompound(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
-      // Use localized project name if available, fallback to original
-      project: json['project_localized']?.toString() ?? json['project']?.toString() ?? '',
-      // Use localized location if available, fallback to original
-      location: json['location_localized']?.toString() ?? json['location_ar']?.toString() ?? json['location']?.toString() ?? '',
-      // Use localized status if available, fallback to original
-      status: json['status_localized']?.toString() ?? json['status']?.toString() ?? '',
+      project: json['project']?.toString() ?? '',
+      projectEn: json['project_en']?.toString() ?? json['project']?.toString() ?? '',
+      projectAr: json['project_ar']?.toString() ?? json['project']?.toString() ?? '',
+      location: json['location']?.toString() ?? '',
+      locationEn: json['location_en']?.toString() ?? json['location']?.toString() ?? '',
+      locationAr: json['location_ar']?.toString() ?? json['location']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
       completionProgress: json['completion_progress']?.toString(),
       images: imagesList,
     );
@@ -48,7 +73,11 @@ class CompanyCompound extends Equatable {
       'id': id,
       'name': name,
       'project': project,
+      'project_en': projectEn,
+      'project_ar': projectAr,
       'location': location,
+      'location_en': locationEn,
+      'location_ar': locationAr,
       'status': status,
       'completion_progress': completionProgress,
       'images': images,
@@ -56,12 +85,14 @@ class CompanyCompound extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, name, project, location, status, completionProgress, images];
+  List<Object?> get props => [id, name, project, projectEn, projectAr, location, locationEn, locationAr, status, completionProgress, images];
 }
 
 class Company extends Equatable {
   final String id;
   final String name;
+  final String nameEn;
+  final String nameAr;
   final String? logo;
   final String email;
   final String numberOfCompounds;
@@ -80,12 +111,14 @@ class Company extends Equatable {
   Company({
     required this.id,
     required this.name,
+    required this.nameEn,
+    required this.nameAr,
     this.logo,
     required this.email,
     required this.numberOfCompounds,
     required this.numberOfAvailableUnits,
     required this.createdAt,
-    required this.sales ,
+    required this.sales,
     this.salesCount = 0,
     required this.compounds,
     // Update tracking fields
@@ -94,6 +127,14 @@ class Company extends Equatable {
     this.latestUpdateTitle,
     this.latestUpdateDate,
   });
+
+  /// Get localized company name based on locale
+  String getLocalizedName(bool isArabic) {
+    if (isArabic) {
+      return nameAr.isNotEmpty ? nameAr : name;
+    }
+    return nameEn.isNotEmpty ? nameEn : name;
+  }
 
   factory Company.fromJson(Map<String, dynamic> json) {
     // Store logo URL as-is from API
@@ -117,8 +158,10 @@ class Company extends Equatable {
 
     return Company(
       id: json['id']?.toString() ?? '',
-      // Use localized name if available (from API's name_ar field), fallback to original name
-      name: json['name_localized']?.toString() ?? json['name_ar']?.toString() ?? json['name']?.toString() ?? '',
+      // Use original name field as base
+      name: json['name']?.toString() ?? '',
+      nameEn: json['name_en']?.toString() ?? json['name']?.toString() ?? '',
+      nameAr: json['name_ar']?.toString() ?? '',
       logo: logo,
       email: json['email']?.toString() ?? '',
       numberOfCompounds: json['number_of_compounds']?.toString() ?? '0',
@@ -139,6 +182,8 @@ class Company extends Equatable {
     return {
       'id': id,
       'name': name,
+      'name_en': nameEn,
+      'name_ar': nameAr,
       'logo': logo,
       'email': email,
       'number_of_compounds': numberOfCompounds,
@@ -159,6 +204,8 @@ class Company extends Equatable {
   List<Object?> get props => [
         id,
         name,
+        nameEn,
+        nameAr,
         logo,
         email,
         numberOfCompounds,
@@ -176,6 +223,6 @@ class Company extends Equatable {
 
   @override
   String toString() {
-    return 'Company{id: $id, name: $name, logo: $logo, email: $email, numberOfCompounds: $numberOfCompounds, numberOfAvailableUnits: $numberOfAvailableUnits}';
+    return 'Company{id: $id, name: $name, nameEn: $nameEn, nameAr: $nameAr, logo: $logo, email: $email, numberOfCompounds: $numberOfCompounds, numberOfAvailableUnits: $numberOfAvailableUnits}';
   }
 }

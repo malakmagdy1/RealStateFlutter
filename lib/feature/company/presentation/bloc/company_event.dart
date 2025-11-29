@@ -8,5 +8,14 @@ abstract class CompanyEvent extends Equatable {
 }
 
 class FetchCompaniesEvent extends CompanyEvent {
-  FetchCompaniesEvent();
+  final bool refresh;
+
+  FetchCompaniesEvent({this.refresh = true});
+
+  @override
+  List<Object?> get props => [refresh];
+}
+
+class LoadMoreCompaniesEvent extends CompanyEvent {
+  LoadMoreCompaniesEvent();
 }

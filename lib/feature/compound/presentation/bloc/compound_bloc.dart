@@ -22,13 +22,35 @@ class CompoundBloc extends Bloc<CompoundEvent, CompoundState> {
     FetchCompoundsEvent event,
     Emitter<CompoundState> emit,
   ) async {
-    emit(CompoundLoading());
+    // Only show loading on first page
+    final currentState = state;
+    if (event.page == 1) {
+      emit(CompoundLoading());
+    }
+
     try {
       final response = await _repository.getCompounds(
         page: event.page,
         limit: event.limit,
       );
-      emit(CompoundSuccess(response));
+
+      // If loading more pages (page > 1), accumulate compounds
+      if (event.page > 1 && currentState is CompoundSuccess) {
+        final existingCompounds = currentState.response.data;
+        final newCompounds = response.data;
+        final allCompounds = [...existingCompounds, ...newCompounds];
+
+        // Create updated response with accumulated data and current page
+        final updatedResponse = response.copyWith(
+          data: allCompounds,
+          page: event.page,
+        );
+        print('[COMPOUND BLOC] Page ${event.page}: Loaded ${newCompounds.length} new, total ${allCompounds.length}/${response.total}');
+        emit(CompoundSuccess(updatedResponse));
+      } else {
+        print('[COMPOUND BLOC] Page 1: Loaded ${response.data.length}/${response.total} compounds');
+        emit(CompoundSuccess(response));
+      }
     } catch (e) {
       emit(CompoundError(e.toString().replaceAll('Exception: ', '')));
     }

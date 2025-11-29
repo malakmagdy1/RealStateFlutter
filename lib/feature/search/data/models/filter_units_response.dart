@@ -190,6 +190,7 @@ class FilteredUnit extends Equatable {
   final String? landArea;
   final String? gardenArea;
   final String? roofArea;
+  final String? finishingType;
 
   FilteredUnit({
     required this.id,
@@ -235,6 +236,7 @@ class FilteredUnit extends Equatable {
     this.landArea,
     this.gardenArea,
     this.roofArea,
+    this.finishingType,
   });
 
   factory FilteredUnit.fromJson(Map<String, dynamic> json) {
@@ -296,6 +298,13 @@ class FilteredUnit extends Equatable {
       totalArea = builtUp + garden + roof;
     }
 
+    // Debug logging for search API data
+    print('[FILTERED UNIT] Parsing unit ${json['id']}:');
+    print('[FILTERED UNIT]   delivery_date: ${json['delivery_date']}');
+    print('[FILTERED UNIT]   delivered_at: ${json['delivered_at']}');
+    print('[FILTERED UNIT]   total_area: ${json['total_area']}');
+    print('[FILTERED UNIT]   finishing_type: ${json['finishing_type']}');
+
     return FilteredUnit(
       id: json['id']?.toString() ?? '',
       compoundId: compoundId,
@@ -321,7 +330,9 @@ class FilteredUnit extends Equatable {
       totalArea: totalArea,
       available: json['available'] == true || json['available']?.toString() == '1',
       isSold: json['is_sold'] == true || json['is_sold']?.toString() == '1',
-      deliveredAt: json['delivered_at']?.toString(),
+      deliveredAt: json['delivered_at']?.toString() ??
+                   json['delivery_date']?.toString() ??
+                   json['planned_delivery_date']?.toString(),
       images: imagesList,
       createdAt: json['created_at']?.toString() ?? '',
       updatedAt: json['updated_at']?.toString() ?? '',
@@ -340,6 +351,7 @@ class FilteredUnit extends Equatable {
       landArea: json['land_area']?.toString(),
       gardenArea: json['garden_area']?.toString(),
       roofArea: json['roof_area']?.toString(),
+      finishingType: json['finishing_type']?.toString() ?? json['finishing']?.toString(),
     );
   }
 
@@ -416,5 +428,6 @@ class FilteredUnit extends Equatable {
         landArea,
         gardenArea,
         roofArea,
+        finishingType,
       ];
 }

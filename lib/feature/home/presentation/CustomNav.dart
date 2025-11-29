@@ -13,6 +13,7 @@ import 'package:real/feature/auth/presentation/screen/blocked_user_screen.dart';
 import 'package:real/feature/home/presentation/profileScreen.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
+import 'package:real/feature/notifications/data/services/notification_cache_service.dart';
 import 'package:real/l10n/app_localizations.dart';
 
 import '../../../core/utils/text_style.dart';
@@ -36,6 +37,8 @@ class _CustomNavState extends State<CustomNav> {
   int _selectedIndex = 0;
   DateTime? _lastHomeTap;
   static const Duration _doubleTapDuration = Duration(milliseconds: 300);
+  int _unreadNotificationCount = 0;
+  final NotificationCacheService _notificationCacheService = NotificationCacheService();
 
   final List<Widget> widgetOptions = [
     HomeScreen(),
@@ -72,6 +75,16 @@ class _CustomNavState extends State<CustomNav> {
   @override
   void initState() {
     super.initState();
+    _loadUnreadNotificationCount();
+  }
+
+  Future<void> _loadUnreadNotificationCount() async {
+    final count = await _notificationCacheService.getUnreadCount();
+    if (mounted) {
+      setState(() {
+        _unreadNotificationCount = count;
+      });
+    }
   }
 
   void _refreshApp() {
@@ -196,14 +209,22 @@ class _CustomNavState extends State<CustomNav> {
         appBar: AppBar(
           backgroundColor: Colors.white,
           actions: [
-            IconButton(
-              onPressed: () {
-                Navigator.pushNamed(context, NotificationsScreen.routeName);
-              },
-              icon: Icon(
-                Icons.notifications,
-                color: AppColors.mainColor,
-                size: screenWidth * 0.05,
+            Badge(
+              label: Text('$_unreadNotificationCount'),
+              isLabelVisible: _unreadNotificationCount > 0,
+              backgroundColor: Colors.red,
+              textColor: Colors.white,
+              child: IconButton(
+                onPressed: () async {
+                  await Navigator.pushNamed(context, NotificationsScreen.routeName);
+                  // Refresh unread count when returning from notifications screen
+                  _loadUnreadNotificationCount();
+                },
+                icon: Icon(
+                  Icons.notifications,
+                  color: AppColors.mainColor,
+                  size: screenWidth * 0.05,
+                ),
               ),
             ),
           ],

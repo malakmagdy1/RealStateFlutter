@@ -13,7 +13,7 @@
 
     <application
         android:name="${applicationName}"
-        android:label="real"
+        android:label="Real State"
         android:icon="@mipmap/ic_launcher">
 
         <activity

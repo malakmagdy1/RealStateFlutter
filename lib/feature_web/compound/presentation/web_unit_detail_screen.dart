@@ -102,7 +102,48 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
       print('[WEB UNIT DETAIL] Fetched unit data: ${unitData.keys.toList()}');
       print('[WEB UNIT DETAIL] Payment plans in response: ${unitData['payment_plans']}');
 
-      final unit = Unit.fromJson(unitData);
+      // Merge original unit data with fetched data to preserve fields that might be missing
+      // The search API returns different fields than the unit detail API
+      final mergedData = Map<String, dynamic>.from(unitData);
+      final originalUnit = widget.unit;
+
+      if (originalUnit != null) {
+        // Preserve original data if API response is missing these critical fields
+        if ((mergedData['total_area'] == null || mergedData['total_area'].toString() == '0') &&
+            originalUnit.area.isNotEmpty && originalUnit.area != '0') {
+          mergedData['total_area'] = originalUnit.area;
+          print('[WEB UNIT DETAIL] Preserving original area: ${originalUnit.area}');
+        }
+        if ((mergedData['delivered_at'] == null || mergedData['delivered_at'].toString().isEmpty) &&
+            originalUnit.deliveryDate != null && originalUnit.deliveryDate!.isNotEmpty) {
+          mergedData['delivered_at'] = originalUnit.deliveryDate;
+          print('[WEB UNIT DETAIL] Preserving original delivery date: ${originalUnit.deliveryDate}');
+        }
+        if ((mergedData['finishing_type'] == null || mergedData['finishing_type'].toString().isEmpty) &&
+            originalUnit.finishing != null && originalUnit.finishing!.isNotEmpty) {
+          mergedData['finishing_type'] = originalUnit.finishing;
+          print('[WEB UNIT DETAIL] Preserving original finishing: ${originalUnit.finishing}');
+        }
+        if ((mergedData['number_of_beds'] == null || mergedData['number_of_beds'].toString() == '0') &&
+            originalUnit.bedrooms.isNotEmpty && originalUnit.bedrooms != '0') {
+          mergedData['number_of_beds'] = originalUnit.bedrooms;
+          print('[WEB UNIT DETAIL] Preserving original bedrooms: ${originalUnit.bedrooms}');
+        }
+        if ((mergedData['number_of_bathrooms'] == null || mergedData['number_of_bathrooms'].toString() == '0') &&
+            originalUnit.bathrooms.isNotEmpty && originalUnit.bathrooms != '0') {
+          mergedData['number_of_bathrooms'] = originalUnit.bathrooms;
+          print('[WEB UNIT DETAIL] Preserving original bathrooms: ${originalUnit.bathrooms}');
+        }
+        // Preserve compound location data
+        if (mergedData['compound'] == null && originalUnit.compoundLocation != null) {
+          mergedData['compound_location'] = originalUnit.compoundLocation;
+          mergedData['compound_location_en'] = originalUnit.compoundLocationEn;
+          mergedData['compound_location_ar'] = originalUnit.compoundLocationAr;
+          print('[WEB UNIT DETAIL] Preserving original compound location');
+        }
+      }
+
+      final unit = Unit.fromJson(mergedData);
       // PaymentPlans feature not yet implemented in Unit model
       // print('[WEB UNIT DETAIL] Parsed unit - payment plans count: ${unit.paymentPlans?.length ?? 0}');
 

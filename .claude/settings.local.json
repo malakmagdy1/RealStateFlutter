@@ -97,7 +97,14 @@
       "Bash(~/.zshrc)",
       "Bash(source ~/.zshrc)",
       "Bash(open:*)",
-      "Bash(sips -g hasAlpha:*)"
+      "Bash(sips -g hasAlpha:*)",
+      "Bash(git remote set-url:*)",
+      "Bash(dart test_gemini_direct.dart:*)",
+      "Bash(dart test_gemini_pro.dart:*)",
+      "Bash(python3:*)",
+      "Bash(dart --version:*)",
+      "Bash(git fetch:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []

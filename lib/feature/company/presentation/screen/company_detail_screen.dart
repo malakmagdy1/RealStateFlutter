@@ -29,7 +29,6 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
   @override
   void initState() {
     super.initState();
-    print('[CompanyDetailScreen] Opening company: ${widget.company.name} (ID: ${widget.company.id})');
     // Fetch compounds for this company when screen loads
     context.read<CompoundBloc>().add(
           FetchCompoundsByCompanyEvent(companyId: widget.company.id),
@@ -40,9 +39,6 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isArabic = l10n.localeName == 'ar';
-
-    // Calculate years of experience
-    final yearsOfExp = _calculateYearsOfExperience(widget.company.createdAt);
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -185,7 +181,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
               child: Column(
                 children: [
                   CustomText24(
-                    widget.company.name,
+                    widget.company.getLocalizedName(isArabic),
                     bold: true,
                     color: AppColors.black,
                     align: TextAlign.center,
@@ -206,7 +202,7 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
               padding: EdgeInsets.symmetric(horizontal: 20),
               child: CustomText16(
                 l10n.companyAboutDescription(
-                  widget.company.name,
+                  widget.company.getLocalizedName(isArabic),
                   _getYearFromDate(widget.company.createdAt),
                 ),
                 color: AppColors.greyText,
@@ -239,19 +235,14 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     children: [
                       Expanded(
                         child: _buildStatItem(
-                          value: '$yearsOfExp+',
-                          label: l10n.yearsOfExperience,
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildStatItem(
-                          value: compoundsCount > 0 ? '$compoundsCount' : '5',
+                          value: compoundsCount > 0 ? '$compoundsCount' : '-',
                           label: l10n.compounds,
                         ),
                       ),
+                      SizedBox(width: 16),
                       Expanded(
                         child: _buildStatItem(
-                          value: unitsDelivered > 0 ? '${_formatNumber(unitsDelivered)}+' : '1,200+',
+                          value: unitsDelivered > 0 ? '${_formatNumber(unitsDelivered)}' : '-',
                           label: l10n.unitsDelivered,
                         ),
                       ),
@@ -385,17 +376,6 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
         ),
       ),
     );
-  }
-
-  int _calculateYearsOfExperience(String createdAt) {
-    try {
-      final date = DateTime.parse(createdAt);
-      final now = DateTime.now();
-      final years = now.year - date.year;
-      return years > 0 ? years : 1;
-    } catch (e) {
-      return 15; // Default value
-    }
   }
 
   String _getYearFromDate(String dateStr) {

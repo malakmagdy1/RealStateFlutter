@@ -8,7 +8,6 @@ import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
 import 'package:real/feature_web/widgets/web_compound_card.dart';
 import 'package:real/feature_web/widgets/web_unit_card.dart';
-import 'package:real/feature_web/widgets/web_company_card.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:real/feature/search/data/repositories/search_repository.dart';
 import 'package:real/feature/search/data/services/search_history_service.dart';
@@ -65,8 +64,8 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   // Filter sidebar state variables
   String? _selectedLocation;
   String? _selectedCompanyId;
-  List<String> _availableLocations = [];
-  Map<String, String> _availableCompanies = {}; // Map of ID -> Name
+  List<LocationFilterItem> _availableLocations = [];
+  List<CompanyFilterItem> _availableCompanies = [];
   final TextEditingController _minPriceController = TextEditingController();
   final TextEditingController _maxPriceController = TextEditingController();
   String? _selectedPropertyType;
@@ -128,7 +127,8 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
   Future<void> _loadLocations() async {
     final locationService = LocationService();
-    final locations = await locationService.getLocations();
+    final locations = await locationService.getLocationsWithLocalization();
+    print('[WEB COMPOUNDS] Loaded ${locations.length} locations with localization');
     setState(() {
       _availableLocations = locations;
     });
@@ -136,8 +136,8 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
   Future<void> _loadCompanies() async {
     final companyService = CompanyService();
-    final companies = await companyService.getCompanies();
-    print('[WEB COMPOUNDS] Loaded ${companies.length} companies: ${companies.values.take(10).join(", ")}${companies.length > 10 ? "..." : ""}');
+    final companies = await companyService.getCompaniesWithLocalization();
+    print('[WEB COMPOUNDS] Loaded ${companies.length} companies with localization: ${companies.take(10).map((c) => c.name).join(", ")}${companies.length > 10 ? "..." : ""}');
     setState(() {
       _availableCompanies = companies;
     });
@@ -530,23 +530,53 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
                   // Active Filters Display
                   if (_currentFilter.activeFiltersCount > 0)
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        if (_currentFilter.location != null)
-                          Chip(
-                            label: Text('${l10n.location}: ${_currentFilter.location}', style: const TextStyle(fontSize: 12)),
-                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
-                            labelStyle: TextStyle(color: AppColors.mainColor),
-                            deleteIcon: const Icon(Icons.close, size: 16),
-                            onDeleted: () {
-                              setState(() {
-                                _currentFilter = _currentFilter.copyWith(clearLocation: true);
-                              });
-                              _performSearch(_searchController.text);
-                            },
-                          ),
+                    Builder(
+                      builder: (context) {
+                        final isArabic = l10n.localeName == 'ar';
+                        // Get localized location name
+                        String? localizedLocation;
+                        if (_currentFilter.location != null) {
+                          final locItem = _availableLocations.where((l) => l.location == _currentFilter.location).firstOrNull;
+                          localizedLocation = locItem?.getLocalizedName(isArabic) ?? _currentFilter.location;
+                        }
+                        // Get localized company name
+                        String? localizedCompany;
+                        if (_currentFilter.companyId != null) {
+                          final compItem = _availableCompanies.where((c) => c.id == _currentFilter.companyId).firstOrNull;
+                          localizedCompany = compItem?.getLocalizedName(isArabic) ?? _currentFilter.companyId;
+                        }
+                        return Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (_currentFilter.location != null)
+                              Chip(
+                                label: Text('${l10n.location}: $localizedLocation', style: const TextStyle(fontSize: 12)),
+                                backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                                labelStyle: TextStyle(color: AppColors.mainColor),
+                                deleteIcon: const Icon(Icons.close, size: 16),
+                                onDeleted: () {
+                                  setState(() {
+                                    _selectedLocation = null;
+                                    _currentFilter = _currentFilter.copyWith(clearLocation: true);
+                                  });
+                                  _performSearch(_searchController.text);
+                                },
+                              ),
+                            if (_currentFilter.companyId != null)
+                              Chip(
+                                label: Text('${l10n.company}: $localizedCompany', style: const TextStyle(fontSize: 12)),
+                                backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                                labelStyle: TextStyle(color: AppColors.mainColor),
+                                deleteIcon: const Icon(Icons.close, size: 16),
+                                onDeleted: () {
+                                  setState(() {
+                                    _selectedCompanyId = null;
+                                    _currentFilter = _currentFilter.copyWith(clearCompanyId: true);
+                                  });
+                                  _performSearch(_searchController.text);
+                                },
+                              ),
                         if (_currentFilter.minPrice != null)
                           Chip(
                             label: Text('${l10n.minPrice}: ${_currentFilter.minPrice} ${l10n.egp}', style: const TextStyle(fontSize: 12)),
@@ -677,25 +707,27 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                               _performSearch(_searchController.text);
                             },
                           ),
-                        if (_currentFilter.hasBeenDelivered != null)
-                          Chip(
-                            label: Text(
-                              _currentFilter.hasBeenDelivered == true
-                                ? 'Delivered'
-                                : 'Not Delivered',
-                              style: const TextStyle(fontSize: 12)
-                            ),
-                            backgroundColor: AppColors.mainColor.withOpacity(0.1),
-                            labelStyle: TextStyle(color: AppColors.mainColor),
-                            deleteIcon: const Icon(Icons.close, size: 16),
-                            onDeleted: () {
-                              setState(() {
-                                _currentFilter = _currentFilter.copyWith(clearHasBeenDelivered: true);
-                              });
-                              _performSearch(_searchController.text);
-                            },
-                          ),
-                      ],
+                            if (_currentFilter.hasBeenDelivered != null)
+                              Chip(
+                                label: Text(
+                                  _currentFilter.hasBeenDelivered == true
+                                    ? 'Delivered'
+                                    : 'Not Delivered',
+                                  style: const TextStyle(fontSize: 12)
+                                ),
+                                backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                                labelStyle: TextStyle(color: AppColors.mainColor),
+                                deleteIcon: const Icon(Icons.close, size: 16),
+                                onDeleted: () {
+                                  setState(() {
+                                    _currentFilter = _currentFilter.copyWith(clearHasBeenDelivered: true);
+                                  });
+                                  _performSearch(_searchController.text);
+                                },
+                              ),
+                          ],
+                        );
+                      },
                     ),
 
                   if (_currentFilter.activeFiltersCount > 0)
@@ -753,53 +785,173 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Company Dropdown (Searchable)
+            // Company Dropdown (Searchable with Localization)
             _buildFilterCard(
               title: l10n.company,
               icon: Icons.business,
-              child: Autocomplete<String>(
-                initialValue: _selectedCompanyId != null
-                    ? TextEditingValue(text: _selectedCompanyId!)
-                    : const TextEditingValue(),
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  // If empty, show all companies
-                  if (textEditingValue.text.isEmpty) {
-                    return ['All Companies', ..._availableCompanies.values];
+              child: Builder(
+                builder: (context) {
+                  final isArabic = l10n.localeName == 'ar';
+
+                  // Get display name for selected company
+                  String? selectedDisplayName;
+                  if (_selectedCompanyId != null) {
+                    final selectedCompany = _availableCompanies.where((c) => c.id == _selectedCompanyId).firstOrNull;
+                    selectedDisplayName = selectedCompany?.getLocalizedName(isArabic);
                   }
 
-                  // Filter companies based on input
-                  final filtered = _availableCompanies.values.where((String option) {
-                    return option.toLowerCase().contains(textEditingValue.text.toLowerCase());
-                  }).toList();
+                  return Autocomplete<CompanyFilterItem>(
+                    initialValue: selectedDisplayName != null
+                        ? TextEditingValue(text: selectedDisplayName)
+                        : const TextEditingValue(),
+                    displayStringForOption: (CompanyFilterItem option) => option.getLocalizedName(isArabic),
+                    optionsBuilder: (TextEditingValue textEditingValue) {
+                      // If empty, show all companies
+                      if (textEditingValue.text.isEmpty) {
+                        return _availableCompanies;
+                      }
 
-                  // Add "All Companies" option if it matches
-                  if ('All Companies'.toLowerCase().contains(textEditingValue.text.toLowerCase())) {
-                    return ['All Companies', ...filtered];
-                  }
+                      // Filter companies based on input (search in all language variants)
+                      final filtered = _availableCompanies.where((CompanyFilterItem company) {
+                        final query = textEditingValue.text.toLowerCase();
+                        return company.name.toLowerCase().contains(query) ||
+                               company.nameEn.toLowerCase().contains(query) ||
+                               company.nameAr.toLowerCase().contains(query);
+                      }).toList();
 
-                  return filtered;
+                      return filtered;
+                    },
+                    onSelected: (CompanyFilterItem selection) {
+                      setState(() {
+                        _selectedCompanyId = selection.id;
+                      });
+                      _applyFilters();
+                    },
+                    fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+                      // Set initial value
+                      if (selectedDisplayName != null && textEditingController.text.isEmpty) {
+                        textEditingController.text = selectedDisplayName;
+                      }
+
+                      return TextFormField(
+                        controller: textEditingController,
+                        focusNode: focusNode,
+                        decoration: InputDecoration(
+                          hintText: isArabic ? 'ابحث واختر الشركة' : 'Type to search or select company',
+                          hintStyle: TextStyle(fontSize: 13),
+                          suffixIcon: _selectedCompanyId != null
+                              ? IconButton(
+                                  icon: Icon(Icons.clear, size: 18),
+                                  onPressed: () {
+                                    setState(() {
+                                      _selectedCompanyId = null;
+                                    });
+                                    textEditingController.clear();
+                                    _applyFilters();
+                                  },
+                                )
+                              : Icon(Icons.arrow_drop_down, size: 24),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          isDense: true,
+                          filled: true,
+                          fillColor: Colors.white,
+                        ),
+                        style: TextStyle(fontSize: 13),
+                        onTap: () {
+                          // Clear text when tapped to show all options
+                          textEditingController.clear();
+                          textEditingController.selection = TextSelection.fromPosition(
+                            TextPosition(offset: 0),
+                          );
+                        },
+                      );
+                    },
+                    optionsViewBuilder: (context, onSelected, options) {
+                      print('[AUTOCOMPLETE] Showing ${options.length} companies in dropdown');
+                      return Align(
+                        alignment: Alignment.topLeft,
+                        child: Material(
+                          elevation: 4.0,
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            constraints: BoxConstraints(maxHeight: 300),
+                            width: 280,
+                            child: ListView.builder(
+                              padding: EdgeInsets.zero,
+                              itemCount: options.length,
+                              shrinkWrap: true,
+                              itemBuilder: (BuildContext context, int index) {
+                                final CompanyFilterItem option = options.elementAt(index);
+                                final isSelected = _selectedCompanyId == option.id;
+                                return InkWell(
+                                  onTap: () {
+                                    onSelected(option);
+                                  },
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected ? AppColors.mainColor.withOpacity(0.1) : null,
+                                      border: Border(
+                                        bottom: BorderSide(
+                                          color: Colors.grey.shade200,
+                                          width: 1,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            option.getLocalizedName(isArabic),
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                              color: isSelected ? AppColors.mainColor : Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                        if (isSelected)
+                                          Icon(Icons.check, size: 16, color: AppColors.mainColor),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  );
                 },
-                onSelected: (String selection) {
-                  setState(() {
-                    _selectedCompanyId = selection == 'All Companies' ? null : selection;
-                  });
-                  _applyFilters();
-                },
-                fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
-                  // Set initial value
-                  if (_selectedCompanyId != null && textEditingController.text.isEmpty) {
-                    textEditingController.text = _selectedCompanyId!;
-                  } else if (_selectedCompanyId == null && textEditingController.text.isEmpty) {
-                    textEditingController.text = '';
-                  }
+              ),
+            ),
 
-                  return TextFormField(
-                    controller: textEditingController,
-                    focusNode: focusNode,
+            const SizedBox(height: 12),
+
+            // Location Dropdown (with Localization)
+            _buildFilterCard(
+              title: l10n.location,
+              icon: Icons.location_on,
+              child: Builder(
+                builder: (context) {
+                  final isArabic = l10n.localeName == 'ar';
+                  return DropdownButtonFormField<String>(
+                    value: _selectedLocation,
+                    icon: Icon(Icons.arrow_drop_down, size: 24),
+                    isExpanded: true,
                     decoration: InputDecoration(
-                      hintText: 'Type to search or select company',
+                      hintText: l10n.selectLocation,
                       hintStyle: TextStyle(fontSize: 13),
-                      suffixIcon: Icon(Icons.arrow_drop_down, size: 24),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -811,105 +963,34 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                       filled: true,
                       fillColor: Colors.white,
                     ),
-                    style: TextStyle(fontSize: 13),
-                    onTap: () {
-                      // Clear text when tapped to show all options
-                      textEditingController.clear();
-                      textEditingController.selection = TextSelection.fromPosition(
-                        TextPosition(offset: 0),
-                      );
+                    items: [
+                      DropdownMenuItem<String>(
+                        value: null,
+                        child: Text(l10n.allLocations, style: TextStyle(fontSize: 13)),
+                      ),
+                      ..._availableLocations.map((loc) {
+                        return DropdownMenuItem<String>(
+                          value: loc.location, // Use original location value for filter
+                          child: Text(loc.getLocalizedName(isArabic), style: TextStyle(fontSize: 13)),
+                        );
+                      }).toList(),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedLocation = value;
+                      });
+                      _applyFilters();
+                    },
+                    selectedItemBuilder: (BuildContext context) {
+                      // Custom builder for selected item to show localized name
+                      return [
+                        Text(l10n.allLocations, style: TextStyle(fontSize: 13)),
+                        ..._availableLocations.map((loc) {
+                          return Text(loc.getLocalizedName(isArabic), style: TextStyle(fontSize: 13));
+                        }).toList(),
+                      ];
                     },
                   );
-                },
-                optionsViewBuilder: (context, onSelected, options) {
-                  print('[AUTOCOMPLETE] Showing ${options.length} companies in dropdown');
-                  return Align(
-                    alignment: Alignment.topLeft,
-                    child: Material(
-                      elevation: 4.0,
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        constraints: BoxConstraints(maxHeight: 300), // Increased from 200 to 300
-                        width: 280,
-                        child: ListView.builder(
-                          padding: EdgeInsets.zero,
-                          itemCount: options.length,
-                          shrinkWrap: true,
-                          itemBuilder: (BuildContext context, int index) {
-                            final String option = options.elementAt(index);
-                            return InkWell(
-                              onTap: () {
-                                onSelected(option);
-                              },
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border(
-                                    bottom: BorderSide(
-                                      color: Colors.grey.shade200,
-                                      width: 1,
-                                    ),
-                                  ),
-                                ),
-                                child: Text(
-                                  option,
-                                  style: TextStyle(fontSize: 13),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // Location Dropdown
-            _buildFilterCard(
-              title: l10n.location,
-              icon: Icons.location_on,
-              child: DropdownButtonFormField<String>(
-                value: _selectedLocation,
-                icon: Icon(Icons.arrow_drop_down, size: 24),
-                isExpanded: true,
-                decoration: InputDecoration(
-                  hintText: l10n.selectLocation,
-                  hintStyle: TextStyle(fontSize: 13),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
-                  ),
-                  isDense: true,
-                  filled: true,
-                  fillColor: Colors.white,
-                ),
-                items: [
-                  DropdownMenuItem<String>(
-                    value: null,
-                    child: Text(l10n.allLocations, style: TextStyle(fontSize: 13)),
-                  ),
-                  ..._availableLocations.map((location) {
-                    return DropdownMenuItem<String>(
-                      value: location,
-                      child: Text(location, style: TextStyle(fontSize: 13)),
-                    );
-                  }).toList(),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedLocation = value;
-                  });
-                  _applyFilters();
                 },
               ),
             ),
@@ -1986,13 +2067,14 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
       id: data.id,
       compoundId: data.compound.id,
       unitType: data.unitType,
-      area: data.area ?? '0',
+      area: data.totalArea?.toString() ?? data.area ?? '0',
       price: unitPrice,
       bedrooms: data.numberOfBeds ?? '0',
       bathrooms: data.numberOfBaths ?? '0',
       floor: data.floor ?? '0',
       status: data.status,
       unitNumber: data.unitName?.isNotEmpty == true ? data.unitName! : (data.name.isNotEmpty ? data.name : data.code),
+      code: data.unitCode?.isNotEmpty == true ? data.unitCode! : data.code,
       createdAt: '',
       updatedAt: '',
       images: images,
@@ -2001,15 +2083,21 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
       companyLogo: data.compound.company.logo,
       companyId: data.compound.company.id,
       compoundName: data.compound.name,
+      compoundLocation: data.compound.location,
+      deliveryDate: data.deliveryDate,
+      finishing: data.finishingType,
     );
   }
 
   Widget _buildHorizontalCompanyCard(Company company, AppLocalizations l10n) {
+    final isArabic = l10n.localeName == 'ar';
+    final companyName = company.getLocalizedName(isArabic);
+
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: () {
-          print('[COMPANY CARD] Navigating to company: ${company.id} - ${company.name}');
+          print('[COMPANY CARD] Navigating to company: ${company.id} - $companyName');
           Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => WebCompanyDetailScreen(
@@ -2049,12 +2137,12 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                       width: 54,
                       height: 54,
                       fit: BoxFit.contain,
-                      errorBuilder: (context, url) => _buildCompanyPlaceholder(company.name),
+                      errorBuilder: (context, url) => _buildCompanyPlaceholder(companyName),
                     ),
                   ),
                 )
               else
-                _buildCompanyPlaceholder(company.name),
+                _buildCompanyPlaceholder(companyName),
 
               const SizedBox(width: 20),
 
@@ -2064,7 +2152,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      company.name,
+                      companyName,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
@@ -2187,6 +2275,8 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     return Company(
       id: id,
       name: data.name,
+      nameEn: data.name,
+      nameAr: data.name,
       logo: data.logo,
       email: data.email,
       numberOfCompounds: data.numberOfCompounds,

@@ -1355,7 +1355,7 @@ abstract class AppLocalizations {
   /// No description provided for @clearAll.
   ///
   /// In en, this message translates to:
-  /// **'Clear all'**
+  /// **'Clear All'**
   String get clearAll;
 
   /// No description provided for @notificationDeleted.
@@ -2558,6 +2558,78 @@ abstract class AppLocalizations {
   /// **'Cash'**
   String get cash;
 
+  /// No description provided for @openInMaps.
+  ///
+  /// In en, this message translates to:
+  /// **'Open in Maps'**
+  String get openInMaps;
+
+  /// No description provided for @mapLocationNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Map location not available'**
+  String get mapLocationNotAvailable;
+
+  /// No description provided for @masterPlanComingSoon.
+  ///
+  /// In en, this message translates to:
+  /// **'Master plan details coming soon'**
+  String get masterPlanComingSoon;
+
+  /// No description provided for @contactSalesTeam.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact Sales Team'**
+  String get contactSalesTeam;
+
+  /// No description provided for @getInTouchWithSales.
+  ///
+  /// In en, this message translates to:
+  /// **'Get in touch with our professional sales team for more information'**
+  String get getInTouchWithSales;
+
+  /// No description provided for @addYourPersonalNotesCompound.
+  ///
+  /// In en, this message translates to:
+  /// **'Add your personal notes about this compound. Your notes are private and only visible to you.'**
+  String get addYourPersonalNotesCompound;
+
+  /// No description provided for @compoundNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Compound Note'**
+  String get compoundNote;
+
+  /// No description provided for @newUpdatesAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'New Updates Available!'**
+  String get newUpdatesAvailable;
+
+  /// No description provided for @couldNotLaunchPhoneCall.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not launch phone call'**
+  String get couldNotLaunchPhoneCall;
+
+  /// No description provided for @couldNotLaunchWhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not launch WhatsApp'**
+  String get couldNotLaunchWhatsApp;
+
+  /// No description provided for @unknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get unknown;
+
+  /// No description provided for @resale.
+  ///
+  /// In en, this message translates to:
+  /// **'Resale'**
+  String get resale;
+
   /// No description provided for @compare.
   ///
   /// In en, this message translates to:
@@ -2918,6 +2990,12 @@ abstract class AppLocalizations {
   /// **'Waiting for connection...'**
   String get waitingForConnection;
 
+  /// No description provided for @errorOccurred.
+  ///
+  /// In en, this message translates to:
+  /// **'An Error Occurred'**
+  String get errorOccurred;
+
   /// No description provided for @yearsOfExperience.
   ///
   /// In en, this message translates to:
@@ -2989,6 +3067,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Our Projects'**
   String get ourProjects;
+
+  /// No description provided for @viewHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'View History'**
+  String get viewHistory;
+
+  /// No description provided for @recentlyViewedProperties.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently viewed properties'**
+  String get recentlyViewedProperties;
+
+  /// No description provided for @confirmClearHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to clear all viewing history?'**
+  String get confirmClearHistory;
+
+  /// No description provided for @tryAdjustingYourSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Try adjusting your search'**
+  String get tryAdjustingYourSearch;
 }
 
 class _AppLocalizationsDelegate

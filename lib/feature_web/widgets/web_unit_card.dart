@@ -103,16 +103,23 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
     final unitImages = widget.unit.images ?? [];
     final bool hasImages = unitImages.isNotEmpty;
 
+    // Get localized compound location based on current locale
+    final l10n = AppLocalizations.of(context);
+    final isArabic = l10n?.localeName == 'ar';
+    final localizedCompoundLocation = widget.unit.getLocalizedCompoundLocation(isArabic);
     // Use compound location for the location display, fallback to compound name if not available
-    final compoundLocation = widget.unit.compoundLocation?.isNotEmpty == true
-        ? widget.unit.compoundLocation!
+    final compoundLocation = localizedCompoundLocation?.isNotEmpty == true
+        ? localizedCompoundLocation!
         : (widget.unit.compoundName?.isNotEmpty == true ? widget.unit.compoundName! : '');
 
     final unitType = widget.unit.usageType ?? widget.unit.unitType ?? 'Unit';
     final unitNumber = widget.unit.unitNumber ?? '';
+    final unitCode = widget.unit.code ?? '';
 
-    // Display unit number/name separately from type
-    String unitName = unitNumber.isNotEmpty ? unitNumber : 'Unit';
+    // Display unit number/name separately from type, fallback to code if no name
+    String unitName = unitNumber.isNotEmpty
+        ? unitNumber
+        : (unitCode.isNotEmpty ? unitCode : 'Unit');
 
     // Hide sold units completely
     if (widget.unit.status?.toLowerCase() == 'sold') {
@@ -180,6 +187,8 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                         top: 20,
                         left: 12,
                         right: 12,
+                          child: Directionality(
+                            textDirection: TextDirection.ltr,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -336,7 +345,7 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                             ),
                           ],
                         ),
-                      ),
+                      ),),
 
                       // Sale badge (higher priority, shown at top)
                       if (widget.unit.sale != null && widget.unit.sale!.isCurrentlyActive)
@@ -462,18 +471,12 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                             SizedBox(height: 2),
                             Row(
                               children: [
-                                widget.unit.status.toLowerCase().contains('progress')
-                                    ? _detailChip(Icons.pending, 'In Progress', color: Colors.orange)
-                                    : widget.unit.status.toLowerCase() == 'available'
-                                        ? _detailChip(Icons.check_circle, 'Available', color: Colors.green)
-                                        : _detailChip(Icons.info_outline, widget.unit.status),
+                                _buildStatusChip(context),
                                 SizedBox(width: 2),
-                                // Delivery Date
+                                // Delivery Date (formatted)
                                 _detailChip(
                                   Icons.calendar_today,
-                                  widget.unit.deliveryDate != null && widget.unit.deliveryDate!.isNotEmpty
-                                      ? widget.unit.deliveryDate!
-                                      : 'N/A',
+                                  _formatDeliveryDate(widget.unit.deliveryDate),
                                 ),
                               ],
                             ),
@@ -575,15 +578,6 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
       ),
     );
   }
-
-  Widget _actionButton(IconData icon, VoidCallback onTap, {Color? color}) {
-    return _AnimatedActionButton(
-      icon: icon,
-      onTap: onTap,
-      color: color,
-    );
-  }
-
   String? _getBestPrice() {
     // Priority: sale price > discountedPrice > totalPrice > normalPrice > originalPrice > price
     // Check if unit has an active sale
@@ -633,6 +627,49 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
     }
   }
 
+  /// Format delivery date - removes ISO format (T00:00:00.000Z) and shows clean date
+  String _formatDeliveryDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return 'N/A';
+
+    try {
+      // Parse ISO date format
+      final date = DateTime.parse(dateStr);
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    } catch (e) {
+      // If parsing fails, try to extract just the date part before 'T'
+      if (dateStr.contains('T')) {
+        return dateStr.split('T')[0];
+      }
+      return dateStr;
+    }
+  }
+
+  Widget _buildStatusChip(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final statusLower = widget.unit.status.toLowerCase();
+
+    // Check for in_progress status (English and Arabic)
+    if (statusLower.contains('progress') || statusLower == 'قيد الإنشاء' || statusLower == 'قيد التنفيذ') {
+      return _detailChip(Icons.pending, l10n.inProgress, color: Colors.orange);
+    }
+    // Check for available status (English and Arabic)
+    else if (statusLower == 'available' || statusLower == 'متاح') {
+      return _detailChip(Icons.check_circle, l10n.available, color: Colors.green);
+    }
+    // Check for reserved status (English and Arabic)
+    else if (statusLower == 'reserved' || statusLower == 'محجوز') {
+      return _detailChip(Icons.bookmark, l10n.reserved, color: Colors.orange);
+    }
+    // Check for sold status (English and Arabic)
+    else if (statusLower == 'sold' || statusLower == 'مباع') {
+      return _detailChip(Icons.sell, l10n.sold, color: Colors.red);
+    }
+    // Default: show the status as-is
+    return _detailChip(Icons.info_outline, widget.unit.status);
+  }
+
   Widget _detailChip(IconData icon, String value, {Color? color}) {
     final chipColor = color ?? Colors.grey[700]!;
     return Container(
@@ -671,42 +708,6 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
       ),
     );
   }
-
-  Color _getStatusColor(String status) {
-    final statusLower = status.toLowerCase();
-    // Handle both English and Arabic status values
-    if (statusLower == 'available' || statusLower == 'متاح') {
-      return Color(0xFF4CAF50);
-    } else if (statusLower == 'reserved' || statusLower == 'محجوز') {
-      return Colors.orange;
-    } else if (statusLower == 'sold' || statusLower == 'مباع') {
-      return Color(0xFFF44336);
-    } else if (statusLower == 'in_progress' || statusLower == 'قيد الإنشاء') {
-      return Colors.orange; // Changed from blue to orange for in_progress
-    } else if (statusLower == 'completed' || statusLower == 'مكتمل') {
-      return Color(0xFF4CAF50);
-    } else if (statusLower == 'delivered' || statusLower == 'تم التسليم') {
-      return Color(0xFF2196F3);
-    }
-    return Colors.grey;
-  }
-
-  String _getStatusLabel(String status) {
-    final statusLower = status.toLowerCase();
-    switch (statusLower) {
-      case 'available':
-        return 'AVAILABLE';
-      case 'reserved':
-        return 'RESERVED';
-      case 'sold':
-        return 'SOLD';
-      case 'in_progress':
-        return 'IN PROGRESS';
-      default:
-        return status.toUpperCase();
-    }
-  }
-
   // ADDED: Compare dialog method
   void _showCompareDialog(BuildContext context) {
     final comparisonItem = ComparisonItem.fromUnit(widget.unit);

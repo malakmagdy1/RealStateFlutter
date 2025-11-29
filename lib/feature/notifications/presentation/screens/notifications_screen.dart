@@ -5,10 +5,6 @@ import 'package:real/l10n/app_localizations.dart';
 import '../../data/models/notification_model.dart';
 import '../../data/services/notification_cache_service.dart';
 import '../widgets/notification_card.dart';
-import 'package:real/feature/compound/data/models/unit_model.dart';
-import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
-import 'package:real/feature/compound/data/models/compound_model.dart';
-import 'package:real/feature/home/presentation/CompoundScreen.dart';
 
 class NotificationsScreen extends StatefulWidget {
   static String routeName = '/notifications';
@@ -253,164 +249,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             ),
                       ),
                     ),
-                  SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _navigateToDetails(notification);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.mainColor,
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        AppLocalizations.of(context)!.viewDetails,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  /// Navigate to appropriate screen based on notification type
-  void _navigateToDetails(NotificationModel notification) {
-    final data = notification.data;
-    if (data == null) return;
-
-    switch (notification.type) {
-      case 'sale':
-      case 'unit':
-      // Navigate to unit details
-        final unitId = data['unit_id'] ?? data['id'];
-        if (unitId != null) {
-          _navigateToUnitDetails(unitId.toString());
-        }
-        break;
-
-      case 'compound':
-      // Navigate to compound details
-        final compoundId = data['compound_id'] ?? data['id'];
-        if (compoundId != null) {
-          _navigateToCompoundDetails(compoundId.toString());
-        }
-        break;
-
-      case 'general':
-      default:
-      // For general notifications, just show a message
-        MessageHelper.showMessage(
-          context: context,
-          message: AppLocalizations.of(context)!.noDetailsAvailable,
-          isSuccess: true,
-        );
-        break;
-    }
-  }
-
-  /// Navigate to UnitDetailScreen with minimal data
-  /// The detail screen will load full data when opened
-  void _navigateToUnitDetails(String unitId) {
-    // Try to find the notification with this unit ID
-    NotificationModel? foundNotification;
-    try {
-      foundNotification = notifications.firstWhere(
-            (n) => n.data?['unit_id']?.toString() == unitId || n.data?['id']?.toString() == unitId,
-      );
-    } catch (e) {
-      // Notification not found, use null
-      foundNotification = null;
-    }
-
-    final data = foundNotification?.data;
-
-    // Create a minimal Unit object from notification data
-    final unit = Unit(
-      id: unitId,
-      compoundId: data?['compound_id']?.toString() ?? '',
-      unitType: data?['unit_type']?.toString() ?? 'Unit',
-      area: data?['area']?.toString() ?? '0',
-      price: data?['price']?.toString() ?? '0',
-      bedrooms: data?['bedrooms']?.toString() ?? '0',
-      bathrooms: data?['bathrooms']?.toString() ?? '0',
-      floor: data?['floor']?.toString() ?? '0',
-      status: data?['status']?.toString() ?? 'available',
-      unitNumber: data?['unit_number']?.toString() ?? '',
-      createdAt: DateTime.now().toIso8601String(),
-      updatedAt: DateTime.now().toIso8601String(),
-      images: data?['images'] != null ? List<String>.from(data!['images']) : [],
-      usageType: data?['usage_type']?.toString(),
-      companyName: data?['company_name']?.toString(),
-      companyLogo: data?['company_logo']?.toString(),
-      compoundName: data?['compound_name']?.toString(),
-    );
-
-    // Navigate to unit detail screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => UnitDetailScreen(unit: unit),
-      ),
-    );
-  }
-
-  /// Navigate to CompoundScreen with minimal data
-  void _navigateToCompoundDetails(String compoundId) {
-    // Try to find the notification with this compound ID
-    NotificationModel? foundNotification;
-    try {
-      foundNotification = notifications.firstWhere(
-            (n) => n.data?['compound_id']?.toString() == compoundId || n.data?['id']?.toString() == compoundId,
-      );
-    } catch (e) {
-      // Notification not found, use null
-      foundNotification = null;
-    }
-
-    final data = foundNotification?.data;
-
-    // Create a minimal Compound object from notification data
-    final compound = Compound(
-      id: data?['id']?.toString() ?? compoundId,
-      companyId: data?['company_id']?.toString() ?? '',
-      project: data?['compound_name']?.toString() ?? data?['name']?.toString() ?? data?['project']?.toString() ?? 'Compound',
-      location: data?['location']?.toString() ?? '',
-      images: data?['images'] != null ? List<String>.from(data!['images']) : [],
-      builtUpArea: data?['built_up_area']?.toString() ?? '0',
-      howManyFloors: data?['how_many_floors']?.toString() ?? '0',
-      plannedDeliveryDate: data?['delivery_date']?.toString() ?? data?['planned_delivery_date']?.toString(),
-      club: data?['club']?.toString() ?? '0',
-      isSold: data?['is_sold']?.toString() ?? '0',
-      status: data?['status']?.toString() ?? 'in_progress',
-      totalUnits: data?['total_units']?.toString() ?? '0',
-      createdAt: data?['created_at']?.toString() ?? DateTime.now().toIso8601String(),
-      updatedAt: data?['updated_at']?.toString() ?? DateTime.now().toIso8601String(),
-      companyName: data?['company_name']?.toString() ?? data?['developer']?.toString() ?? '',
-      companyLogo: data?['company_logo']?.toString(),
-      soldUnits: data?['sold_units']?.toString() ?? '0',
-      availableUnits: data?['available_units']?.toString() ?? '0',
-      sales: [],
-    );
-
-    // Navigate to compound screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CompoundScreen(compound: compound),
       ),
     );
   }

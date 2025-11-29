@@ -321,6 +321,10 @@ class UnitSearchData extends Equatable {
   final String? discountPercentage;
   final bool hasActiveSale;
   final dynamic sale;
+  // Additional fields for card display
+  final String? deliveryDate;
+  final String? finishingType;
+  final double? totalArea;
 
   UnitSearchData({
     required this.id,
@@ -347,6 +351,9 @@ class UnitSearchData extends Equatable {
     this.discountPercentage,
     this.hasActiveSale = false,
     this.sale,
+    this.deliveryDate,
+    this.finishingType,
+    this.totalArea,
   });
 
   factory UnitSearchData.fromJson(Map<String, dynamic> json) {
@@ -382,6 +389,9 @@ class UnitSearchData extends Equatable {
       discountPercentage: json['discount_percentage']?.toString(),
       hasActiveSale: json['has_active_sale'] == true || json['has_active_sale']?.toString() == '1' || json['has_active_sale']?.toString() == 'true',
       sale: json['sale'],
+      deliveryDate: json['delivered_at']?.toString() ?? json['delivery_date']?.toString() ?? json['planned_delivery_date']?.toString(),
+      finishingType: json['finishing_type']?.toString() ?? json['finishing']?.toString(),
+      totalArea: double.tryParse(json['total_area']?.toString() ?? json['built_up_area']?.toString() ?? '0'),
     );
   }
 
@@ -439,6 +449,9 @@ class UnitSearchData extends Equatable {
         discountPercentage,
         hasActiveSale,
         sale,
+        deliveryDate,
+        finishingType,
+        totalArea,
       ];
 }
 

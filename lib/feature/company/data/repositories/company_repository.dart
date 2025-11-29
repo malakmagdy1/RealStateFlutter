@@ -7,9 +7,9 @@ class CompanyRepository {
   CompanyRepository({CompanyWebServices? companyWebServices})
     : _companyWebServices = companyWebServices ?? CompanyWebServices();
 
-  Future<CompanyResponse> getCompanies() async {
+  Future<CompanyResponse> getCompanies({int page = 1, int perPage = 20}) async {
     try {
-      final response = await _companyWebServices.getCompanies();
+      final response = await _companyWebServices.getCompanies(page: page, perPage: perPage);
       return response;
     } catch (e) {
       print('Repository Get Companies Error: ${e.toString()}');

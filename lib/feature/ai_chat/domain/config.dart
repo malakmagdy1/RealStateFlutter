@@ -2,8 +2,8 @@
 ///
 /// Get your API key from: https://aistudio.google.com/app/apikey
 class AppConfig {
-  // API key from Google AI Studio
-  static const String geminiApiKey = 'AIzaSyDAAktGvB3W6MTsoJQ1uT08NVB0_O48_7Q';
+  // API key from Google AI Studio (realState2 - Fresh key)
+  static const String geminiApiKey = 'AIzaSyDPqe54op4APQDIANK4UZriK--DCvfpuPA';
 
   // Model to use (gemini-2.0-flash is free and fast)
   static const String geminiModel = 'gemini-2.0-flash';

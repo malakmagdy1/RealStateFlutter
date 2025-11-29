@@ -1,6 +1,29 @@
 import 'package:dio/dio.dart';
 import 'package:real/core/utils/constant.dart' as constants;
 
+/// Simple class to hold company filter data with localization
+class CompanyFilterItem {
+  final String id;
+  final String name;
+  final String nameEn;
+  final String nameAr;
+
+  CompanyFilterItem({
+    required this.id,
+    required this.name,
+    required this.nameEn,
+    required this.nameAr,
+  });
+
+  /// Get localized name based on locale
+  String getLocalizedName(bool isArabic) {
+    if (isArabic) {
+      return nameAr.isNotEmpty ? nameAr : name;
+    }
+    return nameEn.isNotEmpty ? nameEn : name;
+  }
+}
+
 class CompanyService {
   late Dio dio;
 
@@ -24,8 +47,17 @@ class CompanyService {
   }
 
   /// Fetch all companies from database
-  /// Returns a map of company ID to company name for filter dropdown
+  /// Returns a map of company ID to company name for filter dropdown (legacy)
   Future<Map<String, String>> getCompanies() async {
+    final items = await getCompaniesWithLocalization();
+    return Map.fromEntries(
+      items.map((item) => MapEntry(item.id, item.name))
+    );
+  }
+
+  /// Fetch all companies with localization support
+  /// Returns a list of CompanyFilterItem with both English and Arabic names
+  Future<List<CompanyFilterItem>> getCompaniesWithLocalization() async {
     try {
       print('[COMPANY SERVICE] Fetching companies from API...');
 
@@ -37,8 +69,8 @@ class CompanyService {
       if (response.statusCode == 200) {
         final data = response.data;
 
-        // Build map of company ID -> company name
-        Map<String, String> companies = {};
+        // Build list of company items
+        List<CompanyFilterItem> companies = [];
 
         if (data is Map && data['data'] is List) {
           final companiesList = data['data'] as List;
@@ -46,32 +78,37 @@ class CompanyService {
           for (var company in companiesList) {
             if (company is Map) {
               final id = company['id']?.toString();
-              final name = company['name']?.toString();
+              final name = company['name']?.toString() ?? '';
+              final nameEn = company['name_en']?.toString() ?? company['name']?.toString() ?? '';
+              final nameAr = company['name_ar']?.toString() ?? company['name']?.toString() ?? '';
 
-              if (id != null && name != null && name.isNotEmpty) {
-                companies[id] = name;
+              if (id != null && name.isNotEmpty) {
+                companies.add(CompanyFilterItem(
+                  id: id,
+                  name: name,
+                  nameEn: nameEn,
+                  nameAr: nameAr,
+                ));
               }
             }
           }
         }
 
         // Sort companies by name
-        final sortedCompanies = Map.fromEntries(
-          companies.entries.toList()..sort((a, b) => a.value.compareTo(b.value))
-        );
+        companies.sort((a, b) => a.name.compareTo(b.name));
 
-        print('[COMPANY SERVICE] ✓ Found ${sortedCompanies.length} companies');
-        print('[COMPANY SERVICE] Companies: ${sortedCompanies.values.take(5).join(", ")}${sortedCompanies.length > 5 ? "..." : ""}');
+        print('[COMPANY SERVICE] ✓ Found ${companies.length} companies');
+        print('[COMPANY SERVICE] Companies: ${companies.take(5).map((c) => c.name).join(", ")}${companies.length > 5 ? "..." : ""}');
 
-        return sortedCompanies;
+        return companies;
       } else {
         print('[COMPANY SERVICE] ✗ Error: ${response.statusCode}');
-        return {};
+        return [];
       }
     } catch (e) {
       print('[COMPANY SERVICE] ✗ Exception: $e');
       print('[COMPANY SERVICE] Error details: ${e.toString()}');
-      return {};
+      return [];
     }
   }
 }

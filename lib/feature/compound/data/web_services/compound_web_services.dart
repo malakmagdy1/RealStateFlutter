@@ -270,8 +270,8 @@ class CompoundWebServices {
     }
   }
 
-  // Get newly added units (marked as updated)
-  Future<Map<String, dynamic>> getNewArrivals({int limit = 10}) async {
+  // Get newly added units (marked as updated) with pagination
+  Future<Map<String, dynamic>> getNewArrivals({int limit = 20, int page = 1}) async {
     try {
       final authToken = token ?? '';
       final currentLang = LanguageService.currentLanguage;
@@ -280,11 +280,13 @@ class CompoundWebServices {
         '/units/marked-updated',
         queryParameters: {
           'limit': limit,
+          'page': page,
           'lang': currentLang,
         },
         options: Options(headers: {'Authorization': 'Bearer $authToken'}),
       );
       print('Get New Arrivals Response: ${response.data.toString()}');
+      print('[PAGINATION] Page: $page, Limit: $limit, Total: ${response.data['total']}, HasMore: ${response.data['pagination']?['has_more']}');
 
       if (response.data is Map<String, dynamic>) {
         return response.data;
@@ -309,24 +311,26 @@ class CompoundWebServices {
     }
   }
 
-  // Get units updated in last 24 hours with activity log
-  Future<Map<String, dynamic>> getUpdated24Hours({int hours = 24, int limit = 20}) async {
+  // Get units updated in last 24 hours with activity log and pagination
+  Future<Map<String, dynamic>> getUpdated24Hours({int hours = 24, int limit = 20, int page = 1}) async {
     try {
       final authToken = token ?? '';
       final currentLang = LanguageService.currentLanguage;
 
-      print('[API] Fetching units updated in last $hours hours');
+      print('[API] Fetching units updated in last $hours hours (page: $page, limit: $limit)');
       Response response = await dio.get(
         '/units/updated',
         queryParameters: {
           'hours': hours,
           'limit': limit,
+          'page': page,
           'lang': currentLang,
         },
         options: Options(headers: {'Authorization': 'Bearer $authToken'}),
       );
       print('[API] Updated Units Response: ${response.statusCode}');
       print('[API] Units found: ${response.data['data']?['units']?.length ?? 0}');
+      print('[PAGINATION] Page: $page, Limit: $limit, Total: ${response.data['total']}, HasMore: ${response.data['pagination']?['has_more']}');
 
       if (response.data is Map<String, dynamic>) {
         return response.data;
@@ -351,8 +355,8 @@ class CompoundWebServices {
     }
   }
 
-  // Get recently updated units
-  Future<Map<String, dynamic>> getRecentlyUpdated({int limit = 10}) async {
+  // Get recently updated units with pagination
+  Future<Map<String, dynamic>> getRecentlyUpdated({int limit = 20, int page = 1}) async {
     try {
       final authToken = token ?? '';
       final currentLang = LanguageService.currentLanguage;
@@ -361,11 +365,13 @@ class CompoundWebServices {
         '/units/marked-updated',
         queryParameters: {
           'limit': limit,
+          'page': page,
           'lang': currentLang,
         },
         options: Options(headers: {'Authorization': 'Bearer $authToken'}),
       );
       print('Get Recently Updated Response: ${response.data.toString()}');
+      print('[PAGINATION] Page: $page, Limit: $limit, Total: ${response.data['total']}, HasMore: ${response.data['pagination']?['has_more']}');
 
       if (response.data is Map<String, dynamic>) {
         return response.data;
@@ -390,8 +396,8 @@ class CompoundWebServices {
     }
   }
 
-  // Get units added in last 24 hours
-  Future<Map<String, dynamic>> getNewUnitsLast24Hours({int limit = 10}) async {
+  // Get units added in last 24 hours with pagination
+  Future<Map<String, dynamic>> getNewUnitsLast24Hours({int limit = 20, int page = 1, int hours = 24}) async {
     try {
       final authToken = token ?? '';
       final currentLang = LanguageService.currentLanguage;
@@ -399,13 +405,15 @@ class CompoundWebServices {
       Response response = await dio.get(
         '/units/new',
         queryParameters: {
-          'houre': 24,
-          'limit': limit,
+          'houre': hours,
+          'per_page': limit,
+          'page': page,
           'lang': currentLang,
         },
         options: Options(headers: {'Authorization': 'Bearer $authToken'}),
       );
       print('Get New Units (24h) Response: ${response.data.toString()}');
+      print('[PAGINATION] Page: $page, Limit: $limit, Total: ${response.data['total']}, HasMore: ${response.data['pagination']?['has_more']}');
 
       if (response.data is Map<String, dynamic>) {
         return response.data;
@@ -430,8 +438,8 @@ class CompoundWebServices {
     }
   }
 
-  // Get units updated in last 24 hours
-  Future<Map<String, dynamic>> getUpdatedUnitsLast24Hours({int limit = 10}) async {
+  // Get units updated in last 24 hours with pagination
+  Future<Map<String, dynamic>> getUpdatedUnitsLast24Hours({int limit = 20, int page = 1, int hours = 24}) async {
     try {
       final authToken = token ?? '';
       final currentLang = LanguageService.currentLanguage;
@@ -439,13 +447,15 @@ class CompoundWebServices {
       Response response = await dio.get(
         '/units/updated',
         queryParameters: {
-          'hours': 24,
+          'hours': hours,
           'limit': limit,
+          'page': page,
           'lang': currentLang,
         },
         options: Options(headers: {'Authorization': 'Bearer $authToken'}),
       );
       print('Get Updated Units (24h) Response: ${response.data.toString()}');
+      print('[PAGINATION] Page: $page, Limit: $limit, Total: ${response.data['total']}, HasMore: ${response.data['pagination']?['has_more']}');
 
       if (response.data is Map<String, dynamic>) {
         return response.data;

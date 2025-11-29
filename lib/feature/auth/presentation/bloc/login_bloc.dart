@@ -8,6 +8,7 @@ import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
 import 'package:real/core/security/secure_storage.dart';
 import 'package:real/core/security/rate_limiter.dart';
 import 'package:real/core/services/version_service.dart';
+import 'package:real/feature/notifications/data/services/notification_cache_service.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'login_event.dart';
 import 'login_state.dart';
@@ -128,6 +129,10 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       // ⚠️ Clear version tracking (for force update feature)
       await VersionService.clearVersion();
 
+      // 🔔 Clear notification cache on logout
+      await NotificationCacheService().clearAllNotifications();
+      print('[LoginBloc] 🔔 Notification cache cleared');
+
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
       print('[LoginBloc] 🔒 Logout successful - All secure data cleared');
       print('[LoginBloc] Response: $response');
@@ -159,6 +164,9 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
         // Clear saved route
         await RoutePersistenceService.clearSavedRoute();
 
+        // 🔔 Clear notification cache
+        await NotificationCacheService().clearAllNotifications();
+
         print('[LoginBloc] 🔒 Token was invalid/expired - Cleared all secure data');
         emit(LogoutSuccess('Logged out successfully'));
       } else {
@@ -175,6 +183,9 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
         // Clear saved route
         await RoutePersistenceService.clearSavedRoute();
+
+        // 🔔 Clear notification cache
+        await NotificationCacheService().clearAllNotifications();
 
         emit(LogoutError(e.toString().replaceAll('Exception: ', '')));
       }

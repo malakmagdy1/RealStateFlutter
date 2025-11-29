@@ -649,7 +649,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get markedAllAsRead => 'All notifications marked as read';
 
   @override
-  String get clearAll => 'Clear all';
+  String get clearAll => 'Clear All';
 
   @override
   String get notificationDeleted => 'Notification deleted';
@@ -1298,6 +1298,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cash => 'Cash';
 
   @override
+  String get openInMaps => 'Open in Maps';
+
+  @override
+  String get mapLocationNotAvailable => 'Map location not available';
+
+  @override
+  String get masterPlanComingSoon => 'Master plan details coming soon';
+
+  @override
+  String get contactSalesTeam => 'Contact Sales Team';
+
+  @override
+  String get getInTouchWithSales =>
+      'Get in touch with our professional sales team for more information';
+
+  @override
+  String get addYourPersonalNotesCompound =>
+      'Add your personal notes about this compound. Your notes are private and only visible to you.';
+
+  @override
+  String get compoundNote => 'Compound Note';
+
+  @override
+  String get newUpdatesAvailable => 'New Updates Available!';
+
+  @override
+  String get couldNotLaunchPhoneCall => 'Could not launch phone call';
+
+  @override
+  String get couldNotLaunchWhatsApp => 'Could not launch WhatsApp';
+
+  @override
+  String get unknown => 'Unknown';
+
+  @override
+  String get resale => 'Resale';
+
+  @override
   String get compare => 'Compare';
 
   @override
@@ -1487,6 +1525,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get waitingForConnection => 'Waiting for connection...';
 
   @override
+  String get errorOccurred => 'An Error Occurred';
+
+  @override
   String get yearsOfExperience => 'Years of Exp.';
 
   @override
@@ -1525,4 +1566,17 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get ourProjects => 'Our Projects';
+
+  @override
+  String get viewHistory => 'View History';
+
+  @override
+  String get recentlyViewedProperties => 'Recently viewed properties';
+
+  @override
+  String get confirmClearHistory =>
+      'Are you sure you want to clear all viewing history?';
+
+  @override
+  String get tryAdjustingYourSearch => 'Try adjusting your search';
 }

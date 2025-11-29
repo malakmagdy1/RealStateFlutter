@@ -67,7 +67,7 @@ class CompanyWebServices {
     ));
   }
 
-  Future<CompanyResponse> getCompanies() async {
+  Future<CompanyResponse> getCompanies({int page = 1, int perPage = 1000}) async {
     try {
       // Get token from storage
       final authToken = token ?? '';
@@ -84,11 +84,25 @@ class CompanyWebServices {
           },
         ),
       );
-      print('Get Companies Response: ${response.data.toString()}');
 
+      // Debug logging
       if (response.data is Map<String, dynamic>) {
-        return CompanyResponse.fromJson(response.data);
+        final data = response.data as Map<String, dynamic>;
+        print('[COMPANIES API] success: ${data['success']}');
+        print('[COMPANIES API] count field: ${data['count']}');
+        print('[COMPANIES API] total field: ${data['total']}');
+        final dataList = data['data'];
+        if (dataList is List) {
+          print('[COMPANIES API] data array length: ${dataList.length}');
+        } else {
+          print('[COMPANIES API] data is not a List: ${dataList.runtimeType}');
+        }
+
+        final result = CompanyResponse.fromJson(response.data);
+        print('[COMPANIES API] Parsed companies count: ${result.companies.length}');
+        return result;
       } else {
+        print('[COMPANIES API] Response is not Map: ${response.data.runtimeType}');
         throw Exception('Invalid response format');
       }
     } on DioException catch (e) {

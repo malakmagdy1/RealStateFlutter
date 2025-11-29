@@ -21,14 +21,11 @@ class PropertyCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     print('🏠 PropertyCardWidget building');
-    print('🏠 Has unit: ${unit != null}, Has compound: ${compound != null}');
-
     try {
       // Wrap cards with necessary BLoC providers for icons to work
       if (compound != null) {
         final compoundBloc = context.read<CompoundFavoriteBloc>();
         print('✅ CompoundFavoriteBloc found in context');
-        print('✅ Using database compound: ${compound!.id}');
 
         return BlocProvider.value(
           value: compoundBloc,

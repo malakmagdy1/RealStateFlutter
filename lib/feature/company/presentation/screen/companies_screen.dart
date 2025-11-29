@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/widget/robust_network_image.dart';
@@ -8,6 +10,7 @@ import 'package:real/feature/company/presentation/bloc/company_bloc.dart';
 import 'package:real/feature/company/presentation/bloc/company_event.dart';
 import 'package:real/feature/company/presentation/bloc/company_state.dart';
 import 'package:real/feature/company/presentation/screen/company_detail_screen.dart';
+import 'package:real/feature/company/data/web_services/company_web_services.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:real/core/animations/animated_list_item.dart';
 
@@ -26,6 +29,12 @@ class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingOb
   String _searchQuery = '';
   String _sortBy = 'name'; // 'name', 'compounds', 'units'
   String? _lastLocale;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
+  bool _wasOffline = false;
+
+  // Cache for real counts from API
+  final Map<String, Map<String, int>> _realCounts = {}; // companyId -> {compounds: x, units: y}
+  final CompanyWebServices _companyWebServices = CompanyWebServices();
 
   @override
   void initState() {
@@ -35,6 +44,41 @@ class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingOb
     _refreshData();
     // Add scroll listener for pagination
     _scrollController.addListener(_onScroll);
+    // Check initial connectivity and setup listener
+    _setupConnectivityListener();
+  }
+
+  Future<void> _setupConnectivityListener() async {
+    // Check initial connectivity state
+    final initialResults = await Connectivity().checkConnectivity();
+    _wasOffline = initialResults.contains(ConnectivityResult.none);
+
+    // Listen for connectivity changes
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((results) {
+      final isConnected = !results.contains(ConnectivityResult.none);
+      if (isConnected) {
+        // Check if we need to refresh
+        final bloc = context.read<CompanyBloc>();
+        final needsRefresh = _wasOffline || bloc.state is CompanyError;
+        if (needsRefresh) {
+          // Internet is back, refresh data
+          _refreshData();
+        }
+      }
+      _wasOffline = !isConnected;
+    });
+
+    // If we're online but bloc is in error state, retry after a short delay
+    if (!_wasOffline) {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          final bloc = context.read<CompanyBloc>();
+          if (bloc.state is CompanyError) {
+            _refreshData();
+          }
+        }
+      });
+    }
   }
 
   @override
@@ -60,11 +104,51 @@ class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingOb
 
   void _refreshData() {
     context.read<CompanyBloc>().add(FetchCompaniesEvent());
+    // Clear cached counts on refresh
+    _realCounts.clear();
+  }
+
+  /// Fetch real counts for a company from API
+  Future<void> _fetchRealCounts(String companyId) async {
+    // Skip if already fetched
+    if (_realCounts.containsKey(companyId)) return;
+
+    try {
+      final companyData = await _companyWebServices.getCompanyById(companyId);
+
+      // Extract compounds from response
+      int compoundsCount = 0;
+      int unitsCount = 0;
+
+      if (companyData['compounds'] is List) {
+        final compounds = companyData['compounds'] as List;
+        compoundsCount = compounds.length;
+
+        // Calculate total units from all compounds
+        for (var compound in compounds) {
+          if (compound is Map) {
+            unitsCount += int.tryParse(compound['total_units']?.toString() ?? '0') ?? 0;
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _realCounts[companyId] = {
+            'compounds': compoundsCount,
+            'units': unitsCount,
+          };
+        });
+      }
+    } catch (e) {
+      print('[COMPANIES SCREEN] Error fetching real counts for company $companyId: $e');
+    }
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _connectivitySubscription?.cancel();
     _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -326,33 +410,59 @@ class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingOb
                     },
                   );
                 } else if (state is CompanyError) {
+                  // Check if it's a network/connection error
+                  final isNetworkError = state.message.toLowerCase().contains('network') ||
+                      state.message.toLowerCase().contains('connection') ||
+                      state.message.toLowerCase().contains('socket') ||
+                      state.message.toLowerCase().contains('timeout') ||
+                      state.message.toLowerCase().contains('failed host lookup');
+
                   return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          size: 64,
-                          color: Colors.red,
-                        ),
-                        SizedBox(height: 16),
-                        CustomText16(
-                          'Error: ${state.message}',
-                          color: Colors.red,
-                          align: TextAlign.center,
-                        ),
-                        SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: () {
-                            context.read<CompanyBloc>().add(FetchCompaniesEvent());
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.mainColor,
-                            foregroundColor: AppColors.white,
+                    child: Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            isNetworkError ? Icons.wifi_off_rounded : Icons.error_outline,
+                            size: 64,
+                            color: isNetworkError ? Colors.orange : Colors.red,
                           ),
-                          child: Text(l10n.retry),
-                        ),
-                      ],
+                          SizedBox(height: 16),
+                          CustomText16(
+                            isNetworkError
+                                ? l10n.noConnection
+                                : l10n.errorOccurred,
+                            color: isNetworkError ? Colors.orange.shade700 : Colors.red,
+                            align: TextAlign.center,
+                            bold: true,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            isNetworkError
+                                ? l10n.checkInternetConnection
+                                : state.message,
+                            style: TextStyle(
+                              color: AppColors.grey,
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              context.read<CompanyBloc>().add(FetchCompaniesEvent());
+                            },
+                            icon: Icon(Icons.refresh),
+                            label: Text(l10n.retry),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.mainColor,
+                              foregroundColor: AppColors.white,
+                              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   );
                 }
@@ -366,7 +476,7 @@ class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingOb
   }
 
   Widget _buildCompanyCard(Company company, BuildContext context, bool isArabic) {
-    final displayName = company.name;
+    final displayName = company.getLocalizedName(isArabic);
     return Container(
       margin: EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -445,20 +555,34 @@ class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingOb
                           ],
                         ),
                       SizedBox(height: 8),
-                      Row(
-                        children: [
-                          _buildStatChip(
-                            icon: Icons.business,
-                            label: company.numberOfCompounds,
-                            color: Colors.blue,
-                          ),
-                          SizedBox(width: 8),
-                          _buildStatChip(
-                            icon: Icons.apartment,
-                            label: company.numberOfAvailableUnits,
-                            color: Colors.green,
-                          ),
-                        ],
+                      Builder(
+                        builder: (context) {
+                          // Fetch real counts if not cached
+                          if (!_realCounts.containsKey(company.id)) {
+                            _fetchRealCounts(company.id);
+                          }
+
+                          // Use real counts if available, otherwise show loading indicator
+                          final realData = _realCounts[company.id];
+                          final compoundsCount = realData?['compounds']?.toString() ?? '-';
+                          final unitsCount = realData?['units']?.toString() ?? '-';
+
+                          return Row(
+                            children: [
+                              _buildStatChip(
+                                icon: Icons.business,
+                                label: compoundsCount,
+                                color: Colors.blue,
+                              ),
+                              SizedBox(width: 8),
+                              _buildStatChip(
+                                icon: Icons.apartment,
+                                label: unitsCount,
+                                color: Colors.green,
+                              ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),

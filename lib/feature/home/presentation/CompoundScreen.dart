@@ -5,8 +5,6 @@ import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
-import 'package:real/feature/home/presentation/widget/location.dart';
-import 'package:real/feature/home/presentation/widget/rete_review.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../compound/presentation/bloc/favorite/compound_favorite_event.dart';
@@ -64,9 +62,16 @@ class _CompoundScreenState extends State<CompoundScreen>
   bool _isLoadingSalesPeople = false;
   List<Map<String, dynamic>> _notes = [];
 
+  // Detailed compound data (fetched from API)
+  late Compound _compound;
+  bool _isLoadingCompoundDetails = false;
+
   @override
   void initState() {
     super.initState();
+
+    // Initialize with widget compound, will be updated with detailed data
+    _compound = widget.compound;
 
     // Track view history
     ViewHistoryService().addViewedCompound(widget.compound);
@@ -97,6 +102,9 @@ class _CompoundScreenState extends State<CompoundScreen>
     }
     print('==========================================');
 
+    // Fetch detailed compound data from API
+    _fetchCompoundDetails();
+
     // Fetch units for this compound
     context.read<UnitBloc>().add(
       FetchUnitsEvent(compoundId: widget.compound.id, limit: 100),
@@ -116,7 +124,7 @@ class _CompoundScreenState extends State<CompoundScreen>
       _imageSliderTimer = Timer.periodic(Duration(seconds: 4), (timer) {
         if (_imagePageController.hasClients) {
           int nextPage =
-              (_currentImageIndex + 1) % widget.compound.images.length;
+              (_currentImageIndex + 1) % _compound.images.length;
           _imagePageController.animateToPage(
             nextPage,
             duration: Duration(milliseconds: 500),
@@ -127,15 +135,76 @@ class _CompoundScreenState extends State<CompoundScreen>
     }
   }
 
+  Future<void> _fetchCompoundDetails() async {
+    if (_isLoadingCompoundDetails) return;
+
+    setState(() {
+      _isLoadingCompoundDetails = true;
+    });
+
+    try {
+      print('[COMPOUND SCREEN] Fetching detailed data for compound ${widget.compound.id}');
+      final response = await _compoundWebServices.getCompoundById(widget.compound.id);
+
+      print('[COMPOUND SCREEN] Compound detail response: $response');
+
+      if (response['success'] == true && response['data'] != null) {
+        final compoundData = response['data'] as Map<String, dynamic>;
+        final detailedCompound = Compound.fromJson(compoundData);
+
+        if (mounted) {
+          setState(() {
+            _compound = detailedCompound;
+            _isLoadingCompoundDetails = false;
+          });
+
+          // Update image slider if images changed
+          if (_compound.images.length > 1 && _imageSliderTimer == null) {
+            _imageSliderTimer = Timer.periodic(Duration(seconds: 4), (timer) {
+              if (_imagePageController.hasClients) {
+                int nextPage = (_currentImageIndex + 1) % _compound.images.length;
+                _imagePageController.animateToPage(
+                  nextPage,
+                  duration: Duration(milliseconds: 500),
+                  curve: Curves.easeInOut,
+                );
+              }
+            });
+          }
+
+          print('[COMPOUND SCREEN] Updated compound with detailed data');
+          print('[COMPOUND SCREEN] finishSpecs: ${_compound.finishSpecs}');
+          print('[COMPOUND SCREEN] landArea: ${_compound.landArea}');
+          print('[COMPOUND SCREEN] builtArea: ${_compound.builtArea}');
+          print('[COMPOUND SCREEN] locationUrl: ${_compound.locationUrl}');
+        }
+      } else {
+        print('[COMPOUND SCREEN] No detailed data in response');
+        if (mounted) {
+          setState(() {
+            _isLoadingCompoundDetails = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('[COMPOUND SCREEN] Error fetching compound details: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingCompoundDetails = false;
+        });
+      }
+    }
+  }
+
   void _showUpdateNotification() {
     if (!mounted) return;
 
     final l10n = AppLocalizations.of(context)!;
     final String detailMessage =
-    widget.compound.latestUpdateNote != null &&
-        widget.compound.latestUpdateNote!.isNotEmpty
-        ? '${widget.compound.latestUpdateNote}'
-        : '${widget.compound.updatedUnitsCount} ${widget.compound.updatedUnitsCount == 1 ? "unit has" : "units have"} been updated';
+    _compound.latestUpdateNote != null &&
+        _compound.latestUpdateNote!.isNotEmpty
+        ? '${_compound.latestUpdateNote}'
+        : '${_compound.updatedUnitsCount} ${_compound.updatedUnitsCount == 1 ? "unit has" : "units have"} been updated';
 
     final String fullMessage = 'New Updates Available! $detailMessage';
 
@@ -222,7 +291,7 @@ class _CompoundScreenState extends State<CompoundScreen>
       backgroundColor: Colors.transparent,
       builder: (context) => AdvancedShareBottomSheet(
         type: 'compound',
-        id: widget.compound.id,
+        id: _compound.id,
         units: units,
       ),
     );
@@ -237,7 +306,7 @@ class _CompoundScreenState extends State<CompoundScreen>
 
     try {
       final companyData =
-      await _companyWebServices.getCompanyById(widget.compound.companyId);
+      await _companyWebServices.getCompanyById(_compound.companyId);
       print('[COMPOUND SCREEN] Company data: $companyData');
 
       if (companyData['users'] != null && companyData['users'] is List) {
@@ -275,7 +344,7 @@ class _CompoundScreenState extends State<CompoundScreen>
   Future<void> _showSalespeople() async {
     try {
       final response = await _compoundWebServices
-          .getSalespeopleByCompound(widget.compound.project);
+          .getSalespeopleByCompound(_compound.project);
 
       if (response['success'] == true && response['salespeople'] != null) {
         final salespeople = (response['salespeople'] as List)
@@ -365,7 +434,7 @@ class _CompoundScreenState extends State<CompoundScreen>
 
   // Description Section Widget
   Widget _buildDescriptionSection(AppLocalizations l10n) {
-    final description = widget.compound.finishSpecs ?? '';
+    final description = _compound.finishSpecs ?? '';
 
     return Container(
       margin: EdgeInsets.only(bottom: 12),
@@ -490,57 +559,57 @@ class _CompoundScreenState extends State<CompoundScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Description Section with Finish Specs
-          if (widget.compound.finishSpecs != null &&
-              widget.compound.finishSpecs!.isNotEmpty)
+          if (_compound.finishSpecs != null &&
+              _compound.finishSpecs!.isNotEmpty)
             _buildDescriptionSection(l10n),
           SizedBox(height: 16),
           // Other Details
-          if (widget.compound.availableUnits != "0")
+          if (_compound.availableUnits != "0")
             _buildInfoRow(
               l10n.availableUnits,
-              widget.compound.availableUnits,
+              _compound.availableUnits,
             ),
-          _buildInfoRow(l10n.status, widget.compound.status.toUpperCase()),
-          if (widget.compound.builtUpArea != "0.00")
+          _buildInfoRow(l10n.status, _compound.status.toUpperCase()),
+          if (_compound.builtUpArea != "0.00")
             _buildInfoRow(
               l10n.builtUpArea,
-              "${widget.compound.builtUpArea} ${l10n.sqm}",
+              "${_compound.builtUpArea} ${l10n.sqm}",
             ),
-          if (widget.compound.builtArea != null &&
-              widget.compound.builtArea != "0.00")
+          if (_compound.builtArea != null &&
+              _compound.builtArea != "0.00")
             _buildInfoRow(
               l10n.builtArea,
-              "${widget.compound.builtArea} ${l10n.sqm}",
+              "${_compound.builtArea} ${l10n.sqm}",
             ),
-          if (widget.compound.landArea != null &&
-              widget.compound.landArea != "0.00")
+          if (_compound.landArea != null &&
+              _compound.landArea != "0.00")
             _buildInfoRow(
               l10n.landArea,
-              "${widget.compound.landArea} ${l10n.sqm}",
+              "${_compound.landArea} ${l10n.sqm}",
             ),
-          if (widget.compound.howManyFloors != "0")
+          if (_compound.howManyFloors != "0")
             _buildInfoRow(
               l10n.numberOfFloors,
-              widget.compound.howManyFloors,
+              _compound.howManyFloors,
             ),
           _buildInfoRow(
             l10n.hasClub,
-            widget.compound.club == "1" ? l10n.yes : l10n.no,
+            _compound.club == "1" ? l10n.yes : l10n.no,
           ),
-          if (widget.compound.plannedDeliveryDate != null)
+          if (_compound.plannedDeliveryDate != null)
             _buildInfoRow(
               l10n.plannedDelivery,
-              _formatDate(widget.compound.plannedDeliveryDate!),
+              _formatDate(_compound.plannedDeliveryDate!),
             ),
-          if (widget.compound.actualDeliveryDate != null)
+          if (_compound.actualDeliveryDate != null)
             _buildInfoRow(
               l10n.actualDelivery,
-              _formatDate(widget.compound.actualDeliveryDate!),
+              _formatDate(_compound.actualDeliveryDate!),
             ),
-          if (widget.compound.completionProgress != null)
+          if (_compound.completionProgress != null)
             _buildInfoRow(
               l10n.completionProgress,
-              "${widget.compound.completionProgress}%",
+              "${_compound.completionProgress}%",
             ),
           SizedBox(height: 24),
           // Unit Summary Section
@@ -552,7 +621,8 @@ class _CompoundScreenState extends State<CompoundScreen>
 
   // Gallery Tab Content
   Widget _buildGalleryTab() {
-    if (widget.compound.images.isEmpty) {
+    final l10n = AppLocalizations.of(context)!;
+    if (_compound.images.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -560,7 +630,7 @@ class _CompoundScreenState extends State<CompoundScreen>
           children: [
             Icon(Icons.photo_library, size: 80, color: AppColors.grey),
             SizedBox(height: 16),
-            CustomText16('No images available', color: Colors.black),
+            CustomText16(l10n.noImagesAvailable, color: Colors.black),
           ],
         ),
       );
@@ -575,7 +645,7 @@ class _CompoundScreenState extends State<CompoundScreen>
         crossAxisSpacing: 8,
         mainAxisSpacing: 8,
       ),
-      itemCount: widget.compound.images.length,
+      itemCount: _compound.images.length,
       itemBuilder: (context, index) {
         return AnimatedListItem(
           index: index,
@@ -585,14 +655,14 @@ class _CompoundScreenState extends State<CompoundScreen>
               // Open zoomable image viewer
               ZoomableImageViewer.show(
                 context,
-                images: widget.compound.images,
+                images: _compound.images,
                 initialIndex: index,
               );
             },
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
               child: RobustNetworkImage(
-                imageUrl: widget.compound.images[index],
+                imageUrl: _compound.images[index],
                 fit: BoxFit.cover,
                 errorBuilder: (context, url) => Container(
                   color: Colors.grey.shade200,
@@ -615,23 +685,23 @@ class _CompoundScreenState extends State<CompoundScreen>
           Icon(Icons.map, size: 80, color: AppColors.mainColor),
           SizedBox(height: 16),
           CustomText16(
-            widget.compound.location,
+            _compound.location,
             bold: true,
             color: AppColors.black,
             align: TextAlign.center,
           ),
           SizedBox(height: 8),
-          if (widget.compound.locationUrl != null &&
-              widget.compound.locationUrl!.isNotEmpty)
+          if (_compound.locationUrl != null &&
+              _compound.locationUrl!.isNotEmpty)
             ElevatedButton.icon(
               onPressed: () async {
-                final Uri mapUri = Uri.parse(widget.compound.locationUrl!);
+                final Uri mapUri = Uri.parse(_compound.locationUrl!);
                 if (await canLaunchUrl(mapUri)) {
                   await launchUrl(mapUri, mode: LaunchMode.externalApplication);
                 }
               },
               icon: Icon(Icons.directions, size: 20),
-              label: CustomText16('Open in Maps', color: AppColors.white),
+              label: CustomText16(l10n.openInMaps, color: AppColors.white),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.mainColor,
                 foregroundColor: AppColors.white,
@@ -640,7 +710,7 @@ class _CompoundScreenState extends State<CompoundScreen>
             )
           else
             CustomText16(
-              'Map location not available',
+              l10n.mapLocationNotAvailable,
               color: AppColors.greyText,
             ),
         ],
@@ -657,13 +727,13 @@ class _CompoundScreenState extends State<CompoundScreen>
           Icon(Icons.architecture, size: 80, color: AppColors.mainColor),
           SizedBox(height: 16),
           CustomText16(
-            'Master Plan',
+            l10n.masterPlan,
             bold: true,
             color: AppColors.black,
           ),
           SizedBox(height: 8),
           CustomText16(
-            'Master plan details coming soon',
+            l10n.masterPlanComingSoon,
             color: Colors.black,
             align: TextAlign.center,
           ),
@@ -805,7 +875,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                     onPressed: () {
                       context.read<UnitBloc>().add(
                         FetchUnitsEvent(
-                          compoundId: widget.compound.id,
+                          compoundId: _compound.id,
                           limit: 100,
                         ),
                       );
@@ -845,13 +915,13 @@ class _CompoundScreenState extends State<CompoundScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         CustomText20(
-          'Contact Sales Team',
+          l10n.contactSalesTeam,
           bold: true,
           color: AppColors.black,
         ),
         SizedBox(height: 12),
         CustomText16(
-          'Get in touch with our professional sales team for more information',
+          l10n.getInTouchWithSales,
           color: Colors.black,
         ),
         SizedBox(height: 16),
@@ -980,6 +1050,7 @@ class _CompoundScreenState extends State<CompoundScreen>
 
   // Notes Tab
   Widget _buildNotesTab() {
+    final l10n = AppLocalizations.of(context)!;
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
       child: Column(
@@ -997,7 +1068,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                   ),
                   SizedBox(width: 8),
                   Text(
-                    'My Notes (${_notes.length})',
+                    '${l10n.myNotes} (${_notes.length})',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -1009,7 +1080,7 @@ class _CompoundScreenState extends State<CompoundScreen>
               TextButton.icon(
                 onPressed: () => _showNoteDialog(),
                 icon: Icon(Icons.add, size: 16),
-                label: Text('Add Note'),
+                label: Text(l10n.addNote),
                 style: TextButton.styleFrom(
                   foregroundColor: AppColors.mainColor,
                 ),
@@ -1019,7 +1090,7 @@ class _CompoundScreenState extends State<CompoundScreen>
           SizedBox(height: 12),
           if (_notes.isEmpty) ...[
             Text(
-              'Add your personal notes about this compound. Your notes are private and only visible to you.',
+              l10n.addYourPersonalNotesCompound,
               style: TextStyle(
                 fontSize: 13,
                 color: AppColors.greyText,
@@ -1052,7 +1123,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                         children: [
                           Expanded(
                             child: Text(
-                              note['title'] ?? 'Note',
+                              note['title'] ?? l10n.note,
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
@@ -1097,7 +1168,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                       ),
                       SizedBox(height: 8),
                       Text(
-                        'Updated: ${_formatNoteDate(note['updated_at'])}',
+                        '${l10n.updated}: ${_formatNoteDate(note['updated_at'])}',
                         style: TextStyle(
                           fontSize: 11,
                           color: AppColors.greyText,
@@ -1127,9 +1198,9 @@ class _CompoundScreenState extends State<CompoundScreen>
 
   Future<void> _fetchCompoundNote() async {
     try {
-      print('[COMPOUND SCREEN] Fetching notes for compound ${widget.compound.id}');
+      print('[COMPOUND SCREEN] Fetching notes for compound ${_compound.id}');
       final response = await _favoritesWebServices.getNotes(
-        compoundId: int.parse(widget.compound.id),
+        compoundId: int.parse(_compound.id),
       );
 
       print('[COMPOUND SCREEN] getNotes response: $response');
@@ -1171,10 +1242,11 @@ class _CompoundScreenState extends State<CompoundScreen>
     String? initialTitle,
   }) async
   {
+    final l10n = AppLocalizations.of(context)!;
     final result = await NoteDialog.show(
       context,
       initialNote: initialContent,
-      title: noteId != null ? 'Edit Note' : 'Add Note',
+      title: noteId != null ? l10n.editNote : l10n.addNote,
     );
 
     if (result != null && mounted) {
@@ -1187,15 +1259,15 @@ class _CompoundScreenState extends State<CompoundScreen>
           response = await _favoritesWebServices.updateNote(
             noteId: noteId,
             content: result,
-            title: initialTitle ?? 'Compound Note',
+            title: initialTitle ?? l10n.compoundNote,
           );
         } else {
           // Create new note
-          print('[COMPOUND SCREEN] Creating new note for compound ${widget.compound.id}');
+          print('[COMPOUND SCREEN] Creating new note for compound ${_compound.id}');
           response = await _favoritesWebServices.createNote(
             content: result,
-            title: 'Compound Note',
-            compoundId: int.tryParse(widget.compound.id),
+            title: l10n.compoundNote,
+            compoundId: int.tryParse(_compound.id),
           );
         }
 
@@ -1204,7 +1276,7 @@ class _CompoundScreenState extends State<CompoundScreen>
         if (mounted) {
           MessageHelper.showMessage(
             context: context,
-            message: 'Note saved successfully',
+            message: l10n.noteSavedSuccessfully,
             isSuccess: true,
           );
 
@@ -1221,7 +1293,7 @@ class _CompoundScreenState extends State<CompoundScreen>
         if (mounted) {
           MessageHelper.showMessage(
             context: context,
-            message: 'Failed to save note',
+            message: l10n.failedToSaveNote,
             isSuccess: false,
           );
         }
@@ -1230,20 +1302,21 @@ class _CompoundScreenState extends State<CompoundScreen>
   }
 
   Future<void> _deleteNote(int noteId) async {
+    final l10n = AppLocalizations.of(context)!;
     // Show confirmation dialog
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Delete Note'),
-        content: Text('Are you sure you want to delete this note?'),
+        title: Text(l10n.deleteNote),
+        content: Text(l10n.areYouSureDeleteNote),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: Text('Cancel'),
+            child: Text(l10n.cancel),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: Text('Delete', style: TextStyle(color: Colors.red)),
+            child: Text(l10n.delete, style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -1259,7 +1332,7 @@ class _CompoundScreenState extends State<CompoundScreen>
         if (mounted) {
           MessageHelper.showMessage(
             context: context,
-            message: 'Note deleted successfully',
+            message: l10n.noteDeletedSuccessfully,
             isSuccess: true,
           );
 
@@ -1276,7 +1349,7 @@ class _CompoundScreenState extends State<CompoundScreen>
         if (mounted) {
           MessageHelper.showMessage(
             context: context,
-            message: 'Failed to delete note',
+            message: l10n.failedToDeleteNote,
             isSuccess: false,
           );
         }
@@ -1329,7 +1402,7 @@ class _CompoundScreenState extends State<CompoundScreen>
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final hasImages = widget.compound.images.isNotEmpty;
+    final hasImages = _compound.images.isNotEmpty;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -1349,13 +1422,13 @@ class _CompoundScreenState extends State<CompoundScreen>
                       // Open zoomable image viewer
                       ZoomableImageViewer.show(
                         context,
-                        images: widget.compound.images,
+                        images: _compound.images,
                         initialIndex: _currentImageIndex,
                       );
                     },
                     child: PageView.builder(
                       controller: _imagePageController,
-                      itemCount: widget.compound.images.length,
+                      itemCount: _compound.images.length,
                       onPageChanged: (index) {
                         setState(() {
                           _currentImageIndex = index;
@@ -1363,7 +1436,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                       },
                       itemBuilder: (context, index) {
                         return RobustNetworkImage(
-                          imageUrl: widget.compound.images[index],
+                          imageUrl: _compound.images[index],
                           fit: BoxFit.cover,
                           loadingBuilder: (context) => Container(
                             color: Colors.grey.shade200,
@@ -1438,7 +1511,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                     builder: (context, state) {
                       bool isFavorite = false;
                       if (state is CompoundFavoriteUpdated) {
-                        isFavorite = state.favorites.any((c) => c.id == widget.compound.id);
+                        isFavorite = state.favorites.any((c) => c.id == _compound.id);
                       }
                       return Container(
                         decoration: BoxDecoration(
@@ -1460,11 +1533,11 @@ class _CompoundScreenState extends State<CompoundScreen>
                           onPressed: () {
                             if (isFavorite) {
                               context.read<CompoundFavoriteBloc>().add(
-                                RemoveFavoriteCompound(widget.compound),
+                                RemoveFavoriteCompound(_compound),
                               );
                             } else {
                               context.read<CompoundFavoriteBloc>().add(
-                                AddFavoriteCompound(widget.compound),
+                                AddFavoriteCompound(_compound),
                               );
                             }
                           },
@@ -1496,7 +1569,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                   ),
                 ),
                 // Dot Indicators (only show if multiple images) - positioned at center bottom
-                if (hasImages && widget.compound.images.length > 1)
+                if (hasImages && _compound.images.length > 1)
                   Positioned(
                     bottom: 16,
                     left: 0,
@@ -1511,7 +1584,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: List.generate(
-                            widget.compound.images.length,
+                            _compound.images.length,
                                 (index) {
                               return AnimatedContainer(
                                 duration: Duration(milliseconds: 300),
@@ -1542,15 +1615,15 @@ class _CompoundScreenState extends State<CompoundScreen>
                 children: [
                   // Compound Name
                   CustomText18(
-                    'About ${widget.compound.project}',
+                    'About ${_compound.project}',
                     bold: true,
                     color: AppColors.black,
                   ),
                   SizedBox(height: 10),
                   // Compound Description
                   CustomText14(
-                    widget.compound.project.isNotEmpty
-                        ? '${widget.compound.project} is located in ${widget.compound.location} at El Riviera Real Estate Company. Available units with various sizes and types.'
+                    _compound.project.isNotEmpty
+                        ? '${_compound.project} is located in ${_compound.location} at ${_compound.companyName.isNotEmpty ? _compound.companyName : "El Riviera Real Estate Company"}. Available units with various sizes and types.'
                         : 'Premium real estate compound with modern amenities and facilities.',
                     color: Colors.black,
                   ),
@@ -1606,8 +1679,8 @@ class _CompoundScreenState extends State<CompoundScreen>
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            if (widget.compound.sales.isNotEmpty) {
-                              final phone = widget.compound.sales.first.phone;
+                            if (_compound.sales.isNotEmpty) {
+                              final phone = _compound.sales.first.phone;
                               _launchPhone(phone);
                             } else {
                               _showSalespeople();
@@ -1629,8 +1702,8 @@ class _CompoundScreenState extends State<CompoundScreen>
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
-                            if (widget.compound.sales.isNotEmpty) {
-                              final phone = widget.compound.sales.first.phone;
+                            if (_compound.sales.isNotEmpty) {
+                              final phone = _compound.sales.first.phone;
                               _launchWhatsApp(phone);
                             } else {
                               MessageHelper.showMessage(
@@ -1655,7 +1728,8 @@ class _CompoundScreenState extends State<CompoundScreen>
                     ],
                   ),
                   SizedBox(height: 24),
-
+                  // Sales People Section
+                  _buildSalesPeopleSection(l10n),
                   // Animated Corner Tab Bar
                   Align(
                     alignment: Alignment.centerRight,
@@ -1717,11 +1791,7 @@ class _CompoundScreenState extends State<CompoundScreen>
                     ),
                   ),
                 ),
-
                 SizedBox(height: 24),
-
-                  // Sales People Section
-                  _buildSalesPeopleSection(l10n),
                 ],
               ),
             ),

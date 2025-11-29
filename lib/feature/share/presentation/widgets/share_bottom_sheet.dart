@@ -6,9 +6,12 @@ import 'package:real/core/utils/message_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../data/models/share_model.dart';
 import '../../data/services/share_service.dart';
+import 'package:real/l10n/app_localizations.dart';
 
+/// Simple share bottom sheet for quick sharing without field selection
+/// For advanced sharing with field hiding, use AdvancedShareBottomSheet
 class ShareBottomSheet extends StatefulWidget {
-  final String type; // 'unit' or 'compound'
+  final String type; // 'unit', 'compound', 'company', or 'sale'
   final String id;
 
   ShareBottomSheet({
@@ -82,8 +85,27 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
     }
   }
 
+  String _getTitle(AppLocalizations l10n) {
+    final isArabic = l10n.localeName == 'ar';
+    switch (widget.type) {
+      case 'unit':
+        return isArabic ? 'مشاركة الوحدة' : 'Share Unit';
+      case 'compound':
+        return isArabic ? 'مشاركة المجمع' : 'Share Compound';
+      case 'company':
+        return isArabic ? 'مشاركة الشركة' : 'Share Company';
+      case 'sale':
+        return isArabic ? 'مشاركة العرض' : 'Share Sale';
+      default:
+        return isArabic ? 'مشاركة' : 'Share';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isArabic = l10n.localeName == 'ar';
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -106,7 +128,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
 
           // Title
           CustomText20(
-            'Share ${widget.type == 'unit' ? 'Unit' : widget.type == 'compound' ? 'Compound' : 'Company'}',
+            _getTitle(l10n),
             bold: true,
             color: AppColors.black,
           ),
@@ -116,7 +138,7 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
           if (_isLoading)
             Padding(
               padding: EdgeInsets.all(40),
-              child: CircularProgressIndicator(),
+              child: CircularProgressIndicator(color: AppColors.mainColor),
             )
           else if (_error != null)
             Padding(
@@ -129,7 +151,10 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                   SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: _loadShareLink,
-                    child: Text('Retry'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.mainColor,
+                    ),
+                    child: Text(isArabic ? 'إعادة المحاولة' : 'Retry'),
                   ),
                 ],
               ),
@@ -140,16 +165,30 @@ class _ShareBottomSheetState extends State<ShareBottomSheet> {
                 // Share options
                 _ShareOption(
                   icon: Icons.link,
-                  label: 'Copy Link',
+                  label: isArabic ? 'نسخ الرابط' : 'Copy Link',
                   color: AppColors.mainColor,
                   onTap: () => _copyToClipboard(_shareData!.url),
                 ),
                 SizedBox(height: 12),
                 _ShareOption(
                   icon: Icons.message,
-                  label: 'WhatsApp',
+                  label: isArabic ? 'واتساب' : 'WhatsApp',
                   color: Color(0xFF25D366),
                   onTap: () => _launchUrl(_shareData!.whatsappUrl),
+                ),
+                SizedBox(height: 12),
+                _ShareOption(
+                  icon: Icons.facebook,
+                  label: isArabic ? 'فيسبوك' : 'Facebook',
+                  color: Color(0xFF1877F2),
+                  onTap: () => _launchUrl(_shareData!.facebookUrl),
+                ),
+                SizedBox(height: 12),
+                _ShareOption(
+                  icon: Icons.email,
+                  label: isArabic ? 'البريد الإلكتروني' : 'Email',
+                  color: Color(0xFFEA4335),
+                  onTap: () => _launchUrl(_shareData!.emailUrl),
                 ),
               ],
             ),

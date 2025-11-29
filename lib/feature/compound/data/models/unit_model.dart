@@ -1,6 +1,111 @@
 import 'package:equatable/equatable.dart';
 import 'package:real/feature/sale/data/models/sale_model.dart';
 
+/// Model for payment plan data from API
+class PaymentPlan {
+  final int? id;
+  final String? planName;
+  final String? price;
+  final String? durationYears;
+  final String? deliveryDate;
+  final String? finishingType;
+  final String? totalArea;
+  final String? downPaymentPercentage;
+  final String? downPaymentAmount;
+  final String? monthlyInstallment;
+  final String? quarterlyInstallment;
+  final String? semiAnnualInstallment;
+  final String? yearlyInstallment;
+  final String? maintenanceDeposit;
+  final String? clubMembership;
+  final String? garagePrice;
+  final String? storagePrice;
+  final String? unitTotalPrice;
+  final String? finishPrice;
+  final String? unitTotalWithFinishPrice;
+  final String? createdAt;
+  final String? updatedAt;
+
+  PaymentPlan({
+    this.id,
+    this.planName,
+    this.price,
+    this.durationYears,
+    this.deliveryDate,
+    this.finishingType,
+    this.totalArea,
+    this.downPaymentPercentage,
+    this.downPaymentAmount,
+    this.monthlyInstallment,
+    this.quarterlyInstallment,
+    this.semiAnnualInstallment,
+    this.yearlyInstallment,
+    this.maintenanceDeposit,
+    this.clubMembership,
+    this.garagePrice,
+    this.storagePrice,
+    this.unitTotalPrice,
+    this.finishPrice,
+    this.unitTotalWithFinishPrice,
+    this.createdAt,
+    this.updatedAt,
+  });
+
+  factory PaymentPlan.fromJson(Map<String, dynamic> json) {
+    return PaymentPlan(
+      id: json['id'] as int?,
+      planName: json['plan_name']?.toString(),
+      price: json['price']?.toString(),
+      durationYears: json['duration_years']?.toString(),
+      deliveryDate: json['delivery_date']?.toString(),
+      finishingType: json['finishing_type']?.toString(),
+      totalArea: json['total_area']?.toString(),
+      downPaymentPercentage: json['down_payment_percentage']?.toString(),
+      downPaymentAmount: json['down_payment_amount']?.toString(),
+      monthlyInstallment: json['monthly_installment']?.toString(),
+      quarterlyInstallment: json['quarterly_installment']?.toString(),
+      semiAnnualInstallment: json['semi_annual_installment']?.toString(),
+      yearlyInstallment: json['yearly_installment']?.toString(),
+      maintenanceDeposit: json['maintenance_deposit']?.toString(),
+      clubMembership: json['club_membership']?.toString(),
+      garagePrice: json['garage_price']?.toString(),
+      storagePrice: json['storage_price']?.toString(),
+      unitTotalPrice: json['unit_total_price']?.toString(),
+      finishPrice: json['finish_price']?.toString(),
+      unitTotalWithFinishPrice: json['unit_total_with_finish_price']?.toString(),
+      createdAt: json['created_at']?.toString(),
+      updatedAt: json['updated_at']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'plan_name': planName,
+      'price': price,
+      'duration_years': durationYears,
+      'delivery_date': deliveryDate,
+      'finishing_type': finishingType,
+      'total_area': totalArea,
+      'down_payment_percentage': downPaymentPercentage,
+      'down_payment_amount': downPaymentAmount,
+      'monthly_installment': monthlyInstallment,
+      'quarterly_installment': quarterlyInstallment,
+      'semi_annual_installment': semiAnnualInstallment,
+      'yearly_installment': yearlyInstallment,
+      'maintenance_deposit': maintenanceDeposit,
+      'club_membership': clubMembership,
+      'garage_price': garagePrice,
+      'storage_price': storagePrice,
+      'unit_total_price': unitTotalPrice,
+      'finish_price': finishPrice,
+      'unit_total_with_finish_price': unitTotalWithFinishPrice,
+      'created_at': createdAt,
+      'updated_at': updatedAt,
+    };
+  }
+}
+
 class Unit extends Equatable {
   final String id;
   final String compoundId;
@@ -30,7 +135,17 @@ class Unit extends Equatable {
   final String? companyId;
   final String? compoundName;
   final String? compoundLocation;
+  final String? compoundLocationEn;
+  final String? compoundLocationAr;
   final String? compoundLocationUrl;
+
+  /// Get localized compound location based on locale
+  String? getLocalizedCompoundLocation(bool isArabic) {
+    if (isArabic) {
+      return (compoundLocationAr?.isNotEmpty == true) ? compoundLocationAr : compoundLocation;
+    }
+    return (compoundLocationEn?.isNotEmpty == true) ? compoundLocationEn : compoundLocation;
+  }
 
   // Additional fields from search API
   final String? code;
@@ -60,6 +175,9 @@ class Unit extends Equatable {
   final bool? hasActiveSale;
   final Sale? sale;
 
+  // Payment plans
+  final List<PaymentPlan>? paymentPlans;
+
   Unit({
     required this.id,
     required this.compoundId,
@@ -88,6 +206,8 @@ class Unit extends Equatable {
     this.companyId,
     this.compoundName,
     this.compoundLocation,
+    this.compoundLocationEn,
+    this.compoundLocationAr,
     this.compoundLocationUrl,
     // Additional fields from search API
     this.code,
@@ -113,9 +233,18 @@ class Unit extends Equatable {
     // Sale fields
     this.hasActiveSale,
     this.sale,
+    // Payment plans
+    this.paymentPlans,
   });
 
   factory Unit.fromJson(Map<String, dynamic> json) {
+    // Helper function to get non-empty string from JSON field
+    String? getNonEmptyString(dynamic value) {
+      if (value == null) return null;
+      final str = value.toString();
+      return str.isNotEmpty && str != 'null' ? str : null;
+    }
+
     // Parse images array
     List<String> imagesList = [];
     if (json['images'] != null) {
@@ -136,11 +265,23 @@ class Unit extends Equatable {
 
     // Handle area - use total_area or calculate from various area fields
     String area = '0';
-    if (json['total_area'] != null && json['total_area'].toString() != '0') {
-      area = json['total_area'].toString();
-    } else if (json['area'] != null) {
-      area = json['area'].toString();
+    final totalArea = getNonEmptyString(json['total_area']);
+    final builtUpArea = getNonEmptyString(json['built_up_area']);
+    final regularArea = getNonEmptyString(json['area']);
+
+    print('[UNIT MODEL] Unit ${json['id']} - Area parsing:');
+    print('[UNIT MODEL]   total_area: ${json['total_area']} -> $totalArea');
+    print('[UNIT MODEL]   built_up_area: ${json['built_up_area']} -> $builtUpArea');
+    print('[UNIT MODEL]   area: ${json['area']} -> $regularArea');
+
+    if (totalArea != null && totalArea != '0' && totalArea != '0.00') {
+      area = totalArea;
+    } else if (builtUpArea != null && builtUpArea != '0' && builtUpArea != '0.00') {
+      area = builtUpArea;
+    } else if (regularArea != null && regularArea != '0' && regularArea != '0.00') {
+      area = regularArea;
     }
+    print('[UNIT MODEL]   Final area: $area');
 
     // Handle price - use various pricing fields
     String price = '0';
@@ -244,6 +385,31 @@ class Unit extends Equatable {
     }
     print('[UNIT MODEL] ========================================');
 
+    // Parse payment plans
+    List<PaymentPlan>? paymentPlansList;
+    if (json['payment_plans'] != null && json['payment_plans'] is List) {
+      paymentPlansList = (json['payment_plans'] as List)
+          .map((plan) => PaymentPlan.fromJson(plan as Map<String, dynamic>))
+          .toList();
+      print('[UNIT MODEL] Parsed ${paymentPlansList.length} payment plans');
+    }
+
+    // Parse delivery date - check multiple field names
+    final deliveredAt = getNonEmptyString(json['delivered_at']);
+    final deliveryDateField = getNonEmptyString(json['delivery_date']);
+    final plannedDelivery = getNonEmptyString(json['planned_delivery_date']);
+    final deliveryDate = deliveredAt ?? deliveryDateField ?? plannedDelivery;
+
+    print('[UNIT MODEL] Unit ${json['id']} - Delivery date parsing:');
+    print('[UNIT MODEL]   delivered_at: ${json['delivered_at']} -> $deliveredAt');
+    print('[UNIT MODEL]   delivery_date: ${json['delivery_date']} -> $deliveryDateField');
+    print('[UNIT MODEL]   planned_delivery_date: ${json['planned_delivery_date']} -> $plannedDelivery');
+    print('[UNIT MODEL]   Final deliveryDate: $deliveryDate');
+
+    // Parse finishing type
+    final finishingType = getNonEmptyString(json['finishing_type']) ?? getNonEmptyString(json['finishing']);
+    print('[UNIT MODEL] Unit ${json['id']} - Finishing: ${json['finishing_type']} -> $finishingType');
+
     return Unit(
       id: json['id']?.toString() ?? '',
       compoundId: json['compound_id']?.toString() ?? '',
@@ -259,7 +425,10 @@ class Unit extends Equatable {
           json['number_of_beds']?.toString() ??
           json['bedrooms']?.toString() ??
           '0',
-      bathrooms: json['bathrooms']?.toString() ?? '0',
+      bathrooms:
+          json['number_of_bathrooms']?.toString() ??
+          json['bathrooms']?.toString() ??
+          '0',
       floor:
           json['floor_number']?.toString() ?? json['floor']?.toString() ?? '0',
       // Use localized status if available, fallback to original
@@ -269,10 +438,9 @@ class Unit extends Equatable {
           json['unit_name']?.toString() ??
           json['unit_number']?.toString() ??
           json['unit_code']?.toString(),
-      deliveryDate:
-          json['delivered_at']?.toString() ?? json['delivery_date']?.toString(),
-      view: json['view']?.toString(),
-      finishing: json['finishing']?.toString(),
+      deliveryDate: deliveryDate,
+      view: getNonEmptyString(json['view']),
+      finishing: finishingType,
       createdAt: json['created_at']?.toString() ?? '',
       updatedAt: json['updated_at']?.toString() ?? '',
       images: imagesList,
@@ -293,6 +461,11 @@ class Unit extends Equatable {
       // Extract compound location from either direct field or nested compound object
       compoundLocation: json['compound_location']?.toString() ??
                         (json['compound'] != null ? json['compound']['location']?.toString() : null),
+      // Extract localized compound location from nested compound object
+      compoundLocationEn: json['compound_location_en']?.toString() ??
+                          (json['compound'] != null ? json['compound']['location_en']?.toString() : null),
+      compoundLocationAr: json['compound_location_ar']?.toString() ??
+                          (json['compound'] != null ? json['compound']['location_ar']?.toString() : null),
       // Extract compound location URL from either direct field or nested compound object
       compoundLocationUrl: json['compound_location_url']?.toString() ??
                            (json['compound'] != null ? json['compound']['location_url']?.toString() : null),
@@ -320,6 +493,8 @@ class Unit extends Equatable {
       // Sale fields
       hasActiveSale: hasActiveSale,
       sale: sale,
+      // Payment plans
+      paymentPlans: paymentPlansList,
     );
   }
 
@@ -351,6 +526,8 @@ class Unit extends Equatable {
       'company_id': companyId,
       'compound_name': compoundName,
       'compound_location': compoundLocation,
+      'compound_location_en': compoundLocationEn,
+      'compound_location_ar': compoundLocationAr,
       'compound_location_url': compoundLocationUrl,
       'code': code,
       'original_price': originalPrice,
@@ -374,6 +551,8 @@ class Unit extends Equatable {
       // Sale fields
       'has_active_sale': hasActiveSale,
       'sale': sale?.toJson(),
+      // Payment plans
+      'payment_plans': paymentPlans?.map((plan) => plan.toJson()).toList(),
     };
   }
 
@@ -426,6 +605,7 @@ class Unit extends Equatable {
     changeProperties,
     hasActiveSale,
     sale,
+    paymentPlans,
   ];
 
   @override

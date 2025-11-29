@@ -448,6 +448,53 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
     await CasheNetwork.deletecasheItem(key: "token");
   }
 
+  // Apple Sign-In Handler - TODO: Implement with sign_in_with_apple package
+  Future<void> _handleAppleSignIn() async {
+    // TODO: Implement Apple Sign-In
+    // For web, Apple Sign-In requires additional configuration:
+    // 1. Add sign_in_with_apple package to pubspec.yaml
+    // 2. Configure Apple Developer account with "Sign in with Apple" service
+    // 3. Set up Service ID and configure web domains/redirect URLs
+    // 4. Host apple-developer-domain-association.txt file on your domain
+
+    MessageHelper.showMessage(
+      context: context,
+      message: 'Apple Sign-In coming soon!',
+      isSuccess: false,
+    );
+
+    // Example implementation (uncomment when ready):
+    /*
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        webAuthenticationOptions: WebAuthenticationOptions(
+          clientId: 'com.yourcompany.yourapp.service', // Your Service ID
+          redirectUri: Uri.parse('https://your-domain.com/callbacks/sign_in_with_apple'),
+        ),
+      );
+
+      // Send to backend
+      final repository = context.read<LoginBloc>().repository;
+      final response = await repository.appleLogin(
+        appleId: credential.userIdentifier ?? '',
+        email: credential.email ?? '',
+        name: '${credential.givenName ?? ''} ${credential.familyName ?? ''}'.trim(),
+        identityToken: credential.identityToken ?? '',
+        authorizationCode: credential.authorizationCode,
+      );
+
+      // Handle response similar to Google Sign-In
+      // ...
+    } catch (e) {
+      MessageHelper.showError(context, 'Apple Sign-In failed: $e');
+    }
+    */
+  }
+
   // Check subscription status after login
   void _checkSubscriptionStatus(BuildContext context) {
     context.read<SubscriptionBloc>().add(LoadSubscriptionStatusEvent());
@@ -1700,6 +1747,33 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                                 'Continue with Google',
                                 style: TextStyle(
                                   color: Colors.black87,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 12),
+
+                            // Apple Sign In Button
+                            OutlinedButton.icon(
+                              onPressed: _handleAppleSignIn,
+                              style: OutlinedButton.styleFrom(
+                                padding: EdgeInsets.symmetric(vertical: 14),
+                                backgroundColor: Colors.black,
+                                side: BorderSide(color: Colors.black),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              icon: Icon(
+                                Icons.apple,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              label: Text(
+                                'Continue with Apple',
+                                style: TextStyle(
+                                  color: Colors.white,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                 ),

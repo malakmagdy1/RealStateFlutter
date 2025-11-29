@@ -12,8 +12,8 @@ import 'dart:convert';
 /// 1. Property Search (from ChatRemoteDataSource)
 /// 2. Sales Advice (from SalesAssistantRemoteDataSource)
 class UnifiedAIDataSource {
-  late final GenerativeModel _model;
-  late ChatSession _chatSession;
+  GenerativeModel? _model;  // Changed from late final to nullable
+  ChatSession? _chatSession;  // Changed from late to nullable
   final SearchRepository _searchRepository = SearchRepository();
 
   UnifiedAIDataSource() {
@@ -40,7 +40,7 @@ class UnifiedAIDataSource {
       systemInstruction: Content.system(fullSystemPrompt),
     );
 
-    _chatSession = _model.startChat();
+    _chatSession = _model!.startChat();
   }
 
   /// Technical instructions for property search and data formatting
@@ -312,6 +312,10 @@ FOR SALES ADVICE ONLY (no JSON, just text):
     print('[UNIFIED AI] 📥 Received query: "$userMessage"');
 
     try {
+      // Re-initialize the model for each message to avoid session errors
+      // This fixes the "غير صحيح تأكد من api key" error after first message
+      _initializeModel();
+
       final isPropertySearch = _isPropertySearchQuery(userMessage);
       print('[UNIFIED AI] 🔍 Query type: ${isPropertySearch ? "PROPERTY SEARCH" : "SALES ADVICE"}');
 
@@ -431,7 +435,7 @@ CRITICAL:
       print('[UNIFIED AI] 🤖 Sending to Gemini...');
       print('[UNIFIED AI] 📤 Enhanced message: ${enhancedMessage.substring(0, enhancedMessage.length > 200 ? 200 : enhancedMessage.length)}...');
 
-      final response = await _chatSession.sendMessage(Content.text(enhancedMessage));
+      final response = await _chatSession!.sendMessage(Content.text(enhancedMessage));
       final responseText = response.text?.trim() ?? '';
 
       print('[UNIFIED AI] 📨 Gemini response length: ${responseText.length} chars');
@@ -492,7 +496,7 @@ CRITICAL:
 
   /// Reset chat session
   void resetChat() {
-    _chatSession = _model.startChat();
+    _chatSession = _model!.startChat();
     print('[UNIFIED AI] 🔄 Chat session reset');
   }
 }

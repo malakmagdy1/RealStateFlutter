@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:real/core/utils/colors.dart';
-import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/core/animations/hover_scale_animation.dart';
-import 'package:real/core/utils/card_dimensions.dart';
 import 'package:real/feature/ai_chat/data/models/comparison_item.dart';
 import 'package:real/feature/ai_chat/presentation/widget/comparison_selection_sheet.dart';
 import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.dart';
+import 'package:real/l10n/app_localizations.dart';
 
 class CompanyCard extends StatefulWidget {
   final Company company;
@@ -29,6 +28,10 @@ class _CompanyCardState extends State<CompanyCard> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final isArabic = l10n?.localeName == 'ar';
+    final displayName = widget.company.getLocalizedName(isArabic);
+
     return HoverScaleAnimation(
       child: GestureDetector(
         onTap: widget.onTap,
@@ -106,7 +109,7 @@ class _CompanyCardState extends State<CompanyCard> {
                         SizedBox(width: 4),
                         Expanded(
                           child: Text(
-                            widget.company.name,
+                            displayName,
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,

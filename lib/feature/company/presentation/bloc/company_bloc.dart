@@ -10,6 +10,7 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
       : _repository = repository,
         super(CompanyInitial()) {
     on<FetchCompaniesEvent>(_onFetchCompanies);
+    on<LoadMoreCompaniesEvent>(_onLoadMoreCompanies);
   }
 
   Future<void> _onFetchCompanies(
@@ -18,10 +19,25 @@ class CompanyBloc extends Bloc<CompanyEvent, CompanyState> {
   ) async {
     emit(CompanyLoading());
     try {
+      // API returns all companies at once - no pagination needed
       final response = await _repository.getCompanies();
-      emit(CompanySuccess(response));
+      print('[COMPANY BLOC] Received ${response.companies.length} companies from repository');
+      emit(CompanySuccess(
+        response,
+        allCompanies: response.companies,
+        currentPage: 1,
+        hasMore: false, // API returns all data at once
+      ));
     } catch (e) {
+      print('[COMPANY BLOC] Error: $e');
       emit(CompanyError(e.toString().replaceAll('Exception: ', '')));
     }
+  }
+
+  Future<void> _onLoadMoreCompanies(
+    LoadMoreCompaniesEvent event,
+    Emitter<CompanyState> emit,
+  ) async {
+    // API returns all data at once, no more to load
   }
 }

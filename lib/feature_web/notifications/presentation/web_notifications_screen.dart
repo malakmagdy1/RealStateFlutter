@@ -25,16 +25,29 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
   bool isLoading = true;
   final NotificationCacheService _cacheService = NotificationCacheService();
   Timer? _refreshTimer;
+  StreamSubscription? _notificationSubscription;
 
   @override
   void initState() {
     super.initState();
     print('[WEB NOTIFICATIONS SCREEN] initState called');
+
+    // Initialize service worker listener
+    initServiceWorkerListener();
+
+    // Listen for new notifications from service worker
+    _notificationSubscription = getNotificationStream().listen((notificationData) {
+      print('[WEB NOTIFICATIONS] Received new notification from stream');
+      _handleNewNotification(notificationData);
+    });
+
     // First load notifications immediately
     _loadNotifications();
-    // Then check for pending notifications from service worker
+
+    // Check for pending notifications from IndexedDB
     _checkAndMigrateWebNotifications();
-    // Refresh notifications every 5 seconds to catch new ones (reduced from 1 second to avoid spam)
+
+    // Refresh notifications every 5 seconds to catch new ones
     _refreshTimer = Timer.periodic(Duration(seconds: 5), (timer) {
       _checkAndMigrateWebNotifications();
     });
@@ -43,57 +56,85 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _notificationSubscription?.cancel();
     super.dispose();
+  }
+
+  void _handleNewNotification(Map<String, dynamic> notificationData) async {
+    try {
+      final notification = NotificationModel(
+        id: notificationData['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+        title: notificationData['title'] ?? '',
+        message: notificationData['message'] ?? notificationData['body'] ?? '',
+        type: notificationData['type'] ?? 'general',
+        timestamp: notificationData['timestamp'] != null
+            ? DateTime.parse(notificationData['timestamp'])
+            : DateTime.now(),
+        isRead: false,
+        imageUrl: notificationData['imageUrl'] ?? notificationData['image_url'],
+        data: notificationData['data'] != null
+            ? Map<String, dynamic>.from(notificationData['data'])
+            : null,
+      );
+
+      await _cacheService.saveNotification(notification);
+      await _loadNotifications();
+      print('[WEB NOTIFICATIONS] New notification added: ${notification.title}');
+    } catch (e) {
+      print('[WEB NOTIFICATIONS] Error handling new notification: $e');
+    }
   }
 
   Future<void> _checkAndMigrateWebNotifications() async {
     try {
-      // Check localStorage for pending notifications from service worker (only available on web)
-      final pendingNotificationsJson = getLocalStorageItem('pending_web_notifications');
+      print('[WEB NOTIFICATIONS] Checking IndexedDB for pending notifications...');
 
-      print('[WEB NOTIFICATIONS] Checking localStorage for pending notifications...');
-      print('[WEB NOTIFICATIONS] Raw JSON: ${pendingNotificationsJson?.substring(0, pendingNotificationsJson.length > 100 ? 100 : pendingNotificationsJson.length) ?? 'null'}...');
+      // Get notifications from IndexedDB
+      final pendingNotifications = await getNotificationsFromIndexedDB();
 
-      if (pendingNotificationsJson != null && pendingNotificationsJson.isNotEmpty) {
-        try {
-          final List<dynamic> pendingNotifications = jsonDecode(pendingNotificationsJson);
+      if (pendingNotifications.isNotEmpty) {
+        print('[WEB NOTIFICATIONS] Found ${pendingNotifications.length} pending notifications in IndexedDB');
 
-          print('📦 Found ${pendingNotifications.length} pending web notifications');
-
-          // Migrate each notification to SharedPreferences
-          int successCount = 0;
-          for (var notifJson in pendingNotifications) {
-            try {
-              final notification = NotificationModel.fromJson(notifJson);
-              await _cacheService.saveNotification(notification);
-              print('✅ Migrated notification: ${notification.title}');
-              successCount++;
-            } catch (e) {
-              print('⚠️ Error migrating notification: $e');
-              print('   Notification JSON: $notifJson');
-            }
+        // Migrate each notification to SharedPreferences
+        int successCount = 0;
+        for (var notifJson in pendingNotifications) {
+          try {
+            final notification = NotificationModel(
+              id: notifJson['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+              title: notifJson['title'] ?? '',
+              message: notifJson['message'] ?? notifJson['body'] ?? '',
+              type: notifJson['type'] ?? 'general',
+              timestamp: notifJson['timestamp'] != null
+                  ? DateTime.parse(notifJson['timestamp'])
+                  : DateTime.now(),
+              isRead: notifJson['isRead'] ?? false,
+              imageUrl: notifJson['imageUrl'] ?? notifJson['image_url'],
+              data: notifJson['data'] != null
+                  ? Map<String, dynamic>.from(notifJson['data'])
+                  : null,
+            );
+            await _cacheService.saveNotification(notification);
+            print('[WEB NOTIFICATIONS] Migrated notification: ${notification.title}');
+            successCount++;
+          } catch (e) {
+            print('[WEB NOTIFICATIONS] Error migrating notification: $e');
           }
-
-          print('📊 Migration complete: $successCount/${pendingNotifications.length} notifications migrated');
-
-          // Clear localStorage after migration
-          removeLocalStorageItem('pending_web_notifications');
-          print('🗑️ Cleared pending notifications from localStorage');
-
-          // Reload notifications to show the new ones
-          await _loadNotifications();
-        } catch (e) {
-          print('❌ Error parsing pending notifications JSON: $e');
-          print('   Raw JSON: $pendingNotificationsJson');
-          await _loadNotifications();
         }
+
+        print('[WEB NOTIFICATIONS] Migration complete: $successCount/${pendingNotifications.length} notifications migrated');
+
+        // Clear IndexedDB after migration
+        await clearNotificationsFromIndexedDB();
+        print('[WEB NOTIFICATIONS] Cleared pending notifications from IndexedDB');
+
+        // Reload notifications to show the new ones
+        await _loadNotifications();
       } else {
-        // Just refresh the list (without logging every time to reduce console spam)
+        // Just refresh the list
         await _loadNotifications();
       }
     } catch (e) {
-      print('❌ Error checking pending notifications: $e');
-      print('   Stack trace: ${StackTrace.current}');
+      print('[WEB NOTIFICATIONS] Error checking pending notifications: $e');
       await _loadNotifications();
     }
   }
@@ -116,8 +157,7 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
         print('[WEB NOTIFICATIONS] UI updated with ${notifications.length} notifications');
       }
     } catch (e) {
-      print('❌ Error loading notifications: $e');
-      print('   Stack trace: ${StackTrace.current}');
+      print('[WEB NOTIFICATIONS] Error loading notifications: $e');
       if (mounted) {
         setState(() {
           isLoading = false;
@@ -240,6 +280,9 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
           label: 'Refresh',
           onPressed: () async {
             print('[WEB NOTIFICATIONS] Manual refresh triggered');
+            setState(() {
+              isLoading = true;
+            });
             await _checkAndMigrateWebNotifications();
             MessageHelper.showSuccess(context, 'Notifications refreshed');
           },
@@ -602,69 +645,11 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
                   ),
                 ],
               ),
-              SizedBox(height: 20),
-
-              // View Details Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    context.pop();
-                    _navigateToDetails(notification);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.mainColor,
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: Text(
-                    AppLocalizations.of(context)!.viewDetails,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  void _navigateToDetails(NotificationModel notification) {
-    final data = notification.data;
-    if (data == null) return;
-
-    switch (notification.type) {
-      case 'sale':
-      case 'unit':
-        // Show message that unit details require full data
-        MessageHelper.showMessage(
-          context: context,
-          message: 'Unit details are not available from notifications yet',
-          isSuccess: false,
-        );
-        break;
-
-      case 'compound':
-        // Show message that compound details require full data
-        MessageHelper.showMessage(
-          context: context,
-          message: 'Compound details are not available from notifications yet',
-          isSuccess: false,
-        );
-        break;
-
-      default:
-        MessageHelper.showError(context, AppLocalizations.of(context)!.noDetailsAvailable);
-        break;
-    }
   }
 
   void _showClearAllDialog() {
@@ -688,6 +673,7 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
           ElevatedButton(
             onPressed: () async {
               await _cacheService.clearAllNotifications();
+              await clearNotificationsFromIndexedDB(); // Also clear IndexedDB
               await _loadNotifications();
               context.pop();
               MessageHelper.showSuccess(context, l10n.allNotificationsCleared);

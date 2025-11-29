@@ -611,6 +611,18 @@
   "today": "Today",
   "yesterday": "Yesterday",
   "cash": "Cash",
+  "openInMaps": "Open in Maps",
+  "mapLocationNotAvailable": "Map location not available",
+  "masterPlanComingSoon": "Master plan details coming soon",
+  "contactSalesTeam": "Contact Sales Team",
+  "getInTouchWithSales": "Get in touch with our professional sales team for more information",
+  "addYourPersonalNotesCompound": "Add your personal notes about this compound. Your notes are private and only visible to you.",
+  "compoundNote": "Compound Note",
+  "newUpdatesAvailable": "New Updates Available!",
+  "couldNotLaunchPhoneCall": "Could not launch phone call",
+  "couldNotLaunchWhatsApp": "Could not launch WhatsApp",
+  "unknown": "Unknown",
+  "resale": "Resale",
 
   "compare": "Compare",
   "aiCompare": "AI Compare",
@@ -682,6 +694,7 @@
   "checkMobileData": "Check your mobile data",
   "checkAirplaneMode": "Turn off airplane mode",
   "waitingForConnection": "Waiting for connection...",
+  "errorOccurred": "An Error Occurred",
   "yearsOfExperience": "Years of Exp.",
   "unitsDelivered": "Units Delivered",
   "cairoEgypt": "Cairo, Egypt",
@@ -713,5 +726,45 @@
   "salesTeam": "Sales Team",
   "contactInformation": "Contact Information",
   "headOffice": "Head Office",
-  "ourProjects": "Our Projects"
+  "ourProjects": "Our Projects",
+
+  "viewHistory": "View History",
+  "recentlyViewedProperties": "Recently viewed properties",
+  "searchInHistory": "Search in history...",
+  "clearHistory": "Clear History",
+  "clearAll": "Clear All",
+  "all": "All",
+  "confirmClearHistory": "Are you sure you want to clear all viewing history?",
+  "cancel": "Cancel",
+  "clear": "Clear",
+  "noViewingHistoryYet": "No viewing history yet",
+  "noCompoundViewsYet": "No compound views yet",
+  "noUnitViewsYet": "No unit views yet",
+  "tryAdjustingYourSearch": "Try adjusting your search",
+  "propertiesYouViewWillAppearHere": "Properties you view will appear here",
+  "justNow": "Just now",
+  "minutesAgo": "{minutes}m ago",
+  "@minutesAgo": {
+    "placeholders": {
+      "minutes": {"type": "int"}
+    }
+  },
+  "hoursAgo": "{hours}h ago",
+  "@hoursAgo": {
+    "placeholders": {
+      "hours": {"type": "int"}
+    }
+  },
+  "daysAgo": "{days}d ago",
+  "@daysAgo": {
+    "placeholders": {
+      "days": {"type": "int"}
+    }
+  },
+  "weeksAgo": "{weeks}w ago",
+  "@weeksAgo": {
+    "placeholders": {
+      "weeks": {"type": "int"}
+    }
+  }
 }

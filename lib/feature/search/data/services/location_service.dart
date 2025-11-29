@@ -1,6 +1,27 @@
 import 'package:dio/dio.dart';
 import 'package:real/core/utils/constant.dart' as constants;
 
+/// Simple class to hold location filter data with localization
+class LocationFilterItem {
+  final String location;
+  final String locationEn;
+  final String locationAr;
+
+  LocationFilterItem({
+    required this.location,
+    required this.locationEn,
+    required this.locationAr,
+  });
+
+  /// Get localized location based on locale
+  String getLocalizedName(bool isArabic) {
+    if (isArabic) {
+      return locationAr.isNotEmpty ? locationAr : location;
+    }
+    return locationEn.isNotEmpty ? locationEn : location;
+  }
+}
+
 class LocationService {
   late Dio dio;
 
@@ -23,43 +44,61 @@ class LocationService {
     ));
   }
 
-  /// Fetch unique locations (cities/areas) from database
+  /// Fetch unique locations (cities/areas) from database (legacy)
   /// Uses the search-and-filter API to get units and extract unique locations
   Future<List<String>> getLocations() async {
-    try {
-      print('[LOCATION SERVICE] Fetching locations from search-and-filter API...');
+    final items = await getLocationsWithLocalization();
+    return items.map((item) => item.location).toList();
+  }
 
-      // Call search-and-filter API with no filters to get all units
-      // Use a high limit to get enough units to find all unique locations
-      final response = await dio.get('/search-and-filter', queryParameters: {
-        'limit': 1000,
-      });
+  /// Fetch unique locations with localization support
+  /// Returns a list of LocationFilterItem with both English and Arabic names
+  /// Fetches from companies API to get compounds with localized location data
+  Future<List<LocationFilterItem>> getLocationsWithLocalization() async {
+    try {
+      print('[LOCATION SERVICE] Fetching locations from companies API...');
+
+      // Call companies API to get compounds with localized locations
+      final response = await dio.get('/companies');
 
       print('[LOCATION SERVICE] Response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final data = response.data;
 
-        // Extract unique locations from units
-        Set<String> uniqueLocations = {};
+        // Extract unique locations from compounds (use Map to store localized versions)
+        Map<String, LocationFilterItem> uniqueLocations = {};
 
-        if (data is Map && data['units'] is List) {
-          final units = data['units'] as List;
+        // Get companies array from response
+        List<dynamic> companies = [];
+        if (data is Map && data['companies'] is List) {
+          companies = data['companies'] as List;
+        } else if (data is Map && data['data'] is List) {
+          companies = data['data'] as List;
+        } else if (data is List) {
+          companies = data;
+        }
 
-          for (var unit in units) {
-            if (unit is Map) {
-              // Try to get location from compound object first
-              if (unit['compound'] != null && unit['compound'] is Map) {
-                final location = unit['compound']['location'];
-                if (location != null && location.toString().isNotEmpty) {
-                  uniqueLocations.add(location.toString());
-                }
-              }
-              // Fallback to compound_location field
-              else if (unit['compound_location'] != null) {
-                final location = unit['compound_location'].toString();
-                if (location.isNotEmpty) {
-                  uniqueLocations.add(location);
+        print('[LOCATION SERVICE] Processing ${companies.length} companies...');
+
+        for (var company in companies) {
+          if (company is Map && company['compounds'] is List) {
+            final compounds = company['compounds'] as List;
+
+            for (var compound in compounds) {
+              if (compound is Map) {
+                final location = compound['location']?.toString() ?? '';
+                final locationEn = compound['location_en']?.toString() ?? '';
+                final locationAr = compound['location_ar']?.toString() ?? '';
+
+                // Use location as the key to avoid duplicates
+                if (location.isNotEmpty && !uniqueLocations.containsKey(location)) {
+                  uniqueLocations[location] = LocationFilterItem(
+                    location: location,
+                    locationEn: locationEn.isNotEmpty ? locationEn : location,
+                    locationAr: locationAr.isNotEmpty ? locationAr : location,
+                  );
+                  print('[LOCATION SERVICE] Added location: $location (EN: $locationEn, AR: $locationAr)');
                 }
               }
             }
@@ -67,29 +106,23 @@ class LocationService {
         }
 
         // Convert to sorted list
-        final locations = uniqueLocations.toList()..sort();
+        final locations = uniqueLocations.values.toList()
+          ..sort((a, b) => a.location.compareTo(b.location));
 
-        print('[LOCATION SERVICE] ✓ Found ${locations.length} unique locations from ${data['total_units'] ?? 0} units');
-        print('[LOCATION SERVICE] Locations: ${locations.join(", ")}');
+        print('[LOCATION SERVICE] ✓ Found ${locations.length} unique locations');
+        for (var loc in locations) {
+          print('[LOCATION SERVICE]   - ${loc.location} (EN: ${loc.locationEn}, AR: ${loc.locationAr})');
+        }
 
         return locations;
       } else {
         print('[LOCATION SERVICE] ✗ Error: ${response.statusCode}');
-        return _getDefaultLocations();
+        return [];
       }
     } catch (e) {
       print('[LOCATION SERVICE] ✗ Exception: $e');
       print('[LOCATION SERVICE] Error details: ${e.toString()}');
-      return _getDefaultLocations();
+      return [];
     }
-  }
-
-  /// Fallback: Return empty list if API fails (don't show locations that don't exist)
-  List<String> _getDefaultLocations() {
-    print('[LOCATION SERVICE] ✗ API failed - returning empty list (no fallback)');
-    print('[LOCATION SERVICE] Please check /api/locations endpoint');
-    // Return empty list instead of hardcoded locations
-    // This ensures we only show locations that actually exist in the database
-    return [];
   }
 }

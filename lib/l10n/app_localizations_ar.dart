@@ -1100,7 +1100,7 @@ class AppLocalizationsAr extends AppLocalizations {
       'العقارات والكمبوندات التي شاهدتها مؤخراً';
 
   @override
-  String get searchInHistory => 'ابحث في السجل...';
+  String get searchInHistory => 'البحث في السجل...';
 
   @override
   String get justNow => 'الآن';
@@ -1129,13 +1129,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noResultsFoundInHistory => 'لا توجد نتائج';
 
   @override
-  String get noViewingHistoryYet => 'لا يوجد سجل مشاهدة بعد';
+  String get noViewingHistoryYet => 'لا يوجد سجل مشاهدات بعد';
 
   @override
-  String get noCompoundViewsYet => 'لا توجد مشاهدات كمبوندات بعد';
+  String get noCompoundViewsYet => 'لا توجد مشاهدات للمجمعات بعد';
 
   @override
-  String get noUnitViewsYet => 'لا توجد مشاهدات وحدات بعد';
+  String get noUnitViewsYet => 'لا توجد مشاهدات للوحدات بعد';
 
   @override
   String get tryAdjustingSearchTerms => 'حاول تعديل مصطلحات البحث';
@@ -1291,6 +1291,44 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get cash => 'نقدي';
+
+  @override
+  String get openInMaps => 'فتح في الخرائط';
+
+  @override
+  String get mapLocationNotAvailable => 'موقع الخريطة غير متاح';
+
+  @override
+  String get masterPlanComingSoon => 'تفاصيل المخطط الرئيسي قريباً';
+
+  @override
+  String get contactSalesTeam => 'تواصل مع فريق المبيعات';
+
+  @override
+  String get getInTouchWithSales =>
+      'تواصل مع فريق المبيعات المحترف لدينا للحصول على مزيد من المعلومات';
+
+  @override
+  String get addYourPersonalNotesCompound =>
+      'أضف ملاحظاتك الشخصية حول هذا المجمع. ملاحظاتك خاصة ومرئية لك فقط.';
+
+  @override
+  String get compoundNote => 'ملاحظة المجمع';
+
+  @override
+  String get newUpdatesAvailable => 'تحديثات جديدة متاحة!';
+
+  @override
+  String get couldNotLaunchPhoneCall => 'تعذر إجراء المكالمة';
+
+  @override
+  String get couldNotLaunchWhatsApp => 'تعذر فتح واتساب';
+
+  @override
+  String get unknown => 'غير معروف';
+
+  @override
+  String get resale => 'إعادة بيع';
 
   @override
   String get compare => 'مقارنة';
@@ -1482,6 +1520,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get waitingForConnection => 'في انتظار الاتصال...';
 
   @override
+  String get errorOccurred => 'حدث خطأ';
+
+  @override
   String get yearsOfExperience => 'سنوات الخبرة';
 
   @override
@@ -1520,4 +1561,17 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get ourProjects => 'مشاريعنا';
+
+  @override
+  String get viewHistory => 'سجل المشاهدات';
+
+  @override
+  String get recentlyViewedProperties => 'العقارات المشاهدة مؤخراً';
+
+  @override
+  String get confirmClearHistory =>
+      'هل أنت متأكد من أنك تريد مسح كل سجل المشاهدات؟';
+
+  @override
+  String get tryAdjustingYourSearch => 'حاول تعديل بحثك';
 }
