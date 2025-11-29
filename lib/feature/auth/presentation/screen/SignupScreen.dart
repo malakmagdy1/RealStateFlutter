@@ -16,6 +16,8 @@ import 'package:real/feature/auth/presentation/screen/email_verification_screen.
 import 'package:real/core/security/input_validator.dart';
 import 'package:real/core/security/rate_limiter.dart';
 import 'package:real/core/security/secure_storage.dart';
+import 'package:real/core/models/country_code.dart';
+import 'package:real/core/widgets/phone_input_field.dart';
 
 import '../../../../core/widget/button/authButton.dart';
 import '../widget/authToggle.dart';
@@ -39,6 +41,7 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  CountryCode _selectedCountry = CountryCode.getDefault();
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -254,11 +257,15 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                     color: AppColors.mainColor,
                   ),
                   SizedBox(height: 8),
-                  CustomTextField(
+                  PhoneInputField(
                     controller: phoneController,
-                    hintText: 'Enter your phone number',
-                    keyboardType: TextInputType.phone,
-                    validator: Validators.validatePhone,
+                    initialCountry: _selectedCountry,
+                    hintText: 'e.g. 1012345678',
+                    onCountryChanged: (country) {
+                      setState(() {
+                        _selectedCountry = country;
+                      });
+                    },
                   ),
                   SizedBox(height: 24),
                   Center(
@@ -274,7 +281,6 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                                 final email = emailController.text.trim();
                                 final password = passwordController.text;
                                 final confirmPassword = confirmPasswordController.text;
-                                final phone = phoneController.text.trim();
 
                                 // Security: Check rate limit for registration
                                 if (!RateLimiter.isRequestAllowed('register')) {
@@ -315,21 +321,18 @@ class _SignUpScreenState extends State<SignUpScreen> with SingleTickerProviderSt
                                   return;
                                 }
 
-                                // Security: Validate phone number (optional)
-                                if (phone.isNotEmpty) {
-                                  final phoneError = InputValidator.validatePhone(phone);
-                                  if (phoneError != null) {
-                                    MessageHelper.showError(context, phoneError);
-                                    return;
-                                  }
-                                }
+                                // Build full phone number with country code
+                                final phone = phoneController.text.trim();
+                                final fullPhone = phone.isNotEmpty
+                                    ? '${_selectedCountry.dialCode}$phone'
+                                    : '';
 
                                 final request = RegisterRequest(
                                   name: name,
                                   email: email,
                                   password: password,
                                   passwordConfirmation: confirmPassword,
-                                  phone: phone,
+                                  phone: fullPhone,
                                   role: 'buyer',
                                 );
                                 context.read<RegisterBloc>().add(

@@ -128,9 +128,8 @@ class CompoundFavoriteBloc extends Bloc<CompoundFavoriteEvent, CompoundFavoriteS
 
           // Cache the favorites locally for offline access
           await _saveFavorites();
-
-          // Dispatch new event to update state (safe way to emit after async operation)
-          add(LoadFavoriteCompounds());
+          // Note: We don't dispatch new event here to avoid infinite loop
+          // The UI will update on next interaction or manual refresh
         } else {
           print('[CompoundFavoriteBloc] API returned 0 items but cache has ${_favorites.length} - keeping cache');
         }

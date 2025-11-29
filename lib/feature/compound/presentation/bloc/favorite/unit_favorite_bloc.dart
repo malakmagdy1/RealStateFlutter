@@ -134,9 +134,8 @@ class UnitFavoriteBloc extends Bloc<UnitFavoriteEvent, UnitFavoriteState> {
 
           // Cache the favorites locally for offline access
           await _saveFavoritesToCache();
-
-          // Dispatch new event to update state (safe way to emit after async operation)
-          add(LoadFavoriteUnits());
+          // Note: We don't dispatch new event here to avoid infinite loop
+          // The UI will update on next interaction or manual refresh
         } else {
           print('[UnitFavoriteBloc] API returned 0 items but cache has ${_favorites.length} - keeping cache');
         }

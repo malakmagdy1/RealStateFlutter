@@ -12,6 +12,8 @@ import 'package:real/feature/auth/presentation/bloc/user_event.dart';
 import 'package:real/core/widget/button/authButton.dart';
 import 'package:real/feature/home/presentation/CustomNav.dart';
 import 'package:real/feature_web/navigation/web_main_screen.dart';
+import 'package:real/feature/auth/data/network/local_netwrok.dart';
+import 'package:flutter/services.dart';
 import 'dart:async';
 
 class EmailVerificationScreen extends StatefulWidget {
@@ -20,6 +22,17 @@ class EmailVerificationScreen extends StatefulWidget {
 
   const EmailVerificationScreen({Key? key, required this.email})
       : super(key: key);
+
+  // Static methods for managing pending verification state
+  static Future<void> clearPendingVerificationState() async {
+    await CasheNetwork.deletecasheItem(key: 'pending_verification_email');
+    print('[EmailVerification] Cleared pending verification state');
+  }
+
+  static Future<String?> getPendingVerificationEmail() async {
+    final email = await CasheNetwork.getCasheDataAsync(key: 'pending_verification_email');
+    return email.isNotEmpty ? email : null;
+  }
 
   @override
   State<EmailVerificationScreen> createState() =>
@@ -38,6 +51,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
   bool _canResend = false;
   int _resendCountdown = 60;
   Timer? _countdownTimer;
+  DateTime? _lastBackPressTime;
 
   @override
   void initState() {
@@ -52,6 +66,17 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
     );
     _animationController.forward();
     _startResendCountdown();
+
+    // Save pending verification state so user returns here if app is closed
+    _savePendingVerificationState();
+  }
+
+  Future<void> _savePendingVerificationState() async {
+    await CasheNetwork.insertToCashe(
+      key: 'pending_verification_email',
+      value: widget.email,
+    );
+    print('[EmailVerification] Saved pending verification state for: ${widget.email}');
   }
 
   @override
@@ -120,6 +145,39 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
     }
   }
 
+  Future<bool> _onWillPop() async {
+    final now = DateTime.now();
+    if (_lastBackPressTime == null ||
+        now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+      _lastBackPressTime = now;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.white),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Press back again to exit',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange.shade700,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      return false;
+    }
+    // Exit the app
+    SystemNavigator.pop();
+    return true;
+  }
+
   Widget _buildCodeInput(int index) {
     return Container(
       width: kIsWeb ? 60 : 50,
@@ -175,17 +233,11 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppColors.mainColor),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: BlocListener<VerificationBloc, VerificationState>(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        backgroundColor: AppColors.white,
+        body: BlocListener<VerificationBloc, VerificationState>(
         listener: (context, state) {
           if (state is VerificationSuccess) {
             MessageHelper.showSuccess(context, state.response.message);
@@ -196,6 +248,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
             print('[VerificationScreen] Platform: ${kIsWeb ? "Web" : "Mobile"}');
             print('[VerificationScreen] Refreshing user data...');
             print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+            // Clear pending verification state
+            EmailVerificationScreen.clearPendingVerificationState();
 
             // Refresh user data to get updated is_verified status
             context.read<UserBloc>().add(RefreshUserEvent());
@@ -360,6 +415,7 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
               ),
             );
           },
+        ),
         ),
       ),
     );

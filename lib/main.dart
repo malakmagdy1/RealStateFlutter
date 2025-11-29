@@ -39,6 +39,7 @@ import 'package:real/feature/auth/presentation/screen/changePasswordScreen.dart'
 import 'package:real/feature/auth/presentation/screen/editNameScreen.dart';
 import 'package:real/feature/auth/presentation/screen/editPhoneScreen.dart';
 import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
+import 'package:real/feature/auth/presentation/screen/email_verification_screen.dart';
 import 'package:real/feature/auth/presentation/screen/device_management_screen.dart';
 import 'package:real/feature/home/presentation/homeScreen.dart';
 import 'package:real/feature/onboarding/presentation/onboarding_screen.dart';
@@ -380,7 +381,11 @@ class _MyAppState extends State<MyApp> {
               CompanyDetailScreen.routeName: (context) {
                 final company = ModalRoute.of(context)!.settings.arguments as Company;
                 return CompanyDetailScreen(company: company);
-              }
+              },
+              EmailVerificationScreen.routeName: (context) {
+                final email = ModalRoute.of(context)!.settings.arguments as String;
+                return EmailVerificationScreen(email: email);
+              },
             },
           );
         },

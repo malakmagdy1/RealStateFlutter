@@ -5,6 +5,7 @@ import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/constant.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
+import 'package:real/feature/auth/presentation/screen/email_verification_screen.dart';
 import 'package:real/feature/home/presentation/CustomNav.dart';
 import 'package:real/feature/onboarding/presentation/onboarding_screen.dart';
 import 'package:real/core/services/version_service.dart';
@@ -78,6 +79,19 @@ class _SplashScreenState extends State<SplashScreen>
 
     final isLoggedIn = tokenValue.isNotEmpty;
     final shouldShowOnboarding = !kIsWeb && hasSeenOnboarding.isEmpty;
+
+    // Check for pending email verification
+    final pendingVerificationEmail = await EmailVerificationScreen.getPendingVerificationEmail();
+    if (pendingVerificationEmail != null && !kIsWeb) {
+      print('[SPLASH] Found pending verification for: $pendingVerificationEmail');
+      _hasNavigated = true;
+      Navigator.pushReplacementNamed(
+        context,
+        EmailVerificationScreen.routeName,
+        arguments: pendingVerificationEmail,
+      );
+      return;
+    }
 
     // ⚠️ CHECK FOR VERSION UPDATE - FORCE LOGOUT IF NEEDED
     if (isLoggedIn) {

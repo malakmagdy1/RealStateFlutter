@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -55,10 +56,24 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
 
+  // iOS Client ID from GoogleService-Info.plist
+  static const String _iosClientId = '832433207149-nj5vittkhvrv78dhh5rtjndv5n365rud.apps.googleusercontent.com';
+  // Web Client ID (also used as serverClientId for backend verification)
+  static const String _webClientId = '832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com';
+
+  static String? _getGoogleClientId() {
+    if (kIsWeb) return _webClientId;
+    try {
+      if (Platform.isIOS) return _iosClientId;
+    } catch (_) {}
+    return null; // Android uses google-services.json
+  }
+
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: kIsWeb
-        ? '832433207149-vlahshba4mbt380tbjg43muqo7l6s1o9.apps.googleusercontent.com' // Web Client ID
-        : null, // Mobile gets clientId from google-services.json (Android) / GoogleService-Info.plist (iOS)
+    clientId: _getGoogleClientId(),
+    // serverClientId is needed to get an ID token that the backend can verify
+    // It should be the Web Client ID since backend uses it for verification
+    serverClientId: _webClientId,
     scopes: ['email', 'profile', 'openid'],
   );
 
