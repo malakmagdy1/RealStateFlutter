@@ -71,10 +71,11 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
 
   final List<int> bedroomOptions = [1, 2, 3, 4, 5, 6];
 
+  // Finishing options - must match API values exactly
   final List<String> finishingOptions = [
     'Finished',
-    'Semi Finished',
-    'Not Finished',
+    'Semi-Finished',
+    'Core and Shell',
   ];
 
   final Map<String, String> sortOptions = {
@@ -729,9 +730,8 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                       String localizedFinishing = finishing;
                       switch (finishing.toLowerCase()) {
                         case 'finished': localizedFinishing = l10n.finished; break;
-                        case 'semi finished': localizedFinishing = l10n.semiFinished; break;
-                        case 'not finished': localizedFinishing = l10n.notFinished; break;
-                        case 'core & shell': localizedFinishing = l10n.coreShell; break;
+                        case 'semi-finished': localizedFinishing = l10n.semiFinished; break;
+                        case 'core and shell': localizedFinishing = l10n.coreShell; break;
                       }
                       return ChoiceChip(
                         label: Text(localizedFinishing),

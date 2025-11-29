@@ -227,23 +227,121 @@ class SearchFilter {
   }
 
   // Convert to query parameters for API
+  // API Reference: https://aqar.bdcbiz.com/api/search-and-filter
   Map<String, dynamic> toQueryParameters() {
     final Map<String, dynamic> params = {};
 
-    // Add search parameter if provided
+    // Search parameter
     if (search != null && search!.isNotEmpty) {
       params['search'] = search;
     }
-    // Add usage_type - prefer explicit usageType over propertyType
-    if (usageType != null && usageType!.isNotEmpty) {
-      params['usage_type'] = usageType;
-    } else if (propertyType != null && propertyType!.isNotEmpty) {
-      params['usage_type'] = propertyType;
+
+    // Property type - API expects 'property_type' with values: Villa, Apartment, Duplex, Penthouse, Townhouse, Studio
+    // Can be comma-separated for multiple types
+    if (propertyType != null && propertyType!.isNotEmpty) {
+      params['property_type'] = propertyType;
+    } else if (usageType != null && usageType!.isNotEmpty) {
+      params['property_type'] = usageType;
     }
-    // Add company - use 'company' parameter (company name) instead of 'company_id'
+
+    // Company filter - API expects 'company_id' for ID or 'company' for name
     if (companyId != null && companyId!.isNotEmpty) {
-      params['company'] = companyId;  // Backend expects 'company' parameter with company name
+      // Check if it's a numeric ID or a name
+      if (int.tryParse(companyId!) != null) {
+        params['company_id'] = int.parse(companyId!);
+      } else {
+        params['company'] = companyId;
+      }
     }
+
+    // Bedrooms - API expects 'bedrooms' (can be comma-separated for multiple)
+    if (bedrooms != null) {
+      params['bedrooms'] = bedrooms;
+    }
+
+    // Compound ID
+    if (compoundId != null && compoundId!.isNotEmpty) {
+      params['compound_id'] = compoundId;
+    }
+
+    // Price range
+    if (minPrice != null) {
+      params['min_price'] = minPrice!.toInt();
+    }
+    if (maxPrice != null) {
+      params['max_price'] = maxPrice!.toInt();
+    }
+
+    // Built-up area
+    if (minBuiltUpArea != null) {
+      params['min_built_up_area'] = minBuiltUpArea!.toInt();
+    }
+    if (maxBuiltUpArea != null) {
+      params['max_built_up_area'] = maxBuiltUpArea!.toInt();
+    }
+
+    // Location
+    if (location != null && location!.isNotEmpty) {
+      params['location'] = location;
+    }
+
+    // Features - API expects 'has_garden', 'has_roof' as boolean
+    if (hasGarden == true) {
+      params['has_garden'] = true;
+    }
+    if (hasRoof == true) {
+      params['has_roof'] = true;
+    }
+    if (hasClub == true) {
+      params['has_club'] = true;
+    }
+
+    // Delivery status - API expects 'delivery_status' with values: delivered, not_delivered, all
+    if (hasBeenDelivered != null) {
+      params['delivery_status'] = hasBeenDelivered == true ? 'delivered' : 'not_delivered';
+    }
+
+    // Finishing type - API expects 'finishing_type' with values: Finished, Semi-Finished, Core and Shell
+    if (finishing != null && finishing!.isNotEmpty) {
+      params['finishing_type'] = finishing;
+    }
+
+    // Availability
+    if (available != null) {
+      params['available'] = available;
+    }
+    if (isSold != null) {
+      params['is_sold'] = isSold;
+    }
+
+    // Active sale
+    if (hasActiveSale == true) {
+      params['has_active_sale'] = true;
+    }
+
+    // Payment duration - API expects 'payment_duration' with values: cash_only, 5, 7, 10
+    if (paymentPlanDuration != null) {
+      if (paymentPlanDuration == 0) {
+        params['payment_duration'] = 'cash_only';
+      } else {
+        params['payment_duration'] = paymentPlanDuration;
+      }
+    }
+
+    // Sorting - API expects 'sort_by' with values: newest, oldest, price_low_to_high, price_high_to_low
+    if (sortBy != null && sortBy!.isNotEmpty) {
+      params['sort_by'] = sortBy;
+    }
+
+    // Pagination
+    if (page != null) {
+      params['page'] = page;
+    }
+    if (limit != null) {
+      params['limit'] = limit;
+    }
+
+    // Additional parameters (less common)
     if (unitType != null && unitType!.isNotEmpty) {
       params['unit_type'] = unitType;
     }
@@ -256,26 +354,8 @@ class SearchFilter {
     if (stageNumber != null && stageNumber!.isNotEmpty) {
       params['stage_number'] = stageNumber;
     }
-    if (bedrooms != null) {
-      params['number_of_beds'] = bedrooms;
-    }
     if (floorNumber != null) {
       params['floor_number'] = floorNumber;
-    }
-    if (compoundId != null && compoundId!.isNotEmpty) {
-      params['compound_id'] = compoundId;
-    }
-    if (available != null) {
-      params['available'] = available;
-    }
-    if (isSold != null) {
-      params['is_sold'] = isSold;
-    }
-    if (minPrice != null) {
-      params['min_price'] = minPrice!.toInt();
-    }
-    if (maxPrice != null) {
-      params['max_price'] = maxPrice!.toInt();
     }
     if (minTotalPricing != null) {
       params['min_total_pricing'] = minTotalPricing!.toInt();
@@ -288,12 +368,6 @@ class SearchFilter {
     }
     if (maxArea != null) {
       params['max_area'] = maxArea!.toInt();
-    }
-    if (minBuiltUpArea != null) {
-      params['min_built_up_area'] = minBuiltUpArea!.toInt();
-    }
-    if (maxBuiltUpArea != null) {
-      params['max_built_up_area'] = maxBuiltUpArea!.toInt();
     }
     if (minLandArea != null) {
       params['min_land_area'] = minLandArea!.toInt();
@@ -334,47 +408,14 @@ class SearchFilter {
     if (hasGarage == true) {
       params['has_garage'] = true;
     }
-    if (hasActiveSale == true) {
-      params['has_active_sale'] = true;
-    }
-    if (location != null && location!.isNotEmpty) {
-      params['location'] = location;
-    }
-    if (finishing != null && finishing!.isNotEmpty) {
-      params['finishing'] = finishing;
-    }
     if (deliveredAtFrom != null && deliveredAtFrom!.isNotEmpty) {
-      params['planned_delivery_from'] = deliveredAtFrom;
+      params['delivered_at_from'] = deliveredAtFrom;
     }
     if (deliveredAtTo != null && deliveredAtTo!.isNotEmpty) {
-      params['planned_delivery_to'] = deliveredAtTo;
-    }
-    if (hasBeenDelivered != null) {
-      params['has_been_delivered'] = hasBeenDelivered;
-    }
-    if (hasClub == true) {
-      params['has_club'] = true;
-    }
-    if (hasRoof == true) {
-      params['has_roof'] = true;
-    }
-    if (hasGarden == true) {
-      params['has_garden'] = true;
-    }
-    if (sortBy != null && sortBy!.isNotEmpty) {
-      params['sort_by'] = sortBy;
-    }
-    if (page != null) {
-      params['page'] = page;
-    }
-    if (limit != null) {
-      params['limit'] = limit;
+      params['delivered_at_to'] = deliveredAtTo;
     }
 
-    // Payment plan filters
-    if (paymentPlanDuration != null) {
-      params['payment_plan_duration'] = paymentPlanDuration;
-    }
+    // Monthly payment range
     if (minMonthlyPayment != null) {
       params['min_monthly_payment'] = minMonthlyPayment!.toInt();
     }

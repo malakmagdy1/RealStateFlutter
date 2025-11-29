@@ -87,7 +87,8 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
   final List<String> propertyTypes = ['Villa', 'Apartment', 'Studio', 'Duplex', 'Penthouse'];
   final List<int> bedroomOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-  final List<String> finishingOptions = ['Finished', 'Semi-Finished', 'Core & Shell'];
+  // Finishing options - must match API values exactly
+  final List<String> finishingOptions = ['Finished', 'Semi-Finished', 'Core and Shell'];
 
   // Sort options - will be populated with localized values
   Map<String, String> get sortOptions {
