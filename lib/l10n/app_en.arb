@@ -766,5 +766,55 @@
     "placeholders": {
       "weeks": {"type": "int"}
     }
-  }
+  },
+
+  "loadingCompanies": "Loading companies...",
+  "loadingLocations": "Loading locations...",
+  "allCompanies": "All Companies",
+  "priceRangeMillionEGP": "Price Range (Million EGP)",
+  "min": "Min",
+  "max": "Max",
+
+  "villa": "Villa",
+  "apartment": "Apartment",
+  "duplex": "Duplex",
+  "studio": "Studio",
+  "penthouse": "Penthouse",
+  "townhouse": "Townhouse",
+  "chalet": "Chalet",
+  "twinHouse": "Twin House",
+
+  "bed": "Bed",
+  "bedsCount": "{count} Beds",
+  "@bedsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "finished": "Finished",
+  "semiFinished": "Semi Finished",
+  "notFinished": "Not Finished",
+  "coreShell": "Core & Shell",
+
+  "yearsCount": "{count} Years",
+  "@yearsCount": {
+    "placeholders": {
+      "count": {"type": "int"}
+    }
+  },
+
+  "monthlyPaymentEGP": "Monthly Payment (EGP)",
+  "deliveredFromDate": "Delivered From Date",
+  "deliveredToDate": "Delivered To Date",
+  "selectDeliveredFromDate": "Select delivered from date",
+  "selectDeliveredToDate": "Select delivered to date",
+  "deliveryStatus": "Delivery Status",
+  "selectDeliveryStatus": "Select delivery status",
+  "onlyDelivered": "Only Delivered",
+  "notDelivered": "Not Delivered",
+
+  "hasClubAmenityFilter": "Has Club",
+  "hasRoofAmenityFilter": "Has Roof",
+  "hasGardenAmenityFilter": "Has Garden"
 }

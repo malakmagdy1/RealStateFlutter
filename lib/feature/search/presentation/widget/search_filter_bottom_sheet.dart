@@ -388,6 +388,9 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final isArabic = l10n.localeName == 'ar';
+
     return Container(
       height: MediaQuery.of(context).size.height * 0.85,
       decoration: BoxDecoration(
@@ -419,10 +422,10 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   icon: Icon(Icons.close),
                   onPressed: () => Navigator.pop(context),
                 ),
-                CustomText20('Filters', bold: true, color: AppColors.black),
+                CustomText20(l10n.filters, bold: true, color: AppColors.black),
                 TextButton(
                   onPressed: _clearAllFilters,
-                  child: CustomText16('Clear All', color: Colors.red),
+                  child: CustomText16(l10n.clearAll, color: Colors.red),
                 ),
               ],
             ),
@@ -437,7 +440,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Company Selector with Search
-                  _buildSectionTitle('Company'),
+                  _buildSectionTitle(l10n.company, context),
                   SizedBox(height: 8),
                   _isLoadingCompanies
                       ? Container(
@@ -452,18 +455,17 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                               children: [
                                 CustomLoadingDots(size: 30),
                                 SizedBox(width: 12),
-                                Text('Loading companies...'),
+                                Text(l10n.loadingCompanies),
                               ],
                             ),
                           ),
                         )
                       : Builder(
                           builder: (context) {
-                            final isArabic = Localizations.localeOf(context).languageCode == 'ar';
                             final selectedCompany = _selectedCompanyId != null
                                 ? _availableCompanies.where((c) => c.id == _selectedCompanyId).firstOrNull
                                 : null;
-                            final displayName = selectedCompany?.getLocalizedName(isArabic) ?? 'All Companies';
+                            final displayName = selectedCompany?.getLocalizedName(isArabic) ?? l10n.allCompanies;
 
                             return InkWell(
                               onTap: () => _showCompanySearchDialog(),
@@ -512,7 +514,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   SizedBox(height: 24),
 
                   // Location Selector with Search
-                  _buildSectionTitle('Location'),
+                  _buildSectionTitle(l10n.location, context),
                   SizedBox(height: 8),
                   _isLoadingLocations
                       ? Container(
@@ -527,18 +529,17 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                               children: [
                                 CustomLoadingDots(size: 30),
                                 SizedBox(width: 12),
-                                Text('Loading locations...'),
+                                Text(l10n.loadingLocations),
                               ],
                             ),
                           ),
                         )
                       : Builder(
                           builder: (context) {
-                            final isArabic = Localizations.localeOf(context).languageCode == 'ar';
                             final selectedLoc = _selectedLocation != null
                                 ? _availableLocations.where((l) => l.location == _selectedLocation).firstOrNull
                                 : null;
-                            final displayName = selectedLoc?.getLocalizedName(isArabic) ?? (isArabic ? 'جميع المواقع' : 'All Locations');
+                            final displayName = selectedLoc?.getLocalizedName(isArabic) ?? l10n.allLocations;
 
                             return InkWell(
                               onTap: () => _showLocationSearchDialog(),
@@ -587,7 +588,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   SizedBox(height: 24),
 
                   // Price Range
-                  _buildSectionTitle('Price Range (Million EGP)'),
+                  _buildSectionTitle(l10n.priceRangeMillionEGP, context),
                   SizedBox(height: 8),
                   Row(
                     children: [
@@ -596,8 +597,8 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                           controller: _minPriceController,
                           keyboardType: TextInputType.numberWithOptions(decimal: true),
                           decoration: InputDecoration(
-                            hintText: 'Min (e.g., 3)',
-                            labelText: 'Min',
+                            hintText: isArabic ? 'مثال: 3' : 'e.g., 3',
+                            labelText: l10n.min,
                             suffixText: 'M',
                             prefixIcon: Icon(Icons.attach_money),
                             border: OutlineInputBorder(
@@ -616,8 +617,8 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                           controller: _maxPriceController,
                           keyboardType: TextInputType.numberWithOptions(decimal: true),
                           decoration: InputDecoration(
-                            hintText: 'Max (e.g., 5)',
-                            labelText: 'Max',
+                            hintText: isArabic ? 'مثال: 5' : 'e.g., 5',
+                            labelText: l10n.max,
                             suffixText: 'M',
                             prefixIcon: Icon(Icons.attach_money),
                             border: OutlineInputBorder(
@@ -636,15 +637,27 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   SizedBox(height: 24),
 
                   // Property Type
-                  _buildSectionTitle('Property Type'),
+                  _buildSectionTitle(l10n.propertyType, context),
                   SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: propertyTypes.map((type) {
                       final isSelected = _selectedPropertyType == type;
+                      // Localize property type
+                      String localizedType = type;
+                      switch (type.toLowerCase()) {
+                        case 'villa': localizedType = l10n.villa; break;
+                        case 'apartment': localizedType = l10n.apartment; break;
+                        case 'duplex': localizedType = l10n.duplex; break;
+                        case 'studio': localizedType = l10n.studio; break;
+                        case 'penthouse': localizedType = l10n.penthouse; break;
+                        case 'townhouse': localizedType = l10n.townhouse; break;
+                        case 'chalet': localizedType = l10n.chalet; break;
+                        case 'twin house': localizedType = l10n.twinHouse; break;
+                      }
                       return ChoiceChip(
-                        label: Text(type),
+                        label: Text(localizedType),
                         selected: isSelected,
                         onSelected: (selected) {
                           setState(() {
@@ -669,15 +682,18 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   SizedBox(height: 24),
 
                   // Number of Bedrooms
-                  _buildSectionTitle('Number of Bedrooms'),
+                  _buildSectionTitle(l10n.numberOfBedrooms, context),
                   SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: bedroomOptions.map((beds) {
                       final isSelected = _selectedBedrooms == beds;
+                      final bedsLabel = beds == 1
+                          ? '1 ${l10n.bed}'
+                          : '$beds ${isArabic ? 'غرف' : 'Beds'}';
                       return ChoiceChip(
-                        label: Text('$beds Bed${beds > 1 ? 's' : ''}'),
+                        label: Text(bedsLabel),
                         selected: isSelected,
                         onSelected: (selected) {
                           setState(() {
@@ -702,15 +718,23 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   SizedBox(height: 24),
 
                   // Finishing
-                  _buildSectionTitle('Finishing'),
+                  _buildSectionTitle(l10n.finishing, context),
                   SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: finishingOptions.map((finishing) {
                       final isSelected = _selectedFinishing == finishing;
+                      // Localize finishing type
+                      String localizedFinishing = finishing;
+                      switch (finishing.toLowerCase()) {
+                        case 'finished': localizedFinishing = l10n.finished; break;
+                        case 'semi finished': localizedFinishing = l10n.semiFinished; break;
+                        case 'not finished': localizedFinishing = l10n.notFinished; break;
+                        case 'core & shell': localizedFinishing = l10n.coreShell; break;
+                      }
                       return ChoiceChip(
-                        label: Text(finishing),
+                        label: Text(localizedFinishing),
                         selected: isSelected,
                         onSelected: (selected) {
                           setState(() {
@@ -735,7 +759,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   SizedBox(height: 24),
 
                   // Payment Duration
-                  _buildSectionTitle('Payment Duration'),
+                  _buildSectionTitle(l10n.paymentDuration, context),
                   SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -743,7 +767,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     children: [
                       // "All" option
                       ChoiceChip(
-                        label: Text('All'),
+                        label: Text(l10n.all),
                         selected: _selectedPaymentDuration == null,
                         onSelected: (selected) {
                           setState(() {
@@ -765,7 +789,9 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                       // Duration options
                       ...paymentDurationOptions.map((duration) {
                         final isSelected = _selectedPaymentDuration == duration;
-                        final label = duration == 0 ? 'Cash' : '$duration Years';
+                        final label = duration == 0
+                            ? l10n.cash
+                            : '$duration ${l10n.years}';
                         return ChoiceChip(
                           label: Text(label),
                           selected: isSelected,
@@ -793,7 +819,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   SizedBox(height: 24),
 
                   // Monthly Payment Range
-                  _buildSectionTitle('Monthly Payment (EGP)'),
+                  _buildSectionTitle(l10n.monthlyPaymentEGP, context),
                   SizedBox(height: 8),
                   Row(
                     children: [
@@ -802,9 +828,9 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                           controller: _minMonthlyPaymentController,
                           keyboardType: TextInputType.numberWithOptions(decimal: true),
                           decoration: InputDecoration(
-                            hintText: 'Min (e.g., 10000)',
-                            labelText: 'Min',
-                            suffixText: 'EGP',
+                            hintText: isArabic ? 'مثال: 10000' : 'e.g., 10000',
+                            labelText: l10n.min,
+                            suffixText: l10n.egp,
                             prefixIcon: Icon(Icons.payments_outlined),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -822,9 +848,9 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                           controller: _maxMonthlyPaymentController,
                           keyboardType: TextInputType.numberWithOptions(decimal: true),
                           decoration: InputDecoration(
-                            hintText: 'Max (e.g., 100000)',
-                            labelText: 'Max',
-                            suffixText: 'EGP',
+                            hintText: isArabic ? 'مثال: 100000' : 'e.g., 100000',
+                            labelText: l10n.max,
+                            suffixText: l10n.egp,
                             prefixIcon: Icon(Icons.payments_outlined),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -842,7 +868,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   SizedBox(height: 24),
 
                   // Delivered From Date
-                  _buildSectionTitle('Delivered From Date'),
+                  _buildSectionTitle(l10n.deliveredFromDate, context),
                   SizedBox(height: 8),
                   InkWell(
                     onTap: () async {
@@ -888,7 +914,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                             child: Text(
                               _deliveredAtFrom != null
                                   ? DateFormat('yyyy-MM-dd').format(_deliveredAtFrom!)
-                                  : 'Select delivered from date',
+                                  : l10n.selectDeliveredFromDate,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: _deliveredAtFrom != null
@@ -917,7 +943,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   SizedBox(height: 24),
 
                   // Delivered To Date
-                  _buildSectionTitle('Delivered To Date'),
+                  _buildSectionTitle(l10n.deliveredToDate, context),
                   SizedBox(height: 8),
                   InkWell(
                     onTap: () async {
@@ -963,7 +989,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                             child: Text(
                               _deliveredAtTo != null
                                   ? DateFormat('yyyy-MM-dd').format(_deliveredAtTo!)
-                                  : 'Select delivered to date',
+                                  : l10n.selectDeliveredToDate,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: _deliveredAtTo != null
@@ -992,7 +1018,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   SizedBox(height: 24),
 
                   // Has Been Delivered
-                  _buildSectionTitle('Delivery Status'),
+                  _buildSectionTitle(l10n.deliveryStatus, context),
                   SizedBox(height: 8),
                   Container(
                     decoration: BoxDecoration(
@@ -1002,7 +1028,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     child: DropdownButtonFormField<bool?>(
                       value: _hasBeenDelivered,
                       decoration: InputDecoration(
-                        hintText: 'Select delivery status',
+                        hintText: l10n.selectDeliveryStatus,
                         prefixIcon: Icon(Icons.local_shipping_outlined),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(
@@ -1015,17 +1041,17 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                         DropdownMenuItem<bool?>(
                           value: null,
                           child: Text(
-                            'All',
+                            l10n.all,
                             style: TextStyle(color: Colors.grey),
                           ),
                         ),
                         DropdownMenuItem<bool?>(
                           value: true,
-                          child: Text('Only Delivered'),
+                          child: Text(l10n.onlyDelivered),
                         ),
                         DropdownMenuItem<bool?>(
                           value: false,
-                          child: Text('Not Delivered'),
+                          child: Text(l10n.notDelivered),
                         ),
                       ],
                       onChanged: (value) {
@@ -1040,10 +1066,10 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                   SizedBox(height: 24),
 
                   // Amenities
-                  _buildSectionTitle('Amenities'),
+                  _buildSectionTitle(l10n.amenities, context),
                   SizedBox(height: 8),
                   CheckboxListTile(
-                    title: Text('Has Club'),
+                    title: Text(l10n.hasClubAmenityFilter),
                     value: _hasClub,
                     onChanged: (value) {
                       setState(() {
@@ -1055,7 +1081,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     contentPadding: EdgeInsets.zero,
                   ),
                   CheckboxListTile(
-                    title: Text('Has Roof'),
+                    title: Text(l10n.hasRoofAmenityFilter),
                     value: _hasRoof,
                     onChanged: (value) {
                       setState(() {
@@ -1067,7 +1093,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                     contentPadding: EdgeInsets.zero,
                   ),
                   CheckboxListTile(
-                    title: Text('Has Garden'),
+                    title: Text(l10n.hasGardenAmenityFilter),
                     value: _hasGarden,
                     onChanged: (value) {
                       setState(() {
@@ -1099,7 +1125,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
                         elevation: 2,
                       ),
                       child: Text(
-                        'Apply Filters',
+                        l10n.applyFilters,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -1118,7 +1144,7 @@ class _SearchFilterBottomSheetState extends State<SearchFilterBottomSheet> {
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(String title, [BuildContext? ctx]) {
     return CustomText18(title, bold: true, color: AppColors.black);
   }
 

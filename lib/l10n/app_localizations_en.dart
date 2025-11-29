@@ -1579,4 +1579,107 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tryAdjustingYourSearch => 'Try adjusting your search';
+
+  @override
+  String get loadingCompanies => 'Loading companies...';
+
+  @override
+  String get loadingLocations => 'Loading locations...';
+
+  @override
+  String get allCompanies => 'All Companies';
+
+  @override
+  String get priceRangeMillionEGP => 'Price Range (Million EGP)';
+
+  @override
+  String get min => 'Min';
+
+  @override
+  String get max => 'Max';
+
+  @override
+  String get villa => 'Villa';
+
+  @override
+  String get apartment => 'Apartment';
+
+  @override
+  String get duplex => 'Duplex';
+
+  @override
+  String get studio => 'Studio';
+
+  @override
+  String get penthouse => 'Penthouse';
+
+  @override
+  String get townhouse => 'Townhouse';
+
+  @override
+  String get chalet => 'Chalet';
+
+  @override
+  String get twinHouse => 'Twin House';
+
+  @override
+  String get bed => 'Bed';
+
+  @override
+  String bedsCount(int count) {
+    return '$count Beds';
+  }
+
+  @override
+  String get finished => 'Finished';
+
+  @override
+  String get semiFinished => 'Semi Finished';
+
+  @override
+  String get notFinished => 'Not Finished';
+
+  @override
+  String get coreShell => 'Core & Shell';
+
+  @override
+  String yearsCount(int count) {
+    return '$count Years';
+  }
+
+  @override
+  String get monthlyPaymentEGP => 'Monthly Payment (EGP)';
+
+  @override
+  String get deliveredFromDate => 'Delivered From Date';
+
+  @override
+  String get deliveredToDate => 'Delivered To Date';
+
+  @override
+  String get selectDeliveredFromDate => 'Select delivered from date';
+
+  @override
+  String get selectDeliveredToDate => 'Select delivered to date';
+
+  @override
+  String get deliveryStatus => 'Delivery Status';
+
+  @override
+  String get selectDeliveryStatus => 'Select delivery status';
+
+  @override
+  String get onlyDelivered => 'Only Delivered';
+
+  @override
+  String get notDelivered => 'Not Delivered';
+
+  @override
+  String get hasClubAmenityFilter => 'Has Club';
+
+  @override
+  String get hasRoofAmenityFilter => 'Has Roof';
+
+  @override
+  String get hasGardenAmenityFilter => 'Has Garden';
 }

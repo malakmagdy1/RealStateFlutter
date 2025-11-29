@@ -3091,6 +3091,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try adjusting your search'**
   String get tryAdjustingYourSearch;
+
+  /// No description provided for @loadingCompanies.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading companies...'**
+  String get loadingCompanies;
+
+  /// No description provided for @loadingLocations.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading locations...'**
+  String get loadingLocations;
+
+  /// No description provided for @allCompanies.
+  ///
+  /// In en, this message translates to:
+  /// **'All Companies'**
+  String get allCompanies;
+
+  /// No description provided for @priceRangeMillionEGP.
+  ///
+  /// In en, this message translates to:
+  /// **'Price Range (Million EGP)'**
+  String get priceRangeMillionEGP;
+
+  /// No description provided for @min.
+  ///
+  /// In en, this message translates to:
+  /// **'Min'**
+  String get min;
+
+  /// No description provided for @max.
+  ///
+  /// In en, this message translates to:
+  /// **'Max'**
+  String get max;
+
+  /// No description provided for @villa.
+  ///
+  /// In en, this message translates to:
+  /// **'Villa'**
+  String get villa;
+
+  /// No description provided for @apartment.
+  ///
+  /// In en, this message translates to:
+  /// **'Apartment'**
+  String get apartment;
+
+  /// No description provided for @duplex.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplex'**
+  String get duplex;
+
+  /// No description provided for @studio.
+  ///
+  /// In en, this message translates to:
+  /// **'Studio'**
+  String get studio;
+
+  /// No description provided for @penthouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Penthouse'**
+  String get penthouse;
+
+  /// No description provided for @townhouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Townhouse'**
+  String get townhouse;
+
+  /// No description provided for @chalet.
+  ///
+  /// In en, this message translates to:
+  /// **'Chalet'**
+  String get chalet;
+
+  /// No description provided for @twinHouse.
+  ///
+  /// In en, this message translates to:
+  /// **'Twin House'**
+  String get twinHouse;
+
+  /// No description provided for @bed.
+  ///
+  /// In en, this message translates to:
+  /// **'Bed'**
+  String get bed;
+
+  /// No description provided for @bedsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} Beds'**
+  String bedsCount(int count);
+
+  /// No description provided for @finished.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get finished;
+
+  /// No description provided for @semiFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Semi Finished'**
+  String get semiFinished;
+
+  /// No description provided for @notFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Finished'**
+  String get notFinished;
+
+  /// No description provided for @coreShell.
+  ///
+  /// In en, this message translates to:
+  /// **'Core & Shell'**
+  String get coreShell;
+
+  /// No description provided for @yearsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} Years'**
+  String yearsCount(int count);
+
+  /// No description provided for @monthlyPaymentEGP.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly Payment (EGP)'**
+  String get monthlyPaymentEGP;
+
+  /// No description provided for @deliveredFromDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered From Date'**
+  String get deliveredFromDate;
+
+  /// No description provided for @deliveredToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivered To Date'**
+  String get deliveredToDate;
+
+  /// No description provided for @selectDeliveredFromDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Select delivered from date'**
+  String get selectDeliveredFromDate;
+
+  /// No description provided for @selectDeliveredToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Select delivered to date'**
+  String get selectDeliveredToDate;
+
+  /// No description provided for @deliveryStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Delivery Status'**
+  String get deliveryStatus;
+
+  /// No description provided for @selectDeliveryStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Select delivery status'**
+  String get selectDeliveryStatus;
+
+  /// No description provided for @onlyDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Only Delivered'**
+  String get onlyDelivered;
+
+  /// No description provided for @notDelivered.
+  ///
+  /// In en, this message translates to:
+  /// **'Not Delivered'**
+  String get notDelivered;
+
+  /// No description provided for @hasClubAmenityFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Has Club'**
+  String get hasClubAmenityFilter;
+
+  /// No description provided for @hasRoofAmenityFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Has Roof'**
+  String get hasRoofAmenityFilter;
+
+  /// No description provided for @hasGardenAmenityFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'Has Garden'**
+  String get hasGardenAmenityFilter;
 }
 
 class _AppLocalizationsDelegate

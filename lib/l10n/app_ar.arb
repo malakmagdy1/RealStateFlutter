@@ -580,5 +580,45 @@
   "minutesAgo": "منذ {minutes} دقيقة",
   "hoursAgo": "منذ {hours} ساعة",
   "daysAgo": "منذ {days} يوم",
-  "weeksAgo": "منذ {weeks} أسبوع"
+  "weeksAgo": "منذ {weeks} أسبوع",
+
+  "loadingCompanies": "جاري تحميل الشركات...",
+  "loadingLocations": "جاري تحميل المواقع...",
+  "allCompanies": "جميع الشركات",
+  "priceRangeMillionEGP": "نطاق السعر (مليون جنيه)",
+  "min": "الحد الأدنى",
+  "max": "الحد الأقصى",
+
+  "villa": "فيلا",
+  "apartment": "شقة",
+  "duplex": "دوبلكس",
+  "studio": "استوديو",
+  "penthouse": "بنتهاوس",
+  "townhouse": "تاون هاوس",
+  "chalet": "شاليه",
+  "twinHouse": "توين هاوس",
+
+  "bed": "غرفة",
+  "bedsCount": "{count} غرف",
+
+  "finished": "تشطيب كامل",
+  "semiFinished": "نصف تشطيب",
+  "notFinished": "بدون تشطيب",
+  "coreShell": "على الطوب الأحمر",
+
+  "yearsCount": "{count} سنوات",
+
+  "monthlyPaymentEGP": "القسط الشهري (جنيه)",
+  "deliveredFromDate": "تاريخ التسليم من",
+  "deliveredToDate": "تاريخ التسليم إلى",
+  "selectDeliveredFromDate": "اختر تاريخ التسليم من",
+  "selectDeliveredToDate": "اختر تاريخ التسليم إلى",
+  "deliveryStatus": "حالة التسليم",
+  "selectDeliveryStatus": "اختر حالة التسليم",
+  "onlyDelivered": "المسلمة فقط",
+  "notDelivered": "غير مسلمة",
+
+  "hasClubAmenityFilter": "يحتوي على نادي",
+  "hasRoofAmenityFilter": "يحتوي على سطح",
+  "hasGardenAmenityFilter": "يحتوي على حديقة"
 }

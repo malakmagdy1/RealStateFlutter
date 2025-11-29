@@ -1574,4 +1574,107 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get tryAdjustingYourSearch => 'حاول تعديل بحثك';
+
+  @override
+  String get loadingCompanies => 'جاري تحميل الشركات...';
+
+  @override
+  String get loadingLocations => 'جاري تحميل المواقع...';
+
+  @override
+  String get allCompanies => 'جميع الشركات';
+
+  @override
+  String get priceRangeMillionEGP => 'نطاق السعر (مليون جنيه)';
+
+  @override
+  String get min => 'الحد الأدنى';
+
+  @override
+  String get max => 'الحد الأقصى';
+
+  @override
+  String get villa => 'فيلا';
+
+  @override
+  String get apartment => 'شقة';
+
+  @override
+  String get duplex => 'دوبلكس';
+
+  @override
+  String get studio => 'استوديو';
+
+  @override
+  String get penthouse => 'بنتهاوس';
+
+  @override
+  String get townhouse => 'تاون هاوس';
+
+  @override
+  String get chalet => 'شاليه';
+
+  @override
+  String get twinHouse => 'توين هاوس';
+
+  @override
+  String get bed => 'غرفة';
+
+  @override
+  String bedsCount(int count) {
+    return '$count غرف';
+  }
+
+  @override
+  String get finished => 'تشطيب كامل';
+
+  @override
+  String get semiFinished => 'نصف تشطيب';
+
+  @override
+  String get notFinished => 'بدون تشطيب';
+
+  @override
+  String get coreShell => 'على الطوب الأحمر';
+
+  @override
+  String yearsCount(int count) {
+    return '$count سنوات';
+  }
+
+  @override
+  String get monthlyPaymentEGP => 'القسط الشهري (جنيه)';
+
+  @override
+  String get deliveredFromDate => 'تاريخ التسليم من';
+
+  @override
+  String get deliveredToDate => 'تاريخ التسليم إلى';
+
+  @override
+  String get selectDeliveredFromDate => 'اختر تاريخ التسليم من';
+
+  @override
+  String get selectDeliveredToDate => 'اختر تاريخ التسليم إلى';
+
+  @override
+  String get deliveryStatus => 'حالة التسليم';
+
+  @override
+  String get selectDeliveryStatus => 'اختر حالة التسليم';
+
+  @override
+  String get onlyDelivered => 'المسلمة فقط';
+
+  @override
+  String get notDelivered => 'غير مسلمة';
+
+  @override
+  String get hasClubAmenityFilter => 'يحتوي على نادي';
+
+  @override
+  String get hasRoofAmenityFilter => 'يحتوي على سطح';
+
+  @override
+  String get hasGardenAmenityFilter => 'يحتوي على حديقة';
 }
