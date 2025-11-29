@@ -9,6 +9,21 @@ class ShareService {
   // Base URL for share pages (fallback)
   static const String shareBaseUrl = 'https://aqar.bdcbiz.com/share';
 
+  /// Expand category names to individual field names for API
+  List<String> _expandCategoriesToFields(List<String> categories) {
+    final List<String> fields = [];
+    for (final category in categories) {
+      if (filterCategories.containsKey(category)) {
+        // It's a category, expand to individual fields
+        fields.addAll(filterCategories[category]!);
+      } else {
+        // It's already a field name, keep it
+        fields.add(category);
+      }
+    }
+    return fields;
+  }
+
   /// Get share link from API with full parameter support
   ///
   /// Parameters:
@@ -48,27 +63,42 @@ class ShareService {
       }
 
       // Add global hidden fields (applies to all levels)
+      // Expand category names to individual field names
       if (hiddenFields != null && hiddenFields.isNotEmpty) {
-        queryParams['hide'] = hiddenFields.join(',');
+        final expandedFields = _expandCategoriesToFields(hiddenFields);
+        queryParams['hide'] = expandedFields.join(',');
       }
 
-      // Add level-specific hidden fields
+      // Add level-specific hidden fields (expand categories to fields)
       if (hiddenCompanyFields != null && hiddenCompanyFields.isNotEmpty) {
-        queryParams['hide_company'] = hiddenCompanyFields.join(',');
+        final expandedFields = _expandCategoriesToFields(hiddenCompanyFields);
+        queryParams['hide_company'] = expandedFields.join(',');
       }
 
       if (hiddenCompoundFields != null && hiddenCompoundFields.isNotEmpty) {
-        queryParams['hide_compound'] = hiddenCompoundFields.join(',');
+        final expandedFields = _expandCategoriesToFields(hiddenCompoundFields);
+        queryParams['hide_compound'] = expandedFields.join(',');
       }
 
       if (hiddenUnitFields != null && hiddenUnitFields.isNotEmpty) {
-        queryParams['hide_unit'] = hiddenUnitFields.join(',');
+        final expandedFields = _expandCategoriesToFields(hiddenUnitFields);
+        queryParams['hide_unit'] = expandedFields.join(',');
       }
 
       // Build URI with query parameters
       final uri = Uri.parse(apiBaseUrl).replace(queryParameters: queryParams);
 
-      print('[ShareService] Calling API: $uri');
+      print('[ShareService] ========================================');
+      print('[ShareService] Calling Share Link API');
+      print('[ShareService] Type: $type, ID: $id');
+      if (compoundIds != null) print('[ShareService] Compounds: $compoundIds');
+      if (unitIds != null) print('[ShareService] Units: $unitIds');
+      if (queryParams.containsKey('hide')) print('[ShareService] Hide (global): ${queryParams['hide']}');
+      if (queryParams.containsKey('hide_company')) print('[ShareService] Hide Company: ${queryParams['hide_company']}');
+      if (queryParams.containsKey('hide_compound')) print('[ShareService] Hide Compound: ${queryParams['hide_compound']}');
+      if (queryParams.containsKey('hide_unit')) print('[ShareService] Hide Unit: ${queryParams['hide_unit']}');
+      print('[ShareService] Full URL: $uri');
+      print('[ShareService] ========================================');
 
       final response = await http.get(
         uri,
@@ -139,22 +169,26 @@ class ShareService {
       queryParts.add('units=${unitIds.join(',')}');
     }
 
-    // Add global filter
+    // Add global hide filter (expand categories to individual field names)
     if (hiddenFields != null && hiddenFields.isNotEmpty) {
-      queryParts.add('filter=${hiddenFields.join(',')}');
+      final expandedFields = _expandCategoriesToFields(hiddenFields);
+      queryParts.add('hide=${expandedFields.join(',')}');
     }
 
-    // Add level-specific filters (web view uses filter_company, filter_compound, filter_unit)
+    // Add level-specific hide filters (expand categories to individual field names)
     if (hiddenCompanyFields != null && hiddenCompanyFields.isNotEmpty) {
-      queryParts.add('filter_company=${hiddenCompanyFields.join(',')}');
+      final expandedFields = _expandCategoriesToFields(hiddenCompanyFields);
+      queryParts.add('hide_company=${expandedFields.join(',')}');
     }
 
     if (hiddenCompoundFields != null && hiddenCompoundFields.isNotEmpty) {
-      queryParts.add('filter_compound=${hiddenCompoundFields.join(',')}');
+      final expandedFields = _expandCategoriesToFields(hiddenCompoundFields);
+      queryParts.add('hide_compound=${expandedFields.join(',')}');
     }
 
     if (hiddenUnitFields != null && hiddenUnitFields.isNotEmpty) {
-      queryParts.add('filter_unit=${hiddenUnitFields.join(',')}');
+      final expandedFields = _expandCategoriesToFields(hiddenUnitFields);
+      queryParts.add('hide_unit=${expandedFields.join(',')}');
     }
 
     // Append query string
