@@ -21,6 +21,10 @@ HOMEBREW_NO_AUTO_UPDATE=1 # disable homebrew's automatic updates.
 brew install cocoapods
 
 # Install CocoaPods dependencies.
-cd ios && pod install # run `pod install` in the `ios` directory.
+cd ios && pod install
+
+# Go back to repo root and build Flutter iOS release
+cd $CI_PRIMARY_REPOSITORY_PATH
+flutter build ios --release --no-codesign
 
 exit 0
