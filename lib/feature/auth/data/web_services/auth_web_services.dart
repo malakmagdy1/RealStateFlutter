@@ -218,6 +218,63 @@ class AuthWebServices {
     }
   }
 
+  Future<LoginResponse> appleLogin({
+    required String appleId,
+    required String email,
+    required String name,
+    required String identityToken,
+    required String authorizationCode,
+  }) async {
+    try {
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('Apple Login - Sending to backend:');
+      print('Apple ID: $appleId');
+      print('Email: $email');
+      print('Name: $name');
+      print('Identity Token length: ${identityToken.length}');
+
+      // Use /login endpoint with login_method: apple
+      Response response = await dio.post('/login', data: {
+        'email': email,
+        'password': appleId, // Use Apple ID as password for Apple sign-in
+        'login_method': 'apple',
+        'apple_id': appleId,
+        'name': name,
+        'identity_token': identityToken,
+        'authorization_code': authorizationCode,
+      });
+
+      print('Apple Login Response: ${response.data.toString()}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      if (response.data is Map<String, dynamic>) {
+        return LoginResponse.fromJson(response.data);
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('Apple Login DioException: ${e.toString()}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('Apple Login Error: ${e.toString()}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      throw Exception('Apple login failed: $e');
+    }
+  }
+
   Future<VerifyEmailResponse> verifyEmailCode(VerifyEmailRequest request) async {
     try {
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');

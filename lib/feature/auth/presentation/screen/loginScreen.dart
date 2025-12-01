@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/constant.dart';
 import 'package:real/core/utils/text_style.dart';
@@ -308,23 +309,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _user = null);
   }
 
-  // Apple Sign-In Handler - TODO: Implement with sign_in_with_apple package
+  // Apple Sign-In Handler
   Future<void> _handleAppleSignIn() async {
-    // TODO: Implement Apple Sign-In
-    // 1. Add sign_in_with_apple package to pubspec.yaml
-    // 2. Configure iOS capabilities and entitlements
-    // 3. Set up Apple Developer account with Sign in with Apple
-    // 4. Implement the sign-in flow similar to Google
-
-    MessageHelper.showMessage(
-      context: context,
-      message: 'Apple Sign-In coming soon!',
-      isSuccess: false,
-    );
-
-    // Example implementation (uncomment when ready):
-    /*
     try {
+      // Check if Apple Sign In is available (iOS 13+, macOS 10.15+)
+      final isAvailable = await SignInWithApple.isAvailable();
+      if (!isAvailable) {
+        MessageHelper.showError(
+          context,
+          'Apple Sign-In is not available on this device',
+        );
+        return;
+      }
+
       final credential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
@@ -332,22 +329,212 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         ],
       );
 
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('APPLE SIGN-IN SUCCESS!');
+      print('User ID: ${credential.userIdentifier}');
+      print('Email: ${credential.email}');
+      print('Name: ${credential.givenName} ${credential.familyName}');
+      print('Sending to backend for authentication...');
+
+      // Apple only returns email and name on first sign-in
+      // On subsequent sign-ins, these may be null
+      final String email = credential.email ?? '';
+      final String name = '${credential.givenName ?? ''} ${credential.familyName ?? ''}'.trim();
+      final String identityToken = credential.identityToken ?? '';
+      final String authorizationCode = credential.authorizationCode;
+      final String appleId = credential.userIdentifier ?? '';
+
+      if (appleId.isEmpty) {
+        throw Exception('Failed to get Apple user identifier');
+      }
+
+      if (identityToken.isEmpty) {
+        throw Exception('Failed to get Apple identity token');
+      }
+
+      print('Identity Token length: ${identityToken.length}');
+      print('Authorization Code length: ${authorizationCode.length}');
+
       // Send to backend
       final repository = context.read<LoginBloc>().repository;
       final response = await repository.appleLogin(
-        appleId: credential.userIdentifier ?? '',
-        email: credential.email ?? '',
-        name: '${credential.givenName ?? ''} ${credential.familyName ?? ''}'.trim(),
-        identityToken: credential.identityToken ?? '',
-        authorizationCode: credential.authorizationCode,
+        appleId: appleId,
+        email: email,
+        name: name,
+        identityToken: identityToken,
+        authorizationCode: authorizationCode,
       );
 
-      // Handle response similar to Google Sign-In
-      // ...
+      // Security: Validate token before saving
+      final receivedToken = response.token ?? '';
+      if (!SecureStorage.isValidTokenFormat(receivedToken)) {
+        print('[SECURITY] Invalid token format from Apple login');
+        throw Exception('Invalid authentication response');
+      }
+
+      // Security: Save token securely (encrypted)
+      await SecureStorage.saveToken(receivedToken);
+
+      // Also save to old storage for backward compatibility
+      await CasheNetwork.insertToCashe(
+        key: "token",
+        value: receivedToken,
+      );
+
+      // Save user_id
+      if (response.user.id != null) {
+        await SecureStorage.saveUserId(response.user.id!);
+        await CasheNetwork.insertToCashe(
+          key: "user_id",
+          value: response.user.id.toString(),
+        );
+        // IMPORTANT: Update global userId variable
+        userId = response.user.id.toString();
+        print('User ID SAVED: ${response.user.id}');
+        print('Global userId variable updated: $userId');
+      }
+
+      // IMPORTANT: Update global token variable
+      token = receivedToken;
+
+      print('Backend Token SAVED securely (encrypted)');
+      print('Token length: ${receivedToken.length}');
+      print('Global token variable updated');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      // SECURITY CHECKS: Only allow buyers who are verified and not banned
+      final user = response.user;
+
+      // Check 1: Only buyers allowed
+      if (user.role.toLowerCase() != 'buyer') {
+        MessageHelper.showError(context, 'Access denied. Only buyers can access this app.');
+        await SecureStorage.clearAll();
+        await CasheNetwork.deletecasheItem(key: "token");
+        await CasheNetwork.deletecasheItem(key: "user_id");
+        token = null;
+        userId = null;
+        return;
+      }
+
+      // Check 2: User must be verified
+      if (!user.isVerified) {
+        MessageHelper.showMessage(
+          context: context,
+          message: 'Please verify your email address to continue.',
+          isSuccess: false,
+        );
+        await SecureStorage.clearAll();
+        await CasheNetwork.deletecasheItem(key: "token");
+        await CasheNetwork.deletecasheItem(key: "user_id");
+        token = null;
+        userId = null;
+        return;
+      }
+
+      // Check 3: User must not be banned
+      if (user.isBanned) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.block, color: Colors.red, size: 28),
+                SizedBox(width: 8),
+                Text('Account Suspended'),
+              ],
+            ),
+            content: Text(
+              'Your account has been suspended. Please contact support for assistance.',
+              style: TextStyle(fontSize: 15),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: Text('OK'),
+              ),
+            ],
+          ),
+        );
+        await SecureStorage.clearAll();
+        await CasheNetwork.deletecasheItem(key: "token");
+        await CasheNetwork.deletecasheItem(key: "user_id");
+        token = null;
+        userId = null;
+        return;
+      }
+
+      // All checks passed - proceed with login
+      // Refresh user data with new token
+      context.read<UserBloc>().add(RefreshUserEvent());
+
+      // Check subscription status after Apple login
+      _checkSubscriptionStatus(context);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('APPLE SIGN-IN AUTHORIZATION ERROR: ${e.code} - ${e.message}');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      // Don't show error if user cancelled
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return;
+      }
+
+      MessageHelper.showError(context, 'Apple Sign-In failed: ${e.message}');
     } catch (e) {
-      MessageHelper.showError(context, 'Apple Sign-In failed: $e');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+      print('APPLE SIGN-IN ERROR: $e');
+      print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
+
+      // Show error dialog
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.red, size: 28),
+              SizedBox(width: 12),
+              Expanded(child: Text('Apple Sign-In Failed')),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Error Details:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red[200]!),
+                ),
+                child: SelectableText(
+                  '$e',
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 13,
+                    color: Colors.red[900],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('OK', style: TextStyle(fontSize: 16)),
+            ),
+          ],
+        ),
+      );
     }
-    */
   }
 
   // Check subscription status after login

@@ -63,6 +63,28 @@ class AuthRepository {
     }
   }
 
+  Future<LoginResponse> appleLogin({
+    required String appleId,
+    required String email,
+    required String name,
+    required String identityToken,
+    required String authorizationCode,
+  }) async {
+    try {
+      final response = await _authWebServices.appleLogin(
+        appleId: appleId,
+        email: email,
+        name: name,
+        identityToken: identityToken,
+        authorizationCode: authorizationCode,
+      );
+      return response;
+    } catch (e) {
+      print('Repository Apple Login Error: ${e.toString()}');
+      rethrow;
+    }
+  }
+
   Future<VerifyEmailResponse> verifyEmailCode(VerifyEmailRequest request) async {
     try {
       final response = await _authWebServices.verifyEmailCode(request);
