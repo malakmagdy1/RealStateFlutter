@@ -1262,6 +1262,32 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   ),
                 ),
                 SizedBox(height: 12),
+                // Show Apple Sign-In button only on iOS/macOS
+                if (!kIsWeb && (Platform.isIOS || Platform.isMacOS))
+                  SizedBox(
+                    width: 280,
+                    child: OutlinedButton.icon(
+                      onPressed: _handleAppleSignIn,
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        side: BorderSide(color: Colors.grey[400]!),
+                        backgroundColor: Colors.black,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: Icon(
+                        Icons.apple,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                      label: CustomText16(
+                        'Continue with Apple',
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                SizedBox(height: 12),
                         ],
                       ),
                     ),
