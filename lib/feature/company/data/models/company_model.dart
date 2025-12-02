@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:real/core/utils/constant.dart';
+
 import 'sales_model.dart';
 
 class CompanyCompound extends Equatable {
@@ -156,7 +157,6 @@ class Company extends Equatable {
     // Store logo URL as-is from API
     String? logo = json['logo']?.toString();
 
-    // Parse sales list
     List<Sales> salesList = [];
     if (json['sales'] != null && json['sales'] is List) {
       salesList = (json['sales'] as List)
