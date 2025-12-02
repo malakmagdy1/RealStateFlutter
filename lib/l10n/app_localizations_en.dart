@@ -1399,7 +1399,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get alreadyInComparison => 'Already in comparison list';
 
   @override
+  String get removedFromComparison => 'Removed from comparison list';
+
+  @override
   String get undo => 'Undo';
+
+  @override
+  String get goToAI => 'Go to AI';
+
+  @override
+  String get noResultsMatchingCriteria => 'No results matching your criteria';
 
   @override
   String get comparisonList => 'Comparison List';
@@ -1682,4 +1691,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get hasGardenAmenityFilter => 'Has Garden';
+
+  @override
+  String get deviceManagement => 'Device Management';
+
+  @override
+  String devicesUsed(int current, int max) {
+    return '$current / $max devices used';
+  }
+
+  @override
+  String get noDevicesFound => 'No devices found';
+
+  @override
+  String get minPriceHint => 'Min';
+
+  @override
+  String get maxPriceHint => 'Max';
 }

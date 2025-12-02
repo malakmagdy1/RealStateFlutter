@@ -69,6 +69,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _availableDisplayCount = 10;
   final ScrollController _recommendedScrollController = ScrollController();
   final ScrollController _availableScrollController = ScrollController();
+  final ScrollController _newArrivalsScrollController = ScrollController();
+  final ScrollController _updated24HoursScrollController = ScrollController();
+  final ScrollController _recentlyUpdatedScrollController = ScrollController();
   bool _isLoadingMoreRecommended = false;
   bool _isLoadingMoreAvailable = false;
   List<String> _searchHistory = [];
@@ -102,6 +105,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   bool _recentlyUpdatedHasMore = false;
   bool _isLoadingMoreRecentlyUpdated = false;
 
+  // Pagination state for Updated 24 Hours
+  int _updated24HoursPage = 1;
+  int _updated24HoursTotal = 0;
+  bool _updated24HoursHasMore = false;
+  bool _isLoadingMoreUpdated24Hours = false;
+
   // Pagination limit
   static const int _pageLimit = 20;
 
@@ -127,6 +136,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Add scroll listeners for pagination
     _recommendedScrollController.addListener(_onRecommendedScroll);
     _availableScrollController.addListener(_onAvailableScroll);
+
+    // Add scroll listeners for horizontal lists (auto-load infinite scroll)
+    _newArrivalsScrollController.addListener(_onNewArrivalsScroll);
+    _updated24HoursScrollController.addListener(_onUpdated24HoursScroll);
+    _recentlyUpdatedScrollController.addListener(_onRecentlyUpdatedScroll);
 
     // Setup connectivity listener for auto-retry
     _setupConnectivityListener();
@@ -245,6 +259,74 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     }
   }
 
+  // Debounce timestamps for infinite scroll
+  DateTime? _lastNewArrivalsLoadTime;
+  DateTime? _lastUpdated24HoursLoadTime;
+  DateTime? _lastRecentlyUpdatedLoadTime;
+
+  // Auto-load more New Arrivals when scrolled to 80%
+  void _onNewArrivalsScroll() {
+    if (_isLoadingMoreNewArrivals || !_newArrivalsHasMore) return;
+
+    // Debounce - prevent triggering more than once per second
+    final now = DateTime.now();
+    if (_lastNewArrivalsLoadTime != null &&
+        now.difference(_lastNewArrivalsLoadTime!).inMilliseconds < 1000) {
+      return;
+    }
+
+    // Check if scrolled near the end (80% of max scroll extent)
+    if (_newArrivalsScrollController.hasClients &&
+        _newArrivalsScrollController.position.maxScrollExtent > 0 &&
+        _newArrivalsScrollController.position.pixels >=
+            _newArrivalsScrollController.position.maxScrollExtent * 0.8) {
+      _lastNewArrivalsLoadTime = now;
+      _fetchNewArrivals(loadMore: true);
+    }
+  }
+
+  // Auto-load more Updated 24 Hours when scrolled to 80%
+  void _onUpdated24HoursScroll() {
+    if (_isLoadingMoreUpdated24Hours || !_updated24HoursHasMore) return;
+
+    // Debounce - prevent triggering more than once per second
+    final now = DateTime.now();
+    if (_lastUpdated24HoursLoadTime != null &&
+        now.difference(_lastUpdated24HoursLoadTime!).inMilliseconds < 1000) {
+      return;
+    }
+
+    // Check if scrolled near the end (80% of max scroll extent)
+    if (_updated24HoursScrollController.hasClients &&
+        _updated24HoursScrollController.position.maxScrollExtent > 0 &&
+        _updated24HoursScrollController.position.pixels >=
+            _updated24HoursScrollController.position.maxScrollExtent * 0.8) {
+      _lastUpdated24HoursLoadTime = now;
+      _fetchUpdated24Hours(loadMore: true);
+    }
+  }
+
+  // Auto-load more Recently Updated when scrolled to 80%
+  void _onRecentlyUpdatedScroll() {
+    if (_isLoadingMoreRecentlyUpdated || !_recentlyUpdatedHasMore) return;
+
+    // Debounce - prevent triggering more than once per second
+    final now = DateTime.now();
+    if (_lastRecentlyUpdatedLoadTime != null &&
+        now.difference(_lastRecentlyUpdatedLoadTime!).inMilliseconds < 1000) {
+      return;
+    }
+
+    // Check if scrolled near the end (80% of max scroll extent)
+    if (_recentlyUpdatedScrollController.hasClients &&
+        _recentlyUpdatedScrollController.position.maxScrollExtent > 0 &&
+        _recentlyUpdatedScrollController.position.pixels >=
+            _recentlyUpdatedScrollController.position.maxScrollExtent * 0.8) {
+      _lastRecentlyUpdatedLoadTime = now;
+      _fetchRecentlyUpdated(loadMore: true);
+    }
+  }
+
   Future<void> _loadSearchHistory() async {
     final history = await _searchHistoryService.getSearchHistory();
     setState(() {
@@ -260,8 +342,18 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _searchFocusNode.dispose();
     _searchBloc.close();
     _debounceTimer?.cancel();
+    // Remove scroll listeners
+    _recommendedScrollController.removeListener(_onRecommendedScroll);
+    _availableScrollController.removeListener(_onAvailableScroll);
+    _newArrivalsScrollController.removeListener(_onNewArrivalsScroll);
+    _updated24HoursScrollController.removeListener(_onUpdated24HoursScroll);
+    _recentlyUpdatedScrollController.removeListener(_onRecentlyUpdatedScroll);
+    // Dispose scroll controllers
     _recommendedScrollController.dispose();
     _availableScrollController.dispose();
+    _newArrivalsScrollController.dispose();
+    _updated24HoursScrollController.dispose();
+    _recentlyUpdatedScrollController.dispose();
     super.dispose();
   }
 
@@ -1297,16 +1389,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       }
     }
   }
-  // Fetch updated units (last 24 hours)
-  Future<void> _fetchUpdated24Hours() async {
-    if (_isLoadingUpdated24Hours) return;
+  // Fetch updated units (last 24 hours) with pagination
+  Future<void> _fetchUpdated24Hours({bool loadMore = false}) async {
+    if (_isLoadingUpdated24Hours || _isLoadingMoreUpdated24Hours) return;
+    if (loadMore && !_updated24HoursHasMore) return;
 
     setState(() {
-      _isLoadingUpdated24Hours = true;
+      if (loadMore) {
+        _isLoadingMoreUpdated24Hours = true;
+      } else {
+        _isLoadingUpdated24Hours = true;
+        _updated24HoursPage = 1;
+      }
     });
 
     try {
-      final response = await _webServices.getUpdatedUnitsLast24Hours(limit: 100);
+      final page = loadMore ? _updated24HoursPage + 1 : 1;
+      final response = await _webServices.getUpdatedUnitsLast24Hours(limit: _pageLimit, page: page);
 
       if (response['success'] == true && response['data'] != null) {
         // The data is nested in activities object
@@ -1339,10 +1438,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           }
         }
 
+        // Get pagination info from response
+        final total = response['total'] ?? 0;
+        final pagination = response['pagination'];
+        final hasMore = pagination?['has_more'] ?? false;
+
         if (mounted) {
           setState(() {
-            _updated24Hours = units;
+            if (loadMore) {
+              _updated24Hours.addAll(units);
+              _updated24HoursPage = page;
+            } else {
+              _updated24Hours = units;
+            }
+            _updated24HoursTotal = total;
+            _updated24HoursHasMore = hasMore;
             _isLoadingUpdated24Hours = false;
+            _isLoadingMoreUpdated24Hours = false;
           });
         }
       }
@@ -1351,6 +1463,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       if (mounted) {
         setState(() {
           _isLoadingUpdated24Hours = false;
+          _isLoadingMoreUpdated24Hours = false;
         });
       }
     }
@@ -1422,68 +1535,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 : SizedBox(
                     height: 280,
                     child: ListView.builder(
+                      controller: _newArrivalsScrollController,
                       scrollDirection: Axis.horizontal,
                       physics: BouncingScrollPhysics(),
                       clipBehavior: Clip.none,
                       padding: EdgeInsets.symmetric(horizontal: 8),
-                      itemCount: _newArrivals.length + (_newArrivalsHasMore ? 1 : 0),
+                      itemCount: _newArrivals.length + (_isLoadingMoreNewArrivals ? 1 : 0),
                       itemBuilder: (context, index) {
-                        // Load More button at the end
+                        // Show loading indicator at the end when loading more
                         if (index == _newArrivals.length) {
                           return Container(
-                            width: 120,
+                            width: 80,
                             margin: EdgeInsets.only(right: 8),
-                            child: Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: InkWell(
-                                onTap: _isLoadingMoreNewArrivals
-                                    ? null
-                                    : () => _fetchNewArrivals(loadMore: true),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Center(
-                                  child: _isLoadingMoreNewArrivals
-                                      ? CircularProgressIndicator(
-                                          color: AppColors.mainColor,
-                                          strokeWidth: 2,
-                                        )
-                                      : Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Container(
-                                              padding: EdgeInsets.all(12),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.mainColor.withOpacity(0.1),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Icon(
-                                                Icons.add,
-                                                color: AppColors.mainColor,
-                                                size: 28,
-                                              ),
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              l10n.localeName == 'ar' ? 'المزيد' : 'Load More',
-                                              style: TextStyle(
-                                                color: AppColors.mainColor,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            SizedBox(height: 4),
-                                            Text(
-                                              '${_newArrivalsTotal - _newArrivals.length}',
-                                              style: TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 11,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                ),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.mainColor,
+                                strokeWidth: 2,
                               ),
                             ),
                           );
@@ -1574,68 +1641,22 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 : SizedBox(
                     height: 280,
                     child: ListView.builder(
+                      controller: _recentlyUpdatedScrollController,
                       scrollDirection: Axis.horizontal,
                       physics: BouncingScrollPhysics(),
                       clipBehavior: Clip.none,
                       padding: EdgeInsets.symmetric(horizontal: 8),
-                      itemCount: _recentlyUpdated.length + (_recentlyUpdatedHasMore ? 1 : 0),
+                      itemCount: _recentlyUpdated.length + (_isLoadingMoreRecentlyUpdated ? 1 : 0),
                       itemBuilder: (context, index) {
-                        // Load More button at the end
+                        // Show loading indicator at the end when loading more
                         if (index == _recentlyUpdated.length) {
                           return Container(
-                            width: 120,
+                            width: 80,
                             margin: EdgeInsets.only(right: 8),
-                            child: Card(
-                              elevation: 2,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: InkWell(
-                                onTap: _isLoadingMoreRecentlyUpdated
-                                    ? null
-                                    : () => _fetchRecentlyUpdated(loadMore: true),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Center(
-                                  child: _isLoadingMoreRecentlyUpdated
-                                      ? CircularProgressIndicator(
-                                          color: Colors.orange,
-                                          strokeWidth: 2,
-                                        )
-                                      : Column(
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Container(
-                                              padding: EdgeInsets.all(12),
-                                              decoration: BoxDecoration(
-                                                color: Colors.orange.withOpacity(0.1),
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: Icon(
-                                                Icons.add,
-                                                color: Colors.orange,
-                                                size: 28,
-                                              ),
-                                            ),
-                                            SizedBox(height: 8),
-                                            Text(
-                                              l10n.localeName == 'ar' ? 'المزيد' : 'Load More',
-                                              style: TextStyle(
-                                                color: Colors.orange,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                            SizedBox(height: 4),
-                                            Text(
-                                              '${_recentlyUpdatedTotal - _recentlyUpdated.length}',
-                                              style: TextStyle(
-                                                color: Colors.grey,
-                                                fontSize: 11,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                ),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.orange,
+                                strokeWidth: 2,
                               ),
                             ),
                           );
@@ -1772,7 +1793,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${_updated24Hours.length}',
+                  '$_updated24HoursTotal',
                   style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.bold,
@@ -1813,12 +1834,26 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 : SizedBox(
                     height: 280,
                     child: ListView.builder(
+                      controller: _updated24HoursScrollController,
                       scrollDirection: Axis.horizontal,
                       clipBehavior: Clip.none,
                       physics: BouncingScrollPhysics(),
                       padding: EdgeInsets.symmetric(horizontal: 8),
-                      itemCount: _updated24Hours.length,
+                      itemCount: _updated24Hours.length + (_isLoadingMoreUpdated24Hours ? 1 : 0),
                       itemBuilder: (context, index) {
+                        // Show loading indicator at the end when loading more
+                        if (index == _updated24Hours.length) {
+                          return Container(
+                            width: 80,
+                            margin: EdgeInsets.only(right: 8),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.teal,
+                                strokeWidth: 2,
+                              ),
+                            ),
+                          );
+                        }
                         return Container(
                           width: 190,
                           margin: EdgeInsets.only(

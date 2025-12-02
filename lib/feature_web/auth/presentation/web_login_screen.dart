@@ -1176,6 +1176,8 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isMobile = screenWidth < 900;
+    // Minimum width to prevent content squishing
+    const double minContentWidth = 400;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -1377,7 +1379,12 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
             MessageHelper.showError(context, state.message);
           }
         },
-        child: Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Show horizontal scroll if screen is too narrow
+            final needsScroll = isMobile && constraints.maxWidth < minContentWidth;
+
+            Widget rowContent = Row(
           children: [
             // Left side - Background Image (hidden on mobile)
             if (!isMobile)
@@ -1753,34 +1760,6 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
                               ),
                             ),
                             SizedBox(height: 12),
-
-                            // Apple Sign In Button
-                            OutlinedButton.icon(
-                              onPressed: _handleAppleSignIn,
-                              style: OutlinedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 14),
-                                backgroundColor: Colors.black,
-                                side: BorderSide(color: Colors.black),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              icon: Icon(
-                                Icons.apple,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                              label: Text(
-                                'Continue with Apple',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 32),
-
                             // Sign Up Link
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -1818,6 +1797,22 @@ class _WebLoginScreenState extends State<WebLoginScreen> {
               ),
             ),
           ],
+        );
+
+            // Wrap in horizontal scroll if needed
+            if (needsScroll) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: minContentWidth,
+                  height: constraints.maxHeight,
+                  child: rowContent,
+                ),
+              );
+            }
+
+            return rowContent;
+          },
         ),
       ),
     );

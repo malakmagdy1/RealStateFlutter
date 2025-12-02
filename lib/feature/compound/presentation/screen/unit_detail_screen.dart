@@ -200,6 +200,22 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     }
   }
 
+  /// Format area value - rounds to nearest integer or 1 decimal place
+  String _formatArea(String? areaStr) {
+    if (areaStr == null || areaStr.isEmpty) return '-';
+    try {
+      final area = double.parse(areaStr);
+      // If it's a whole number, show without decimals
+      if (area == area.roundToDouble()) {
+        return area.toInt().toString();
+      }
+      // Otherwise show with 1 decimal place
+      return area.toStringAsFixed(1);
+    } catch (e) {
+      return areaStr;
+    }
+  }
+
   String _calculatePricePerSqm() {
     final unit = _currentUnit ?? widget.unit;
     try {
@@ -843,7 +859,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
         children: [
           _buildStatItem(
             unit.area != '0' && unit.area.isNotEmpty
-                ? unit.area : '-',
+                ? _formatArea(unit.area) : '-',
             l10n.sqm,
           ),
           Container(width: 1, height: 30, color: AppColors.mainColor.withOpacity(0.3)),
@@ -1023,14 +1039,14 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           _buildSpecRow(l10n.deliveryDate, unit.deliveryDate != null && unit.deliveryDate!.isNotEmpty
             ? _formatDate(unit.deliveryDate!) : 'N/A'),
           _buildSpecRow(l10n.builtUpArea, unit.builtUpArea != null
-            ? '${unit.builtUpArea} ${l10n.sqm}'
-            : (unit.area != '0' ? '${unit.area} ${l10n.sqm}' : 'N/A')),
-          _buildSpecRow(l10n.totalArea, unit.area != '0' ? '${unit.area} ${l10n.sqm}' : 'N/A'),
+            ? '${_formatArea(unit.builtUpArea)} ${l10n.sqm}'
+            : (unit.area != '0' ? '${_formatArea(unit.area)} ${l10n.sqm}' : 'N/A')),
+          _buildSpecRow(l10n.totalArea, unit.area != '0' ? '${_formatArea(unit.area)} ${l10n.sqm}' : 'N/A'),
           _buildSpecRow(l10n.landArea, unit.landArea != null
-            ? '${unit.landArea} ${l10n.sqm}'
-            : (unit.gardenArea != null && unit.gardenArea != '0' ? '${unit.gardenArea} ${l10n.sqm}' : 'N/A')),
-          _buildSpecRow(l10n.gardenArea, unit.gardenArea != null && unit.gardenArea != '0' ? '${unit.gardenArea} ${l10n.sqm}' : 'N/A'),
-          _buildSpecRow(l10n.roofArea, unit.roofArea != null && unit.roofArea != '0' ? '${unit.roofArea} ${l10n.sqm}' : 'N/A'),
+            ? '${_formatArea(unit.landArea)} ${l10n.sqm}'
+            : (unit.gardenArea != null && unit.gardenArea != '0' ? '${_formatArea(unit.gardenArea)} ${l10n.sqm}' : 'N/A')),
+          _buildSpecRow(l10n.gardenArea, unit.gardenArea != null && unit.gardenArea != '0' ? '${_formatArea(unit.gardenArea)} ${l10n.sqm}' : 'N/A'),
+          _buildSpecRow(l10n.roofArea, unit.roofArea != null && unit.roofArea != '0' ? '${_formatArea(unit.roofArea)} ${l10n.sqm}' : 'N/A'),
           _buildSpecRow(l10n.floor, unit.floor != '0' ? unit.floor : 'N/A'),
           _buildSpecRow(l10n.building, unit.buildingName ?? 'N/A'),
           _buildSpecRow(l10n.company, unit.companyName ?? 'N/A'),

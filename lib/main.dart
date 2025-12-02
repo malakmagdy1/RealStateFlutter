@@ -385,7 +385,7 @@ class _MyAppState extends State<MyApp> {
               ChangePasswordScreen.routeName: (context) => ChangePasswordScreen(),
               EditNameScreen.routeName: (context) => EditNameScreen(),
               EditPhoneScreen.routeName: (context) => EditPhoneScreen(),
-              HomeScreen.routeName: (context) => HomeScreen(),
+              //HomeScreen.routeName: (context) => HomeScreen(),
               FavoriteCompoundsScreen.routeName: (context) => FavoriteCompoundsScreen(),
               NotificationsScreen.routeName: (context) => NotificationsScreen(),
               SubscriptionPlansScreen.routeName: (context) => SubscriptionPlansScreen(),

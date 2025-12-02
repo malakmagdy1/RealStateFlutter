@@ -113,26 +113,6 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                       },
                     ),
                   ),
-                  SizedBox(width: 12),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.black.withOpacity(0.1),
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      icon: Icon(Icons.bookmark_border, color: AppColors.black),
-                      onPressed: () {
-                        // TODO: Implement bookmark functionality
-                      },
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -154,11 +134,11 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                     ),
                   ],
                 ),
-                child: widget.company.logo != null && widget.company.logo!.isNotEmpty
+                child: widget.company.fullLogoUrl != null && widget.company.fullLogoUrl!.isNotEmpty
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: RobustNetworkImage(
-                          imageUrl: widget.company.logo!,
+                          imageUrl: widget.company.fullLogoUrl!,
                           fit: BoxFit.contain,
                           errorBuilder: (context, url) => Icon(
                             Icons.business,

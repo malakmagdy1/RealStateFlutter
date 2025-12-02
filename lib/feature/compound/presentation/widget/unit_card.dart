@@ -343,12 +343,12 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                           // Unit Name/Number with Company Logo
                           Row(
                             children: [
-                              if (widget.unit.companyLogo != null && widget.unit.companyLogo!.isNotEmpty)
+                              if (widget.unit.fullCompanyLogoUrl != null && widget.unit.fullCompanyLogoUrl!.isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.only(right: 4),
                                   child: CircleAvatar(
                                     radius: 8,
-                                    backgroundImage: NetworkImage(widget.unit.companyLogo!),
+                                    backgroundImage: NetworkImage(widget.unit.fullCompanyLogoUrl!),
                                     backgroundColor: Colors.grey[200],
                                   ),
                                 ),
@@ -417,7 +417,7 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
                           SizedBox(height: 2),
                           Row(
                             children: [
-                              _detailChip(Icons.square_foot, widget.unit.area.isNotEmpty && widget.unit.area != '0' ? '${widget.unit.area}m²' : 'N/A'),
+                              _detailChip(Icons.square_foot, widget.unit.area.isNotEmpty && widget.unit.area != '0' ? '${_formatArea(widget.unit.area)}m²' : 'N/A'),
                               SizedBox(width: 2),
                               _buildStatusChip(context),
                             ],
@@ -605,6 +605,22 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
     }
   }
 
+  /// Format area value - rounds to nearest integer or 1 decimal place
+  String _formatArea(String? areaStr) {
+    if (areaStr == null || areaStr.isEmpty) return 'N/A';
+    try {
+      final area = double.parse(areaStr);
+      // If it's a whole number, show without decimals
+      if (area == area.roundToDouble()) {
+        return area.toInt().toString();
+      }
+      // Otherwise show with 1 decimal place
+      return area.toStringAsFixed(1);
+    } catch (e) {
+      return areaStr;
+    }
+  }
+
   Widget _buildStatusChip(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final statusLower = widget.unit.status.toLowerCase();
@@ -751,45 +767,120 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
       final added = comparisonService.addItem(comparisonItem);
 
       if (added) {
-        // Show success message
+        // Show success message with Go to AI button
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
                 Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 12),
+                SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     l10n.addedToComparison,
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ),
+                // Go to AI Chat button
+                GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const UnifiedAIChatScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.smart_toy, color: Colors.white, size: 16),
+                        SizedBox(width: 4),
+                        Text(
+                          l10n.goToAI,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
+            duration: Duration(seconds: 5),
+            action: SnackBarAction(
+              label: l10n.undo,
+              textColor: Colors.white,
+              onPressed: () {
+                comparisonService.removeItem(comparisonItem);
+              },
+            ),
           ),
         );
       } else {
-        // Show error (list is full)
+        // Show error (list is full) with Go to AI button
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
                 Icon(Icons.info_outline, color: Colors.white),
-                SizedBox(width: 12),
+                SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     l10n.comparisonListFull,
                     style: TextStyle(fontSize: 14),
                   ),
                 ),
+                // Go to AI Chat button even when full
+                GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const UnifiedAIChatScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.smart_toy, color: Colors.white, size: 16),
+                        SizedBox(width: 4),
+                        Text(
+                          l10n.goToAI,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
             backgroundColor: Colors.orange,
             behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 2),
+            duration: Duration(seconds: 5),
           ),
         );
       }

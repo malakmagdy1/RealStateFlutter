@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
@@ -109,7 +110,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
             appBar: AppBar(
               backgroundColor: Colors.white,
               elevation: 0,
-              automaticallyImplyLeading: false,
+              automaticallyImplyLeading: true,
               title: Text(
                 l10n.loading,
                 style: TextStyle(
@@ -130,7 +131,7 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
             appBar: AppBar(
               backgroundColor: Colors.white,
               elevation: 0,
-              automaticallyImplyLeading: false,
+              automaticallyImplyLeading: true,
               title: Text(
                 l10n.error,
                 style: TextStyle(
@@ -222,8 +223,25 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
       _loadSalespeople(actualCompoundData['project'] ?? '');
     }
 
+    final isArabic = l10n.localeName == 'ar';
+    final compoundName = isArabic
+        ? (actualCompoundData['project_ar'] ?? actualCompoundData['project'] ?? '')
+        : (actualCompoundData['project'] ?? '');
+
     return Scaffold(
       backgroundColor: Color(0xFFF8F9FA),
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 1,
+        automaticallyImplyLeading: true,
+        title: Text(
+          compoundName,
+          style: TextStyle(
+            color: AppColors.mainColor,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       body: _buildHomeTab(actualCompoundData, l10n),
     );
   }

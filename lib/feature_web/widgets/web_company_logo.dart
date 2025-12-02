@@ -63,7 +63,7 @@ class _WebCompanyLogoState extends State<WebCompanyLogo>
   @override
   Widget build(BuildContext context) {
     final bool hasLogo =
-        widget.company.logo != null && widget.company.logo!.isNotEmpty;
+        widget.company.fullLogoUrl != null && widget.company.fullLogoUrl!.isNotEmpty;
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
@@ -107,7 +107,7 @@ class _WebCompanyLogoState extends State<WebCompanyLogo>
                             radius: 35,
                             backgroundColor: AppColors.mainColor.withOpacity(0.1),
                             backgroundImage: hasLogo
-                                ? NetworkImage(widget.company.logo!)
+                                ? NetworkImage(widget.company.fullLogoUrl!)
                                 : null,
                             child: !hasLogo
                                 ? CustomText16(

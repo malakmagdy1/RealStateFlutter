@@ -15,6 +15,8 @@ const messaging = firebase.messaging();
 
 // Store recently shown notification IDs to prevent duplicates
 const shownNotificationIds = new Set();
+// Store content hashes to prevent language duplicates (EN + AR same notification)
+const shownContentHashes = new Set();
 
 // Use IndexedDB for storing notifications (service workers can't use localStorage)
 const DB_NAME = 'notifications_db';
@@ -98,20 +100,39 @@ messaging.onBackgroundMessage(async function(payload) {
   // Generate unique notification ID
   const notificationId = payload.messageId || payload.data?.notification_id || Date.now().toString();
 
-  // Check if we already showed this notification (prevent duplicates)
+  // Check if we already showed this notification (prevent duplicates by ID)
   if (shownNotificationIds.has(notificationId)) {
-    console.log('⚠️ Duplicate notification detected, skipping:', notificationId);
+    console.log('⚠️ Duplicate notification detected (same ID), skipping:', notificationId);
     return Promise.resolve(); // Skip duplicate
   }
 
-  // Add to shown set
+  // Also check for content duplicates (same notification in different language)
+  // This prevents showing both EN and AR versions of the same notification
+  const data = payload.data || {};
+  const contentHash = `${data.type || ''}_${data.unit_id || data.compound_id || data.company_id || ''}_${Math.floor(Date.now() / 60000)}`; // Group by minute
+
+  if (shownContentHashes.has(contentHash) && contentHash && contentHash !== '__') {
+    console.log('⚠️ Duplicate notification detected (same content, different language), skipping');
+    console.log('   Content hash:', contentHash);
+    return Promise.resolve(); // Skip duplicate
+  }
+
+  // Add to shown sets
   shownNotificationIds.add(notificationId);
+  if (contentHash && contentHash !== '__') {
+    shownContentHashes.add(contentHash);
+  }
 
   // Clean up old IDs (keep only last 100)
   if (shownNotificationIds.size > 100) {
     const idsArray = Array.from(shownNotificationIds);
     shownNotificationIds.clear();
     idsArray.slice(-50).forEach(id => shownNotificationIds.add(id));
+  }
+  if (shownContentHashes.size > 100) {
+    const hashesArray = Array.from(shownContentHashes);
+    shownContentHashes.clear();
+    hashesArray.slice(-50).forEach(hash => shownContentHashes.add(hash));
   }
 
   // Create notification object

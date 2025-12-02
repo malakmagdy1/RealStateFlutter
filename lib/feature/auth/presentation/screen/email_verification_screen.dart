@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/utils/message_helper.dart';
@@ -11,7 +12,6 @@ import 'package:real/feature/auth/presentation/bloc/user_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/user_event.dart';
 import 'package:real/core/widget/button/authButton.dart';
 import 'package:real/feature/home/presentation/CustomNav.dart';
-import 'package:real/feature_web/navigation/web_main_screen.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
@@ -257,9 +257,9 @@ class _EmailVerificationScreenState extends State<EmailVerificationScreen>
 
             // Navigate to home screen after successful verification
             // User is already logged in (token saved during registration)
-            // Navigate to web main screen if on web, otherwise mobile nav
+            // Use go_router for web, Navigator for mobile
             if (kIsWeb) {
-              Navigator.pushReplacementNamed(context, WebMainScreen.routeName);
+              context.go('/');
             } else {
               Navigator.pushReplacementNamed(context, CustomNav.routeName);
             }

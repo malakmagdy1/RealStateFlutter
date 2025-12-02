@@ -158,9 +158,11 @@ class _WebForgotPasswordScreenState extends State<WebForgotPasswordScreen> {
 
         _showSnackBar(response.message, Colors.green);
 
-        // Navigate back to login
-        Future.delayed(const Duration(seconds: 2), () {
-          context.pop();
+        // Navigate to login screen
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            context.go('/login');
+          }
         });
       }
     } catch (e) {

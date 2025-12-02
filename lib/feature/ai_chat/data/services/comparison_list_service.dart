@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/comparison_item.dart';
 
 /// 🛒 Global Comparison List Service
@@ -9,13 +11,49 @@ class ComparisonListService extends ChangeNotifier {
   // Singleton pattern
   static final ComparisonListService _instance = ComparisonListService._internal();
   factory ComparisonListService() => _instance;
-  ComparisonListService._internal();
+  ComparisonListService._internal() {
+    _loadFromStorage(); // Load saved items on initialization
+  }
+
+  static const String _storageKey = 'comparison_list_items';
 
   // The comparison list (max 4 items)
   final List<ComparisonItem> _items = [];
 
   // Stream for reactive updates
   final _comparisonStreamController = BehaviorSubject<List<ComparisonItem>>.seeded([]);
+
+  /// Load items from local storage
+  Future<void> _loadFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_storageKey);
+      if (jsonString != null && jsonString.isNotEmpty) {
+        final List<dynamic> jsonList = json.decode(jsonString);
+        _items.clear();
+        for (var jsonItem in jsonList) {
+          _items.add(ComparisonItem.fromJson(jsonItem));
+        }
+        _comparisonStreamController.add(List.from(_items));
+        notifyListeners();
+        print('[COMPARISON LIST] 📂 Loaded ${_items.length} items from storage');
+      }
+    } catch (e) {
+      print('[COMPARISON LIST] ⚠️ Error loading from storage: $e');
+    }
+  }
+
+  /// Save items to local storage
+  Future<void> _saveToStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = _items.map((item) => item.toJson()).toList();
+      await prefs.setString(_storageKey, json.encode(jsonList));
+      print('[COMPARISON LIST] 💾 Saved ${_items.length} items to storage');
+    } catch (e) {
+      print('[COMPARISON LIST] ⚠️ Error saving to storage: $e');
+    }
+  }
 
   /// Get stream of comparison items
   Stream<List<ComparisonItem>> get comparisonStream => _comparisonStreamController.stream;
@@ -47,6 +85,7 @@ class ComparisonListService extends ChangeNotifier {
     _items.add(item);
     print('[COMPARISON LIST] ✅ Added: ${item.name} (${item.type}) - Total: ${_items.length}');
     _comparisonStreamController.add(List.from(_items));
+    _saveToStorage(); // Persist to storage
     notifyListeners();
     return true;
   }
@@ -58,6 +97,7 @@ class ComparisonListService extends ChangeNotifier {
     if (_items.length < lengthBefore) {
       print('[COMPARISON LIST] ❌ Removed: ${item.name} - Total: ${_items.length}');
       _comparisonStreamController.add(List.from(_items));
+      _saveToStorage(); // Persist to storage
       notifyListeners();
     }
   }
@@ -68,6 +108,7 @@ class ComparisonListService extends ChangeNotifier {
       final item = _items.removeAt(index);
       print('[COMPARISON LIST] ❌ Removed at index $index: ${item.name} - Total: ${_items.length}');
       _comparisonStreamController.add(List.from(_items));
+      _saveToStorage(); // Persist to storage
       notifyListeners();
     }
   }
@@ -82,6 +123,7 @@ class ComparisonListService extends ChangeNotifier {
     _items.clear();
     print('[COMPARISON LIST] 🗑️ Cleared all items');
     _comparisonStreamController.add(List.from(_items));
+    _saveToStorage(); // Persist to storage
     notifyListeners();
   }
 
@@ -91,6 +133,7 @@ class ComparisonListService extends ChangeNotifier {
     _items.clear();
     print('[COMPARISON LIST] 📤 Sent ${itemsCopy.length} items to AI and cleared list');
     _comparisonStreamController.add(List.from(_items));
+    _saveToStorage(); // Persist to storage
     notifyListeners();
     return itemsCopy;
   }

@@ -76,11 +76,14 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       // Security: Clear failed login attempts on successful login
       RateLimiter.recordSuccessfulLogin(event.request.email);
 
-      // ⭐ SEND FCM TOKEN TO BACKEND AFTER SUCCESSFUL LOGIN
+      // ⭐ SEND FCM TOKEN TO BACKEND AFTER SUCCESSFUL LOGIN (with locale)
       final fcmToken = FCMService().fcmToken;
       if (fcmToken != null) {
-        print('[LoginBloc] 📤 Sending FCM token to backend...');
-        await FCMService().sendTokenToBackend(fcmToken);
+        // Get current app locale from cache
+        final locale = CasheNetwork.getCasheData(key: 'locale');
+        final effectiveLocale = locale.isNotEmpty ? locale : 'en';
+        print('[LoginBloc] 📤 Sending FCM token to backend with locale: $effectiveLocale');
+        await FCMService().sendTokenToBackend(fcmToken, locale: effectiveLocale);
       } else {
         print('[LoginBloc] ⚠️ FCM token not available');
       }

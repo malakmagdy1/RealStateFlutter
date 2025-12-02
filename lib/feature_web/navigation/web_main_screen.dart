@@ -218,13 +218,41 @@ class _WebMainScreenState extends State<WebMainScreen> {
         }
       },
       child: Scaffold(
-        body: Column(
-          children: [
-            _buildNavBar(l10n),
-            Expanded(
-              child: _screens[_selectedIndex],
-            ),
-          ],
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            // Minimum width to prevent overflow (show horizontal scroll below this)
+            const double minWidth = 800;
+            final bool needsHorizontalScroll = constraints.maxWidth < minWidth;
+
+            Widget content = Column(
+              children: [
+                _buildNavBar(l10n),
+                Expanded(
+                  child: _screens[_selectedIndex],
+                ),
+              ],
+            );
+
+            // If screen is too narrow, wrap in horizontal scroll
+            if (needsHorizontalScroll) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: minWidth,
+                    minHeight: constraints.maxHeight,
+                  ),
+                  child: SizedBox(
+                    width: minWidth,
+                    height: constraints.maxHeight,
+                    child: content,
+                  ),
+                ),
+              );
+            }
+
+            return content;
+          },
         ),
       ),
     );

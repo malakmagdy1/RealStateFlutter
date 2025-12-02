@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:real/core/locale/language_service.dart';
+import 'package:real/services/fcm_service.dart';
+import 'package:real/feature/auth/data/network/local_netwrok.dart';
 
 /// Cubit to manage app locale (language)
 class LocaleCubit extends Cubit<Locale> {
@@ -35,8 +37,17 @@ class LocaleCubit extends Cubit<Locale> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_localeKey, newLocale.languageCode);
 
+    // Also save to CasheNetwork for FCM service to access
+    await CasheNetwork.insertToCashe(key: 'locale', value: newLocale.languageCode);
+
     // Update LanguageService so API calls use the new language
     await LanguageService.setLanguage(newLocale.languageCode);
+
+    // Update locale on backend for notifications (only if user is logged in)
+    final authToken = CasheNetwork.getCasheData(key: 'token');
+    if (authToken.isNotEmpty) {
+      await FCMService().updateLocale(newLocale.languageCode);
+    }
 
     emit(newLocale);
     print('[LocaleCubit] Changed locale to: ${newLocale.languageCode}');

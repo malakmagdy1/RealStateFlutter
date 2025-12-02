@@ -651,7 +651,10 @@
   "addedToComparison": "Added to comparison list",
   "comparisonListFull": "Comparison list is full (max 4 items)",
   "alreadyInComparison": "Already in comparison list",
+  "removedFromComparison": "Removed from comparison list",
   "undo": "Undo",
+  "goToAI": "Go to AI",
+  "noResultsMatchingCriteria": "No results matching your criteria",
   "comparisonList": "Comparison List",
   "startAIComparisonChat": "Start AI Comparison Chat",
   "selectAtLeast2Items": "Please select at least 2 items to compare",
@@ -816,5 +819,17 @@
 
   "hasClubAmenityFilter": "Has Club",
   "hasRoofAmenityFilter": "Has Roof",
-  "hasGardenAmenityFilter": "Has Garden"
+  "hasGardenAmenityFilter": "Has Garden",
+
+  "deviceManagement": "Device Management",
+  "devicesUsed": "{current} / {max} devices used",
+  "@devicesUsed": {
+    "placeholders": {
+      "current": {"type": "int"},
+      "max": {"type": "int"}
+    }
+  },
+  "noDevicesFound": "No devices found",
+  "minPriceHint": "Min",
+  "maxPriceHint": "Max"
 }

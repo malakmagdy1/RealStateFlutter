@@ -162,19 +162,20 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
       context: context,
       builder: (BuildContext dialogContext) {
         return AlertDialog(
+          backgroundColor: Colors.grey[100],
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           title: Row(
             children: [
               Icon(Icons.logout, color: Colors.red),
               SizedBox(width: 7),
-              Text(l10n.logout),
+              Text(l10n.logout, style: TextStyle(color: Colors.black87)),
             ],
           ),
-          content: Text(l10n.logoutConfirm,style: TextStyle(color:Colors.white),),
+          content: Text(l10n.logoutConfirm, style: TextStyle(color: Colors.black87)),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
-              child: Text(l10n.cancel, style: TextStyle(color: Colors.grey)),
+              child: Text(l10n.cancel, style: TextStyle(color: Colors.blue)),
             ),
             ElevatedButton(
               onPressed: () {
@@ -187,7 +188,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                   borderRadius: BorderRadius.circular(5),
                 ),
               ),
-              child: Text(l10n.logout),
+              child: Text(l10n.logout, style: TextStyle(color: Colors.white)),
             ),
           ],
         );
@@ -1381,7 +1382,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                   Icon(Icons.devices_other, color: AppColors.mainColor, size: 22),
                   SizedBox(width: 7),
                   Text(
-                    'Device Management',
+                    l10n.deviceManagement,
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
@@ -1411,7 +1412,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                     SizedBox(width: 7),
                     Expanded(
                       child: Text(
-                        '${subscription['current_devices']} / ${subscription['max_devices']} devices used',
+                        l10n.devicesUsed(subscription['current_devices'] ?? 0, subscription['max_devices'] ?? 0),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -1430,7 +1431,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
                   child: Padding(
                     padding: EdgeInsets.all(12),
                     child: Text(
-                      'No devices found',
+                      l10n.noDevicesFound,
                       style: TextStyle(color: Colors.grey[600]),
                     ),
                   ),

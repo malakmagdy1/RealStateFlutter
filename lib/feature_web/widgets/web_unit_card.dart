@@ -107,10 +107,10 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
     final l10n = AppLocalizations.of(context);
     final isArabic = l10n?.localeName == 'ar';
     final localizedCompoundLocation = widget.unit.getLocalizedCompoundLocation(isArabic);
-    // Use compound location for the location display, fallback to compound name if not available
+    // Show N/A when location is not available
     final compoundLocation = localizedCompoundLocation?.isNotEmpty == true
         ? localizedCompoundLocation!
-        : (widget.unit.compoundName?.isNotEmpty == true ? widget.unit.compoundName! : '');
+        : 'N/A';
 
     final unitType = widget.unit.usageType ?? widget.unit.unitType ?? 'Unit';
     final unitNumber = widget.unit.unitNumber ?? '';
@@ -126,7 +126,13 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
       return SizedBox.shrink();
     }
 
-    return AnimatedBuilder(
+    // Minimum dimensions to prevent image disappearing
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        minWidth: 200,
+        minHeight: 200,
+      ),
+      child: AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) => Transform.scale(
         scale: _scaleAnimation.value,
@@ -386,7 +392,7 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                             // Unit Name/Number with Company Logo
                             Row(
                               children: [
-                                if (widget.unit.companyLogo != null && widget.unit.companyLogo!.isNotEmpty)
+                                if (widget.unit.fullCompanyLogoUrl != null && widget.unit.fullCompanyLogoUrl!.isNotEmpty)
                                   Padding(
                                     padding: const EdgeInsets.only(right: 8),
                                     child: CircleAvatar(
@@ -394,7 +400,7 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                                       backgroundColor: Colors.grey[200],
                                       child: ClipOval(
                                         child: RobustNetworkImage(
-                                          imageUrl: widget.unit.companyLogo!,
+                                          imageUrl: widget.unit.fullCompanyLogoUrl!,
                                           width: 24,
                                           height: 24,
                                           fit: BoxFit.contain,
@@ -464,7 +470,7 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                                 SizedBox(width: 2),
                                 _detailChip(Icons.bathtub_outlined, widget.unit.bathrooms.isNotEmpty && widget.unit.bathrooms != '0' ? widget.unit.bathrooms : 'N/A'),
                                 SizedBox(width: 2),
-                                _detailChip(Icons.square_foot, widget.unit.area.isNotEmpty && widget.unit.area != '0' ? '${widget.unit.area}m²' : 'N/A'),
+                                _detailChip(Icons.square_foot, widget.unit.area.isNotEmpty && widget.unit.area != '0' ? '${_formatArea(widget.unit.area)}m²' : 'N/A'),
                               ],
                             ),
 
@@ -537,6 +543,7 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
             ),
           ),
         ),
+      ),
       ),
     );
   }
@@ -627,22 +634,69 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
     }
   }
 
+  /// Format area value - rounds to nearest integer or 1 decimal place
+  String _formatArea(String? areaStr) {
+    if (areaStr == null || areaStr.isEmpty) return 'N/A';
+    try {
+      final area = double.parse(areaStr);
+      // If it's a whole number, show without decimals
+      if (area == area.roundToDouble()) {
+        return area.toInt().toString();
+      }
+      // Otherwise show with 1 decimal place
+      return area.toStringAsFixed(1);
+    } catch (e) {
+      return areaStr;
+    }
+  }
+
   /// Format delivery date - removes ISO format (T00:00:00.000Z) and shows clean date
   String _formatDeliveryDate(String? dateStr) {
     if (dateStr == null || dateStr.isEmpty) return 'N/A';
 
+    // Check for invalid date patterns (all zeros, starts with T, etc.)
+    final cleanStr = dateStr.trim();
+    if (cleanStr.startsWith('T') ||
+        cleanStr.startsWith('0000') ||
+        cleanStr == '0' ||
+        cleanStr.contains('T00:00:00') && !cleanStr.contains('-')) {
+      return 'N/A';
+    }
+
     try {
       // Parse ISO date format
-      final date = DateTime.parse(dateStr);
+      final date = DateTime.parse(cleanStr);
+
+      // Check for invalid dates (year 0 or 1, or dates before 1900)
+      if (date.year < 1900 || date.year > 2100) {
+        return 'N/A';
+      }
+
       final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
                       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return '${months[date.month - 1]} ${date.day}, ${date.year}';
+      return '${months[date.month - 1]} ${date.year}';
     } catch (e) {
       // If parsing fails, try to extract just the date part before 'T'
-      if (dateStr.contains('T')) {
-        return dateStr.split('T')[0];
+      if (cleanStr.contains('T')) {
+        final datePart = cleanStr.split('T')[0];
+        // Validate the date part isn't all zeros
+        if (datePart.startsWith('0000') || datePart == '0') {
+          return 'N/A';
+        }
+        // Try to parse just the date part
+        try {
+          final date = DateTime.parse(datePart);
+          if (date.year < 1900 || date.year > 2100) {
+            return 'N/A';
+          }
+          final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          return '${months[date.month - 1]} ${date.year}';
+        } catch (_) {
+          return 'N/A';
+        }
       }
-      return dateStr;
+      return 'N/A';
     }
   }
 
@@ -708,17 +762,50 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
       ),
     );
   }
-  // ADDED: Compare dialog method
+  // ADDED: Compare dialog method - Toggle comparison state
   void _showCompareDialog(BuildContext context) {
     final comparisonItem = ComparisonItem.fromUnit(widget.unit);
     final comparisonService = ComparisonListService();
     final l10n = AppLocalizations.of(context)!;
 
+    // Check if already in comparison - toggle behavior
+    if (comparisonService.contains(comparisonItem)) {
+      // Remove from comparison list
+      comparisonService.removeItem(comparisonItem);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.remove_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.removedFromComparison,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 10),
+          action: SnackBarAction(
+            label: l10n.undo,
+            textColor: Colors.white,
+            onPressed: () {
+              comparisonService.addItem(comparisonItem);
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
     // Add to comparison list
     final added = comparisonService.addItem(comparisonItem);
 
     if (added) {
-      // Show success message
+      // Show success message with Go to AI button
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -731,11 +818,30 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ),
+              // Go to AI Chat button
+              TextButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  context.push('/ai-chat');
+                },
+                icon: Icon(Icons.smart_toy, color: Colors.white, size: 18),
+                label: Text(
+                  l10n.goToAI,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
             ],
           ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
+          duration: Duration(minutes: 2),
           action: SnackBarAction(
             label: l10n.undo,
             textColor: Colors.white,
@@ -746,7 +852,7 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
         ),
       );
     } else {
-      // Show error (already in list or list is full)
+      // Show error (list is full)
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -755,17 +861,34 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  comparisonService.isFull
-                      ? l10n.comparisonListFull
-                      : l10n.alreadyInComparison,
+                  l10n.comparisonListFull,
                   style: TextStyle(fontSize: 14),
+                ),
+              ),
+              // Go to AI Chat button even when full
+              TextButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  context.push('/ai-chat');
+                },
+                icon: Icon(Icons.smart_toy, color: Colors.white, size: 18),
+                label: Text(
+                  l10n.goToAI,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
               ),
             ],
           ),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
+          duration: Duration(seconds: 10),
         ),
       );
     }

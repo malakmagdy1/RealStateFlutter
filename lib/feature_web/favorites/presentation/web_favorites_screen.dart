@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_state.dart';
@@ -9,8 +10,61 @@ import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_s
 import '../../../feature_web/widgets/web_compound_card.dart';
 import '../../../feature_web/widgets/web_unit_card.dart';
 
-class WebFavoritesScreen extends StatelessWidget {
+class WebFavoritesScreen extends StatefulWidget {
   WebFavoritesScreen({Key? key}) : super(key: key);
+
+  @override
+  State<WebFavoritesScreen> createState() => _WebFavoritesScreenState();
+}
+
+class _WebFavoritesScreenState extends State<WebFavoritesScreen> {
+  // Pagination variables
+  final ScrollController _scrollController = ScrollController();
+  static const int _pageSize = 12;
+  int _displayedUnitCount = 12;
+  int _displayedCompoundCount = 12;
+  bool _isLoadingMore = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isLoadingMore) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    final delta = 200.0; // Trigger when 200px from bottom
+
+    if (maxScroll - currentScroll <= delta) {
+      _loadMore();
+    }
+  }
+
+  void _loadMore() {
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    // Simulate slight delay for smooth UX
+    Future.delayed(Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _displayedUnitCount += _pageSize;
+          _displayedCompoundCount += _pageSize;
+          _isLoadingMore = false;
+        });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,6 +75,7 @@ class WebFavoritesScreen extends StatelessWidget {
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: 1400),
           child: SingleChildScrollView(
+            controller: _scrollController,
             child: Padding(
               padding: EdgeInsets.all(32),
               child: Column(
@@ -73,13 +128,20 @@ class WebFavoritesScreen extends StatelessWidget {
                             );
                           }
 
+                          // Calculate displayed items
+                          final displayedUnits = unitFavorites.take(_displayedUnitCount).toList();
+                          final displayedCompounds = compoundFavorites.take(_displayedCompoundCount).toList();
+                          final hasMoreUnits = unitFavorites.length > _displayedUnitCount;
+                          final hasMoreCompounds = compoundFavorites.length > _displayedCompoundCount;
+                          final hasMore = hasMoreUnits || hasMoreCompounds;
+
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Display Unit Favorites
                               if (unitFavorites.isNotEmpty) ...[
                                 Text(
-                                  '${l10n.favoriteProperties} (${unitFavorites.length})',
+                                  '${l10n.favoriteProperties} (${displayedUnits.length}/${unitFavorites.length})',
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w600,
@@ -96,10 +158,10 @@ class WebFavoritesScreen extends StatelessWidget {
                                     crossAxisSpacing: 10,
                                     mainAxisSpacing: 10,
                                   ),
-                                  itemCount: unitFavorites.length,
+                                  itemCount: displayedUnits.length,
                                   itemBuilder: (context, index) {
                                     return WebUnitCard(
-                                      unit: unitFavorites[index],
+                                      unit: displayedUnits[index],
                                     );
                                   },
                                 ),
@@ -108,7 +170,7 @@ class WebFavoritesScreen extends StatelessWidget {
                               // Display Compound Favorites
                               if (compoundFavorites.isNotEmpty) ...[
                                 Text(
-                                  '${l10n.favoriteCompounds} (${compoundFavorites.length})',
+                                  '${l10n.favoriteCompounds} (${displayedCompounds.length}/${compoundFavorites.length})',
                                   style: TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w600,
@@ -125,15 +187,36 @@ class WebFavoritesScreen extends StatelessWidget {
                                     crossAxisSpacing: 10,
                                     mainAxisSpacing: 10,
                                   ),
-                                  itemCount: compoundFavorites.length,
+                                  itemCount: displayedCompounds.length,
                                   itemBuilder: (context, index) {
                                     return WebCompoundCard(
-                                      compound: compoundFavorites[index],
+                                      compound: displayedCompounds[index],
                                     );
                                   },
                                 ),
-                                SizedBox(height: 40),
+                                SizedBox(height: 20),
                               ],
+                              // Loading indicator when loading more
+                              if (_isLoadingMore)
+                                Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 20),
+                                  child: Center(child: CustomLoadingDots(size: 60)),
+                                ),
+                              // Show count indicator if there's more
+                              if (hasMore && !_isLoadingMore)
+                                Padding(
+                                  padding: EdgeInsets.only(bottom: 30),
+                                  child: Center(
+                                    child: Text(
+                                      '${displayedUnits.length + displayedCompounds.length} / ${unitFavorites.length + compoundFavorites.length}',
+                                      style: TextStyle(
+                                        color: Color(0xFF999999),
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              SizedBox(height: 30),
                             ],
                           );
                         },

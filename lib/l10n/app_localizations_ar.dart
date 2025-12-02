@@ -1394,7 +1394,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get alreadyInComparison => 'موجود بالفعل في قائمة المقارنة';
 
   @override
+  String get removedFromComparison => 'تمت الإزالة من قائمة المقارنة';
+
+  @override
   String get undo => 'تراجع';
+
+  @override
+  String get goToAI => 'الذهاب للذكاء الاصطناعي';
+
+  @override
+  String get noResultsMatchingCriteria => 'لا توجد نتائج تطابق معاييرك';
 
   @override
   String get comparisonList => 'قائمة المقارنة';
@@ -1677,4 +1686,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get hasGardenAmenityFilter => 'يحتوي على حديقة';
+
+  @override
+  String get deviceManagement => 'إدارة الأجهزة';
+
+  @override
+  String devicesUsed(int current, int max) {
+    return '$current / $max جهاز مستخدم';
+  }
+
+  @override
+  String get noDevicesFound => 'لا توجد أجهزة';
+
+  @override
+  String get minPriceHint => 'الحد الأدنى';
+
+  @override
+  String get maxPriceHint => 'الحد الأقصى';
 }

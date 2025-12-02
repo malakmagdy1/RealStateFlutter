@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/core/animations/hover_scale_animation.dart';
 import 'package:real/feature/ai_chat/data/models/comparison_item.dart';
-import 'package:real/feature/ai_chat/presentation/widget/comparison_selection_sheet.dart';
-import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.dart';
+import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart';
+import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sheet.dart';
+import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
+import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
+import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
 import 'package:real/l10n/app_localizations.dart';
 
 class CompanyCard extends StatefulWidget {
@@ -62,34 +66,71 @@ class _CompanyCardState extends State<CompanyCard> {
                     decoration: BoxDecoration(
                       color: AppColors.mainColor.withOpacity(0.1),
                     ),
-                    child: widget.company.logo != null && widget.company.logo!.isNotEmpty
+                    child: widget.company.fullLogoUrl != null && widget.company.fullLogoUrl!.isNotEmpty
                         ? RobustNetworkImage(
-                            imageUrl: widget.company.logo!,
+                            imageUrl: widget.company.fullLogoUrl!,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error) => _buildPlaceholder(),
                           )
                         : _buildPlaceholder(),
                   ),
-                  // Compare Button
-                  Positioned(
+                  // Action Buttons Row
+                  PositionedDirectional(
                     top: 8,
-                    right: 8,
-                    child: GestureDetector(
-                      onTap: () => _showCompareDialog(context),
-                      child: Container(
-                        height: 28,
-                        width: 28,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.35),
-                          shape: BoxShape.circle,
+                    start: 8,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Share Button
+                        GestureDetector(
+                          onTap: () => _showShareSheet(context),
+                          child: Container(
+                            height: 28,
+                            width: 28,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.35),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.share_outlined,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                        child: Icon(
-                          Icons.compare_arrows,
-                          size: 14,
-                          color: Colors.white,
+                        SizedBox(width: 6),
+                        // Compare Button with Active State
+                        StreamBuilder<List<ComparisonItem>>(
+                          stream: ComparisonListService().comparisonStream,
+                          builder: (context, snapshot) {
+                            final items = snapshot.data ?? [];
+                            final isInComparison = items.any((item) =>
+                              item.id == widget.company.id && item.type == 'company'
+                            );
+
+                            return GestureDetector(
+                              onTap: () => _showCompareDialog(context),
+                              child: Container(
+                                height: 28,
+                                width: 28,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: isInComparison
+                                      ? AppColors.mainColor.withOpacity(0.9)
+                                      : Colors.black.withOpacity(0.35),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  isInComparison ? Icons.compare : Icons.compare_arrows,
+                                  size: 14,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ),
+                      ],
                     ),
                   ),
                 ],
@@ -180,21 +221,106 @@ class _CompanyCardState extends State<CompanyCard> {
 
   void _showCompareDialog(BuildContext context) {
     final comparisonItem = ComparisonItem.fromCompany(widget.company);
-    ComparisonSelectionSheet.show(
-      context,
-      preSelectedItems: [comparisonItem],
-      onCompare: (selectedItems) {
-        // Navigate to AI chat with comparison context
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => UnifiedAIChatScreen(
-              comparisonItems: selectedItems,
-            ),
+    final comparisonService = ComparisonListService();
+    final l10n = AppLocalizations.of(context)!;
+
+    // Add to comparison list
+    final added = comparisonService.addItem(comparisonItem);
+
+    if (added) {
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.addedToComparison,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
           ),
-        );
-      },
-    );
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+          action: SnackBarAction(
+            label: l10n.undo,
+            textColor: Colors.white,
+            onPressed: () {
+              comparisonService.removeItem(comparisonItem);
+            },
+          ),
+        ),
+      );
+    } else {
+      // Show error (already in list or list is full)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  comparisonService.isFull
+                      ? l10n.comparisonListFull
+                      : l10n.alreadyInComparison,
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _showShareSheet(BuildContext context) async {
+    // Fetch compounds for this company to pass to advanced share
+    try {
+      context.read<CompoundBloc>().add(
+        FetchCompoundsByCompanyEvent(companyId: widget.company.id),
+      );
+    } catch (e) {
+      // CompoundBloc might not be available in search context
+    }
+
+    List<Map<String, dynamic>>? compounds;
+
+    try {
+      final compoundState = context.read<CompoundBloc>().state;
+      if (compoundState is CompoundSuccess) {
+        compounds = compoundState.response.data.map((compound) {
+          return {
+            'id': compound.id,
+            'project': compound.project,
+            'location': compound.location,
+            'totalUnits': compound.totalUnits,
+          };
+        }).toList();
+      }
+    } catch (e) {
+      // Ignore if bloc not available
+    }
+
+    if (context.mounted) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) => AdvancedShareBottomSheet(
+          type: 'company',
+          id: widget.company.id.toString(),
+          compounds: compounds,
+        ),
+      );
+    }
   }
 
   Widget _buildPlaceholder() {

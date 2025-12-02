@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:real/core/utils/constant.dart';
 import 'sales_model.dart';
 
 class CompanyCompound extends Equatable {
@@ -134,6 +135,21 @@ class Company extends Equatable {
       return nameAr.isNotEmpty ? nameAr : name;
     }
     return nameEn.isNotEmpty ? nameEn : name;
+  }
+
+  /// Get full logo URL with base URL prepended if needed
+  String? get fullLogoUrl {
+    if (logo == null || logo!.isEmpty) return null;
+
+    // If already a full URL, return as-is
+    if (logo!.startsWith('http://') || logo!.startsWith('https://')) {
+      return logo;
+    }
+
+    // Prepend base URL for relative paths
+    // Remove leading slash if present to avoid double slashes
+    final cleanPath = logo!.startsWith('/') ? logo!.substring(1) : logo;
+    return '$API_BASE/storage/$cleanPath';
   }
 
   factory Company.fromJson(Map<String, dynamic> json) {

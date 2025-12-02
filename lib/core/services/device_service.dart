@@ -3,13 +3,15 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:uuid/uuid.dart';
 
 class DeviceService {
   static final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   static const String _deviceIdKey = 'device_unique_id';
 
-  /// Get unique device ID (persists across app reinstalls on Android)
+  /// Get unique device ID (persists across app sessions)
+  /// Uses UUID to ensure true uniqueness per app installation
   static Future<String> getDeviceId() async {
     // Try to get stored device ID first
     String? storedId = await _secureStorage.read(key: _deviceIdKey);
@@ -17,27 +19,37 @@ class DeviceService {
       return storedId;
     }
 
-    // Generate/retrieve device ID based on platform
+    // Generate a truly unique device ID using UUID + platform prefix
+    const uuid = Uuid();
     String deviceId;
 
     if (kIsWeb) {
-      // For web, generate a unique ID and store it
-      deviceId = 'web_${DateTime.now().millisecondsSinceEpoch}';
+      deviceId = 'web_${uuid.v4()}';
     } else if (Platform.isAndroid) {
+      // Generate UUID and prefix with android info for debugging
       AndroidDeviceInfo androidInfo = await _deviceInfo.androidInfo;
-      // Use Android ID which persists across app reinstalls
-      deviceId = androidInfo.id; // Android ID
+      final uniquePart = uuid.v4().substring(0, 8);
+      deviceId = 'android_${androidInfo.model.replaceAll(' ', '_')}_$uniquePart';
     } else if (Platform.isIOS) {
       IosDeviceInfo iosInfo = await _deviceInfo.iosInfo;
-      // iOS identifierForVendor (same for all apps from same vendor)
-      deviceId = iosInfo.identifierForVendor ?? 'ios_${DateTime.now().millisecondsSinceEpoch}';
+      // Try to use identifierForVendor, fallback to UUID if not available
+      if (iosInfo.identifierForVendor != null && iosInfo.identifierForVendor!.isNotEmpty) {
+        deviceId = 'ios_${iosInfo.identifierForVendor}';
+      } else {
+        final uniquePart = uuid.v4().substring(0, 8);
+        deviceId = 'ios_${iosInfo.model.replaceAll(' ', '_')}_$uniquePart';
+      }
+    } else if (Platform.isWindows) {
+      deviceId = 'windows_${uuid.v4()}';
+    } else if (Platform.isMacOS) {
+      deviceId = 'macos_${uuid.v4()}';
     } else {
-      // Fallback for other platforms
-      deviceId = 'unknown_${DateTime.now().millisecondsSinceEpoch}';
+      deviceId = 'unknown_${uuid.v4()}';
     }
 
-    // Store the device ID
+    // Store the device ID for future use
     await _secureStorage.write(key: _deviceIdKey, value: deviceId);
+    print('[DeviceService] Generated new device ID: $deviceId');
     return deviceId;
   }
 

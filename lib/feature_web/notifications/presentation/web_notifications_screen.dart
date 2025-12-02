@@ -27,10 +27,19 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
   Timer? _refreshTimer;
   StreamSubscription? _notificationSubscription;
 
+  // Pagination variables
+  final ScrollController _scrollController = ScrollController();
+  static const int _pageSize = 15;
+  int _displayedCount = 15;
+  bool _isLoadingMore = false;
+
   @override
   void initState() {
     super.initState();
     print('[WEB NOTIFICATIONS SCREEN] initState called');
+
+    // Initialize scroll listener for pagination
+    _scrollController.addListener(_onScroll);
 
     // Initialize service worker listener
     initServiceWorkerListener();
@@ -57,8 +66,46 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
   void dispose() {
     _refreshTimer?.cancel();
     _notificationSubscription?.cancel();
+    _scrollController.dispose();
     super.dispose();
   }
+
+  void _onScroll() {
+    if (_isLoadingMore) return;
+
+    final maxScroll = _scrollController.position.maxScrollExtent;
+    final currentScroll = _scrollController.position.pixels;
+    final delta = 200.0; // Trigger when 200px from bottom
+
+    if (maxScroll - currentScroll <= delta) {
+      _loadMore();
+    }
+  }
+
+  void _loadMore() {
+    if (_displayedCount >= notifications.length) return; // No more items
+
+    setState(() {
+      _isLoadingMore = true;
+    });
+
+    // Simulate slight delay for smooth UX
+    Future.delayed(Duration(milliseconds: 300), () {
+      if (mounted) {
+        setState(() {
+          _displayedCount = (_displayedCount + _pageSize).clamp(0, notifications.length);
+          _isLoadingMore = false;
+        });
+      }
+    });
+  }
+
+  List<NotificationModel> get _displayedNotifications {
+    final count = _displayedCount.clamp(0, notifications.length);
+    return notifications.take(count).toList();
+  }
+
+  bool get _hasMoreNotifications => _displayedCount < notifications.length;
 
   void _handleNewNotification(Map<String, dynamic> notificationData) async {
     try {
@@ -274,21 +321,6 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
         ),
         Spacer(),
 
-        // Refresh button
-        _buildActionButton(
-          icon: Icons.refresh_rounded,
-          label: 'Refresh',
-          onPressed: () async {
-            print('[WEB NOTIFICATIONS] Manual refresh triggered');
-            setState(() {
-              isLoading = true;
-            });
-            await _checkAndMigrateWebNotifications();
-            MessageHelper.showSuccess(context, 'Notifications refreshed');
-          },
-          isPrimary: false,
-        ),
-
         // Action buttons
         if (notifications.isNotEmpty) ...[
           SizedBox(width: 12),
@@ -388,12 +420,39 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
     );
   }
 
-  Widget _buildNotificationsList(List<NotificationModel> notifications) {
+  Widget _buildNotificationsList(List<NotificationModel> allNotifications) {
+    final displayedItems = _displayedNotifications;
+
     return ListView.builder(
+      controller: _scrollController,
       padding: EdgeInsets.zero,
-      itemCount: notifications.length,
+      itemCount: displayedItems.length + (_isLoadingMore || _hasMoreNotifications ? 1 : 0),
       itemBuilder: (context, index) {
-        final notification = notifications[index];
+        // Show loading indicator at the end
+        if (index == displayedItems.length) {
+          if (_isLoadingMore) {
+            return Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CustomLoadingDots(size: 60)),
+            );
+          } else if (_hasMoreNotifications) {
+            return Padding(
+              padding: EdgeInsets.only(bottom: 30),
+              child: Center(
+                child: Text(
+                  '${displayedItems.length} / ${allNotifications.length}',
+                  style: TextStyle(
+                    color: Color(0xFF999999),
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            );
+          }
+          return SizedBox.shrink();
+        }
+
+        final notification = displayedItems[index];
         return _buildNotificationCard(notification);
       },
     );
