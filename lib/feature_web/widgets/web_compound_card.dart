@@ -161,9 +161,16 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
 
   Widget _buildCard(BuildContext context) {
     final compound = widget.compound; // Create local variable for convenience
-    final companyLogo = compound.companyLogo ?? ''; // Store companyLogo to avoid null promotion issues
+    final companyLogo = compound.fullCompanyLogoUrl ?? ''; // Store fullCompanyLogoUrl to avoid null promotion issues
+    final l10n = AppLocalizations.of(context)!;
 
-    return MouseRegion(
+    // Minimum dimensions to prevent image disappearing
+    return ConstrainedBox(
+      constraints: const BoxConstraints(
+        minWidth: 200,
+        minHeight: 200,
+      ),
+      child: MouseRegion(
       onEnter: (_) {
         setState(() => _isHovering = true);
         _animationController.forward();
@@ -559,11 +566,7 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
                           //   ),
                           // ),
 
-                         compound.status.toLowerCase().contains('progress')
-                              ? _detailChip(Icons.pending, 'In Progress', color: Colors.orange)
-                              : compound.status.toLowerCase() == 'available'
-                              ? _detailChip(Icons.check_circle, 'Available', color: Colors.green)
-                              : _detailChip(Icons.info_outline, compound.status),
+                         _buildStatusChip(compound.status, l10n),
                         ],
                       ),
                     ],
@@ -578,17 +581,76 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
           );
         },
       ),
+      ),
     );
 
   }
 
   String _formatDeliveryDate(String dateStr) {
-    try {
-      final date = DateTime.parse(dateStr);
-      return '${date.year}-${date.month.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return dateStr;
+    if (dateStr.isEmpty) return 'N/A';
+
+    // Check for invalid date patterns (all zeros, starts with T, etc.)
+    final cleanStr = dateStr.trim();
+    if (cleanStr.startsWith('T') ||
+        cleanStr.startsWith('0000') ||
+        cleanStr == '0' ||
+        cleanStr.contains('T00:00:00') && !cleanStr.contains('-')) {
+      return 'N/A';
     }
+
+    try {
+      final date = DateTime.parse(cleanStr);
+      // Check for invalid dates (year 0 or 1, or dates before 1900)
+      if (date.year < 1900 || date.year > 2100) {
+        return 'N/A';
+      }
+      final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return '${months[date.month - 1]} ${date.year}';
+    } catch (e) {
+      // If parsing fails, try to extract just the date part before 'T'
+      if (cleanStr.contains('T')) {
+        final datePart = cleanStr.split('T')[0];
+        if (datePart.startsWith('0000') || datePart == '0') {
+          return 'N/A';
+        }
+        try {
+          final date = DateTime.parse(datePart);
+          if (date.year < 1900 || date.year > 2100) {
+            return 'N/A';
+          }
+          final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          return '${months[date.month - 1]} ${date.year}';
+        } catch (_) {
+          return 'N/A';
+        }
+      }
+      return 'N/A';
+    }
+  }
+
+  Widget _buildStatusChip(String status, AppLocalizations l10n) {
+    final statusLower = status.toLowerCase();
+
+    // Check for in_progress status (English and Arabic)
+    if (statusLower.contains('progress') || statusLower == 'قيد الإنشاء' || statusLower == 'قيد التنفيذ') {
+      return _detailChip(Icons.pending, l10n.inProgress, color: Colors.orange);
+    }
+    // Check for available status (English and Arabic)
+    else if (statusLower == 'available' || statusLower == 'متاح') {
+      return _detailChip(Icons.check_circle, l10n.available, color: Colors.green);
+    }
+    // Check for reserved status (English and Arabic)
+    else if (statusLower == 'reserved' || statusLower == 'محجوز') {
+      return _detailChip(Icons.bookmark, l10n.reserved, color: Colors.orange);
+    }
+    // Check for sold status (English and Arabic)
+    else if (statusLower == 'sold' || statusLower == 'مباع') {
+      return _detailChip(Icons.sell, l10n.sold, color: Colors.red);
+    }
+    // Default: show the status as-is
+    return _detailChip(Icons.info_outline, status);
   }
 
   Widget _buildInfoIcon(IconData icon, String label) {
@@ -728,17 +790,50 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
     }
   }
 
-  // Compare dialog method
+  // Compare dialog method - Toggle comparison state
   void _showCompareDialog(BuildContext context) {
     final comparisonItem = ComparisonItem.fromCompound(widget.compound);
     final comparisonService = ComparisonListService();
     final l10n = AppLocalizations.of(context)!;
 
+    // Check if already in comparison - toggle behavior
+    if (comparisonService.contains(comparisonItem)) {
+      // Remove from comparison list
+      comparisonService.removeItem(comparisonItem);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.remove_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.removedFromComparison,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 10),
+          action: SnackBarAction(
+            label: l10n.undo,
+            textColor: Colors.white,
+            onPressed: () {
+              comparisonService.addItem(comparisonItem);
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
     // Add to comparison list
     final added = comparisonService.addItem(comparisonItem);
 
     if (added) {
-      // Show success message
+      // Show success message with Go to AI button
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -751,11 +846,30 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                 ),
               ),
+              // Go to AI Chat button
+              TextButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  context.push('/ai-chat');
+                },
+                icon: Icon(Icons.smart_toy, color: Colors.white, size: 18),
+                label: Text(
+                  l10n.goToAI,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
             ],
           ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
+          duration: Duration(minutes: 2),
           action: SnackBarAction(
             label: l10n.undo,
             textColor: Colors.white,
@@ -766,7 +880,7 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
         ),
       );
     } else {
-      // Show error (already in list or list is full)
+      // Show error (list is full)
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -775,17 +889,33 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
               SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  comparisonService.isFull
-                      ? l10n.comparisonListFull
-                      : l10n.alreadyInComparison,
+                  l10n.comparisonListFull,
                   style: TextStyle(fontSize: 14),
+                ),
+              ),
+              // Go to AI Chat button even when full
+              TextButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();context.push('/ai-chat');
+                },
+                icon: Icon(Icons.smart_toy, color: Colors.white, size: 18),
+                label: Text(
+                  l10n.goToAI,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
               ),
             ],
           ),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
+          duration: Duration(seconds: 10),
         ),
       );
     }

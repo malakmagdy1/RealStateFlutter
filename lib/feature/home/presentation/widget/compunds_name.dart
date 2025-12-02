@@ -99,6 +99,22 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
     }
   }
 
+  /// Format area value - rounds to nearest integer or 1 decimal place
+  String _formatArea(String? areaStr) {
+    if (areaStr == null || areaStr.isEmpty) return 'N/A';
+    try {
+      final area = double.parse(areaStr);
+      // If it's a whole number, show without decimals
+      if (area == area.roundToDouble()) {
+        return area.toInt().toString();
+      }
+      // Otherwise show with 1 decimal place
+      return area.toStringAsFixed(1);
+    } catch (e) {
+      return areaStr;
+    }
+  }
+
   Future<void> _showSalespeople(BuildContext context) async {
     final compoundWebServices = CompoundWebServices();
     final l10n = AppLocalizations.of(context)!;
@@ -420,12 +436,12 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
                           // Compound Name with Company Logo
                           Row(
                             children: [
-                              if (widget.compound.companyLogo != null && widget.compound.companyLogo!.isNotEmpty)
+                              if (widget.compound.fullCompanyLogoUrl != null && widget.compound.fullCompanyLogoUrl!.isNotEmpty)
                                 Padding(
                                   padding: const EdgeInsets.only(right: 6),
                                   child: CircleAvatar(
                                     radius: 10,
-                                    backgroundImage: NetworkImage(widget.compound.companyLogo!),
+                                    backgroundImage: NetworkImage(widget.compound.fullCompanyLogoUrl!),
                                     backgroundColor: Colors.grey[200],
                                   ),
                                 ),
@@ -500,7 +516,7 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
                               _detailChip(
                                 Icons.square_foot,
                                 widget.compound.builtUpArea.isNotEmpty && widget.compound.builtUpArea != '0'
-                                    ? '${widget.compound.builtUpArea}m²'
+                                    ? '${_formatArea(widget.compound.builtUpArea)}m²'
                                     : 'N/A',
                               ),
                               SizedBox(width: 3),

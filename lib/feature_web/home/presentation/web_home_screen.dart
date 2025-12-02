@@ -87,6 +87,9 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
 
   // Track if initial load is done and if we should show recommended
   bool _hasInitialized = false;
+
+  // Track locale to refetch data when language changes
+  String? _lastLocale;
   bool _showRecommendedCompounds = true;
 
   @override
@@ -95,6 +98,10 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
 
     // Setup scroll listener for recommended compounds - FIXED: Added debounce check
     _recommendedScrollController.addListener(_onRecommendedScroll);
+
+    // Setup scroll listeners for auto-load (infinite scroll)
+    _newArrivalsScrollController.addListener(_onNewArrivalsScroll);
+    _updated24HoursScrollController.addListener(_onUpdated24HoursScroll);
 
     // Load initial data and favorites after frame is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -148,6 +155,52 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
     });
   }
 
+  // Debounce timestamps for infinite scroll
+  DateTime? _lastNewArrivalsLoadTime;
+  DateTime? _lastUpdated24HoursLoadTime;
+
+  // Auto-load more New Arrivals when scrolled to 80%
+  void _onNewArrivalsScroll() {
+    if (_isLoadingMoreNewArrivals || !_newArrivalsHasMore) return;
+
+    // Debounce - prevent triggering more than once per second
+    final now = DateTime.now();
+    if (_lastNewArrivalsLoadTime != null &&
+        now.difference(_lastNewArrivalsLoadTime!).inMilliseconds < 1000) {
+      return;
+    }
+
+    // Check if scrolled near the end (80% of max scroll extent)
+    if (_newArrivalsScrollController.hasClients &&
+        _newArrivalsScrollController.position.maxScrollExtent > 0 &&
+        _newArrivalsScrollController.position.pixels >=
+            _newArrivalsScrollController.position.maxScrollExtent * 0.8) {
+      _lastNewArrivalsLoadTime = now;
+      _fetchNewArrivals(loadMore: true);
+    }
+  }
+
+  // Auto-load more Updated 24 Hours when scrolled to 80%
+  void _onUpdated24HoursScroll() {
+    if (_isLoadingMoreUpdated24Hours || !_updated24HoursHasMore) return;
+
+    // Debounce - prevent triggering more than once per second
+    final now = DateTime.now();
+    if (_lastUpdated24HoursLoadTime != null &&
+        now.difference(_lastUpdated24HoursLoadTime!).inMilliseconds < 1000) {
+      return;
+    }
+
+    // Check if scrolled near the end (80% of max scroll extent)
+    if (_updated24HoursScrollController.hasClients &&
+        _updated24HoursScrollController.position.maxScrollExtent > 0 &&
+        _updated24HoursScrollController.position.pixels >=
+            _updated24HoursScrollController.position.maxScrollExtent * 0.8) {
+      _lastUpdated24HoursLoadTime = now;
+      _fetchUpdated24Hours(loadMore: true);
+    }
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -188,7 +241,9 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
 
   @override
   void dispose() {
-    _recommendedScrollController.removeListener(_onRecommendedScroll); // FIXED: Remove listener
+    _recommendedScrollController.removeListener(_onRecommendedScroll);
+    _newArrivalsScrollController.removeListener(_onNewArrivalsScroll);
+    _updated24HoursScrollController.removeListener(_onUpdated24HoursScroll);
     _recommendedScrollController.dispose();
     _newArrivalsScrollController.dispose();
     _updated24HoursScrollController.dispose();
@@ -241,6 +296,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
   // Scroll new arrivals to the right (4 containers)
   void _scrollNewArrivalsRight() {
     final currentPosition = _newArrivalsScrollController.offset;
+    final maxScroll = _newArrivalsScrollController.position.maxScrollExtent;
     final containerWidth = 260.0; // Width of each unit card
     final spacing = 10.0; // Spacing between cards
     final scrollAmount = (containerWidth + spacing) * 4; // Move 4 containers
@@ -250,6 +306,14 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
       duration: Duration(milliseconds: 1200),
       curve: Curves.easeInOut,
     );
+
+    // Auto-load more when scrolling near the end (80%)
+    if (_newArrivalsHasMore && !_isLoadingMoreNewArrivals) {
+      final targetPosition = currentPosition + scrollAmount;
+      if (targetPosition >= maxScroll * 0.7) {
+        _fetchNewArrivals(loadMore: true);
+      }
+    }
   }
 
   // Scroll updated 24 hours to the left (4 containers)
@@ -269,6 +333,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
   // Scroll updated 24 hours to the right (4 containers)
   void _scrollUpdated24HoursRight() {
     final currentPosition = _updated24HoursScrollController.offset;
+    final maxScroll = _updated24HoursScrollController.position.maxScrollExtent;
     final containerWidth = 260.0; // Width of each unit card
     final spacing = 10.0; // Spacing between cards
     final scrollAmount = (containerWidth + spacing) * 4; // Move 4 containers
@@ -278,6 +343,14 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
       duration: Duration(milliseconds: 1200),
       curve: Curves.easeInOut,
     );
+
+    // Auto-load more when scrolling near the end (70%)
+    if (_updated24HoursHasMore && !_isLoadingMoreUpdated24Hours) {
+      final targetPosition = currentPosition + scrollAmount;
+      if (targetPosition >= maxScroll * 0.7) {
+        _fetchUpdated24Hours(loadMore: true);
+      }
+    }
   }
 
   // Scroll companies to the left (4 containers)
@@ -325,6 +398,16 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
     final l10n = AppLocalizations.of(context)!;
+
+    // Check if locale changed and refetch data
+    final currentLocale = l10n.localeName;
+    if (_lastLocale != null && _lastLocale != currentLocale) {
+      // Locale changed, refetch all data with new language
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _refreshData();
+      });
+    }
+    _lastLocale = currentLocale;
 
     return Stack(
       children: [
@@ -1168,70 +1251,15 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
               scrollDirection: Axis.horizontal,
               physics: BouncingScrollPhysics(),
               padding: EdgeInsets.only(bottom: 20), // Add padding for shadow
-              itemCount: units.length + (hasMore || isLoadingMore ? 1 : 0),
+              itemCount: units.length + (isLoadingMore ? 1 : 0),
               itemBuilder: (context, index) {
-                // Show Load More card at the end
+                // Show loading indicator at the end when loading more
                 if (index == units.length) {
                   return Padding(
                     padding: EdgeInsets.only(right: 10),
                     child: SizedBox(
-                      width: 250,
-                      child: isLoadingMore
-                          ? Center(child: CustomLoadingDots(size: 60))
-                          : MouseRegion(
-                              cursor: SystemMouseCursors.click,
-                              child: GestureDetector(
-                                onTap: onLoadMore,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [gradientColors[0].withOpacity(0.1), gradientColors[1].withOpacity(0.2)],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: gradientColors[0].withOpacity(0.5),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Container(
-                                        padding: EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(colors: gradientColors),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          Icons.add,
-                                          color: Colors.white,
-                                          size: 32,
-                                        ),
-                                      ),
-                                      SizedBox(height: 16),
-                                      Text(
-                                        AppLocalizations.of(context)!.loadMore,
-                                        style: TextStyle(
-                                          color: gradientColors[0],
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                        ),
-                                      ),
-                                      SizedBox(height: 8),
-                                      Text(
-                                        '${units.length} / ${totalCount ?? 0}',
-                                        style: TextStyle(
-                                          color: gradientColors[0].withOpacity(0.7),
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
+                      width: 100,
+                      child: Center(child: CustomLoadingDots(size: 60)),
                     ),
                   );
                 }
@@ -1240,7 +1268,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
 
                 return Padding(
                   padding: EdgeInsets.only(
-                    right: index < units.length - 1 ? 10 : (hasMore ? 10 : 0),
+                    right: index < units.length - 1 ? 10 : 0,
                   ),
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,

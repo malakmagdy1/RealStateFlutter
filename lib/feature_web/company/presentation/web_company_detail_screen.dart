@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/company/data/web_services/company_web_services.dart';
@@ -93,7 +94,8 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
 
   String _getCompanyName(AppLocalizations l10n) {
     if (_currentCompany == null) return '';
-    return _currentCompany!.name;
+    final isArabic = l10n.localeName == 'ar';
+    return _currentCompany!.getLocalizedName(isArabic);
   }
 
   @override
@@ -180,7 +182,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
           appBar: AppBar(
             backgroundColor: Colors.white,
             elevation: 1,
-            automaticallyImplyLeading: false, // Remove back button on web
+            automaticallyImplyLeading: true,
             title: Text(
               _getCompanyName(l10n),
               style: TextStyle(
@@ -904,11 +906,11 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
               GridView.builder(
                 shrinkWrap: true,
                 physics: NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3,
-                  childAspectRatio: 0.90, // Adjusted to make cards wider and shorter
-                  crossAxisSpacing: 24,
-                  mainAxisSpacing: 24,
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 300, // Unified width to match other screens
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 16,
+                  childAspectRatio: 0.85, // Unified aspect ratio (wider cards, shorter height)
                 ),
                 itemCount: compounds.length,
                 itemBuilder: (context, index) {
@@ -920,7 +922,44 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
           );
         }
 
-        return SizedBox.shrink();
+        // State is not CompoundSuccess, CompoundLoading, or CompoundError
+        // This happens when navigating back from compound detail (state is CompoundDetailSuccess)
+        // Re-fetch compounds for this company
+        if (_currentCompany != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.read<CompoundBloc>().add(
+              FetchCompoundsByCompanyEvent(companyId: _currentCompany!.id),
+            );
+          });
+        }
+
+        // Show loading indicator while re-fetching
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
+                SizedBox(width: 12),
+                Text(
+                  l10n.ourProjects,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF333333),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 24),
+            Center(
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: CircularProgressIndicator(color: AppColors.mainColor),
+              ),
+            ),
+          ],
+        );
       },
     );
   }

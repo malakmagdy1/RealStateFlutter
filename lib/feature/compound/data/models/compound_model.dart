@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../../company/data/models/sales_model.dart';
 import '../../../../core/locale/language_service.dart';
+import '../../../../core/utils/constant.dart';
 
 class Compound extends Equatable {
   final String id;
@@ -42,6 +43,20 @@ class Compound extends Equatable {
   final String? latestUpdateNote;
   final String? latestUpdateTitle;
   final String? latestUpdateDate;
+
+  /// Get full company logo URL with base URL prepended if needed
+  String? get fullCompanyLogoUrl {
+    if (companyLogo == null || companyLogo!.isEmpty) return null;
+
+    // If already a full URL, return as-is
+    if (companyLogo!.startsWith('http://') || companyLogo!.startsWith('https://')) {
+      return companyLogo;
+    }
+
+    // Prepend base URL for relative paths
+    final cleanPath = companyLogo!.startsWith('/') ? companyLogo!.substring(1) : companyLogo;
+    return '$API_BASE/storage/$cleanPath';
+  }
 
   Compound({
     required this.id,

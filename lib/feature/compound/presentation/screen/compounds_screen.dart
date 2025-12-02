@@ -169,13 +169,17 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
     // Cancel previous timer
     _debounceTimer?.cancel();
 
-    // If both query is empty AND no filters are active, clear search
+    // If both query is empty AND no filters are active, clear search and show compounds
     if (query.trim().isEmpty && _currentFilter.isEmpty) {
       setState(() {
         _showSearchResults = false;
         _showSearchHistory = false;
       });
       _searchBloc.add(ClearSearchEvent());
+      // Refresh compounds to ensure they're displayed
+      _currentPage = 1;
+      _hasMoreData = true;
+      context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: _itemsPerPage));
       return;
     }
 
@@ -376,6 +380,10 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
     });
     _searchBloc.add(ClearSearchEvent());
     _searchFocusNode.unfocus();
+    // Refresh compounds to ensure they're displayed
+    _currentPage = 1;
+    _hasMoreData = true;
+    context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: _itemsPerPage));
   }
 
   @override
@@ -515,56 +523,56 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
                           if (_currentSortBy != null)
                             _buildFilterChip(
                               'Sort: ${_getSortLabel(_currentSortBy!)}',
-                              () => setState(() {
-                                _currentSortBy = null;
-                                _currentFilter = _currentFilter.copyWith(sortBy: null);
-                                if (_searchController.text.isNotEmpty) {
-                                  _performSearch(_searchController.text);
-                                }
-                              }),
+                              () {
+                                setState(() {
+                                  _currentSortBy = null;
+                                  _currentFilter = _currentFilter.copyWith(sortBy: null);
+                                });
+                                _performSearch(_searchController.text);
+                              },
                             ),
                           if (_currentFilter.location != null)
                             _buildFilterChip(
                               'Location: ${_currentFilter.location}',
-                              () => setState(() {
-                                _currentFilter = _currentFilter.copyWith(clearLocation: true);
-                                if (_searchController.text.isNotEmpty) {
-                                  _performSearch(_searchController.text);
-                                }
-                              }),
+                              () {
+                                setState(() {
+                                  _currentFilter = _currentFilter.copyWith(clearLocation: true);
+                                });
+                                _performSearch(_searchController.text);
+                              },
                             ),
                           if (_currentFilter.propertyType != null)
                             _buildFilterChip(
                               'Type: ${_currentFilter.propertyType}',
-                              () => setState(() {
-                                _currentFilter = _currentFilter.copyWith(clearPropertyType: true);
-                                if (_searchController.text.isNotEmpty) {
-                                  _performSearch(_searchController.text);
-                                }
-                              }),
+                              () {
+                                setState(() {
+                                  _currentFilter = _currentFilter.copyWith(clearPropertyType: true);
+                                });
+                                _performSearch(_searchController.text);
+                              },
                             ),
                           if (_currentFilter.minPrice != null || _currentFilter.maxPrice != null)
                             _buildFilterChip(
                               'Price: ${_currentFilter.minPrice ?? "0"} - ${_currentFilter.maxPrice ?? "∞"}',
-                              () => setState(() {
-                                _currentFilter = _currentFilter.copyWith(
-                                  clearMinPrice: true,
-                                  clearMaxPrice: true,
-                                );
-                                if (_searchController.text.isNotEmpty) {
-                                  _performSearch(_searchController.text);
-                                }
-                              }),
+                              () {
+                                setState(() {
+                                  _currentFilter = _currentFilter.copyWith(
+                                    clearMinPrice: true,
+                                    clearMaxPrice: true,
+                                  );
+                                });
+                                _performSearch(_searchController.text);
+                              },
                             ),
                           if (_currentFilter.bedrooms != null)
                             _buildFilterChip(
                               '${_currentFilter.bedrooms} ${l10n.beds}',
-                              () => setState(() {
-                                _currentFilter = _currentFilter.copyWith(clearBedrooms: true);
-                                if (_searchController.text.isNotEmpty) {
-                                  _performSearch(_searchController.text);
-                                }
-                              }),
+                              () {
+                                setState(() {
+                                  _currentFilter = _currentFilter.copyWith(clearBedrooms: true);
+                                });
+                                _performSearch(_searchController.text);
+                              },
                             ),
                           TextButton.icon(
                             onPressed: _clearFilters,
@@ -669,11 +677,12 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(Icons.search_off, size: 48, color: Colors.grey[400]),
-                              SizedBox(height: 8),
+                              Icon(Icons.search_off, size: 64, color: Colors.grey[400]),
+                              SizedBox(height: 16),
                               CustomText16(
-                                l10n.noResults,
-                                color: Colors.grey[600]!,
+                                l10n.noResultsMatchingCriteria,
+                                color: Colors.grey[700]!,
+                                bold: true,
                               ),
                             ],
                           ),
@@ -1002,8 +1011,9 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
               Icon(Icons.home_work_outlined, size: 64, color: Colors.grey[400]),
               SizedBox(height: 16),
               CustomText16(
-                l10n.noUnits,
-                color: Colors.grey[600]!,
+                l10n.noResultsMatchingCriteria,
+                color: Colors.grey[700]!,
+                bold: true,
               ),
             ],
           ),
@@ -1102,8 +1112,9 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
               Icon(Icons.apartment_outlined, size: 64, color: Colors.grey[400]),
               SizedBox(height: 16),
               CustomText16(
-                l10n.noCompounds,
-                color: Colors.grey[600]!,
+                l10n.noResultsMatchingCriteria,
+                color: Colors.grey[700]!,
+                bold: true,
               ),
             ],
           ),
@@ -1143,8 +1154,9 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
               Icon(Icons.business_outlined, size: 64, color: Colors.grey[400]),
               const SizedBox(height: 16),
               CustomText16(
-                l10n.noCompanies,
-                color: Colors.grey[600]!,
+                l10n.noResultsMatchingCriteria,
+                color: Colors.grey[700]!,
+                bold: true,
               ),
             ],
           ),

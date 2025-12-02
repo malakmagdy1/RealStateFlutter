@@ -2744,11 +2744,29 @@ abstract class AppLocalizations {
   /// **'Already in comparison list'**
   String get alreadyInComparison;
 
+  /// No description provided for @removedFromComparison.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed from comparison list'**
+  String get removedFromComparison;
+
   /// No description provided for @undo.
   ///
   /// In en, this message translates to:
   /// **'Undo'**
   String get undo;
+
+  /// No description provided for @goToAI.
+  ///
+  /// In en, this message translates to:
+  /// **'Go to AI'**
+  String get goToAI;
+
+  /// No description provided for @noResultsMatchingCriteria.
+  ///
+  /// In en, this message translates to:
+  /// **'No results matching your criteria'**
+  String get noResultsMatchingCriteria;
 
   /// No description provided for @comparisonList.
   ///
@@ -3289,6 +3307,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Has Garden'**
   String get hasGardenAmenityFilter;
+
+  /// No description provided for @deviceManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Device Management'**
+  String get deviceManagement;
+
+  /// No description provided for @devicesUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'{current} / {max} devices used'**
+  String devicesUsed(int current, int max);
+
+  /// No description provided for @noDevicesFound.
+  ///
+  /// In en, this message translates to:
+  /// **'No devices found'**
+  String get noDevicesFound;
+
+  /// No description provided for @minPriceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Min'**
+  String get minPriceHint;
+
+  /// No description provided for @maxPriceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Max'**
+  String get maxPriceHint;
 }
 
 class _AppLocalizationsDelegate

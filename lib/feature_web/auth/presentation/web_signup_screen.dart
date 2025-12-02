@@ -10,7 +10,6 @@ import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/feature/auth/presentation/bloc/register_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/register_event.dart';
 import 'package:real/feature/auth/presentation/bloc/register_state.dart';
-import 'package:real/feature/auth/presentation/screen/email_verification_screen.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class WebSignUpScreen extends StatefulWidget {
@@ -106,15 +105,9 @@ class _WebSignUpScreenState extends State<WebSignUpScreen> {
 
             MessageHelper.showSuccess(context, state.response.message);
 
-            // Navigate to email verification screen
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => EmailVerificationScreen(
-                  email: emailController.text,
-                ),
-              ),
-            );
+            // Navigate to email verification screen using go_router
+            final email = Uri.encodeComponent(emailController.text);
+            context.go('/verify-email?email=$email');
           } else if (state is RegisterError) {
             MessageHelper.showError(context, state.message);
           }

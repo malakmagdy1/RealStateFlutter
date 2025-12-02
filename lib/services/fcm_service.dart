@@ -14,6 +14,10 @@ import 'package:real/services/notification_preferences.dart';
 // ============================================================
 // BACKGROUND MESSAGE HANDLER (Top-level function required)
 // ============================================================
+// Static set for background handler to track shown notifications
+// Note: This resets on app restart, but that's acceptable for background messages
+final Set<String> _backgroundShownHashes = <String>{};
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
@@ -24,6 +28,26 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (!notificationsEnabled) {
     print('🔕 Background notification blocked - user has disabled notifications');
     return; // Don't save or show the notification
+  }
+
+  // Check for duplicate content (same notification in different language)
+  // This prevents showing both EN and AR versions of the same notification
+  final contentHash = '${message.data['type'] ?? ''}_${message.data['unit_id'] ?? message.data['compound_id'] ?? message.data['company_id'] ?? ''}_${DateTime.now().minute}';
+
+  if (_backgroundShownHashes.contains(contentHash) && contentHash.isNotEmpty && contentHash != '__') {
+    print('⚠️ Background duplicate detected (same content, different language), skipping');
+    return;
+  }
+
+  // Add to shown set
+  if (contentHash.isNotEmpty && contentHash != '__') {
+    _backgroundShownHashes.add(contentHash);
+    // Clean up old hashes
+    if (_backgroundShownHashes.length > 50) {
+      final hashesToKeep = _backgroundShownHashes.toList().sublist(_backgroundShownHashes.length - 25);
+      _backgroundShownHashes.clear();
+      _backgroundShownHashes.addAll(hashesToKeep);
+    }
   }
 
   // Save notification to cache (works on mobile, not on web service worker)
@@ -61,6 +85,9 @@ class FCMService {
 
   // Track shown notification IDs to prevent duplicates
   final Set<String> _shownNotificationIds = <String>{};
+
+  // Track notification content hashes to prevent language duplicates
+  final Set<String> _shownNotificationHashes = <String>{};
 
   // ⚠️ IMPORTANT: Use correct URL for your platform
   // Android Emulator: https://aqar.bdcbiz.com
@@ -100,18 +127,41 @@ class FCMService {
       await _initializeLocalNotifications();
     }
 
+    // Set foreground notification presentation options (iOS)
+    // This ensures notifications are shown even when app is in foreground
+    if (!kIsWeb) {
+      await _firebaseMessaging.setForegroundNotificationPresentationOptions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      print('✅ iOS foreground notification presentation options set');
+    }
+
     // Get FCM token (with VAPID key for web)
     try {
       _fcmToken = kIsWeb
           ? await _firebaseMessaging.getToken(vapidKey: VAPID_KEY)
           : await _firebaseMessaging.getToken();
+
+      if (_fcmToken == null || _fcmToken!.isEmpty) {
+        print('⚠️ FCM token is null or empty, retrying...');
+        // Wait a bit and retry once
+        await Future.delayed(const Duration(seconds: 2));
+        _fcmToken = kIsWeb
+            ? await _firebaseMessaging.getToken(vapidKey: VAPID_KEY)
+            : await _firebaseMessaging.getToken();
+      }
     } catch (e) {
       // On iOS simulators, APNS token is not available - this is expected
-      print('⚠️ Could not get FCM token (expected on simulators): $e');
+      print('⚠️ Could not get FCM token: $e');
+      print('   This is expected on simulators. On real devices, check:');
+      print('   - Android: Google Play Services installed and updated');
+      print('   - iOS: APNS configured in Apple Developer Console');
       _fcmToken = null;
     }
 
-    if (_fcmToken != null) {
+    if (_fcmToken != null && _fcmToken!.isNotEmpty) {
       print('');
       print('╔════════════════════════════════════════════════════════════╗');
       print('║              FCM TOKEN GENERATED                           ║');
@@ -125,18 +175,34 @@ class FCMService {
       // Check if user is already logged in and send token immediately
       final authToken = CasheNetwork.getCasheData(key: 'token');
       if (authToken.isNotEmpty) {
-        print('✅ User already logged in - sending FCM token to backend...');
-        await sendTokenToBackend(_fcmToken!);
+        final locale = CasheNetwork.getCasheData(key: 'locale');
+        final effectiveLocale = locale.isNotEmpty ? locale : 'en';
+        print('✅ User already logged in - sending FCM token to backend with locale: $effectiveLocale');
+        await sendTokenToBackend(_fcmToken!, locale: effectiveLocale);
       } else {
         print('ℹ️  User not logged in - FCM token will be sent after login');
       }
+    } else {
+      print('');
+      print('╔════════════════════════════════════════════════════════════╗');
+      print('║   ⚠️  FCM TOKEN NOT AVAILABLE                              ║');
+      print('╠════════════════════════════════════════════════════════════╣');
+      print('║   Push notifications will NOT work until token is obtained ║');
+      print('║   This can happen on:                                      ║');
+      print('║   - iOS Simulator (no APNS support)                        ║');
+      print('║   - Devices without Google Play Services                   ║');
+      print('║   - Misconfigured Firebase project                         ║');
+      print('╚════════════════════════════════════════════════════════════╝');
+      print('');
     }
 
     // Listen for token refresh (e.g., after reinstall)
-    _firebaseMessaging.onTokenRefresh.listen((newToken) {
+    _firebaseMessaging.onTokenRefresh.listen((newToken) async {
       print('🔄 FCM Token Refreshed!');
       _fcmToken = newToken;
-      sendTokenToBackend(newToken);
+      final locale = CasheNetwork.getCasheData(key: 'locale');
+      final effectiveLocale = locale.isNotEmpty ? locale : 'en';
+      await sendTokenToBackend(newToken, locale: effectiveLocale);
     });
 
     // Subscribe to "all" topic for broadcast messages (not supported on web)
@@ -236,9 +302,9 @@ class FCMService {
   }
 
   // ============================================================
-  // SEND TOKEN TO LARAVEL BACKEND (After Login)
+  // SEND TOKEN TO LARAVEL BACKEND (After Login) - WITH LOCALE
   // ============================================================
-  Future<bool> sendTokenToBackend(String token) async {
+  Future<bool> sendTokenToBackend(String token, {String? locale}) async {
     try {
       // Get the user's auth token from cache
       final authToken = CasheNetwork.getCasheData(key: 'token');
@@ -249,9 +315,13 @@ class FCMService {
         return false;
       }
 
+      // Get locale from cache if not provided
+      final userLocale = locale ?? CasheNetwork.getCasheData(key: 'locale');
+      final effectiveLocale = userLocale.isNotEmpty ? userLocale : 'en';
+
       print('');
       print('═══════════════════════════════════════════════════════');
-      print('📤 Sending FCM token to backend...');
+      print('📤 Sending FCM token to backend with locale: $effectiveLocale');
       print('═══════════════════════════════════════════════════════');
 
       final response = await http.post(
@@ -263,6 +333,7 @@ class FCMService {
         },
         body: jsonEncode({
           'fcm_token': token,
+          'locale': effectiveLocale, // Send locale with token
         }),
       );
 
@@ -276,6 +347,7 @@ class FCMService {
           print('╔════════════════════════════════════════════════════╗');
           print('║   ✅ FCM TOKEN SAVED TO BACKEND SUCCESSFULLY!     ║');
           print('╠════════════════════════════════════════════════════╣');
+          print('║   Locale: $effectiveLocale                         ║');
           print('║   You will now receive notifications!             ║');
           print('╚════════════════════════════════════════════════════╝');
           print('');
@@ -292,6 +364,58 @@ class FCMService {
       print('❌ Error sending FCM token to backend: $e');
       print('═══════════════════════════════════════════════════════');
       print('');
+      return false;
+    }
+  }
+
+  // ============================================================
+  // UPDATE LOCALE ONLY (When user changes language)
+  // ============================================================
+  Future<bool> updateLocale(String locale) async {
+    try {
+      final authToken = CasheNetwork.getCasheData(key: 'token');
+
+      if (authToken.isEmpty) {
+        print('⚠️ No auth token found. Cannot update locale.');
+        return false;
+      }
+
+      print('');
+      print('═══════════════════════════════════════════════════════');
+      print('🌐 Updating locale on backend to: $locale');
+      print('═══════════════════════════════════════════════════════');
+
+      final response = await http.post(
+        Uri.parse('$API_BASE/api/update-locale'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $authToken',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'locale': locale,
+        }),
+      );
+
+      print('📥 Response Status: ${response.statusCode}');
+      print('📥 Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          print('✅ Locale updated to: $locale');
+          print('═══════════════════════════════════════════════════════');
+          return true;
+        }
+      }
+
+      print('❌ Failed to update locale: ${response.statusCode}');
+      print('═══════════════════════════════════════════════════════');
+      return false;
+
+    } catch (e) {
+      print('❌ Error updating locale: $e');
+      print('═══════════════════════════════════════════════════════');
       return false;
     }
   }
@@ -316,9 +440,11 @@ class FCMService {
           print('✅ Subscribed to "all" topic');
         }
 
-        // Re-register token with backend
+        // Re-register token with backend (with locale)
         if (_fcmToken != null) {
-          await sendTokenToBackend(_fcmToken!);
+          final locale = CasheNetwork.getCasheData(key: 'locale');
+          final effectiveLocale = locale.isNotEmpty ? locale : 'en';
+          await sendTokenToBackend(_fcmToken!, locale: effectiveLocale);
         }
       } else {
         // Disable: Unsubscribe from topic but keep token for re-enabling
@@ -409,18 +535,31 @@ class FCMService {
       return;
     }
 
-    // Check for duplicate notifications
+    // Check for duplicate notifications by ID
     final notificationId = message.messageId ??
                           message.data['notification_id'] ??
                           DateTime.now().millisecondsSinceEpoch.toString();
 
     if (_shownNotificationIds.contains(notificationId)) {
-      print('⚠️ Duplicate notification detected (foreground), skipping: $notificationId');
+      print('⚠️ Duplicate notification detected (same ID), skipping: $notificationId');
       return;
     }
 
-    // Add to shown set
+    // Also check for duplicate content (same notification in different language)
+    // This prevents showing both EN and AR versions of the same notification
+    final contentHash = '${message.data['type'] ?? ''}_${message.data['unit_id'] ?? message.data['compound_id'] ?? message.data['company_id'] ?? ''}_${DateTime.now().minute}';
+
+    if (_shownNotificationHashes.contains(contentHash) && contentHash.isNotEmpty && contentHash != '__') {
+      print('⚠️ Duplicate notification detected (same content, different language), skipping');
+      print('   Content hash: $contentHash');
+      return;
+    }
+
+    // Add to shown sets
     _shownNotificationIds.add(notificationId);
+    if (contentHash.isNotEmpty && contentHash != '__') {
+      _shownNotificationHashes.add(contentHash);
+    }
 
     // Keep only last 100 IDs to prevent memory issues
     if (_shownNotificationIds.length > 100) {
@@ -428,21 +567,26 @@ class FCMService {
       _shownNotificationIds.clear();
       _shownNotificationIds.addAll(idsToKeep);
     }
+    if (_shownNotificationHashes.length > 100) {
+      final hashesToKeep = _shownNotificationHashes.toList().sublist(_shownNotificationHashes.length - 50);
+      _shownNotificationHashes.clear();
+      _shownNotificationHashes.addAll(hashesToKeep);
+    }
 
     await _saveNotificationToCache(message);
 
     // Show local notification when app is in foreground
     if (message.notification != null) {
       if (kIsWeb) {
-        // For web, show browser notification
-        print('🌐 Showing web notification in foreground...');
-        _showWebNotification(
-          message.notification!.title ?? 'Notification',
-          message.notification!.body ?? '',
-          message.data,
-        );
+        // For web: DON'T show notification here!
+        // The service worker (firebase-messaging-sw.js) already handles showing notifications
+        // Showing one here would cause DUPLICATE notifications
+        print('🌐 Web foreground message received - notification handled by service worker');
+        print('   (Not showing local notification to prevent duplicates)');
       } else {
         // For mobile, show flutter local notification
+        // On mobile, Firebase does NOT auto-show notifications when app is in foreground
+        // So we must show it manually using flutter_local_notifications
         _localNotifications.show(
           message.notification.hashCode,
           message.notification!.title,
@@ -466,6 +610,7 @@ class FCMService {
           ),
           payload: jsonEncode(message.data),
         );
+        print('📱 Mobile foreground notification shown');
       }
     }
   }

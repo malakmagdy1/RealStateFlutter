@@ -121,19 +121,55 @@ class _WebSubscriptionPlansScreenState
             );
           }
 
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.error_outline, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  'Failed to load plans',
-                  style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+          if (state is SubscriptionError) {
+            return Center(
+              child: Padding(
+                padding: EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                    SizedBox(height: 16),
+                    Text(
+                      'Failed to load plans',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      state.message,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey[600], fontSize: 16),
+                    ),
+                    SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        context.read<SubscriptionBloc>().add(LoadPlansEvent());
+                      },
+                      icon: Icon(Icons.refresh),
+                      label: Text('Try Again'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.mainColor,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          );
+              ),
+            );
+          }
+
+          // Initial state - trigger loading
+          if (state is SubscriptionInitial) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              context.read<SubscriptionBloc>().add(LoadPlansEvent());
+            });
+          }
+
+          return Center(child: CircularProgressIndicator());
         },
       ),
     );

@@ -513,11 +513,11 @@ class _CompaniesScreenState extends State<CompaniesScreen> with WidgetsBindingOb
                     borderRadius: BorderRadius.circular(10),
                     color: Colors.grey.shade200,
                   ),
-                  child: company.logo != null
+                  child: company.fullLogoUrl != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(10),
                           child: RobustNetworkImage(
-                            imageUrl: company.logo!,
+                            imageUrl: company.fullLogoUrl!,
                             width: 60,
                             height: 60,
                             fit: BoxFit.cover,

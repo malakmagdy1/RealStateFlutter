@@ -31,6 +31,10 @@ import 'package:real/feature/search/data/services/company_service.dart';
 import 'package:intl/intl.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
 import 'package:real/feature/ai_chat/presentation/widget/floating_comparison_cart.dart';
+import 'package:real/feature/ai_chat/data/models/comparison_item.dart';
+import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart';
+import 'package:go_router/go_router.dart';
+import 'package:real/feature_web/compounds/data/web_search_filter_state_service.dart';
 
 class WebCompoundsScreen extends StatefulWidget {
   const WebCompoundsScreen({Key? key}) : super(key: key);
@@ -85,10 +89,33 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
   final TextEditingController _maxMonthlyPaymentController = TextEditingController();
   final List<int> paymentDurationOptions = [0, 5, 7, 10]; // 0 = Cash
 
+  // Property types - API values (English)
   final List<String> propertyTypes = ['Villa', 'Apartment', 'Studio', 'Duplex', 'Penthouse'];
   final List<int> bedroomOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9];
   // Finishing options - must match API values exactly
   final List<String> finishingOptions = ['Finished', 'Semi-Finished', 'Core and Shell'];
+
+  // Helper method to get localized property type name
+  String _getLocalizedPropertyType(String type, AppLocalizations l10n) {
+    switch (type) {
+      case 'Villa': return l10n.villa;
+      case 'Apartment': return l10n.apartment;
+      case 'Studio': return l10n.studio;
+      case 'Duplex': return l10n.duplex;
+      case 'Penthouse': return l10n.penthouse;
+      default: return type;
+    }
+  }
+
+  // Helper method to get localized finishing name
+  String _getLocalizedFinishing(String finishing, AppLocalizations l10n) {
+    switch (finishing) {
+      case 'Finished': return l10n.finished;
+      case 'Semi-Finished': return l10n.semiFinished;
+      case 'Core and Shell': return l10n.coreShell;
+      default: return finishing;
+    }
+  }
 
   // Sort options - will be populated with localized values
   Map<String, String> get sortOptions {
@@ -102,6 +129,9 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
   // Track expanded state for search results
 
+  // State persistence service
+  final WebSearchFilterStateService _stateService = WebSearchFilterStateService();
+
   @override
   void initState() {
     super.initState();
@@ -109,6 +139,9 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     _loadSearchHistory();
     _loadLocations();
     _loadCompanies();
+
+    // Restore saved state if any
+    _restoreState();
 
     // Listen to focus changes
     _searchFocusNode.addListener(() {
@@ -122,8 +155,90 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     // Add scroll listener for pagination
     _scrollController.addListener(_onScroll);
 
-    // Load first page with 10 items
-    context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: _pageLimit));
+    // Load first page with 10 items (only if no saved state)
+    if (!_stateService.hasState) {
+      context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: _pageLimit));
+    }
+  }
+
+  /// Restore saved search/filter state
+  void _restoreState() {
+    if (_stateService.hasState) {
+      setState(() {
+        // Restore search
+        if (_stateService.searchQuery != null && _stateService.searchQuery!.isNotEmpty) {
+          _searchController.text = _stateService.searchQuery!;
+          _showSearchResults = _stateService.showSearchResults;
+        }
+
+        // Restore filter
+        _currentFilter = _stateService.currentFilter;
+        _selectedLocation = _stateService.selectedLocation;
+        _selectedCompanyId = _stateService.selectedCompanyId;
+        _selectedPropertyType = _stateService.selectedPropertyType;
+        _selectedBedrooms = _stateService.selectedBedrooms;
+        _selectedFinishing = _stateService.selectedFinishing;
+        _deliveredAtFrom = _stateService.deliveredAtFrom;
+        _deliveredAtTo = _stateService.deliveredAtTo;
+        _hasBeenDelivered = _stateService.hasBeenDelivered;
+        _hasClub = _stateService.hasClub;
+        _hasRoof = _stateService.hasRoof;
+        _hasGarden = _stateService.hasGarden;
+        _selectedSortBy = _stateService.selectedSortBy;
+        _selectedPaymentDuration = _stateService.selectedPaymentDuration;
+        _currentPage = _stateService.currentPage;
+
+        // Restore price controllers
+        if (_stateService.minPrice != null) {
+          _minPriceController.text = _stateService.minPrice!;
+        }
+        if (_stateService.maxPrice != null) {
+          _maxPriceController.text = _stateService.maxPrice!;
+        }
+        if (_stateService.minMonthlyPayment != null) {
+          _minMonthlyPaymentController.text = _stateService.minMonthlyPayment!;
+        }
+        if (_stateService.maxMonthlyPayment != null) {
+          _maxMonthlyPaymentController.text = _stateService.maxMonthlyPayment!;
+        }
+      });
+
+      // Re-run search/filter with restored state
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_searchController.text.isNotEmpty || !_currentFilter.isEmpty) {
+          _performSearch(_searchController.text);
+        } else {
+          context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: _pageLimit));
+        }
+      });
+    }
+  }
+
+  /// Save current state before navigating away
+  void _saveState() {
+    _stateService.saveState(
+      searchQuery: _searchController.text,
+      showSearchResults: _showSearchResults,
+      currentFilter: _currentFilter,
+      selectedLocation: _selectedLocation,
+      selectedCompanyId: _selectedCompanyId,
+      selectedPropertyType: _selectedPropertyType,
+      selectedBedrooms: _selectedBedrooms,
+      selectedFinishing: _selectedFinishing,
+      deliveredAtFrom: _deliveredAtFrom,
+      deliveredAtTo: _deliveredAtTo,
+      hasBeenDelivered: _hasBeenDelivered,
+      hasClub: _hasClub,
+      hasRoof: _hasRoof,
+      hasGarden: _hasGarden,
+      selectedSortBy: _selectedSortBy,
+      selectedPaymentDuration: _selectedPaymentDuration,
+      minPrice: _minPriceController.text.isNotEmpty ? _minPriceController.text : null,
+      maxPrice: _maxPriceController.text.isNotEmpty ? _maxPriceController.text : null,
+      minMonthlyPayment: _minMonthlyPaymentController.text.isNotEmpty ? _minMonthlyPaymentController.text : null,
+      maxMonthlyPayment: _maxMonthlyPaymentController.text.isNotEmpty ? _maxMonthlyPaymentController.text : null,
+      currentPage: _currentPage,
+    );
   }
 
   Future<void> _loadLocations() async {
@@ -260,9 +375,10 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
               ? DateFormat('yyyy-MM-dd').format(_deliveredAtTo!)
               : null,
           hasBeenDelivered: _hasBeenDelivered,
-          hasClub: _hasClub,
-          hasRoof: _hasRoof,
-          hasGarden: _hasGarden,
+          // Only pass true values, pass null if false (no filter)
+          hasClub: _hasClub ? true : null,
+          hasRoof: _hasRoof ? true : null,
+          hasGarden: _hasGarden ? true : null,
           sortBy: _selectedSortBy,
           // Payment plan filters
           paymentPlanDuration: _selectedPaymentDuration,
@@ -272,6 +388,9 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
       });
 
       _performSearch(_searchController.text);
+
+      // Save state for navigation persistence
+      _saveState();
     });
   }
 
@@ -307,6 +426,9 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
     _searchController.clear();
     _searchBloc.add(ClearSearchEvent());
 
+    // Clear persisted state
+    _stateService.clearState();
+
     // Reload compounds from first page
     context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: _pageLimit));
   }
@@ -318,8 +440,15 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
       setState(() {
         _showSearchResults = false;
         _showSearchHistory = false;
+        // Clear old filtered/search results
+        _allCompounds.clear();
+        // Reset pagination
+        _currentPage = 1;
+        _hasMorePages = true;
       });
       _searchBloc.add(ClearSearchEvent());
+      // Refresh compounds to ensure they're displayed
+      context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: _pageLimit));
       return;
     }
 
@@ -441,6 +570,19 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
                       return Row(
                         children: [
+                          // Back button
+                          if (context.canPop())
+                            IconButton(
+                              onPressed: () => context.pop(),
+                              icon: Icon(
+                                Icons.arrow_back_rounded,
+                                size: 28,
+                                color: AppColors.mainColor,
+                              ),
+                              tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                            ),
+                          if (context.canPop())
+                            const SizedBox(width: 8),
                           Icon(
                             Icons.apartment,
                             size: 32,
@@ -586,6 +728,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
+                                _minPriceController.clear();
                                 _currentFilter = _currentFilter.copyWith(clearMinPrice: true);
                               });
                               _performSearch(_searchController.text);
@@ -599,6 +742,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
+                                _maxPriceController.clear();
                                 _currentFilter = _currentFilter.copyWith(clearMaxPrice: true);
                               });
                               _performSearch(_searchController.text);
@@ -606,12 +750,13 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                           ),
                         if (_currentFilter.propertyType != null)
                           Chip(
-                            label: Text(_currentFilter.propertyType!, style: const TextStyle(fontSize: 12)),
+                            label: Text(_getLocalizedPropertyType(_currentFilter.propertyType!, l10n), style: const TextStyle(fontSize: 12)),
                             backgroundColor: AppColors.mainColor.withOpacity(0.1),
                             labelStyle: TextStyle(color: AppColors.mainColor),
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
+                                _selectedPropertyType = null;
                                 _currentFilter = _currentFilter.copyWith(clearPropertyType: true);
                               });
                               _performSearch(_searchController.text);
@@ -625,6 +770,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
+                                _selectedBedrooms = null;
                                 _currentFilter = _currentFilter.copyWith(clearBedrooms: true);
                               });
                               _performSearch(_searchController.text);
@@ -632,12 +778,13 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                           ),
                         if (_currentFilter.finishing != null)
                           Chip(
-                            label: Text(_currentFilter.finishing!, style: const TextStyle(fontSize: 12)),
+                            label: Text(_getLocalizedFinishing(_currentFilter.finishing!, l10n), style: const TextStyle(fontSize: 12)),
                             backgroundColor: AppColors.mainColor.withOpacity(0.1),
                             labelStyle: TextStyle(color: AppColors.mainColor),
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
+                                _selectedFinishing = null;
                                 _currentFilter = _currentFilter.copyWith(clearFinishing: true);
                               });
                               _performSearch(_searchController.text);
@@ -651,6 +798,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
+                                _hasClub = false;
                                 _currentFilter = _currentFilter.copyWith(clearHasClub: true);
                               });
                               _performSearch(_searchController.text);
@@ -664,6 +812,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
+                                _hasRoof = false;
                                 _currentFilter = _currentFilter.copyWith(clearHasRoof: true);
                               });
                               _performSearch(_searchController.text);
@@ -677,6 +826,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
+                                _hasGarden = false;
                                 _currentFilter = _currentFilter.copyWith(clearHasGarden: true);
                               });
                               _performSearch(_searchController.text);
@@ -690,6 +840,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
+                                _deliveredAtFrom = null;
                                 _currentFilter = _currentFilter.copyWith(clearDeliveredAtFrom: true);
                               });
                               _performSearch(_searchController.text);
@@ -703,6 +854,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             deleteIcon: const Icon(Icons.close, size: 16),
                             onDeleted: () {
                               setState(() {
+                                _deliveredAtTo = null;
                                 _currentFilter = _currentFilter.copyWith(clearDeliveredAtTo: true);
                               });
                               _performSearch(_searchController.text);
@@ -712,8 +864,8 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                               Chip(
                                 label: Text(
                                   _currentFilter.hasBeenDelivered == true
-                                    ? 'Delivered'
-                                    : 'Not Delivered',
+                                    ? l10n.onlyDelivered
+                                    : l10n.notDelivered,
                                   style: const TextStyle(fontSize: 12)
                                 ),
                                 backgroundColor: AppColors.mainColor.withOpacity(0.1),
@@ -721,6 +873,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                                 deleteIcon: const Icon(Icons.close, size: 16),
                                 onDeleted: () {
                                   setState(() {
+                                    _hasBeenDelivered = null;
                                     _currentFilter = _currentFilter.copyWith(clearHasBeenDelivered: true);
                                   });
                                   _performSearch(_searchController.text);
@@ -1000,7 +1153,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Price Range Card (in Millions)
             _buildFilterCard(
-              title: 'Price Range (Million EGP)',
+              title: l10n.priceRangeMillionEGP,
               icon: Icons.attach_money,
               child: Row(
                 children: [
@@ -1009,7 +1162,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                       controller: _minPriceController,
                       keyboardType: TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
-                        hintText: 'Min (e.g., 3)',
+                        hintText: l10n.minPriceHint,
                         suffixText: 'M',
                         hintStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(
@@ -1032,7 +1185,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                       controller: _maxPriceController,
                       keyboardType: TextInputType.numberWithOptions(decimal: true),
                       decoration: InputDecoration(
-                        hintText: 'Max (e.g., 5)',
+                        hintText: l10n.maxPriceHint,
                         suffixText: 'M',
                         hintStyle: TextStyle(fontSize: 12),
                         border: OutlineInputBorder(
@@ -1065,7 +1218,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                 children: propertyTypes.map((type) {
                   final isSelected = _selectedPropertyType == type;
                   return ChoiceChip(
-                    label: Text(type, style: const TextStyle(fontSize: 11)),
+                    label: Text(_getLocalizedPropertyType(type, l10n), style: const TextStyle(fontSize: 11)),
                     selected: isSelected,
                     onSelected: (selected) {
                       setState(() {
@@ -1159,7 +1312,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                             ),
                             const SizedBox(width: 10),
                             Text(
-                              finishing,
+                              _getLocalizedFinishing(finishing, l10n),
                               style: TextStyle(
                                 fontSize: 13,
                                 color: isSelected ? AppColors.mainColor : Colors.black87,
@@ -1179,7 +1332,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Delivered From Date
             _buildFilterCard(
-              title: 'Delivered From',
+              title: l10n.deliveredFromDate,
               icon: Icons.calendar_today,
               child: InkWell(
                 onTap: () async {
@@ -1211,7 +1364,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                         child: Text(
                           _deliveredAtFrom != null
                               ? DateFormat('yyyy-MM-dd').format(_deliveredAtFrom!)
-                              : 'Select from date',
+                              : l10n.selectDeliveredFromDate,
                           style: TextStyle(
                             fontSize: 13,
                             color: _deliveredAtFrom != null
@@ -1240,7 +1393,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Delivered To Date
             _buildFilterCard(
-              title: 'Delivered To',
+              title: l10n.deliveredToDate,
               icon: Icons.calendar_today,
               child: InkWell(
                 onTap: () async {
@@ -1272,7 +1425,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                         child: Text(
                           _deliveredAtTo != null
                               ? DateFormat('yyyy-MM-dd').format(_deliveredAtTo!)
-                              : 'Select to date',
+                              : l10n.selectDeliveredToDate,
                           style: TextStyle(
                             fontSize: 13,
                             color: _deliveredAtTo != null
@@ -1301,7 +1454,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
             // Delivery Status
             _buildFilterCard(
-              title: 'Delivery Status',
+              title: l10n.deliveryStatus,
               icon: Icons.local_shipping,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -1315,19 +1468,19 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                     value: _hasBeenDelivered,
                     icon: Icon(Icons.arrow_drop_down, size: 24),
                     isExpanded: true,
-                    hint: Text('All', style: TextStyle(fontSize: 13)),
+                    hint: Text(l10n.all, style: TextStyle(fontSize: 13)),
                     items: [
                       DropdownMenuItem<bool?>(
                         value: null,
-                        child: Text('All', style: TextStyle(fontSize: 13)),
+                        child: Text(l10n.all, style: TextStyle(fontSize: 13)),
                       ),
                       DropdownMenuItem<bool?>(
                         value: true,
-                        child: Text('Only Delivered', style: TextStyle(fontSize: 13)),
+                        child: Text(l10n.onlyDelivered, style: TextStyle(fontSize: 13)),
                       ),
                       DropdownMenuItem<bool?>(
                         value: false,
-                        child: Text('Not Delivered', style: TextStyle(fontSize: 13)),
+                        child: Text(l10n.notDelivered, style: TextStyle(fontSize: 13)),
                       ),
                     ],
                     onChanged: (value) {
@@ -1803,12 +1956,17 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
               child: Padding(
                 padding: const EdgeInsets.all(48.0),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.search_off, size: 64, color: Colors.grey.shade400),
-                    const SizedBox(height: 16),
+                    Icon(Icons.search_off, size: 80, color: Colors.grey.shade400),
+                    const SizedBox(height: 24),
                     Text(
-                      l10n.noResultsFound,
-                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                      l10n.noResultsMatchingCriteria,
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
                     ),
                   ],
                 ),
@@ -2099,14 +2257,10 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
       child: GestureDetector(
         onTap: () {
           print('[COMPANY CARD] Navigating to company: ${company.id} - $companyName');
-          Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (context) => WebCompanyDetailScreen(
-                companyId: company.id,
-                company: company,
-              ),
-            ),
-          );
+          // Save state before navigation so it persists when user returns
+          _saveState();
+          // Use go_router for proper browser history integration
+          context.push('/company/${company.id}', extra: company);
         },
         child: Container(
           padding: const EdgeInsets.all(20),
@@ -2125,7 +2279,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
           child: Row(
             children: [
               // Company Logo
-              if (company.logo != null && company.logo!.isNotEmpty)
+              if (company.fullLogoUrl != null && company.fullLogoUrl!.isNotEmpty)
                 ClipRRect(
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
@@ -2134,7 +2288,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
                     color: const Color(0xFFF8F9FA),
                     padding: const EdgeInsets.all(8),
                     child: RobustNetworkImage(
-                      imageUrl: company.logo!,
+                      imageUrl: company.fullLogoUrl!,
                       width: 54,
                       height: 54,
                       fit: BoxFit.contain,
@@ -2204,6 +2358,42 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
               ),
 
               const SizedBox(width: 12),
+
+              // Compare Button
+              StreamBuilder<List<ComparisonItem>>(
+                stream: ComparisonListService().comparisonStream,
+                builder: (context, snapshot) {
+                  final items = snapshot.data ?? [];
+                  final isInComparison = items.any((item) =>
+                    item.id == company.id && item.type == 'company'
+                  );
+
+                  return MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () => _showCompanyCompareDialog(context, company, l10n),
+                      child: Container(
+                        height: 40,
+                        width: 40,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: isInComparison
+                              ? AppColors.mainColor
+                              : Colors.grey.shade200,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isInComparison ? Icons.compare : Icons.compare_arrows,
+                          size: 20,
+                          color: isInComparison ? Colors.white : Colors.grey[700],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(width: 12),
               Icon(
                 Icons.arrow_forward_ios,
                 size: 18,
@@ -2214,6 +2404,137 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
         ),
       ),
     );
+  }
+
+  // Company comparison dialog
+  void _showCompanyCompareDialog(BuildContext context, Company company, AppLocalizations l10n) {
+    final comparisonItem = ComparisonItem.fromCompany(company);
+    final comparisonService = ComparisonListService();
+
+    // Check if already in comparison - toggle behavior
+    if (comparisonService.contains(comparisonItem)) {
+      // Remove from comparison list
+      comparisonService.removeItem(comparisonItem);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.remove_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.removedFromComparison,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 10),
+          action: SnackBarAction(
+            label: l10n.undo,
+            textColor: Colors.white,
+            onPressed: () {
+              comparisonService.addItem(comparisonItem);
+            },
+          ),
+        ),
+      );
+      return;
+    }
+
+    // Add to comparison list
+    final added = comparisonService.addItem(comparisonItem);
+
+    if (added) {
+      // Show success message with Go to AI button
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.addedToComparison,
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                ),
+              ),
+              // Go to AI Chat button
+              TextButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  context.push('/ai-chat');
+                },
+                icon: Icon(Icons.smart_toy, color: Colors.white, size: 18),
+                label: Text(
+                  l10n.goToAI,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(minutes: 2),
+          action: SnackBarAction(
+            label: l10n.undo,
+            textColor: Colors.white,
+            onPressed: () {
+              comparisonService.removeItem(comparisonItem);
+            },
+          ),
+        ),
+      );
+    } else {
+      // Show error (list is full)
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.white),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  l10n.comparisonListFull,
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+              // Go to AI Chat button even when full
+              TextButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  context.push('/ai-chat');
+                },
+                icon: Icon(Icons.smart_toy, color: Colors.white, size: 18),
+                label: Text(
+                  l10n.goToAI,
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 10),
+        ),
+      );
+    }
   }
 
   Widget _buildCompanyPlaceholder(String name) {

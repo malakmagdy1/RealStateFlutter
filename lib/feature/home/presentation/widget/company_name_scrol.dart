@@ -25,7 +25,7 @@ class _CompanyNameState extends State<CompanyName> {
 
   @override
   Widget build(BuildContext context) {
-    final bool hasLogo = widget.company.logo != null && widget.company.logo!.isNotEmpty;
+    final bool hasLogo = widget.company.fullLogoUrl != null && widget.company.fullLogoUrl!.isNotEmpty;
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Responsive sizing based on screen width - reduced size for better layout
@@ -47,7 +47,7 @@ class _CompanyNameState extends State<CompanyName> {
                 CircleAvatar(
                   radius: logoRadius,
                   backgroundColor: AppColors.mainColor.withOpacity(0.1),
-                  backgroundImage: hasLogo ? NetworkImage(widget.company.logo!) : null,
+                  backgroundImage: hasLogo ? NetworkImage(widget.company.fullLogoUrl!) : null,
                   child: !hasLogo
                       ? Text(
                           widget.company.name.isNotEmpty

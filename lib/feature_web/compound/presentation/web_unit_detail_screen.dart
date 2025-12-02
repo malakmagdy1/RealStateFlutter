@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
@@ -382,6 +383,22 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
     }
   }
 
+  /// Format area value - rounds to nearest integer or 1 decimal place
+  String _formatArea(String? areaStr) {
+    if (areaStr == null || areaStr.isEmpty) return 'N/A';
+    try {
+      final area = double.parse(areaStr);
+      // If it's a whole number, show without decimals
+      if (area == area.roundToDouble()) {
+        return area.toInt().toString();
+      }
+      // Otherwise show with 1 decimal place
+      return area.toStringAsFixed(1);
+    } catch (e) {
+      return areaStr;
+    }
+  }
+
   void _shareUnit() {
     showModalBottomSheet(
       context: context,
@@ -405,7 +422,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          automaticallyImplyLeading: false,
+          automaticallyImplyLeading: true,
           title: Text(
             'Loading...',
             style: TextStyle(
@@ -427,7 +444,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
-          automaticallyImplyLeading: false,
+          automaticallyImplyLeading: true,
           title: Text(
             'Error',
             style: TextStyle(
@@ -465,16 +482,35 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
     if (_currentUnit == null) {
       return Scaffold(
         backgroundColor: Color(0xFFF8F9FA),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          automaticallyImplyLeading: true,
+        ),
         body: Center(
           child: CustomLoadingDots(size: 120),
         ),
       );
     }
 
+    final unitName = _currentUnit!.unitNumber ?? _currentUnit!.code ?? 'Unit';
+
     return Stack(
       children: [
         Scaffold(
           backgroundColor: Color(0xFFF8F9FA),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 1,
+            automaticallyImplyLeading: true,
+            title: Text(
+              unitName,
+              style: TextStyle(
+                color: AppColors.mainColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
           body: SingleChildScrollView(
             child: Center(
               child: ConstrainedBox(
@@ -1219,7 +1255,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
           SizedBox(height: 12),
           _buildStatRow(Icons.bathtub_outlined, '${_currentUnit!.bathrooms}', l10n.bathrooms),
           SizedBox(height: 12),
-          _buildStatRow(Icons.square_foot_outlined, '${_currentUnit!.area}', l10n.sqm),
+          _buildStatRow(Icons.square_foot_outlined, '${_formatArea(_currentUnit!.area)}', l10n.sqm),
           SizedBox(height: 16),
           Divider(height: 1),
           SizedBox(height: 16),
@@ -1490,14 +1526,14 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
           _buildSpecRow(l10n.finishing, _currentUnit!.finishing ?? 'N/A'),
           _buildSpecRow(l10n.deliveryDate, _formatDate(_currentUnit!.deliveryDate)),
           _buildSpecRow(l10n.builtUpArea, _currentUnit!.builtUpArea != null
-            ? '${_currentUnit!.builtUpArea} ${l10n.sqm}'
-            : (_currentUnit!.area != '0' ? '${_currentUnit!.area} ${l10n.sqm}' : 'N/A')),
-          _buildSpecRow(l10n.totalArea, _currentUnit!.area != '0' ? '${_currentUnit!.area} ${l10n.sqm}' : 'N/A'),
+            ? '${_formatArea(_currentUnit!.builtUpArea)} ${l10n.sqm}'
+            : (_currentUnit!.area != '0' ? '${_formatArea(_currentUnit!.area)} ${l10n.sqm}' : 'N/A')),
+          _buildSpecRow(l10n.totalArea, _currentUnit!.area != '0' ? '${_formatArea(_currentUnit!.area)} ${l10n.sqm}' : 'N/A'),
           _buildSpecRow(l10n.landArea, _currentUnit!.landArea != null
-            ? '${_currentUnit!.landArea} ${l10n.sqm}'
-            : (_currentUnit!.gardenArea != null && _currentUnit!.gardenArea != '0' ? '${_currentUnit!.gardenArea} ${l10n.sqm}' : 'N/A')),
-          _buildSpecRow(l10n.gardenArea, _currentUnit!.gardenArea != null && _currentUnit!.gardenArea != '0' ? '${_currentUnit!.gardenArea} ${l10n.sqm}' : 'N/A'),
-          _buildSpecRow(l10n.roofArea, _currentUnit!.roofArea != null && _currentUnit!.roofArea != '0' ? '${_currentUnit!.roofArea} ${l10n.sqm}' : 'N/A'),
+            ? '${_formatArea(_currentUnit!.landArea)} ${l10n.sqm}'
+            : (_currentUnit!.gardenArea != null && _currentUnit!.gardenArea != '0' ? '${_formatArea(_currentUnit!.gardenArea)} ${l10n.sqm}' : 'N/A')),
+          _buildSpecRow(l10n.gardenArea, _currentUnit!.gardenArea != null && _currentUnit!.gardenArea != '0' ? '${_formatArea(_currentUnit!.gardenArea)} ${l10n.sqm}' : 'N/A'),
+          _buildSpecRow(l10n.roofArea, _currentUnit!.roofArea != null && _currentUnit!.roofArea != '0' ? '${_formatArea(_currentUnit!.roofArea)} ${l10n.sqm}' : 'N/A'),
           _buildSpecRow(l10n.floor, _currentUnit!.floor ?? 'N/A'),
           _buildSpecRow(l10n.building, _currentUnit!.buildingName ?? 'N/A'),
           SizedBox(height: 24),
@@ -1514,14 +1550,19 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.greyText,
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                color: AppColors.greyText,
+              ),
             ),
           ),
+          SizedBox(width: 16), // Add spacing between label and value
           Expanded(
+            flex: 3,
             child: Text(
               value,
               style: TextStyle(
@@ -1529,7 +1570,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
                 fontWeight: FontWeight.w600,
                 color: Colors.black,
               ),
-              textAlign: TextAlign.right,
+              textAlign: TextAlign.end,
             ),
           ),
         ],

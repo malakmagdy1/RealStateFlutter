@@ -223,7 +223,7 @@ class _CustomNavState extends State<CustomNav> {
                 icon: Icon(
                   Icons.notifications,
                   color: AppColors.mainColor,
-                  size: screenWidth * 0.05,
+                  size: screenWidth * 0.07,
                 ),
               ),
             ),

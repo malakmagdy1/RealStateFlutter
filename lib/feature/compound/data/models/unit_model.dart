@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:real/feature/sale/data/models/sale_model.dart';
+import 'package:real/core/utils/constant.dart';
 
 /// Model for payment plan data from API
 class PaymentPlan {
@@ -145,6 +146,20 @@ class Unit extends Equatable {
       return (compoundLocationAr?.isNotEmpty == true) ? compoundLocationAr : compoundLocation;
     }
     return (compoundLocationEn?.isNotEmpty == true) ? compoundLocationEn : compoundLocation;
+  }
+
+  /// Get full company logo URL with base URL prepended if needed
+  String? get fullCompanyLogoUrl {
+    if (companyLogo == null || companyLogo!.isEmpty) return null;
+
+    // If already a full URL, return as-is
+    if (companyLogo!.startsWith('http://') || companyLogo!.startsWith('https://')) {
+      return companyLogo;
+    }
+
+    // Prepend base URL for relative paths
+    final cleanPath = companyLogo!.startsWith('/') ? companyLogo!.substring(1) : companyLogo;
+    return '$API_BASE/storage/$cleanPath';
   }
 
   // Additional fields from search API

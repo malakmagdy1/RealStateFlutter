@@ -502,7 +502,10 @@
   "addedToComparison": "تمت الإضافة إلى قائمة المقارنة",
   "comparisonListFull": "قائمة المقارنة ممتلئة (الحد الأقصى 4 عناصر)",
   "alreadyInComparison": "موجود بالفعل في قائمة المقارنة",
+  "removedFromComparison": "تمت الإزالة من قائمة المقارنة",
   "undo": "تراجع",
+  "goToAI": "الذهاب للذكاء الاصطناعي",
+  "noResultsMatchingCriteria": "لا توجد نتائج تطابق معاييرك",
   "comparisonList": "قائمة المقارنة",
   "startAIComparisonChat": "بدء محادثة المقارنة بالذكاء الاصطناعي",
   "selectAtLeast2Items": "يرجى اختيار عنصرين على الأقل للمقارنة",
@@ -620,5 +623,11 @@
 
   "hasClubAmenityFilter": "يحتوي على نادي",
   "hasRoofAmenityFilter": "يحتوي على سطح",
-  "hasGardenAmenityFilter": "يحتوي على حديقة"
+  "hasGardenAmenityFilter": "يحتوي على حديقة",
+
+  "deviceManagement": "إدارة الأجهزة",
+  "devicesUsed": "{current} / {max} جهاز مستخدم",
+  "noDevicesFound": "لا توجد أجهزة",
+  "minPriceHint": "الحد الأدنى",
+  "maxPriceHint": "الحد الأقصى"
 }

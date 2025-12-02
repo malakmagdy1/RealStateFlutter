@@ -13,6 +13,7 @@ import 'package:real/feature_web/compound/presentation/web_compound_detail_scree
 import 'package:real/feature_web/compound/presentation/web_unit_detail_screen.dart';
 import 'package:real/feature_web/subscription/presentation/web_subscription_plans_screen.dart';
 import 'package:real/feature/auth/presentation/screen/device_management_screen.dart';
+import 'package:real/feature/auth/presentation/screen/email_verification_screen.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.dart';
@@ -61,6 +62,16 @@ class AppRouter {
         builder: (context, state) => const WebForgotPasswordScreen(),
       ),
 
+      // Email Verification Route
+      GoRoute(
+        path: '/verify-email',
+        name: 'verify-email',
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'] ?? '';
+          return EmailVerificationScreen(email: email);
+        },
+      ),
+
       // Main App Route (with tabs)
       GoRoute(
         path: '/',
@@ -74,13 +85,21 @@ class AppRouter {
         name: 'company-detail',
         builder: (context, state) {
           final companyId = state.pathParameters['id']!;
-          final companyData = state.extra as Map<String, dynamic>?;
+          final extra = state.extra;
+
+          // Handle both Company object and Map<String, dynamic>
+          Company? company;
+          if (extra is Company) {
+            company = extra;
+          } else if (extra is Map<String, dynamic>) {
+            company = Company.fromJson(extra);
+          }
 
           // Pass company data if available, otherwise just pass ID
           // The screen will fetch data if needed
           return WebCompanyDetailScreen(
             companyId: companyId,
-            company: companyData != null ? Company.fromJson(companyData) : null,
+            company: company,
           );
         },
       ),
@@ -159,9 +178,10 @@ class AppRouter {
       final fullPath = state.uri.toString();
       final pathParams = state.pathParameters;
       final isSplashRoute = currentPath == '/splash';
-      final isLoginRoute = currentPath == '/login' ||
+      final isAuthRoute = currentPath == '/login' ||
           currentPath == '/signup' ||
-          currentPath == '/forgot-password';
+          currentPath == '/forgot-password' ||
+          currentPath == '/verify-email';
 
       print('[ROUTER] ==========================================');
       print('[ROUTER] Redirect check');
@@ -173,7 +193,7 @@ class AppRouter {
       print('[ROUTER] Token != "": ${token != ""}');
       print('[ROUTER] isLoggedIn: $isLoggedIn');
       print('[ROUTER] isSplashRoute: $isSplashRoute');
-      print('[ROUTER] isLoginRoute: $isLoginRoute');
+      print('[ROUTER] isAuthRoute: $isAuthRoute');
       print('[ROUTER] Should save route: ${RoutePersistenceService.shouldSaveRoute(currentPath)}');
       print('[ROUTER] ==========================================');
 
@@ -191,14 +211,16 @@ class AppRouter {
       }
 
       // If not logged in and trying to access protected route
-      if (!isLoggedIn && !isLoginRoute) {
+      if (!isLoggedIn && !isAuthRoute) {
         // Store the original location to redirect back after login
         print('[ROUTER] ❌ NOT LOGGED IN - Redirecting to login with from=$currentPath');
         return '/login?from=${Uri.encodeComponent(currentPath)}';
       }
 
-      // If logged in and trying to access auth routes (but NOT if coming from a redirect)
-      if (isLoggedIn && isLoginRoute) {
+      // If logged in and trying to access login/signup routes (but NOT verification)
+      // Allow verification screen even when logged in (user needs to verify email)
+      final isLoginOrSignupRoute = currentPath == '/login' || currentPath == '/signup';
+      if (isLoggedIn && isLoginOrSignupRoute) {
         // Check if there's a 'from' parameter to redirect back
         final from = state.uri.queryParameters['from'];
         if (from != null && from.isNotEmpty) {
