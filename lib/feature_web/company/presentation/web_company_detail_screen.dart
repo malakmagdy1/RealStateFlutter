@@ -1,17 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
+import 'package:real/core/widget/robust_network_image.dart';
+import 'package:real/feature/ai_chat/presentation/widget/floating_comparison_cart.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/company/data/web_services/company_web_services.dart';
-import 'package:real/l10n/app_localizations.dart';
-import '../../../feature_web/widgets/web_compound_card.dart';
-import 'package:real/core/widget/robust_network_image.dart';
+import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sheet.dart';
-import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
-import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
-import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
-import 'package:real/feature/ai_chat/presentation/widget/floating_comparison_cart.dart';
+import 'package:real/l10n/app_localizations.dart';
+
+import '../../../feature_web/widgets/web_compound_card.dart';
 
 class WebCompanyDetailScreen extends StatefulWidget {
   static String routeName = '/web-company-detail';
@@ -33,6 +30,7 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
   Company? _currentCompany;
   bool _isLoading = false;
   String? _errorMessage;
+  List<Compound> _compounds = [];
 
   @override
   void initState() {
@@ -49,14 +47,78 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
     print('[WEB COMPANY DETAIL] Has company data: ${widget.company != null}');
 
     if (widget.company != null) {
-      // Company data provided, already set in initState, just fetch compounds
+      // Company data provided, already set in initState, convert compounds
       print('[WEB COMPANY DETAIL] Using provided company data: ${widget.company!.name}');
-      _fetchCompounds();
+      _convertCompoundsFromCompany();
     } else {
       // No company data, fetch from API
       print('[WEB COMPANY DETAIL] Fetching company from API');
       await _fetchCompany();
     }
+  }
+
+  /// Convert CompanyCompound objects to Compound objects for display
+  void _convertCompoundsFromCompany() {
+    if (_currentCompany == null) return;
+
+    final companyCompounds = _currentCompany!.compounds;
+    print('[WEB COMPANY DETAIL] Converting ${companyCompounds
+        .length} compounds from company data');
+
+    // Safely get locale - default to English if context not ready
+    bool isArabic = false;
+    try {
+      isArabic = Localizations
+          .localeOf(context)
+          .languageCode == 'ar';
+    } catch (e) {
+      print('[WEB COMPANY DETAIL] Could not get locale, defaulting to English');
+    }
+
+    _compounds = companyCompounds.map((cc) {
+      print('[WEB COMPANY DETAIL] Compound ${cc.project}: totalUnits=${cc
+          .totalUnits}, availableUnits=${cc.availableUnits}, soldUnits=${cc
+          .soldUnits}');
+
+      // Get localized name based on current locale
+      final projectName = cc.getLocalizedProject(isArabic);
+      final locationName = cc.getLocalizedLocation(isArabic);
+
+      return Compound(
+        id: cc.id,
+        companyId: _currentCompany!.id,
+        project: projectName.isNotEmpty ? projectName : cc.project,
+        location: locationName.isNotEmpty ? locationName : cc.location,
+        locationUrl: null,
+        images: cc.images,
+        builtUpArea: '0',
+        // Not available in CompanyCompound
+        howManyFloors: '0',
+        // Not available in CompanyCompound
+        plannedDeliveryDate: null,
+        actualDeliveryDate: null,
+        completionProgress: cc.completionProgress,
+        landArea: null,
+        builtArea: null,
+        finishSpecs: null,
+        masterPlan: null,
+        club: '0',
+        isSold: '0',
+        status: cc.status,
+        deliveredAt: null,
+        totalUnits: cc.totalUnits,
+        createdAt: '',
+        updatedAt: '',
+        deletedAt: null,
+        companyName: _currentCompany!.getLocalizedName(isArabic),
+        companyLogo: _currentCompany!.fullLogoUrl,
+        soldUnits: cc.soldUnits,
+        availableUnits: cc.availableUnits,
+        sales: [],
+      );
+    }).toList();
+
+    setState(() {});
   }
 
   Future<void> _fetchCompany() async {
@@ -74,21 +136,14 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
         _isLoading = false;
       });
 
-      _fetchCompounds();
+      // Convert compounds from company data (which includes unit counts)
+      _convertCompoundsFromCompany();
     } catch (e) {
       print('[WEB COMPANY DETAIL] Error fetching company: $e');
       setState(() {
         _isLoading = false;
         _errorMessage = e.toString().replaceAll('Exception: ', '');
       });
-    }
-  }
-
-  void _fetchCompounds() {
-    if (_currentCompany != null) {
-      context.read<CompoundBloc>().add(
-        FetchCompoundsByCompanyEvent(companyId: _currentCompany!.id),
-      );
     }
   }
 
@@ -194,12 +249,11 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
               IconButton(
                 icon: Icon(Icons.share, color: AppColors.mainColor),
                 onPressed: () async {
-                  // Fetch compounds for this company to pass to advanced share
-                  final compoundState = context.read<CompoundBloc>().state;
+                  // Use local compounds data for advanced share
                   List<Map<String, dynamic>>? compounds;
 
-                  if (compoundState is CompoundSuccess) {
-                    compounds = compoundState.response.data.map((compound) {
+                  if (_compounds.isNotEmpty) {
+                    compounds = _compounds.map((compound) {
                       return {
                         'id': compound.id,
                         'project': compound.project,
@@ -727,240 +781,99 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
   }
 
   Widget _buildCompoundsSection(AppLocalizations l10n) {
-    return BlocBuilder<CompoundBloc, CompoundState>(
-      builder: (context, state) {
-        if (state is CompoundLoading) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    // Show empty state if no compounds
+    if (_compounds.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
-                  SizedBox(width: 12),
-                  Text(
-                    l10n.ourProjects,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF333333),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 24),
-              Center(
-                child: Padding(
-                  padding: EdgeInsets.all(40),
-                  child: CircularProgressIndicator(color: AppColors.mainColor),
+              Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
+              SizedBox(width: 12),
+              Text(
+                l10n.ourProjects,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF333333),
                 ),
               ),
             ],
-          );
-        }
-
-        if (state is CompoundError) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
-                  SizedBox(width: 12),
-                  Text(
-                    l10n.ourProjects,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF333333),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 24),
-              Container(
-                padding: EdgeInsets.all(40),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 15,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.red,
-                      ),
-                      SizedBox(height: 16),
-                      Text(
-                        state.message,
-                        style: TextStyle(color: Colors.red),
-                        textAlign: TextAlign.center,
-                      ),
-                      SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () {
-                          context.read<CompoundBloc>().add(
-                            FetchCompoundsByCompanyEvent(companyId: _currentCompany!.id),
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.mainColor,
-                        ),
-                        child: Text('Retry'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        }
-
-        if (state is CompoundSuccess) {
-          if (state.response.data.isEmpty) {
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
-                    SizedBox(width: 12),
-                    Text(
-                      l10n.ourProjects,
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF333333),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 24),
-                Container(
-                  padding: EdgeInsets.all(40),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 15,
-                        offset: Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.apartment,
-                          size: 64,
-                          color: AppColors.greyText,
-                        ),
-                        SizedBox(height: 16),
-                        Text(
-                          l10n.noCompoundsAvailable,
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: AppColors.greyText,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            );
-          }
-
-          final compounds = state.response.data;
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
-                  SizedBox(width: 12),
-                  Text(
-                    l10n.ourProjects,
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF333333),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 24),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 300, // Unified width to match other screens
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 0.85, // Unified aspect ratio (wider cards, shorter height)
-                ),
-                itemCount: compounds.length,
-                itemBuilder: (context, index) {
-                  final compound = compounds[index];
-                  return WebCompoundCard(compound: compound);
-                },
-              ),
-            ],
-          );
-        }
-
-        // State is not CompoundSuccess, CompoundLoading, or CompoundError
-        // This happens when navigating back from compound detail (state is CompoundDetailSuccess)
-        // Re-fetch compounds for this company
-        if (_currentCompany != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            context.read<CompoundBloc>().add(
-              FetchCompoundsByCompanyEvent(companyId: _currentCompany!.id),
-            );
-          });
-        }
-
-        // Show loading indicator while re-fetching
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
-                SizedBox(width: 12),
-                Text(
-                  l10n.ourProjects,
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF333333),
-                  ),
+          ),
+          SizedBox(height: 24),
+          Container(
+            padding: EdgeInsets.all(40),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 15,
+                  offset: Offset(0, 3),
                 ),
               ],
             ),
-            SizedBox(height: 24),
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(40),
-                child: CircularProgressIndicator(color: AppColors.mainColor),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.apartment,
+                    size: 64,
+                    color: AppColors.greyText,
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    l10n.noCompoundsAvailable,
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: AppColors.greyText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Show compounds grid
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.location_city, size: 28, color: AppColors.mainColor),
+            SizedBox(width: 12),
+            Text(
+              l10n.ourProjects,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF333333),
               ),
             ),
           ],
-        );
-      },
+        ),
+        SizedBox(height: 24),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 300,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 0.85,
+          ),
+          itemCount: _compounds.length,
+          itemBuilder: (context, index) {
+            final compound = _compounds[index];
+            return WebCompoundCard(compound: compound);
+          },
+        ),
+      ],
     );
   }
 }

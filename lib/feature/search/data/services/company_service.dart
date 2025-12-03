@@ -27,6 +27,11 @@ class CompanyFilterItem {
 class CompanyService {
   late Dio dio;
 
+  // Static cache for companies to avoid re-fetching
+  static List<CompanyFilterItem>? _cachedCompanies;
+  static DateTime? _cacheTime;
+  static const _cacheExpiry = Duration(minutes: 30);
+
   CompanyService() {
     dio = Dio(BaseOptions(
       baseUrl: 'https://aqar.bdcbiz.com/api',
@@ -46,6 +51,18 @@ class CompanyService {
     ));
   }
 
+  /// Clear the cache (useful when user logs out or data changes)
+  static void clearCache() {
+    _cachedCompanies = null;
+    _cacheTime = null;
+  }
+
+  /// Check if cache is valid
+  bool _isCacheValid() {
+    if (_cachedCompanies == null || _cacheTime == null) return false;
+    return DateTime.now().difference(_cacheTime!) < _cacheExpiry;
+  }
+
   /// Fetch all companies from database
   /// Returns a map of company ID to company name for filter dropdown (legacy)
   Future<Map<String, String>> getCompanies() async {
@@ -58,6 +75,13 @@ class CompanyService {
   /// Fetch all companies with localization support
   /// Returns a list of CompanyFilterItem with both English and Arabic names
   Future<List<CompanyFilterItem>> getCompaniesWithLocalization() async {
+    // Return cached data if valid
+    if (_isCacheValid()) {
+      print('[COMPANY SERVICE] ✓ Returning ${_cachedCompanies!
+          .length} cached companies');
+      return _cachedCompanies!;
+    }
+
     try {
       print('[COMPANY SERVICE] Fetching companies from API...');
 
@@ -98,7 +122,10 @@ class CompanyService {
         companies.sort((a, b) => a.name.compareTo(b.name));
 
         print('[COMPANY SERVICE] ✓ Found ${companies.length} companies');
-        print('[COMPANY SERVICE] Companies: ${companies.take(5).map((c) => c.name).join(", ")}${companies.length > 5 ? "..." : ""}');
+
+        // Cache the results
+        _cachedCompanies = companies;
+        _cacheTime = DateTime.now();
 
         return companies;
       } else {

@@ -15,6 +15,9 @@ class CompanyCompound extends Equatable {
   final String status;
   final String? completionProgress;
   final List<String> images;
+  final String totalUnits;
+  final String soldUnits;
+  final String availableUnits;
 
   CompanyCompound({
     required this.id,
@@ -28,6 +31,9 @@ class CompanyCompound extends Equatable {
     required this.status,
     this.completionProgress,
     required this.images,
+    required this.totalUnits,
+    required this.soldUnits,
+    required this.availableUnits,
   });
 
   /// Get localized project name based on locale
@@ -67,6 +73,9 @@ class CompanyCompound extends Equatable {
       status: json['status']?.toString() ?? '',
       completionProgress: json['completion_progress']?.toString(),
       images: imagesList,
+      totalUnits: json['total_units']?.toString() ?? '0',
+      soldUnits: json['sold_units']?.toString() ?? '0',
+      availableUnits: json['available_units']?.toString() ?? '0',
     );
   }
 
@@ -83,11 +92,30 @@ class CompanyCompound extends Equatable {
       'status': status,
       'completion_progress': completionProgress,
       'images': images,
+      'total_units': totalUnits,
+      'sold_units': soldUnits,
+      'available_units': availableUnits,
     };
   }
 
   @override
-  List<Object?> get props => [id, name, project, projectEn, projectAr, location, locationEn, locationAr, status, completionProgress, images];
+  List<Object?> get props =>
+      [
+        id,
+        name,
+        project,
+        projectEn,
+        projectAr,
+        location,
+        locationEn,
+        locationAr,
+        status,
+        completionProgress,
+        images,
+        totalUnits,
+        soldUnits,
+        availableUnits
+      ];
 }
 
 class Company extends Equatable {

@@ -25,6 +25,11 @@ class LocationFilterItem {
 class LocationService {
   late Dio dio;
 
+  // Static cache for locations to avoid re-fetching
+  static List<LocationFilterItem>? _cachedLocations;
+  static DateTime? _cacheTime;
+  static const _cacheExpiry = Duration(minutes: 30);
+
   LocationService() {
     dio = Dio(BaseOptions(
       baseUrl: 'https://aqar.bdcbiz.com/api',
@@ -44,6 +49,18 @@ class LocationService {
     ));
   }
 
+  /// Clear the cache (useful when user logs out or language changes)
+  static void clearCache() {
+    _cachedLocations = null;
+    _cacheTime = null;
+  }
+
+  /// Check if cache is valid
+  bool _isCacheValid() {
+    if (_cachedLocations == null || _cacheTime == null) return false;
+    return DateTime.now().difference(_cacheTime!) < _cacheExpiry;
+  }
+
   /// Fetch unique locations (cities/areas) from database (legacy)
   /// Uses the search-and-filter API to get units and extract unique locations
   Future<List<String>> getLocations() async {
@@ -55,6 +72,13 @@ class LocationService {
   /// Returns a list of LocationFilterItem with both English and Arabic names
   /// Fetches from companies API to get compounds with localized location data
   Future<List<LocationFilterItem>> getLocationsWithLocalization() async {
+    // Return cached data if valid
+    if (_isCacheValid()) {
+      print('[LOCATION SERVICE] ✓ Returning ${_cachedLocations!
+          .length} cached locations');
+      return _cachedLocations!;
+    }
+
     try {
       print('[LOCATION SERVICE] Fetching locations from companies API...');
 
@@ -110,9 +134,10 @@ class LocationService {
           ..sort((a, b) => a.location.compareTo(b.location));
 
         print('[LOCATION SERVICE] ✓ Found ${locations.length} unique locations');
-        for (var loc in locations) {
-          print('[LOCATION SERVICE]   - ${loc.location} (EN: ${loc.locationEn}, AR: ${loc.locationAr})');
-        }
+
+        // Cache the results
+        _cachedLocations = locations;
+        _cacheTime = DateTime.now();
 
         return locations;
       } else {

@@ -3,8 +3,9 @@ import 'dart:io' show Platform;
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
-import '../../../../core/utils/constant.dart';
+import '../../../../core/cache/cache_service.dart';
 import '../../../../core/locale/language_service.dart';
+import '../../../../core/utils/constant.dart';
 import '../models/compound_response.dart';
 
 class CompoundWebServices {
@@ -71,7 +72,21 @@ class CompoundWebServices {
     );
   }
 
-  Future<CompoundResponse> getCompounds({int page = 1, int limit = 20}) async {
+  Future<CompoundResponse> getCompounds(
+      {int page = 1, int limit = 20, bool forceRefresh = false}) async {
+    // Try to get from cache first (only for page 1)
+    if (!forceRefresh && page == 1) {
+      final cachedData = CacheService.getCompounds(page: page);
+      if (cachedData != null) {
+        print('[CACHE] Returning ${cachedData
+            .length} cached compounds for page $page');
+        return CompoundResponse.fromJson({
+          'data': cachedData,
+          'pagination': {'current_page': page, 'has_more': true},
+        });
+      }
+    }
+
     try {
       // Get token from storage
       final authToken = token ?? '';
@@ -89,12 +104,31 @@ class CompoundWebServices {
       print('Get Compounds Response: ${response.data.toString()}');
 
       if (response.data is Map<String, dynamic>) {
+        // Cache the response data
+        if (response.data['data'] != null) {
+          final dataList = (response.data['data'] as List)
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList();
+          CacheService.cacheCompounds(dataList, page: page);
+        }
+
         return CompoundResponse.fromJson(response.data);
       } else {
         throw Exception('Invalid response format');
       }
     } on DioException catch (e) {
       print('Get Compounds DioException: ${e.toString()}');
+
+      // On network error, try to return cached data
+      final cachedData = CacheService.getCompounds(page: page);
+      if (cachedData != null) {
+        print('[CACHE] Network error - returning cached compounds');
+        return CompoundResponse.fromJson({
+          'data': cachedData,
+          'pagination': {'current_page': page, 'has_more': false},
+        });
+      }
+
       if (e.response?.data != null && e.response?.data is Map) {
         final errorData = e.response?.data as Map<String, dynamic>;
         if (errorData['message'] != null) {

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:real/core/animations/animated_list_item.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
-import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
-import 'package:real/feature/search/data/services/view_history_service.dart';
-import 'package:real/feature/home/presentation/widget/compunds_name.dart';
+import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/compound/presentation/widget/unit_card.dart';
-import 'package:real/core/utils/card_dimensions.dart';
-import 'package:real/core/animations/animated_list_item.dart';
+import 'package:real/feature/home/presentation/widget/compunds_name.dart';
+import 'package:real/feature/search/data/services/view_history_service.dart';
 import 'package:real/l10n/app_localizations.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -364,10 +363,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: Stack(
               children: [
                 CompoundsName(compound: compound),
-                // Time badge overlay - positioned at bottom
+                // Time badge overlay - positioned on image area (top-left, below action buttons)
               if (viewedAt != null)
                 Positioned(
-                  bottom: 12,
+                  top: 55, // Position below the top action buttons
                   left: 12,
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -431,10 +430,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
             child: Stack(
               children: [
                 UnitCard(unit: unit),
-                // Time badge overlay - positioned at bottom
+                // Time badge overlay - positioned on image area (top-left, below action buttons)
               if (viewedAt != null)
                 Positioned(
-                  bottom: 12,
+                  top: 55, // Position below the top action buttons
                   left: 12,
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),

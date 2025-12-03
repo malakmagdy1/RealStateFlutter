@@ -1,33 +1,33 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:real/core/animations/page_transitions.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
+import 'package:real/feature/ai_chat/presentation/widget/floating_comparison_cart.dart';
+import 'package:real/feature/company/data/models/company_model.dart';
+import 'package:real/feature/company/presentation/screen/company_detail_screen.dart';
+import 'package:real/feature/company/presentation/widget/company_card.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
-import 'package:real/feature/compound/presentation/widget/unit_card.dart';
 import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
+import 'package:real/feature/compound/presentation/widget/unit_card.dart';
 import 'package:real/feature/home/presentation/CompoundScreen.dart';
-import 'package:real/l10n/app_localizations.dart';
-import 'package:real/core/animations/animated_list_item.dart';
-import 'package:real/core/animations/page_transitions.dart';
+import 'package:real/feature/home/presentation/widget/compunds_name.dart';
 import 'package:real/feature/search/data/models/search_filter_model.dart';
+import 'package:real/feature/search/data/models/search_result_model.dart';
 import 'package:real/feature/search/data/repositories/search_repository.dart';
 import 'package:real/feature/search/data/services/search_history_service.dart';
-import 'package:real/feature/search/data/models/search_result_model.dart';
 import 'package:real/feature/search/presentation/bloc/search_bloc.dart';
 import 'package:real/feature/search/presentation/bloc/search_event.dart';
 import 'package:real/feature/search/presentation/bloc/search_state.dart';
 import 'package:real/feature/search/presentation/widget/search_filter_bottom_sheet.dart';
-import 'package:real/feature/home/presentation/widget/compunds_name.dart';
-import 'package:real/feature/company/data/models/company_model.dart';
-import 'package:real/feature/company/presentation/screen/company_detail_screen.dart';
-import 'package:real/core/widgets/custom_loading_dots.dart';
-import 'package:real/feature/company/presentation/widget/company_card.dart';
-import 'package:real/feature/ai_chat/presentation/widget/floating_comparison_cart.dart';
+import 'package:real/l10n/app_localizations.dart';
 
 class CompoundsScreen extends StatefulWidget {
   static String routeName = '/compounds';
@@ -1206,7 +1206,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
         company: company,
         showMargin: false,
         onTap: () {
-          _clearSearch();
+          // Don't clear search - preserve filter state when navigating back
           Navigator.pushNamed(
             context,
             CompanyDetailScreen.routeName,
@@ -1244,7 +1244,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
     return CompoundsName(
       compound: compound,
       onTap: () {
-        _clearSearch();
+        // Don't clear search - preserve filter state when navigating back
         context.pushSlideFade(
           CompoundScreen(compound: compound),
         );

@@ -1,40 +1,36 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:real/core/animations/animated_list_item.dart';
 import 'package:real/core/utils/colors.dart';
+import 'package:real/core/utils/text_style.dart';
+import 'package:real/core/widget/robust_network_image.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
+import 'package:real/feature/ai_chat/data/models/comparison_item.dart';
+import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart';
+import 'package:real/feature/ai_chat/presentation/widget/floating_comparison_cart.dart';
+import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
+import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
-import 'package:real/feature_web/widgets/web_compound_card.dart';
-import 'package:real/feature_web/widgets/web_unit_card.dart';
-import 'package:real/l10n/app_localizations.dart';
-import 'package:real/feature/search/data/repositories/search_repository.dart';
-import 'package:real/feature/search/data/services/search_history_service.dart';
 import 'package:real/feature/search/data/models/search_filter_model.dart';
+import 'package:real/feature/search/data/models/search_result_model.dart';
+import 'package:real/feature/search/data/repositories/search_repository.dart';
+import 'package:real/feature/search/data/services/company_service.dart';
+import 'package:real/feature/search/data/services/location_service.dart';
+import 'package:real/feature/search/data/services/search_history_service.dart';
 import 'package:real/feature/search/presentation/bloc/search_bloc.dart';
 import 'package:real/feature/search/presentation/bloc/search_event.dart';
 import 'package:real/feature/search/presentation/bloc/search_state.dart';
-import 'package:real/feature/search/data/models/search_result_model.dart';
-import 'package:real/feature/compound/data/models/unit_model.dart';
-import 'package:real/feature/company/data/models/company_model.dart';
-import 'package:real/feature_web/company/presentation/web_company_detail_screen.dart';
-import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
-import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_state.dart';
-import 'package:real/core/widget/robust_network_image.dart';
-import 'package:real/core/utils/text_style.dart';
-import 'package:real/core/animations/animated_list_item.dart';
-import 'package:real/core/animations/page_transitions.dart';
-import 'package:real/feature/search/presentation/widget/search_filter_bottom_sheet.dart';
-import 'package:real/feature/search/data/services/location_service.dart';
-import 'package:real/feature/search/data/services/company_service.dart';
-import 'package:intl/intl.dart';
-import 'package:real/core/widgets/custom_loading_dots.dart';
-import 'package:real/feature/ai_chat/presentation/widget/floating_comparison_cart.dart';
-import 'package:real/feature/ai_chat/data/models/comparison_item.dart';
-import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart';
-import 'package:go_router/go_router.dart';
 import 'package:real/feature_web/compounds/data/web_search_filter_state_service.dart';
+import 'package:real/feature_web/widgets/web_compound_card.dart';
+import 'package:real/feature_web/widgets/web_unit_card.dart';
+import 'package:real/l10n/app_localizations.dart';
 
 class WebCompoundsScreen extends StatefulWidget {
   const WebCompoundsScreen({Key? key}) : super(key: key);
@@ -43,7 +39,10 @@ class WebCompoundsScreen extends StatefulWidget {
   State<WebCompoundsScreen> createState() => _WebCompoundsScreenState();
 }
 
-class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
+class _WebCompoundsScreenState extends State<WebCompoundsScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   late SearchBloc _searchBloc;
@@ -537,6 +536,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     final l10n = AppLocalizations.of(context)!;
 
     return Stack(
@@ -2182,7 +2182,27 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen> {
             ),
           );
         }
-        return const SizedBox();
+        // Default/initial state - show "no results" message instead of empty container
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(48.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.search_off, size: 80, color: Colors.grey.shade400),
+                const SizedBox(height: 24),
+                Text(
+                  l10n.noResultsMatchingCriteria,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       },
     );
   }

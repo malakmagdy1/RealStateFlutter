@@ -1,32 +1,33 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/widget/robust_network_image.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 import 'package:real/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../data/models/unit_model.dart';
-import '../../data/web_services/compound_web_services.dart';
-import '../../data/web_services/unit_web_services.dart';
+
+import '../../../../core/widgets/note_dialog.dart';
+import '../../../../core/widgets/sale_card.dart';
+import '../../../../core/widgets/zoomable_image_viewer.dart';
+import '../../../ai_chat/data/models/comparison_item.dart';
+import '../../../ai_chat/data/services/comparison_list_service.dart';
+import '../../../company/data/models/company_user_model.dart';
+import '../../../company/data/web_services/company_web_services.dart';
 import '../../../sale/data/models/sale_model.dart';
 import '../../../sale/data/services/sale_web_services.dart';
 import '../../../sale/presentation/widgets/sales_person_selector.dart';
-import '../../../share/presentation/widgets/advanced_share_bottom_sheet.dart';
-import '../../../company/data/web_services/company_web_services.dart';
-import '../../../company/data/models/company_user_model.dart';
-import '../bloc/favorite/unit_favorite_bloc.dart';
-import '../bloc/favorite/unit_favorite_state.dart';
-import '../bloc/favorite/unit_favorite_event.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../search/data/services/view_history_service.dart';
-import '../../../../core/widgets/sale_card.dart';
-import '../../../../core/widgets/note_dialog.dart';
+import '../../../share/presentation/widgets/advanced_share_bottom_sheet.dart';
+import '../../data/models/unit_model.dart';
+import '../../data/web_services/compound_web_services.dart';
 import '../../data/web_services/favorites_web_services.dart';
-import '../../../../core/widgets/zoomable_image_viewer.dart';
-import 'package:real/core/widgets/custom_loading_dots.dart';
-import '../../../ai_chat/data/models/comparison_item.dart';
-import '../../../ai_chat/data/services/comparison_list_service.dart';
-import '../../../ai_chat/presentation/screen/unified_ai_chat_screen.dart';
+import '../../data/web_services/unit_web_services.dart';
+import '../bloc/favorite/unit_favorite_bloc.dart';
+import '../bloc/favorite/unit_favorite_event.dart';
+import '../bloc/favorite/unit_favorite_state.dart';
 
 class UnitDetailScreen extends StatefulWidget {
   static String routeName = '/unit-detail';
@@ -537,11 +538,26 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     }
   }
 
+  /// Get images to display - falls back to sale images if unit has no images
+  List<String> _getDisplayImages() {
+    final unit = _currentUnit ?? widget.unit;
+    // If unit has images, use them
+    if (unit.images.isNotEmpty) {
+      return unit.images;
+    }
+    // Fallback to sale images if available
+    if (_unitSale != null && _unitSale!.images.isNotEmpty) {
+      return _unitSale!.images;
+    }
+    return [];
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final unit = _currentUnit ?? widget.unit;
-    final hasImages = unit.images.isNotEmpty;
+    final displayImages = _getDisplayImages();
+    final hasImages = displayImages.isNotEmpty;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -656,7 +672,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       );
     }
 
-    final unit = _currentUnit ?? widget.unit;
+    final displayImages = _getDisplayImages();
 
     return Column(
       children: [
@@ -667,13 +683,13 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
               // Open zoomable image viewer
               ZoomableImageViewer.show(
                 context,
-                images: unit.images,
+                images: displayImages,
                 initialIndex: _currentImageIndex,
               );
             },
             child: PageView.builder(
               controller: _imagePageController,
-              itemCount: unit.images.length,
+              itemCount: displayImages.length,
               onPageChanged: (index) {
                 setState(() {
                   _currentImageIndex = index;
@@ -681,7 +697,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
               },
               itemBuilder: (context, index) {
                 return RobustNetworkImage(
-                  imageUrl: unit.images[index],
+                  imageUrl: displayImages[index],
                   fit: BoxFit.cover,
                 loadingBuilder: (context) => Container(
                   color: Colors.grey.shade200,
@@ -701,13 +717,13 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           ),
         ),
         // Dot Indicators - Now under the image
-        if (unit.images.length > 1)
+        if (displayImages.length > 1)
           Padding(
             padding: EdgeInsets.only(top: 12, bottom: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(
-                unit.images.length,
+                displayImages.length,
                 (index) => AnimatedContainer(
                   duration: Duration(milliseconds: 300),
                   margin: EdgeInsets.symmetric(horizontal: 4),
@@ -1424,8 +1440,9 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Widget _buildPaymentPlansTab(AppLocalizations l10n) {
-    // PaymentPlans feature not yet implemented in Unit model
-    // final paymentPlans = _currentUnit?.paymentPlans;
+    final unit = _currentUnit ?? widget.unit;
+    final paymentPlans = unit.paymentPlans;
+    final hasPlans = paymentPlans != null && paymentPlans.isNotEmpty;
 
     return SingleChildScrollView(
       padding: EdgeInsets.all(16),
@@ -1442,56 +1459,422 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
                 bold: true,
                 color: AppColors.greyText,
               ),
+              Spacer(),
+              if (hasPlans)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.mainColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${paymentPlans!.length} ${paymentPlans.length == 1
+                        ? "Plan"
+                        : "Plans"}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mainColor,
+                    ),
+                  ),
+                ),
             ],
           ),
           SizedBox(height: 16),
 
-          // PaymentPlans feature not yet implemented - showing cash option
-          // Fallback: Show basic cash option if no payment plans from API
-          Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.grey.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.payments, color: AppColors.mainColor),
-                      SizedBox(width: 8),
-                      CustomText18(l10n.cash, bold: true, color: AppColors.greyText),
-                    ],
-                  ),
-                  SizedBox(height: 8),
-                  CustomText24(
-                    'EGP ${_formatPrice(_currentUnit?.price ?? widget.unit.price)}',
-                    bold: true,
-                    color: AppColors.mainColor,
-                  ),
-                  SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green, size: 16),
-                      SizedBox(width: 4),
-                      CustomText14(
-                        l10n.noMortgageAvailable,
-                        color: Colors.green,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+          // Show payment plans if available
+          if (hasPlans) ...[
+            ...paymentPlans!.map((plan) => _buildPaymentPlanCard(plan, l10n))
+                .toList(),
+          ] else
+            ...[
+              // Fallback: Show basic cash option if no payment plans from API
+              _buildCashOnlyCard(unit, l10n),
+            ],
         ],
       ),
     );
   }
 
-  // PaymentPlan feature not yet implemented - _buildPaymentPlanCard method removed
-  // Widget _buildPaymentPlanCard(PaymentPlan plan, AppLocalizations l10n) { ... }
+  Widget _buildCashOnlyCard(Unit unit, AppLocalizations l10n) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.mainColor.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.mainColor, width: 2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.payments, color: AppColors.mainColor),
+                  SizedBox(width: 8),
+                  CustomText18(
+                      l10n.cash, bold: true, color: AppColors.mainColor),
+                ],
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.mainColor,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  'Best Price',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          CustomText24(
+            'EGP ${_formatPrice(unit.price)}',
+            bold: true,
+            color: AppColors.mainColor,
+          ),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green, size: 16),
+              SizedBox(width: 4),
+              CustomText14(l10n.noMortgageAvailable, color: Colors.green),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentPlanCard(PaymentPlan plan, AppLocalizations l10n) {
+    final price = plan.price != null ? _formatPrice(plan.price!) : 'N/A';
+    final duration = plan.durationYears ?? '0';
+    final isCash = duration == '0' || plan.planName?.toLowerCase() == 'cash';
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 12),
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isCash ? AppColors.mainColor.withOpacity(0.05) : Colors.grey
+            .shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isCash ? AppColors.mainColor : Colors.grey.shade300,
+          width: isCash ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Plan Name and Badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Row(
+                  children: [
+                    Icon(
+                      isCash ? Icons.payments : Icons.calendar_month,
+                      size: 20,
+                      color: isCash ? AppColors.mainColor : AppColors.greyText,
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        plan.planName ??
+                            (isCash ? l10n.cash : '$duration ${l10n.years}'),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: isCash ? AppColors.mainColor : AppColors
+                              .greyText,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isCash)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.mainColor,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    'Best Price',
+                    style: TextStyle(fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white),
+                  ),
+                )
+              else
+                if (duration != '0')
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '$duration ${l10n.years}',
+                      style: TextStyle(fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.blue),
+                    ),
+                  ),
+            ],
+          ),
+          SizedBox(height: 12),
+
+          // Total Price
+          Text(
+            'EGP $price',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              color: AppColors.mainColor,
+            ),
+          ),
+
+          // Payment Details Grid
+          if (!isCash) ...[
+            SizedBox(height: 16),
+
+            // Down Payment Row
+            if (plan.downPaymentAmount != null &&
+                plan.downPaymentAmount!.isNotEmpty) ...[
+              _buildPaymentDetailRow(
+                Icons.arrow_downward,
+                l10n.downPayment,
+                'EGP ${_formatPrice(plan.downPaymentAmount!)}',
+                plan.downPaymentPercentage != null ? '(${plan
+                    .downPaymentPercentage}%)' : null,
+                Colors.orange,
+              ),
+              SizedBox(height: 10),
+            ],
+
+            // Monthly Installment
+            if (plan.monthlyInstallment != null &&
+                plan.monthlyInstallment!.isNotEmpty) ...[
+              _buildPaymentDetailRow(
+                Icons.event_repeat,
+                l10n.monthlyInstallment,
+                'EGP ${_formatPrice(plan.monthlyInstallment!)}',
+                '/month',
+                Colors.green,
+              ),
+              SizedBox(height: 10),
+            ],
+
+            // Quarterly Installment
+            if (plan.quarterlyInstallment != null &&
+                plan.quarterlyInstallment!.isNotEmpty) ...[
+              _buildPaymentDetailRow(
+                Icons.date_range,
+                'Quarterly',
+                'EGP ${_formatPrice(plan.quarterlyInstallment!)}',
+                '/3 months',
+                Colors.blue,
+              ),
+              SizedBox(height: 10),
+            ],
+
+            // Semi-Annual Installment
+            if (plan.semiAnnualInstallment != null &&
+                plan.semiAnnualInstallment!.isNotEmpty) ...[
+              _buildPaymentDetailRow(
+                Icons.calendar_view_month,
+                'Semi-Annual',
+                'EGP ${_formatPrice(plan.semiAnnualInstallment!)}',
+                '/6 months',
+                Colors.purple,
+              ),
+              SizedBox(height: 10),
+            ],
+
+            // Yearly Installment
+            if (plan.yearlyInstallment != null &&
+                plan.yearlyInstallment!.isNotEmpty) ...[
+              _buildPaymentDetailRow(
+                Icons.calendar_today,
+                'Yearly',
+                'EGP ${_formatPrice(plan.yearlyInstallment!)}',
+                '/year',
+                Colors.teal,
+              ),
+              SizedBox(height: 10),
+            ],
+          ],
+
+          // Additional Costs Section
+          if (_hasAdditionalCosts(plan)) ...[
+            SizedBox(height: 8),
+            Divider(color: Colors.grey.shade300),
+            SizedBox(height: 8),
+            Text(
+              'Additional Costs',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.greyText,
+              ),
+            ),
+            SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (plan.maintenanceDeposit != null &&
+                    plan.maintenanceDeposit!.isNotEmpty)
+                  _buildCostChip(
+                      Icons.build, 'Maintenance', plan.maintenanceDeposit!),
+                if (plan.clubMembership != null &&
+                    plan.clubMembership!.isNotEmpty)
+                  _buildCostChip(
+                      Icons.fitness_center, 'Club', plan.clubMembership!),
+                if (plan.garagePrice != null && plan.garagePrice!.isNotEmpty)
+                  _buildCostChip(Icons.garage, 'Garage', plan.garagePrice!),
+                if (plan.storagePrice != null && plan.storagePrice!.isNotEmpty)
+                  _buildCostChip(
+                      Icons.warehouse, 'Storage', plan.storagePrice!),
+              ],
+            ),
+          ],
+
+          // Delivery & Finishing Info
+          if (plan.deliveryDate != null || plan.finishingType != null) ...[
+            SizedBox(height: 12),
+            Divider(color: Colors.grey.shade300),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                if (plan.deliveryDate != null &&
+                    plan.deliveryDate!.isNotEmpty) ...[
+                  Icon(Icons.event_available, size: 14, color: Colors.grey),
+                  SizedBox(width: 4),
+                  Text(
+                    'Delivery: ${plan.deliveryDate}',
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                  ),
+                  SizedBox(width: 16),
+                ],
+                if (plan.finishingType != null &&
+                    plan.finishingType!.isNotEmpty) ...[
+                  Icon(Icons.format_paint, size: 14, color: Colors.grey),
+                  SizedBox(width: 4),
+                  Text(
+                    plan.finishingType!,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  bool _hasAdditionalCosts(PaymentPlan plan) {
+    return (plan.maintenanceDeposit != null &&
+        plan.maintenanceDeposit!.isNotEmpty) ||
+        (plan.clubMembership != null && plan.clubMembership!.isNotEmpty) ||
+        (plan.garagePrice != null && plan.garagePrice!.isNotEmpty) ||
+        (plan.storagePrice != null && plan.storagePrice!.isNotEmpty);
+  }
+
+  Widget _buildPaymentDetailRow(IconData icon, String label, String value,
+      String? suffix, Color color) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 16, color: color),
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                ),
+                Row(
+                  children: [
+                    Text(
+                      value,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                      ),
+                    ),
+                    if (suffix != null)
+                      Text(
+                        ' $suffix',
+                        style: TextStyle(
+                            fontSize: 11, color: Colors.grey.shade600),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCostChip(IconData icon, String label, String value) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.greyText),
+          SizedBox(width: 6),
+          Text(
+            '$label: ',
+            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+          ),
+          Text(
+            'EGP ${_formatPrice(value)}',
+            style: TextStyle(fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.greyText),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildPaymentInfoColumn(IconData icon, String label, String value) {
     return Column(

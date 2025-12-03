@@ -1,8 +1,10 @@
 import 'dart:io' show Platform;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import '../../../../core/utils/constant.dart';
+
 import '../../../../core/locale/language_service.dart';
+import '../../../../core/utils/constant.dart';
 import '../models/unit_model.dart';
 
 class UnitWebServices {
@@ -96,11 +98,11 @@ class UnitWebServices {
           final data = response.data['data'];
           // Handle if data is a List (take first item)
           if (data is List && data.isNotEmpty) {
-            return data.first as Map<String, dynamic>;
+            return Map<String, dynamic>.from(data.first as Map);
           }
           // Handle if data is already a Map
-          if (data is Map<String, dynamic>) {
-            return data;
+          if (data is Map) {
+            return Map<String, dynamic>.from(data);
           }
         }
         return response.data;

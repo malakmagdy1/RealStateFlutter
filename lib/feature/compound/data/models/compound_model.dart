@@ -1,7 +1,8 @@
 import 'package:equatable/equatable.dart';
-import '../../../company/data/models/sales_model.dart';
+
 import '../../../../core/locale/language_service.dart';
 import '../../../../core/utils/constant.dart';
+import '../../../company/data/models/sales_model.dart';
 
 class Compound extends Equatable {
   final String id;
@@ -114,6 +115,10 @@ class Compound extends Equatable {
       }
       print('================================');
     }
+
+    // Debug: Log units data from API
+    print(
+        '[COMPOUND MODEL] ID: ${json['id']}, total_units: ${json['total_units']}, available_units: ${json['available_units']}, company_name: ${json['company_name']}');
 
     // Store company logo URL as-is from API
     String? companyLogo = json['company_logo']?.toString();

@@ -1,31 +1,32 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
-import 'package:real/core/utils/colors.dart';
-import 'package:real/core/router/app_router.dart';
 import 'package:real/core/locale/locale_cubit.dart';
-import 'package:real/l10n/app_localizations.dart';
-import 'package:real/feature/notifications/data/services/notification_cache_service.dart';
+import 'package:real/core/services/route_persistence_service.dart';
+import 'package:real/core/utils/colors.dart';
+import 'package:real/core/utils/message_helper.dart';
+import 'package:real/core/utils/web_utils_stub.dart' if (dart.library.html) 'package:real/core/utils/web_utils_web.dart';
+import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart';
+import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.dart';
+import 'package:real/feature/auth/presentation/bloc/login_bloc.dart';
+import 'package:real/feature/auth/presentation/bloc/login_event.dart';
 import 'package:real/feature/notifications/data/models/notification_model.dart';
+import 'package:real/feature/notifications/data/services/notification_cache_service.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_event.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_state.dart';
-import 'package:real/feature/auth/presentation/bloc/login_bloc.dart';
-import 'package:real/feature/auth/presentation/bloc/login_event.dart';
-import 'package:real/core/utils/message_helper.dart';
-import 'package:real/core/services/route_persistence_service.dart';
-import '../home/presentation/web_home_screen.dart';
+import 'package:real/l10n/app_localizations.dart';
+
 import '../compounds/presentation/web_compounds_screen.dart';
 import '../favorites/presentation/web_favorites_screen.dart';
 import '../history/presentation/web_history_screen.dart';
-import '../profile/presentation/web_profile_screen.dart';
+import '../home/presentation/web_home_screen.dart';
 import '../notifications/presentation/web_notifications_screen.dart';
-import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.dart';
-import 'package:real/core/utils/web_utils_stub.dart' if (dart.library.html) 'package:real/core/utils/web_utils_web.dart';
-import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart';
+import '../profile/presentation/web_profile_screen.dart';
 
 class WebMainScreen extends StatefulWidget {
   static String routeName = '/web-main';
@@ -228,7 +229,11 @@ class _WebMainScreenState extends State<WebMainScreen> {
               children: [
                 _buildNavBar(l10n),
                 Expanded(
-                  child: _screens[_selectedIndex],
+                  // Use IndexedStack to keep all screens in memory and preserve state
+                  child: IndexedStack(
+                    index: _selectedIndex,
+                    children: _screens,
+                  ),
                 ),
               ],
             );
@@ -555,6 +560,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
         child: Row(
           children: [
             Stack(
+              clipBehavior: Clip.none, // Allow badge to overflow
               children: [
                 Icon(
                   isSelected ? filledIcon : outlinedIcon,
@@ -563,23 +569,24 @@ class _WebMainScreenState extends State<WebMainScreen> {
                 ),
                 if (badgeCount > 0)
                   Positioned(
-                    right: -4,
-                    top: -4,
+                    right: -8,
+                    top: -8,
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
                         color: effectiveBadgeColor,
                         shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 1.5),
                       ),
                       constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
+                        minWidth: 18,
+                        minHeight: 18,
                       ),
                       child: Text(
                         badgeCount > 99 ? '99+' : '$badgeCount',
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 9,
+                          fontSize: 10,
                           fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,

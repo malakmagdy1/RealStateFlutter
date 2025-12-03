@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:real/core/animations/pulse_animation.dart';
+import 'package:real/core/locale/locale_cubit.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/message_helper.dart';
+import 'package:real/core/widget/robust_network_image.dart';
+import 'package:real/core/widgets/note_dialog.dart';
+// ADDED: Import for comparison functionality
+import 'package:real/feature/ai_chat/data/models/comparison_item.dart';
+import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart';
+import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/compound/data/web_services/compound_web_services.dart';
+import 'package:real/feature/compound/data/web_services/favorites_web_services.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_event.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_state.dart';
@@ -11,16 +20,6 @@ import 'package:real/feature/sale/data/models/sale_model.dart';
 import 'package:real/feature/sale/presentation/widgets/sales_person_selector.dart';
 import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sheet.dart';
 import 'package:real/l10n/app_localizations.dart';
-import 'package:real/feature/compound/data/models/compound_model.dart';
-import 'package:real/core/widget/robust_network_image.dart';
-import 'package:real/feature_web/compound/presentation/web_compound_detail_screen.dart';
-import 'package:real/core/widgets/note_dialog.dart';
-import 'package:real/feature/compound/data/web_services/favorites_web_services.dart';
-import 'package:real/core/animations/pulse_animation.dart';
-import 'package:real/core/locale/locale_cubit.dart';
-// ADDED: Import for comparison functionality
-import 'package:real/feature/ai_chat/data/models/comparison_item.dart';
-import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart';
 
 class WebCompoundCard extends StatefulWidget {
   final Compound compound;
@@ -521,52 +520,26 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
                           ),
                         ],
                       ),
-                      SizedBox(height: 2),
-                      // Row 1: Units, Available, Floors (3 items)
-                      Row(
+                      SizedBox(height: 4),
+                      // Units info row with Wrap to prevent overflow
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
                         children: [
-                          _buildInfoIcon(Icons.home_work, '${compound.totalUnits ?? "0"} Units'),
-                          SizedBox(width: 2),
-                          _buildInfoIcon(Icons.check_circle_outline, '${compound.availableUnits ?? "0"} Available'),
-                          SizedBox(width: 2),
-                        ],
-                      ),
-                      SizedBox(height: 2),
-                      // Row 2: Area, Progress, Delivery (3 items)
-                      Row(
-                        children: [
-                          if (compound.builtUpArea.isNotEmpty && compound.builtUpArea != '0')
-                            _buildInfoIcon(Icons.square_foot, '${compound.builtUpArea} m²')
-                          else
-                            _buildInfoIcon(Icons.square_foot, 'N/A m²'),
-
-                          SizedBox(width: 2),
+                          _buildInfoIcon(Icons.home_work,
+                              '${compound.totalUnits} ${l10n.units}'),
+                          _buildInfoIcon(Icons.check_circle_outline,
+                              '${compound.availableUnits} ${l10n.available}'),
+                          if (compound.builtUpArea.isNotEmpty &&
+                              compound.builtUpArea != '0' &&
+                              compound.builtUpArea != '0.00')
+                            _buildInfoIcon(Icons.square_foot,
+                                '${compound.builtUpArea} m²'),
                           if (compound.plannedDeliveryDate != null && compound.plannedDeliveryDate!.isNotEmpty)
-                            _buildInfoIcon(Icons.calendar_today, _formatDeliveryDate(compound.plannedDeliveryDate!))
-                          else
-                            _buildInfoIcon(Icons.calendar_today, 'N/A'),
-                          SizedBox(width: 2),
-                          //  compound.status == 'delivered'
-                          //         ? const Color(0xFF4CAF50)
-                          //         : Colors.orange,
-                          //     lack.withOpacity(0.15),
-                          //         blurRadius: 6,
-                          //         offset: Offset(0, 2),
-                          //       ),
-                          //     ],
-                          //   ),
-                          //   child: Text(
-                          //     compound.status.toUpperCase(),
-                          //     style: const TextStyle(
-                          //       color: Colors.white,
-                          //       fontWeight: FontWeight.bold,
-                          //       fontSize: 10,
-                          //       letterSpacing: 0.3,
-                          //     ),
-                          //   ),
-                          // ),
-
-                         _buildStatusChip(compound.status, l10n),
+                            _buildInfoIcon(Icons.calendar_today,
+                                _formatDeliveryDate(
+                                    compound.plannedDeliveryDate!)),
+                          _buildStatusChip(compound.status, l10n),
                         ],
                       ),
                     ],

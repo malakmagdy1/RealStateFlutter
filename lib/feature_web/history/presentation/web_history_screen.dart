@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:real/core/utils/colors.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/compound/data/models/unit_model.dart';
 import 'package:real/feature/search/data/services/view_history_service.dart';
 import 'package:real/feature_web/widgets/web_compound_card.dart';
 import 'package:real/feature_web/widgets/web_unit_card.dart';
 import 'package:real/l10n/app_localizations.dart';
-import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class WebHistoryScreen extends StatefulWidget {
   WebHistoryScreen({Key? key}) : super(key: key);
@@ -441,11 +441,11 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
                     ),
                   ),
 
-                  // timestamp badge — bottom-left
+                  // timestamp badge — positioned on image area (top-left, below action buttons)
                   if (item['viewedAt'] != null)
                     Positioned(
-                      bottom: 8,
-                      left: 8,
+                      top: 60, // Position below the top action buttons
+                      left: 12,
                       child: Container(
                         padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(

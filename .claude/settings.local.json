@@ -105,7 +105,14 @@
       "Bash(dart --version:*)",
       "Bash(git fetch:*)",
       "Bash(git stash:*)",
-      "Bash(agvtool what-version:*)"
+      "Bash(agvtool what-version:*)",
+      "Bash(explorer \"C:\\Users\\B-Smart\\AndroidStudioProjects\\real\\build\\app\\outputs\\bundle\\release\")",
+      "Bash(start \"\" \"C:\\Users\\B-Smart\\AndroidStudioProjects\\real\\build\\app\\outputs\\bundle\\release\")",
+      "Bash(explorer \"C:\\Users\\B-Smart\\AndroidStudioProjects\\real\\build\\app\\outputs\\flutter-apk\")",
+      "Bash(start \"\" \"C:\\Users\\B-Smart\\AndroidStudioProjects\\real\\build\\app\\outputs\\flutter-apk\")",
+      "Bash(plink -ssh root@31.97.46.103 -pw \"Iibrah@25722\" \"echo connected\")",
+      "Bash(pip show:*)",
+      "Bash(git rebase:*)"
     ],
     "deny": [],
     "ask": []

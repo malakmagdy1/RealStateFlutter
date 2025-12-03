@@ -1,8 +1,11 @@
 import 'dart:io' show Platform;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:real/core/utils/constant.dart';
+import 'package:real/core/cache/cache_service.dart';
 import 'package:real/core/locale/language_service.dart';
+import 'package:real/core/utils/constant.dart';
+
 import '../models/company_response.dart';
 
 class CompanyWebServices {
@@ -67,7 +70,20 @@ class CompanyWebServices {
     ));
   }
 
-  Future<CompanyResponse> getCompanies({int page = 1, int perPage = 1000}) async {
+  Future<CompanyResponse> getCompanies(
+      {int page = 1, int perPage = 1000, bool forceRefresh = false}) async {
+    // Try to get from cache first
+    if (!forceRefresh) {
+      final cachedData = CacheService.getCompanies();
+      if (cachedData != null) {
+        print('[CACHE] Returning ${cachedData.length} cached companies');
+        return CompanyResponse.fromJson({
+          'success': true,
+          'data': cachedData,
+        });
+      }
+    }
+
     try {
       // Get token from storage
       final authToken = token ?? '';
@@ -94,6 +110,12 @@ class CompanyWebServices {
         final dataList = data['data'];
         if (dataList is List) {
           print('[COMPANIES API] data array length: ${dataList.length}');
+
+          // Cache the companies data
+          final companiesList = dataList
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList();
+          CacheService.cacheCompanies(companiesList);
         } else {
           print('[COMPANIES API] data is not a List: ${dataList.runtimeType}');
         }
@@ -107,6 +129,17 @@ class CompanyWebServices {
       }
     } on DioException catch (e) {
       print('Get Companies DioException: ${e.toString()}');
+
+      // On network error, try to return cached data
+      final cachedData = CacheService.getCompanies();
+      if (cachedData != null) {
+        print('[CACHE] Network error - returning cached companies');
+        return CompanyResponse.fromJson({
+          'success': true,
+          'data': cachedData,
+        });
+      }
+
       if (e.response?.data != null && e.response?.data is Map) {
         final errorData = e.response?.data as Map<String, dynamic>;
         if (errorData['message'] != null) {

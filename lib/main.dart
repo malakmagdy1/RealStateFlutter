@@ -1,67 +1,62 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, kDebugMode;
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
-import 'package:real/core/network/api_service.dart';
-import 'package:real/core/utils/constant.dart';
-import 'package:real/core/utils/message_helper.dart';
-import 'package:real/core/locale/locale_cubit.dart';
+import 'package:real/core/cache/cache_service.dart';
 import 'package:real/core/locale/language_service.dart';
-import 'package:real/feature/auth/data/network/local_netwrok.dart';
-import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
+import 'package:real/core/locale/locale_cubit.dart';
+import 'package:real/core/network/api_service.dart';
 import 'package:real/core/network/token_manager.dart';
 import 'package:real/core/router/app_router.dart';
 import 'package:real/core/router/auth_state_notifier.dart';
 import 'package:real/core/services/route_persistence_service.dart';
-import 'dart:async';
-import 'package:real/feature/auth/presentation/bloc/register_bloc.dart';
-import 'package:real/feature/auth/presentation/bloc/login_bloc.dart';
+import 'package:real/core/utils/constant.dart';
+import 'package:real/core/utils/message_helper.dart';
+import 'package:real/core/widgets/offline_wrapper.dart';
+import 'package:real/feature/ai_chat/presentation/bloc/chat_bloc.dart';
+import 'package:real/feature/ai_chat/presentation/bloc/unified_chat_bloc.dart';
+import 'package:real/feature/auth/data/network/local_netwrok.dart';
+import 'package:real/feature/auth/data/web_services/auth_web_services.dart';
 import 'package:real/feature/auth/presentation/bloc/forgot_password_bloc.dart';
+import 'package:real/feature/auth/presentation/bloc/login_bloc.dart';
+import 'package:real/feature/auth/presentation/bloc/register_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/update_name_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/update_phone_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/user_bloc.dart';
 import 'package:real/feature/auth/presentation/bloc/user_event.dart';
 import 'package:real/feature/auth/presentation/bloc/verification_bloc.dart';
+import 'package:real/feature/auth/presentation/screen/changePasswordScreen.dart';
+import 'package:real/feature/auth/presentation/screen/device_management_screen.dart';
+import 'package:real/feature/auth/presentation/screen/editNameScreen.dart';
+import 'package:real/feature/auth/presentation/screen/editPhoneScreen.dart';
+import 'package:real/feature/auth/presentation/screen/email_verification_screen.dart';
+import 'package:real/feature/auth/presentation/screen/forgetPasswordScreen.dart';
+import 'package:real/feature/auth/presentation/screen/forgot_password_flow_screen.dart';
+import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
 import 'package:real/feature/company/presentation/bloc/company_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/unit/unit_bloc.dart';
+import 'package:real/feature/onboarding/presentation/onboarding_screen.dart';
 import 'package:real/feature/sale/presentation/bloc/sale_bloc.dart';
 import 'package:real/feature/sale/presentation/bloc/sale_event.dart';
 import 'package:real/feature/subscription/presentation/bloc/subscription_bloc.dart';
-import 'package:real/feature/ai_chat/presentation/bloc/chat_bloc.dart';
-import 'package:real/feature/ai_chat/presentation/bloc/unified_chat_bloc.dart';
-import 'package:real/feature/auth/presentation/screen/forgetPasswordScreen.dart';
-import 'package:real/feature/auth/presentation/screen/forgot_password_flow_screen.dart';
-import 'package:real/feature/auth/presentation/screen/changePasswordScreen.dart';
-import 'package:real/feature/auth/presentation/screen/editNameScreen.dart';
-import 'package:real/feature/auth/presentation/screen/editPhoneScreen.dart';
-import 'package:real/feature/auth/presentation/screen/loginScreen.dart';
-import 'package:real/feature/auth/presentation/screen/email_verification_screen.dart';
-import 'package:real/feature/auth/presentation/screen/device_management_screen.dart';
-import 'package:real/feature/home/presentation/homeScreen.dart';
-import 'package:real/feature/onboarding/presentation/onboarding_screen.dart';
-import 'package:real/splash_screen.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:real/services/fcm_service.dart';
-import 'package:real/l10n/app_localizations.dart';
-import 'package:real/feature_web/navigation/web_main_screen.dart';
-import 'package:real/feature_web/auth/presentation/web_login_screen.dart';
-import 'package:real/feature_web/auth/presentation/web_signup_screen.dart';
-import 'package:real/feature_web/auth/presentation/web_forgot_password_screen.dart';
 import 'package:real/feature/subscription/presentation/screens/subscription_plans_screen.dart';
-import 'package:real/feature_web/subscription/presentation/web_subscription_plans_screen.dart';
-import 'package:real/core/widgets/offline_wrapper.dart';
+import 'package:real/l10n/app_localizations.dart';
+import 'package:real/services/fcm_service.dart';
+import 'package:real/splash_screen.dart';
 
 import 'feature/auth/presentation/screen/SignupScreen.dart';
 import 'feature/company/data/models/company_model.dart';
 import 'feature/company/presentation/screen/company_detail_screen.dart';
-import 'feature/home/presentation/CompoundScreen.dart';
-import 'feature/home/presentation/CustomNav.dart';
 import 'feature/compound/presentation/screen/favorite_compounds_screen.dart';
+import 'feature/home/presentation/CustomNav.dart';
 import 'feature/notifications/presentation/screens/notifications_screen.dart';
 import 'firebase_options.dart';
 
@@ -84,6 +79,10 @@ void main() async {
   if (kIsWeb) {
     usePathUrlStrategy();
   }
+
+  // Initialize local cache (Hive)
+  await CacheService.initialize();
+  print('✅ Local cache initialized');
 
   // Initialize Firebase
   await Firebase.initializeApp(

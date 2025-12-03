@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
-import 'package:real/feature/sale/data/models/sale_model.dart';
 import 'package:real/core/utils/constant.dart';
+import 'package:real/feature/sale/data/models/sale_model.dart';
 
 /// Model for payment plan data from API
 class PaymentPlan {
@@ -403,10 +403,18 @@ class Unit extends Equatable {
     // Parse payment plans
     List<PaymentPlan>? paymentPlansList;
     if (json['payment_plans'] != null && json['payment_plans'] is List) {
-      paymentPlansList = (json['payment_plans'] as List)
-          .map((plan) => PaymentPlan.fromJson(plan as Map<String, dynamic>))
-          .toList();
-      print('[UNIT MODEL] Parsed ${paymentPlansList.length} payment plans');
+      try {
+        final plansList = json['payment_plans'] as List;
+        paymentPlansList = plansList.map((plan) {
+          final planMap = plan is Map<String, dynamic>
+              ? plan
+              : Map<String, dynamic>.from(plan as Map);
+          return PaymentPlan.fromJson(planMap);
+        }).toList();
+      } catch (e) {
+        print('[UNIT MODEL] ERROR parsing payment plans: $e');
+        paymentPlansList = null;
+      }
     }
 
     // Parse delivery date - check multiple field names

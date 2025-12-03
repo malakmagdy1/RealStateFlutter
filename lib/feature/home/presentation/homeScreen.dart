@@ -1,51 +1,42 @@
 import 'dart:async';
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:real/core/animations/animated_list_item.dart';
+import 'package:real/core/animations/page_transitions.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
-import 'package:real/feature/home/presentation/widget/sale_slider.dart';
-import 'package:real/feature/home/presentation/widget/company_name_scrol.dart';
-import 'package:real/feature/home/presentation/widget/compunds_name.dart';
+import 'package:real/core/widgets/custom_loading_dots.dart';
+import 'package:real/feature/auth/presentation/bloc/user_bloc.dart';
+import 'package:real/feature/auth/presentation/bloc/user_state.dart';
+import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/company/presentation/bloc/company_bloc.dart';
 import 'package:real/feature/company/presentation/bloc/company_event.dart';
 import 'package:real/feature/company/presentation/bloc/company_state.dart';
 import 'package:real/feature/company/presentation/screen/company_detail_screen.dart';
-import 'package:real/feature/company/presentation/screen/companies_screen.dart';
-import 'package:real/feature/company/data/models/company_model.dart';
+import 'package:real/feature/compound/data/models/compound_model.dart';
+import 'package:real/feature/compound/data/models/unit_model.dart';
+import 'package:real/feature/compound/data/web_services/compound_web_services.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
-import 'package:real/feature/compound/data/models/compound_model.dart';
-import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
-import 'package:real/feature/compound/presentation/bloc/favorite/unit_favorite_state.dart';
-import 'package:real/feature/auth/presentation/bloc/user_bloc.dart';
-import 'package:real/feature/auth/presentation/bloc/user_state.dart';
+import 'package:real/feature/compound/presentation/widget/unit_card.dart';
+import 'package:real/feature/home/presentation/CompoundScreen.dart';
+import 'package:real/feature/home/presentation/widget/company_name_scrol.dart';
+import 'package:real/feature/home/presentation/widget/compunds_name.dart';
+import 'package:real/feature/home/presentation/widget/sale_slider.dart';
 import 'package:real/feature/sale/presentation/bloc/sale_bloc.dart';
 import 'package:real/feature/sale/presentation/bloc/sale_state.dart';
+import 'package:real/feature/search/data/models/search_filter_model.dart';
+import 'package:real/feature/search/data/models/search_result_model.dart';
 import 'package:real/feature/search/data/repositories/search_repository.dart';
 import 'package:real/feature/search/data/services/search_history_service.dart';
-import 'package:real/feature/search/data/models/search_filter_model.dart';
 import 'package:real/feature/search/presentation/bloc/search_bloc.dart';
 import 'package:real/feature/search/presentation/bloc/search_event.dart';
 import 'package:real/feature/search/presentation/bloc/search_state.dart';
-import 'package:real/feature/search/data/models/search_result_model.dart';
-import 'package:real/feature/search/presentation/widget/search_filter_bottom_sheet.dart';
-import 'package:real/feature/compound/data/models/unit_model.dart';
-import 'package:real/feature/compound/presentation/screen/unit_detail_screen.dart';
-import 'package:real/feature/compound/presentation/widget/unit_card.dart';
-import 'package:real/feature/compound/data/web_services/compound_web_services.dart';
-import 'package:real/feature/home/presentation/CompoundScreen.dart';
 import 'package:real/l10n/app_localizations.dart';
-import 'package:real/core/animations/animated_list_item.dart';
-import 'package:real/core/animations/page_transitions.dart';
-// AI chat imports - Unified AI (Property Search + Sales Advice)
-import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.dart';
-
-import '../../compound/presentation/bloc/favorite/compound_favorite_bloc.dart';
-import 'package:real/core/widgets/custom_loading_dots.dart';
 
 class HomeScreen extends StatefulWidget {
   static String routeName = '/home';
@@ -1429,6 +1420,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     if (activity['properties'] != null) {
                       unitJson['change_properties'] = activity['properties'];
                     }
+
                     return Unit.fromJson(unitJson);
                   }
                   return null;
