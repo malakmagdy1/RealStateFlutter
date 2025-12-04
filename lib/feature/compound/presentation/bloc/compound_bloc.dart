@@ -3,8 +3,6 @@ import 'package:real/feature/compound/data/repositories/compound_repository.dart
 import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
 import 'package:real/feature/compound/data/services/ai_weekly_recommendations_service.dart';
-import 'package:real/feature/compound/data/models/compound_model.dart';
-import 'dart:math';
 
 class CompoundBloc extends Bloc<CompoundEvent, CompoundState> {
   final CompoundRepository _repository;
@@ -29,9 +27,11 @@ class CompoundBloc extends Bloc<CompoundEvent, CompoundState> {
     }
 
     try {
-      final response = await _repository.getCompounds(
+      // Use getCompoundsWithDetails to get full data for cards
+      final response = await _repository.getCompoundsWithDetails(
         page: event.page,
         limit: event.limit,
+        forceRefresh: event.forceRefresh,
       );
 
       // If loading more pages (page > 1), accumulate compounds
@@ -45,10 +45,8 @@ class CompoundBloc extends Bloc<CompoundEvent, CompoundState> {
           data: allCompounds,
           page: event.page,
         );
-        print('[COMPOUND BLOC] Page ${event.page}: Loaded ${newCompounds.length} new, total ${allCompounds.length}/${response.total}');
         emit(CompoundSuccess(updatedResponse));
       } else {
-        print('[COMPOUND BLOC] Page 1: Loaded ${response.data.length}/${response.total} compounds');
         emit(CompoundSuccess(response));
       }
     } catch (e) {
@@ -62,7 +60,8 @@ class CompoundBloc extends Bloc<CompoundEvent, CompoundState> {
   ) async {
     emit(CompoundLoading());
     try {
-      final response = await _repository.getCompoundsByCompany(
+      // Use getCompoundsByCompanyWithDetails to get full data for cards
+      final response = await _repository.getCompoundsByCompanyWithDetails(
         companyId: event.companyId,
         page: event.page,
         limit: event.limit,
@@ -92,34 +91,28 @@ class CompoundBloc extends Bloc<CompoundEvent, CompoundState> {
   ) async {
     emit(CompoundLoading());
     try {
-      print('[AI WEEKLY RECOMMENDATIONS] Starting fetch...');
-
       // Check if we need to refresh (weekly check)
       final shouldRefresh = await AIWeeklyRecommendationsService.shouldRefreshRecommendations();
 
       if (!shouldRefresh && !event.forceRefresh) {
         // Use cached recommendations
-        print('[AI WEEKLY RECOMMENDATIONS] Using cached recommendations');
         final savedIds = await AIWeeklyRecommendationsService.getSavedRecommendedIds();
 
         if (savedIds.isNotEmpty) {
-          // Fetch all compounds and filter by saved IDs
-          final response = await _repository.getCompounds(page: 1, limit: 100);
+          // Fetch all compounds WITH DETAILS and filter by saved IDs
+          final response = await _repository.getCompoundsWithDetails(page: 1, limit: 100);
           final recommendedCompounds = response.data.where((compound) {
             return savedIds.contains(compound.id.toString());
           }).toList();
 
-          print('[AI WEEKLY RECOMMENDATIONS] Loaded ${recommendedCompounds.length} cached compounds');
           emit(CompoundSuccess(response.copyWith(data: recommendedCompounds)));
           return;
         }
       }
 
       // Need to generate new AI-powered recommendations
-      print('[AI WEEKLY RECOMMENDATIONS] Generating new AI-powered recommendations');
-
-      // Fetch a large set of compounds for AI to analyze
-      final response = await _repository.getCompounds(page: 1, limit: 100);
+      // Fetch a large set of compounds WITH DETAILS for AI to analyze
+      final response = await _repository.getCompoundsWithDetails(page: 1, limit: 100);
       final allCompounds = response.data;
 
       if (allCompounds.isEmpty) {
@@ -128,7 +121,6 @@ class CompoundBloc extends Bloc<CompoundEvent, CompoundState> {
       }
 
       // Use AI to select the best 10 compounds
-      print('[AI WEEKLY RECOMMENDATIONS] Requesting AI to analyze ${allCompounds.length} compounds');
       final selectedIds = await AIWeeklyRecommendationsService.generateAIRecommendations(allCompounds);
 
       // Filter compounds by AI-selected IDs
@@ -140,11 +132,8 @@ class CompoundBloc extends Bloc<CompoundEvent, CompoundState> {
       await AIWeeklyRecommendationsService.saveRecommendedIds(selectedIds);
       await AIWeeklyRecommendationsService.saveLastUpdateTimestamp();
 
-      print('[AI WEEKLY RECOMMENDATIONS] AI selected ${selectedCompounds.length} compounds');
-
       emit(CompoundSuccess(response.copyWith(data: selectedCompounds)));
     } catch (e) {
-      print('[AI WEEKLY RECOMMENDATIONS] Error: $e');
       emit(CompoundError(e.toString().replaceAll('Exception: ', '')));
     }
   }

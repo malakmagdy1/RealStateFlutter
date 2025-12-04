@@ -46,15 +46,10 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
     print('[WEB COMPANY DETAIL] Initializing company: ${widget.companyId}');
     print('[WEB COMPANY DETAIL] Has company data: ${widget.company != null}');
 
-    if (widget.company != null) {
-      // Company data provided, already set in initState, convert compounds
-      print('[WEB COMPANY DETAIL] Using provided company data: ${widget.company!.name}');
-      _convertCompoundsFromCompany();
-    } else {
-      // No company data, fetch from API
-      print('[WEB COMPANY DETAIL] Fetching company from API');
-      await _fetchCompany();
-    }
+    // Always fetch from API to get complete compound data with unit counts
+    // The widget.company from list view might not have full compound details
+    print('[WEB COMPANY DETAIL] Fetching company from API for complete data');
+    await _fetchCompany();
   }
 
   /// Convert CompanyCompound objects to Compound objects for display
@@ -129,7 +124,27 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
 
     try {
       final companyData = await _companyWebServices.getCompanyById(widget.companyId);
+
+      // Debug: Log compound data from API
+      print('[WEB COMPANY DETAIL] Raw company data keys: ${companyData.keys.toList()}');
+      if (companyData['compounds'] != null) {
+        final compoundsList = companyData['compounds'] as List;
+        print('[WEB COMPANY DETAIL] API returned ${compoundsList.length} compounds');
+        for (var i = 0; i < compoundsList.length && i < 3; i++) {
+          final c = compoundsList[i];
+          print('[WEB COMPANY DETAIL] Compound $i: total_units=${c['total_units']}, available_units=${c['available_units']}, sold_units=${c['sold_units']}');
+        }
+      } else {
+        print('[WEB COMPANY DETAIL] No compounds field in API response');
+      }
+
       final company = Company.fromJson(companyData);
+      print('[WEB COMPANY DETAIL] Parsed company: ${company.name}, compounds count: ${company.compounds.length}');
+
+      if (company.compounds.isNotEmpty) {
+        final firstCompound = company.compounds.first;
+        print('[WEB COMPANY DETAIL] First compound after parsing: totalUnits=${firstCompound.totalUnits}, availableUnits=${firstCompound.availableUnits}');
+      }
 
       setState(() {
         _currentCompany = company;
@@ -596,6 +611,46 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
               ),
             ],
           ),
+          // Phone number section
+          if (_currentCompany!.phone != null && _currentCompany!.phone!.isNotEmpty) ...[
+            SizedBox(height: 20),
+            Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF26A69A).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(Icons.phone, color: Color(0xFF26A69A)),
+                ),
+                SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.phone,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF999999),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      SelectableText(
+                        _currentCompany!.phone!,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF333333),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

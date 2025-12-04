@@ -24,7 +24,6 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
   List<NotificationModel> notifications = [];
   bool isLoading = true;
   final NotificationCacheService _cacheService = NotificationCacheService();
-  Timer? _refreshTimer;
   StreamSubscription? _notificationSubscription;
 
   // Pagination variables
@@ -50,21 +49,15 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
       _handleNewNotification(notificationData);
     });
 
-    // First load notifications immediately
-    _loadNotifications();
-
-    // Check for pending notifications from IndexedDB
+    // Check for pending notifications from IndexedDB first (one-time migration)
+    // Then load notifications - no need for repeated timer since:
+    // 1. Real-time updates come from service worker stream listener above
+    // 2. IndexedDB is cleared after migration, so repeated checks are unnecessary
     _checkAndMigrateWebNotifications();
-
-    // Refresh notifications every 5 seconds to catch new ones
-    _refreshTimer = Timer.periodic(Duration(seconds: 5), (timer) {
-      _checkAndMigrateWebNotifications();
-    });
   }
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
     _notificationSubscription?.cancel();
     _scrollController.dispose();
     super.dispose();

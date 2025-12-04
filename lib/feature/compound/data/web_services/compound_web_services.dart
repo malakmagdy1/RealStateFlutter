@@ -81,8 +81,13 @@ class CompoundWebServices {
         print('[CACHE] Returning ${cachedData
             .length} cached compounds for page $page');
         return CompoundResponse.fromJson({
+          'success': true,
           'data': cachedData,
-          'pagination': {'current_page': page, 'has_more': true},
+          'count': cachedData.length,
+          'total': 1000, // Assume there are more
+          'page': page,
+          'limit': limit,
+          'total_pages': 100, // Assume there are more pages to load
         });
       }
     }
@@ -124,8 +129,13 @@ class CompoundWebServices {
       if (cachedData != null) {
         print('[CACHE] Network error - returning cached compounds');
         return CompoundResponse.fromJson({
+          'success': true,
           'data': cachedData,
-          'pagination': {'current_page': page, 'has_more': false},
+          'count': cachedData.length,
+          'total': cachedData.length,
+          'page': page,
+          'limit': limit,
+          'total_pages': 1, // No more pages on error
         });
       }
 
@@ -226,6 +236,36 @@ class CompoundWebServices {
       print('Get Compound by ID Error: ${e.toString()}');
       throw Exception('Failed to fetch compound details: $e');
     }
+  }
+
+  /// Fetch detailed data for multiple compounds in parallel
+  /// Returns a map of compound ID -> detailed compound data
+  Future<Map<String, Map<String, dynamic>>> getCompoundDetailsForIds(List<String> compoundIds) async {
+    final Map<String, Map<String, dynamic>> results = {};
+
+    // Fetch in parallel batches of 5 to avoid overwhelming the server
+    const batchSize = 5;
+    for (int i = 0; i < compoundIds.length; i += batchSize) {
+      final batch = compoundIds.skip(i).take(batchSize).toList();
+      final futures = batch.map((id) async {
+        try {
+          final detail = await getCompoundById(id);
+          return MapEntry(id, detail);
+        } catch (e) {
+          print('[COMPOUND DETAIL] Failed to fetch details for $id: $e');
+          return MapEntry(id, <String, dynamic>{});
+        }
+      });
+
+      final batchResults = await Future.wait(futures);
+      for (final entry in batchResults) {
+        if (entry.value.isNotEmpty) {
+          results[entry.key] = entry.value;
+        }
+      }
+    }
+
+    return results;
   }
 
   Future<Map<String, dynamic>> getSalespeopleByCompound(String compoundName) async {
@@ -439,9 +479,9 @@ class CompoundWebServices {
       Response response = await dio.get(
         '/units/new',
         queryParameters: {
-          'houre': hours,
-          'per_page': limit,
+          'days': hours ~/ 24 > 0 ? hours ~/ 24 : 1, // Convert hours to days as per API doc
           'page': page,
+          'limit': limit,
           'lang': currentLang,
         },
         options: Options(headers: {'Authorization': 'Bearer $authToken'}),
@@ -536,6 +576,82 @@ class CompoundWebServices {
     } catch (e) {
       print('Mark Unit as Seen Error: ${e.toString()}');
       throw Exception('Failed to mark unit as seen: $e');
+    }
+  }
+
+  // Mark multiple units as seen
+  Future<Map<String, dynamic>> markMultipleUnitsAsSeen(List<int> unitIds) async {
+    try {
+      final authToken = token ?? '';
+
+      Response response = await dio.post(
+        '/units/mark-seen/multiple',
+        data: {'unit_ids': unitIds},
+        options: Options(headers: {'Authorization': 'Bearer $authToken'}),
+      );
+      print('Mark Multiple Units as Seen Response: ${response.data.toString()}');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('Mark Multiple Units as Seen DioException: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('Mark Multiple Units as Seen Error: ${e.toString()}');
+      throw Exception('Failed to mark units as seen: $e');
+    }
+  }
+
+  // Mark all units as seen
+  Future<Map<String, dynamic>> markAllUnitsAsSeen() async {
+    try {
+      final authToken = token ?? '';
+
+      Response response = await dio.post(
+        '/units/mark-seen/all',
+        options: Options(headers: {'Authorization': 'Bearer $authToken'}),
+      );
+      print('Mark All Units as Seen Response: ${response.data.toString()}');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('Mark All Units as Seen DioException: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('Mark All Units as Seen Error: ${e.toString()}');
+      throw Exception('Failed to mark all units as seen: $e');
+    }
+  }
+
+  // Get units changes summary
+  Future<Map<String, dynamic>> getUnitChangesSummary() async {
+    try {
+      final authToken = token ?? '';
+
+      Response response = await dio.get(
+        '/units/changes/summary',
+        options: Options(headers: {'Authorization': 'Bearer $authToken'}),
+      );
+      print('Units Changes Summary Response: ${response.data.toString()}');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        throw Exception('Invalid response format');
+      }
+    } on DioException catch (e) {
+      print('Units Changes Summary DioException: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('Units Changes Summary Error: ${e.toString()}');
+      throw Exception('Failed to get units changes summary: $e');
     }
   }
 

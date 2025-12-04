@@ -173,6 +173,132 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _showDeleteAccountDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final loginBloc = context.read<LoginBloc>();
+    final reasonController = TextEditingController();
+    final confirmController = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+                  SizedBox(width: 8),
+                  Text(
+                    l10n.deleteAccountTitle,
+                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.withOpacity(0.3)),
+                      ),
+                      child: Text(
+                        l10n.deleteAccountWarning,
+                        style: TextStyle(color: Colors.red[700], fontSize: 14),
+                      ),
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      l10n.deleteAccountReason,
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    SizedBox(height: 8),
+                    TextField(
+                      controller: reasonController,
+                      decoration: InputDecoration(
+                        hintText: l10n.deleteAccountReasonHint,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                      maxLines: 2,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      l10n.typeDeleteToConfirm,
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    SizedBox(height: 8),
+                    TextField(
+                      controller: confirmController,
+                      decoration: InputDecoration(
+                        hintText: 'DELETE',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (confirmController.text != 'DELETE') {
+                            MessageHelper.showError(context, l10n.deleteConfirmationRequired);
+                            return;
+                          }
+
+                          setState(() => isLoading = true);
+
+                          try {
+                            final authService = AuthWebServices();
+                            await authService.deleteAccount(reason: reasonController.text);
+
+                            Navigator.of(dialogContext).pop();
+                            MessageHelper.showSuccess(context, l10n.deleteAccountSuccess);
+
+                            // Logout the user after successful deletion request
+                            Future.delayed(Duration(seconds: 2), () {
+                              loginBloc.add(LogoutEvent());
+                            });
+                          } catch (e) {
+                            setState(() => isLoading = false);
+                            MessageHelper.showError(context, l10n.deleteAccountError);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: isLoading
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : Text(l10n.deleteAccount),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showLanguageDialog(BuildContext context) {
     final localeCubit = context.read<LocaleCubit>();
     final currentLocale = localeCubit.state;
@@ -349,48 +475,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             imageUrl = userState.user.imageUrl;
                           }
 
-                          return Container(
-                            width: screenWidth * 0.28,
-                            height: screenWidth * 0.28,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.mainColor.withOpacity(0.2),
-                                  AppColors.mainColor.withOpacity(0.1),
-                                ],
-                              ),
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.mainColor.withOpacity(0.3),
-                                width: 2,
-                              ),
-                            ),
-                            child: _imageFile != null
-                                ? ClipOval(
-                                    child: Image.file(
-                                      _imageFile!,
-                                      fit: BoxFit.cover,
+                          return GestureDetector(
+                            onTap: _showImagePickerModal,
+                            child: Stack(
+                              children: [
+                                Container(
+                                  width: screenWidth * 0.28,
+                                  height: screenWidth * 0.28,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.mainColor.withOpacity(0.2),
+                                        AppColors.mainColor.withOpacity(0.1),
+                                      ],
                                     ),
-                                  )
-                                : imageUrl != null && imageUrl.isNotEmpty
-                                    ? ClipOval(
-                                        child: Image.network(
-                                          imageUrl,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) {
-                                            return Icon(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: AppColors.mainColor.withOpacity(0.3),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: _imageFile != null
+                                      ? ClipOval(
+                                          child: Image.file(
+                                            _imageFile!,
+                                            fit: BoxFit.cover,
+                                          ),
+                                        )
+                                      : imageUrl != null && imageUrl.isNotEmpty
+                                          ? ClipOval(
+                                              child: Image.network(
+                                                imageUrl,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) {
+                                                  return Icon(
+                                                    Icons.person,
+                                                    size: screenWidth * 0.12,
+                                                    color: AppColors.mainColor,
+                                                  );
+                                                },
+                                              ),
+                                            )
+                                          : Icon(
                                               Icons.person,
                                               size: screenWidth * 0.12,
                                               color: AppColors.mainColor,
-                                            );
-                                          },
-                                        ),
-                                      )
-                                    : Icon(
-                                        Icons.person,
-                                        size: screenWidth * 0.12,
-                                        color: AppColors.mainColor,
+                                            ),
+                                ),
+                                // Camera icon overlay
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.mainColor,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2,
                                       ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.2),
+                                          blurRadius: 4,
+                                          offset: Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      Icons.camera_alt,
+                                      color: Colors.white,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           );
                         },
                       ),
@@ -824,6 +985,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ),
                     ),
                     Divider(height: 1, indent: 72, endIndent: 16),
+                    // Delete Account Option
+                    ListTile(
+                      leading: Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(Icons.delete_forever, color: Colors.red, size: 24),
+                      ),
+                      title: Text(
+                        l10n.deleteAccount,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.red,
+                        ),
+                      ),
+                      subtitle: Text(
+                        l10n.deleteAccountWarning,
+                        style: TextStyle(fontSize: 12, color: Colors.red[300]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: Colors.red[300]),
+                      onTap: () => _showDeleteAccountDialog(context),
+                    ),
                   ],
                 ),
               ),

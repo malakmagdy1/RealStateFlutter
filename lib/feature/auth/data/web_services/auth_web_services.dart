@@ -1006,6 +1006,58 @@ class AuthWebServices {
     }
   }
 
+  /// Delete user account
+  Future<Map<String, dynamic>> deleteAccount({String? reason}) async {
+    try {
+      final authToken = token ?? '';
+
+      print('═══════════════════════════════════════════════════════');
+      print('🗑️ Requesting Account Deletion');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.delete(
+        '/delete-account',
+        data: {
+          if (reason != null && reason.isNotEmpty) 'reason': reason,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('✅ Account deletion request submitted');
+      print('Response: ${response.data.toString()}');
+      print('═══════════════════════════════════════════════════════');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        return {'success': true, 'message': 'Account deletion request submitted'};
+      }
+    } on DioException catch (e) {
+      print('❌ Delete Account DioException: ${e.toString()}');
+      print('❌ Response: ${e.response?.data}');
+      print('═══════════════════════════════════════════════════════');
+
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+        if (errorData['error'] != null) {
+          throw Exception(errorData['error']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Delete Account Error: ${e.toString()}');
+      print('═══════════════════════════════════════════════════════');
+      throw Exception('Failed to delete account: $e');
+    }
+  }
+
   /// Get subscription tier information
   Future<Map<String, dynamic>> getSubscriptionInfo() async {
     try {
@@ -1065,6 +1117,288 @@ class AuthWebServices {
       print('❌ Get Subscription Error: ${e.toString()}');
       print('═══════════════════════════════════════════════════════');
       throw Exception('Failed to get subscription info: $e');
+    }
+  }
+
+  // ============================================================================
+  // FCM & NOTIFICATION METHODS
+  // ============================================================================
+
+  /// Store FCM token for push notifications
+  Future<Map<String, dynamic>> storeFcmToken({
+    required String fcmToken,
+    String? locale,
+  }) async {
+    try {
+      final authToken = token ?? '';
+
+      print('═══════════════════════════════════════════════════════');
+      print('📱 Storing FCM Token');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.post(
+        '/fcm-token',
+        data: {
+          'fcm_token': fcmToken,
+          if (locale != null) 'locale': locale,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('✅ FCM Token stored successfully');
+      print('Response: ${response.data.toString()}');
+      print('═══════════════════════════════════════════════════════');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        return {'success': true, 'message': 'FCM token stored'};
+      }
+    } on DioException catch (e) {
+      print('❌ Store FCM Token DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Store FCM Token Error: ${e.toString()}');
+      throw Exception('Failed to store FCM token: $e');
+    }
+  }
+
+  /// Remove FCM token
+  Future<Map<String, dynamic>> removeFcmToken() async {
+    try {
+      final authToken = token ?? '';
+
+      print('═══════════════════════════════════════════════════════');
+      print('🗑️ Removing FCM Token');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.delete(
+        '/fcm-token',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('✅ FCM Token removed successfully');
+      print('═══════════════════════════════════════════════════════');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        return {'success': true, 'message': 'FCM token removed'};
+      }
+    } on DioException catch (e) {
+      print('❌ Remove FCM Token DioException: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Remove FCM Token Error: ${e.toString()}');
+      throw Exception('Failed to remove FCM token: $e');
+    }
+  }
+
+  /// Update user locale for notifications
+  Future<Map<String, dynamic>> updateLocale(String locale) async {
+    try {
+      final authToken = token ?? '';
+
+      print('═══════════════════════════════════════════════════════');
+      print('🌐 Updating Locale to: $locale');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.post(
+        '/update-locale',
+        data: {'locale': locale},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('✅ Locale updated successfully');
+      print('Response: ${response.data.toString()}');
+      print('═══════════════════════════════════════════════════════');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        return {'success': true, 'message': 'Locale updated'};
+      }
+    } on DioException catch (e) {
+      print('❌ Update Locale DioException: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Update Locale Error: ${e.toString()}');
+      throw Exception('Failed to update locale: $e');
+    }
+  }
+
+  /// Change password
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String newPasswordConfirmation,
+  }) async {
+    try {
+      final authToken = token ?? '';
+
+      print('═══════════════════════════════════════════════════════');
+      print('🔐 Changing Password');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.post(
+        '/change-password',
+        data: {
+          'current_password': currentPassword,
+          'password': newPassword,
+          'password_confirmation': newPasswordConfirmation,
+        },
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('✅ Password changed successfully');
+      print('═══════════════════════════════════════════════════════');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        return {'success': true, 'message': 'Password changed successfully'};
+      }
+    } on DioException catch (e) {
+      print('❌ Change Password DioException: ${e.toString()}');
+      if (e.response?.data != null && e.response?.data is Map) {
+        final errorData = e.response?.data as Map<String, dynamic>;
+        if (errorData['message'] != null) {
+          throw Exception(errorData['message']);
+        }
+      }
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Change Password Error: ${e.toString()}');
+      throw Exception('Failed to change password: $e');
+    }
+  }
+
+  /// Mark tutorial as seen
+  Future<Map<String, dynamic>> markTutorialSeen() async {
+    try {
+      final authToken = token ?? '';
+
+      print('═══════════════════════════════════════════════════════');
+      print('📖 Marking Tutorial as Seen');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.post(
+        '/tutorial/mark-seen',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('✅ Tutorial marked as seen');
+      print('═══════════════════════════════════════════════════════');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        return {'success': true, 'tutorial_seen': true};
+      }
+    } on DioException catch (e) {
+      print('❌ Mark Tutorial Seen DioException: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Mark Tutorial Seen Error: ${e.toString()}');
+      throw Exception('Failed to mark tutorial as seen: $e');
+    }
+  }
+
+  /// Check device status
+  Future<Map<String, dynamic>> checkDevice(String deviceId) async {
+    try {
+      final authToken = token ?? '';
+
+      print('═══════════════════════════════════════════════════════');
+      print('📱 Checking Device: $deviceId');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.post(
+        '/devices/check',
+        data: {'device_id': deviceId},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('✅ Device check response: ${response.data}');
+      print('═══════════════════════════════════════════════════════');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        return {'success': true};
+      }
+    } on DioException catch (e) {
+      print('❌ Check Device DioException: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Check Device Error: ${e.toString()}');
+      throw Exception('Failed to check device: $e');
+    }
+  }
+
+  /// Remote logout a specific device
+  Future<Map<String, dynamic>> remoteLogout(String deviceId) async {
+    try {
+      final authToken = token ?? '';
+
+      print('═══════════════════════════════════════════════════════');
+      print('🚪 Remote Logout Device: $deviceId');
+      print('═══════════════════════════════════════════════════════');
+
+      Response response = await dio.post(
+        '/devices/remote-logout',
+        data: {'device_id': deviceId},
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('✅ Device logged out remotely');
+      print('═══════════════════════════════════════════════════════');
+
+      if (response.data is Map<String, dynamic>) {
+        return response.data;
+      } else {
+        return {'success': true, 'message': 'Device logged out'};
+      }
+    } on DioException catch (e) {
+      print('❌ Remote Logout DioException: ${e.toString()}');
+      throw _handleError(e);
+    } catch (e) {
+      print('❌ Remote Logout Error: ${e.toString()}');
+      throw Exception('Failed to remote logout: $e');
     }
   }
 }

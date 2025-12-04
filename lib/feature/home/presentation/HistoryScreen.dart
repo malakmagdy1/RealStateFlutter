@@ -346,9 +346,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.63,
+        childAspectRatio: 0.58, // Adjusted to accommodate time below card
         crossAxisSpacing: 8,
-        mainAxisSpacing: 8,
+        mainAxisSpacing: 12,
       ),
       itemCount: _filteredItems.length,
       itemBuilder: (context, index) {
@@ -360,65 +360,65 @@ class _HistoryScreenState extends State<HistoryScreen> {
           return AnimatedListItem(
             index: index,
             delay: Duration(milliseconds: 50),
-            child: Stack(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CompoundsName(compound: compound),
-                // Time badge overlay - positioned on image area (top-left, below action buttons)
-              if (viewedAt != null)
-                Positioned(
-                  top: 55, // Position below the top action buttons
-                  left: 12,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: AppColors.mainColor,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
+                // Card with remove button
+                Expanded(
+                  child: Stack(
+                    children: [
+                      CompoundsName(compound: compound),
+                      // Remove button - positioned at top right
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: GestureDetector(
+                          onTap: () => _removeItem({'itemType': 'compound', 'id': int.tryParse(compound.id.toString()) ?? 0}),
+                          child: Container(
+                            width: buttonSize,
+                            height: buttonSize,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.15),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.close,
+                              color: Colors.red,
+                              size: iconSize,
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Text(
-                      _getTimeAgo(viewedAt, l10n),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
                       ),
-                    ),
+                    ],
                   ),
                 ),
-              // Remove button - positioned at top right
-              Positioned(
-                top: 8,
-                right: 8,
-                child: GestureDetector(
-                  onTap: () => _removeItem({'itemType': 'compound', 'id': int.tryParse(compound.id.toString()) ?? 0}),
-                  child: Container(
-                    width: buttonSize,
-                    height: buttonSize,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
+                // Time badge below the card
+                if (viewedAt != null)
+                  Padding(
+                    padding: EdgeInsets.only(top: 4, left: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.access_time, color: AppColors.greyText, size: 12),
+                        SizedBox(width: 4),
+                        Text(
+                          _getTimeAgo(viewedAt, l10n),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.greyText,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.close,
-                      color: Colors.red,
-                      size: iconSize,
-                    ),
                   ),
-                ),
-              ),
               ],
             ),
           );
@@ -427,65 +427,65 @@ class _HistoryScreenState extends State<HistoryScreen> {
           return AnimatedListItem(
             index: index,
             delay: Duration(milliseconds: 50),
-            child: Stack(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                UnitCard(unit: unit),
-                // Time badge overlay - positioned on image area (top-left, below action buttons)
-              if (viewedAt != null)
-                Positioned(
-                  top: 55, // Position below the top action buttons
-                  left: 12,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: AppColors.mainColor,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
+                // Card with remove button
+                Expanded(
+                  child: Stack(
+                    children: [
+                      UnitCard(unit: unit),
+                      // Remove button for unit - positioned at top right
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: GestureDetector(
+                          onTap: () => _removeItem({'itemType': 'unit', 'id': int.tryParse(unit.id.toString()) ?? 0}),
+                          child: Container(
+                            width: buttonSize,
+                            height: buttonSize,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.15),
+                                  blurRadius: 6,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Icon(
+                              Icons.close,
+                              color: Colors.red,
+                              size: iconSize,
+                            ),
+                          ),
                         ),
-                      ],
-                    ),
-                    child: Text(
-                      _getTimeAgo(viewedAt, l10n),
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
                       ),
-                    ),
+                    ],
                   ),
                 ),
-              // Remove button for unit - positioned at top right
-              Positioned(
-                top: 8,
-                right: 8,
-                child: GestureDetector(
-                  onTap: () => _removeItem({'itemType': 'unit', 'id': int.tryParse(unit.id.toString()) ?? 0}),
-                  child: Container(
-                    width: buttonSize,
-                    height: buttonSize,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
+                // Time badge below the card
+                if (viewedAt != null)
+                  Padding(
+                    padding: EdgeInsets.only(top: 4, left: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.access_time, color: AppColors.greyText, size: 12),
+                        SizedBox(width: 4),
+                        Text(
+                          _getTimeAgo(viewedAt, l10n),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.greyText,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ],
                     ),
-                    child: Icon(
-                      Icons.close,
-                      color: Colors.red,
-                      size: iconSize,
-                    ),
                   ),
-                ),
-              ),
               ],
             ),
           );

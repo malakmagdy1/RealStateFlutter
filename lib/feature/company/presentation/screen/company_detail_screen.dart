@@ -10,6 +10,7 @@ import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
 import 'package:real/feature/home/presentation/widget/compunds_name.dart';
 import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sheet.dart';
 import 'package:real/l10n/app_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CompanyDetailScreen extends StatefulWidget {
   static String routeName = '/company-detail';
@@ -231,7 +232,80 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
                 );
               },
             ),
-            SizedBox(height: 40),
+            SizedBox(height: 24),
+
+            // Phone Call Button
+            if (widget.company.phone != null && widget.company.phone!.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: GestureDetector(
+                  onTap: () async {
+                    final phone = widget.company.phone!;
+                    final Uri phoneUri = Uri(scheme: 'tel', path: phone);
+                    if (await canLaunchUrl(phoneUri)) {
+                      await launchUrl(phoneUri);
+                    }
+                  },
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Color(0xFF26A69A).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Color(0xFF26A69A).withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Color(0xFF26A69A),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.phone,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l10n.call,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF26A69A),
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Text(
+                              widget.company.phone!,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.black,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Spacer(),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          color: Color(0xFF26A69A),
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            SizedBox(height: 24),
 
             // Compounds Section
             Padding(

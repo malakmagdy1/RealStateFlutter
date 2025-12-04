@@ -64,8 +64,9 @@ class _WebMainScreenState extends State<WebMainScreen> {
     _loadUnreadCount();
     _loadComparisonCount();
 
-    // Check for new notifications every 3 seconds
-    _notificationCheckTimer = Timer.periodic(Duration(seconds: 3), (timer) {
+    // Check for new notifications every 30 seconds (reduced frequency to prevent duplicate issues)
+    // Note: Real-time updates come from service worker stream, this is just a fallback
+    _notificationCheckTimer = Timer.periodic(Duration(seconds: 30), (timer) {
       _loadUnreadCount();
     });
 
@@ -175,24 +176,38 @@ class _WebMainScreenState extends State<WebMainScreen> {
 
   Future<void> _checkAndMigrateWebNotifications() async {
     try {
-      // Check localStorage for pending notifications from service worker (only available on web)
-      final pendingNotificationsJson = getLocalStorageItem('pending_web_notifications');
+      // Check IndexedDB for pending notifications from service worker
+      final pendingNotifications = await getNotificationsFromIndexedDB();
 
-      if (pendingNotificationsJson != null && pendingNotificationsJson.isNotEmpty) {
-        final List<dynamic> pendingNotifications = jsonDecode(pendingNotificationsJson);
+      if (pendingNotifications.isNotEmpty) {
+        print('[WEB MAIN] Found ${pendingNotifications.length} pending notifications in IndexedDB');
 
         // Migrate each notification to SharedPreferences
         for (var notifJson in pendingNotifications) {
           try {
-            final notification = NotificationModel.fromJson(notifJson);
+            final notification = NotificationModel(
+              id: notifJson['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
+              title: notifJson['title'] ?? '',
+              message: notifJson['message'] ?? notifJson['body'] ?? '',
+              type: notifJson['type'] ?? 'general',
+              timestamp: notifJson['timestamp'] != null
+                  ? DateTime.parse(notifJson['timestamp'])
+                  : DateTime.now(),
+              isRead: notifJson['isRead'] ?? false,
+              imageUrl: notifJson['imageUrl'] ?? notifJson['image_url'],
+              data: notifJson['data'] != null
+                  ? Map<String, dynamic>.from(notifJson['data'])
+                  : null,
+            );
             await _cacheService.saveNotification(notification);
           } catch (e) {
             print('⚠️ Error migrating notification: $e');
           }
         }
 
-        // Clear localStorage after migration
-        removeLocalStorageItem('pending_web_notifications');
+        // Clear IndexedDB after successful migration
+        await clearNotificationsFromIndexedDB();
+        print('[WEB MAIN] Cleared IndexedDB after migration');
       }
     } catch (e) {
       print('❌ Error checking pending notifications: $e');

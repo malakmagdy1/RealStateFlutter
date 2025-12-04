@@ -1708,4 +1708,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get maxPriceHint => 'Max';
+
+  @override
+  String get deleteAccount => 'Delete Account';
+
+  @override
+  String get deleteAccountTitle => 'Delete Account';
+
+  @override
+  String get deleteAccountWarning =>
+      'Warning: This action cannot be undone. All your data will be permanently deleted.';
+
+  @override
+  String get deleteAccountConfirm =>
+      'Are you sure you want to delete your account?';
+
+  @override
+  String get deleteAccountReason => 'Reason for deletion (optional)';
+
+  @override
+  String get deleteAccountReasonHint =>
+      'Tell us why you want to delete your account';
+
+  @override
+  String get deleteAccountSuccess =>
+      'Your account deletion request has been submitted. You will receive a confirmation email within 48 hours.';
+
+  @override
+  String get deleteAccountError =>
+      'Failed to submit account deletion request. Please try again or contact support.';
+
+  @override
+  String get typeDeleteToConfirm => 'Type DELETE to confirm';
+
+  @override
+  String get deleteConfirmationRequired => 'Please type DELETE to confirm';
+
+  @override
+  String get months => 'Months';
+
+  @override
+  String get totalInstallments => 'Total Installments';
+
+  @override
+  String get balanceAfterDown => 'Balance After Down';
+
+  @override
+  String get pricePerSqm => 'Price/m²';
 }

@@ -408,68 +408,66 @@ class _WebHistoryScreenState extends State<WebHistoryScreen> {
           padding: EdgeInsets.only(bottom: 20),
           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 300, // Unified width (increased by 40)
-            mainAxisSpacing: 10,
+            mainAxisSpacing: 24, // Increased spacing to accommodate time below
             crossAxisSpacing: 10,
-            childAspectRatio: 0.85, // Unified aspect ratio (wider cards, shorter height)
+            childAspectRatio: 0.75, // Adjusted for time badge below card
           ),
           itemCount: itemsToShow.length,
           itemBuilder: (context, index) {
             final item = itemsToShow[index];
 
-            return Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  // ensure card (and its background image) fills the stack
-                  Positioned.fill(
-                    child: item['itemType'] == 'compound'
-                        ? WebCompoundCard(compound: Compound.fromJson(item))
-                        : WebUnitCard(unit: Unit.fromJson(item)),
-                  ),
-
-                  // delete button — top-right outside card
-                  Positioned(
-                    top: -6,
-                    right: -6,
-                    child: InkWell(
-                      onTap: () => _removeItem(item),
-                      borderRadius: BorderRadius.circular(20),
-                      child: CircleAvatar(
-                        radius: 14,
-                        backgroundColor: Colors.white,
-                        child: Icon(Icons.close, color: Colors.red, size: 16),
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Card with delete button
+                Expanded(
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Card fills the space
+                      Positioned.fill(
+                        child: item['itemType'] == 'compound'
+                            ? WebCompoundCard(compound: Compound.fromJson(item))
+                            : WebUnitCard(unit: Unit.fromJson(item)),
                       ),
-                    ),
-                  ),
-
-                  // timestamp badge — positioned on image area (top-left, below action buttons)
-                  if (item['viewedAt'] != null)
-                    Positioned(
-                      top: 60, // Position below the top action buttons
-                      left: 12,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.75),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.access_time, color: Colors.white, size: 12),
-                            SizedBox(width: 4),
-                            Text(
-                              _getTimeAgo(item['viewedAt']),
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
+                      // delete button — top-right outside card
+                      Positioned(
+                        top: -6,
+                        right: -6,
+                        child: InkWell(
+                          onTap: () => _removeItem(item),
+                          borderRadius: BorderRadius.circular(20),
+                          child: CircleAvatar(
+                            radius: 14,
+                            backgroundColor: Colors.white,
+                            child: Icon(Icons.close, color: Colors.red, size: 16),
+                          ),
                         ),
                       ),
+                    ],
+                  ),
+                ),
+                // Time badge below the card
+                if (item['viewedAt'] != null)
+                  Padding(
+                    padding: EdgeInsets.only(top: 6, left: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.access_time, color: Color(0xFF666666), size: 12),
+                        SizedBox(width: 4),
+                        Text(
+                          _getTimeAgo(item['viewedAt']),
+                          style: TextStyle(
+                            color: Color(0xFF666666),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
                     ),
-                ],
+                  ),
+              ],
             );
           },
         ),

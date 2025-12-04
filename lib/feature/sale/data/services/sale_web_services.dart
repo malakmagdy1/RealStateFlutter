@@ -141,4 +141,76 @@ class SaleWebServices {
   Future<Map<String, dynamic>> getSalesByUnit(String unitId, {int page = 1, int limit = 20}) async {
     return getSales(unitId: unitId, page: page, limit: limit);
   }
+
+  /// Get a specific sale by ID
+  Future<Map<String, dynamic>> getSaleById(String saleId) async {
+    try {
+      // Get token from storage
+      final authToken = token ?? '';
+
+      print('[SALE API] Fetching sale by ID: $saleId');
+      print('[SALE API] URL: $baseUrl/sales/$saleId');
+
+      final response = await dio.get(
+        '/sales/$saleId',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('[SALE API] Status Code: ${response.statusCode}');
+      print('[SALE API] Response: ${response.data}');
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception('Failed to load sale: ${response.statusMessage}');
+      }
+    } on DioException catch (e) {
+      print('[SALE API] DioException: ${e.toString()}');
+      print('[SALE API] Response: ${e.response?.data}');
+      throw Exception('Failed to fetch sale: ${e.message}');
+    } catch (e) {
+      print('[SALE API] Error: $e');
+      throw Exception('Failed to fetch sale: $e');
+    }
+  }
+
+  /// Get all companies that have active sales
+  Future<Map<String, dynamic>> getCompaniesWithSales() async {
+    try {
+      // Get token from storage
+      final authToken = token ?? '';
+
+      print('[SALE API] Fetching companies with sales');
+      print('[SALE API] URL: $baseUrl/companies-with-sales');
+
+      final response = await dio.get(
+        '/companies-with-sales',
+        options: Options(
+          headers: {
+            'Authorization': 'Bearer $authToken',
+          },
+        ),
+      );
+
+      print('[SALE API] Status Code: ${response.statusCode}');
+      print('[SALE API] Response: ${response.data}');
+
+      if (response.statusCode == 200) {
+        return response.data as Map<String, dynamic>;
+      } else {
+        throw Exception('Failed to load companies with sales: ${response.statusMessage}');
+      }
+    } on DioException catch (e) {
+      print('[SALE API] DioException: ${e.toString()}');
+      print('[SALE API] Response: ${e.response?.data}');
+      throw Exception('Failed to fetch companies with sales: ${e.message}');
+    } catch (e) {
+      print('[SALE API] Error: $e');
+      throw Exception('Failed to fetch companies with sales: $e');
+    }
+  }
 }

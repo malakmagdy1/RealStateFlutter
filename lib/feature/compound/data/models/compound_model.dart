@@ -100,28 +100,17 @@ class Compound extends Equatable {
   });
 
   factory Compound.fromJson(Map<String, dynamic> json) {
-    // Parse images array - store URLs as-is from API
+    // Parse images array - prefer images_urls (full URLs) if available, otherwise use images
     List<String> imagesList = [];
-    if (json['images'] != null && json['images'] is List) {
-      imagesList = (json['images'] as List)
+    final imagesSource = json['images_urls'] ?? json['images'];
+    if (imagesSource != null && imagesSource is List) {
+      imagesList = (imagesSource as List)
           .map((img) => img.toString())
           .toList();
-
-      print('================================');
-      print('[COMPOUND MODEL] Compound: ${json['project']}');
-      print('[COMPOUND MODEL] Total images from API: ${imagesList.length}');
-      for (int i = 0; i < imagesList.length; i++) {
-        print('[COMPOUND MODEL] Image $i: ${imagesList[i]}');
-      }
-      print('================================');
     }
 
-    // Debug: Log units data from API
-    print(
-        '[COMPOUND MODEL] ID: ${json['id']}, total_units: ${json['total_units']}, available_units: ${json['available_units']}, company_name: ${json['company_name']}');
-
-    // Store company logo URL as-is from API
-    String? companyLogo = json['company_logo']?.toString();
+    // Use company_logo_url (full URL) if available, otherwise fall back to company_logo
+    String? companyLogo = json['company_logo_url']?.toString() ?? json['company_logo']?.toString();
 
     // Parse sales array
     List<Sales> salesList = [];

@@ -1703,4 +1703,49 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get maxPriceHint => 'الحد الأقصى';
+
+  @override
+  String get deleteAccount => 'حذف الحساب';
+
+  @override
+  String get deleteAccountTitle => 'حذف الحساب';
+
+  @override
+  String get deleteAccountWarning =>
+      'تحذير: لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بياناتك نهائياً.';
+
+  @override
+  String get deleteAccountConfirm => 'هل أنت متأكد من رغبتك في حذف حسابك؟';
+
+  @override
+  String get deleteAccountReason => 'سبب الحذف (اختياري)';
+
+  @override
+  String get deleteAccountReasonHint => 'أخبرنا لماذا تريد حذف حسابك';
+
+  @override
+  String get deleteAccountSuccess =>
+      'تم تقديم طلب حذف حسابك. ستتلقى رسالة تأكيد عبر البريد الإلكتروني خلال 48 ساعة.';
+
+  @override
+  String get deleteAccountError =>
+      'فشل في تقديم طلب حذف الحساب. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.';
+
+  @override
+  String get typeDeleteToConfirm => 'اكتب DELETE للتأكيد';
+
+  @override
+  String get deleteConfirmationRequired => 'يرجى كتابة DELETE للتأكيد';
+
+  @override
+  String get months => 'شهر';
+
+  @override
+  String get totalInstallments => 'إجمالي الأقساط';
+
+  @override
+  String get balanceAfterDown => 'الرصيد بعد المقدم';
+
+  @override
+  String get pricePerSqm => 'السعر/م²';
 }

@@ -196,6 +196,135 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
     );
   }
 
+  void _showDeleteAccountDialog(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final loginBloc = context.read<LoginBloc>();
+    final reasonController = TextEditingController();
+    final confirmController = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              title: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.red, size: 28),
+                  SizedBox(width: 8),
+                  Text(
+                    l10n.deleteAccountTitle,
+                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: 400,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.withOpacity(0.3)),
+                        ),
+                        child: Text(
+                          l10n.deleteAccountWarning,
+                          style: TextStyle(color: Colors.red[700], fontSize: 14),
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        l10n.deleteAccountReason,
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      SizedBox(height: 8),
+                      TextField(
+                        controller: reasonController,
+                        decoration: InputDecoration(
+                          hintText: l10n.deleteAccountReasonHint,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        ),
+                        maxLines: 2,
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        l10n.typeDeleteToConfirm,
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      SizedBox(height: 8),
+                      TextField(
+                        controller: confirmController,
+                        decoration: InputDecoration(
+                          hintText: 'DELETE',
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: isLoading ? null : () => Navigator.of(dialogContext).pop(),
+                  child: Text(l10n.cancel),
+                ),
+                ElevatedButton(
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (confirmController.text != 'DELETE') {
+                            MessageHelper.showError(context, l10n.deleteConfirmationRequired);
+                            return;
+                          }
+
+                          setState(() => isLoading = true);
+
+                          try {
+                            final authService = AuthWebServices();
+                            await authService.deleteAccount(reason: reasonController.text);
+
+                            Navigator.of(dialogContext).pop();
+                            MessageHelper.showSuccess(context, l10n.deleteAccountSuccess);
+
+                            // Logout the user after successful deletion request
+                            Future.delayed(Duration(seconds: 2), () {
+                              loginBloc.add(LogoutEvent());
+                            });
+                          } catch (e) {
+                            setState(() => isLoading = false);
+                            MessageHelper.showError(context, l10n.deleteAccountError);
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: isLoading
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : Text(l10n.deleteAccount),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void _showEditNameDialog(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final nameController = TextEditingController();
@@ -1147,10 +1276,10 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.logout, color: Colors.red, size: 14),
+              Icon(Icons.account_circle, color: Colors.grey[700], size: 14),
               SizedBox(width: 7),
               Text(
-                l10n.logout,
+                l10n.account,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -1160,6 +1289,39 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
             ],
           ),
           SizedBox(height: 14),
+          // Delete Account Button
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: InkWell(
+              onTap: () => _showDeleteAccountDialog(context),
+              borderRadius: BorderRadius.circular(7),
+              child: Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.delete_forever, color: Colors.red),
+                    SizedBox(width: 7),
+                    Text(
+                      l10n.deleteAccount,
+                      style: TextStyle(
+                        color: Colors.red,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 10),
           // Logout Button
           BlocBuilder<LoginBloc, LoginState>(
             builder: (context, state) {

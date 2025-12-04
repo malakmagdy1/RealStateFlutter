@@ -66,18 +66,11 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
   void didUpdateWidget(WebCompoundCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Update local note when widget is rebuilt with new data
-    print('[WEB COMPOUND CARD] didUpdateWidget called');
-    print('[WEB COMPOUND CARD] Old notes: ${oldWidget.compound.notes}');
-    print('[WEB COMPOUND CARD] New notes: ${widget.compound.notes}');
-    print('[WEB COMPOUND CARD] Old note_id: ${oldWidget.compound.noteId}');
-    print('[WEB COMPOUND CARD] New note_id: ${widget.compound.noteId}');
-
     if (widget.compound.notes != oldWidget.compound.notes ||
         widget.compound.noteId != oldWidget.compound.noteId) {
       setState(() {
         _currentNote = widget.compound.notes;
       });
-      print('[WEB COMPOUND CARD] Updated _currentNote to: $_currentNote');
     }
   }
 
@@ -125,7 +118,7 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
         units = (response['units'] as List).map((unit) => unit as Map<String, dynamic>).toList();
       }
     } catch (e) {
-      print('[WEB COMPOUND CARD] Error fetching units: $e');
+      // Silently handle unit fetch errors
     }
 
     if (context.mounted) {
@@ -198,7 +191,6 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
         color: Colors.transparent,
         child: InkWell(
           onTap: () {
-            print('[WEB COMPOUND CARD] Card tapped - Compound ID: ${compound.id}, Name: ${compound.project}');
             context.push('/compound/${compound.id}');
           },
           borderRadius: BorderRadius.circular(24),
@@ -409,7 +401,7 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
                     ),
                   ),
 
-                // ⚪ Semi-transparent Info Area
+                // Semi-transparent Info Area at bottom (matching unit card style)
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.all(8),
@@ -421,10 +413,10 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
                     ),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Compound Name with Company Logo
+                      // Compound Name with Company Logo (like unit name)
                       Row(
                         children: [
                           if (companyLogo.isNotEmpty)
@@ -450,7 +442,7 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
                             ),
                           Expanded(
                             child: Text(
-                              compound.project,
+                              compound.project.isNotEmpty ? compound.project : 'N/A',
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -462,24 +454,25 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
                           ),
                         ],
                       ),
-                      // Company Name
-                      Padding(
-                        padding: EdgeInsets.only(left: companyLogo.isNotEmpty ? 32 : 0),
-                        child: Text(
-                          compound.companyName.isNotEmpty ? compound.companyName : 'N/A',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.grey[600],
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                      SizedBox(height: 3),
+
+                      // Company Name (like unit type)
+                      Text(
+                        compound.companyName.isNotEmpty ? compound.companyName : 'N/A',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[600],
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
+                      SizedBox(height: 4),
+
+                      // Location row
                       Row(
                         children: [
-                          Icon(Icons.location_on_outlined,
-                              size: 14, color: Colors.grey[600]),
+                          Icon(Icons.location_on_outlined, size: 14, color: Colors.grey[600]),
                           SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -492,54 +485,71 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          SizedBox(width: 8),
-                          // 📞 Call Button
-                          GestureDetector(
-                            onTap: () => _showSalespeople(context),
-                            child: Container(
-                              width: 35,
-                              height: 35,
-                              decoration: BoxDecoration(
-                                color: Color(0xFF26A69A),
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color:
-                                    Color(0xFF26A69A).withOpacity(0.4),
-                                    blurRadius: 12,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.phone,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
+                        ],
+                      ),
+
+                      SizedBox(height: 4),
+
+                      // Property Details Row 1: Units, Available, Area
+                      Row(
+                        children: [
+                          _detailChip(Icons.home_work, compound.totalUnits.isNotEmpty ? compound.totalUnits : '0'),
+                          SizedBox(width: 2),
+                          _detailChip(Icons.check_circle_outline, compound.availableUnits.isNotEmpty ? compound.availableUnits : '0'),
+                          SizedBox(width: 2),
+                          _detailChip(Icons.square_foot, compound.builtUpArea.isNotEmpty && compound.builtUpArea != '0' && compound.builtUpArea != '0.00'
+                              ? '${_formatArea(compound.builtUpArea)}m²'
+                              : 'N/A'),
+                        ],
+                      ),
+
+                      SizedBox(height: 2),
+
+                      // Property Details Row 2: Status and Delivery
+                      Row(
+                        children: [
+                          _buildStatusChip(compound.status, l10n),
+                          SizedBox(width: 2),
+                          _detailChip(
+                            Icons.calendar_today,
+                            _formatDeliveryDate(compound.plannedDeliveryDate),
                           ),
                         ],
                       ),
+
                       SizedBox(height: 4),
-                      // Units info row with Wrap to prevent overflow
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
+
+                      // Bottom row with phone button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          _buildInfoIcon(Icons.home_work,
-                              '${compound.totalUnits} ${l10n.units}'),
-                          _buildInfoIcon(Icons.check_circle_outline,
-                              '${compound.availableUnits} ${l10n.available}'),
-                          if (compound.builtUpArea.isNotEmpty &&
-                              compound.builtUpArea != '0' &&
-                              compound.builtUpArea != '0.00')
-                            _buildInfoIcon(Icons.square_foot,
-                                '${compound.builtUpArea} m²'),
-                          if (compound.plannedDeliveryDate != null && compound.plannedDeliveryDate!.isNotEmpty)
-                            _buildInfoIcon(Icons.calendar_today,
-                                _formatDeliveryDate(
-                                    compound.plannedDeliveryDate!)),
-                          _buildStatusChip(compound.status, l10n),
+                          // Phone Button
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () => _showSalespeople(context),
+                              child: Container(
+                                width: 35,
+                                height: 35,
+                                decoration: BoxDecoration(
+                                  color: Color(0xFF26A69A),
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Color(0xFF26A69A).withOpacity(0.4),
+                                      blurRadius: 12,
+                                      offset: Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Icon(
+                                  Icons.phone,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -559,8 +569,8 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
 
   }
 
-  String _formatDeliveryDate(String dateStr) {
-    if (dateStr.isEmpty) return 'N/A';
+  String _formatDeliveryDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return 'N/A';
 
     // Check for invalid date patterns (all zeros, starts with T, etc.)
     final cleanStr = dateStr.trim();
@@ -603,6 +613,22 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
     }
   }
 
+  /// Format area value - rounds to nearest integer or 1 decimal place
+  String _formatArea(String? areaStr) {
+    if (areaStr == null || areaStr.isEmpty) return 'N/A';
+    try {
+      final area = double.parse(areaStr);
+      // If it's a whole number, show without decimals
+      if (area == area.roundToDouble()) {
+        return area.toInt().toString();
+      }
+      // Otherwise show with 1 decimal place
+      return area.toStringAsFixed(1);
+    } catch (e) {
+      return areaStr;
+    }
+  }
+
   Widget _buildStatusChip(String status, AppLocalizations l10n) {
     final statusLower = status.toLowerCase();
 
@@ -626,63 +652,62 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
     return _detailChip(Icons.info_outline, status);
   }
 
-  Widget _buildInfoIcon(IconData icon, String label) {
+  Widget _buildPlaceholder() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFF8F9FA),
+            Color(0xFFE9ECEF),
+          ],
+        ),
+      ),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.apartment,
+              size: 64,
+              color: AppColors.mainColor.withOpacity(0.3),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'No Image Available',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _detailChip(IconData icon, String value, {Color? color}) {
+    final chipColor = color ?? Colors.grey[700]!;
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: color != null ? color.withOpacity(0.1) : Colors.white.withOpacity(0.9),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
+        border: color != null ? Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ) : null,
+        boxShadow: color == null ? [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
             blurRadius: 5,
             offset: Offset(0, 2),
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 14, color: Colors.grey[700]),
-          SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[800],
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      color: Color(0xFFF8F9FA),
-      child: Center(
-        child: Icon(
-          Icons.apartment,
-          size: 60,
-          color: AppColors.mainColor.withOpacity(0.3),
-        ),
-      ),
-    );
-  }
-
-  Widget _detailChip(IconData icon, String label, {Color? color}) {
-    final chipColor = color ?? AppColors.mainColor;
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: chipColor.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: chipColor.withOpacity(0.3),
-          width: 1,
-        ),
+        ] : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -690,12 +715,14 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
           Icon(icon, size: 14, color: chipColor),
           SizedBox(width: 4),
           Text(
-            label,
+            value,
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
               color: chipColor,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -703,11 +730,6 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
   }
 
   Future<void> _showNoteDialog(BuildContext context) async {
-    print('[WEB COMPOUND CARD] Opening note dialog');
-    print('[WEB COMPOUND CARD] _currentNote: $_currentNote');
-    print('[WEB COMPOUND CARD] widget.compound.notes: ${widget.compound.notes}');
-    print('[WEB COMPOUND CARD] widget.compound.noteId: ${widget.compound.noteId}');
-
     final result = await NoteDialog.show(
       context,
       initialNote: _currentNote,
@@ -724,32 +746,26 @@ class _WebCompoundCardState extends State<WebCompoundCard> with SingleTickerProv
         Map<String, dynamic> response;
         if (widget.compound.noteId != null) {
           // Update existing note using new Notes API
-          print('[WEB COMPOUND CARD] Updating note with ID: ${widget.compound.noteId}');
           response = await webServices.updateNote(
             noteId: widget.compound.noteId!,
             content: result,
             title: 'Compound Note',
           );
-          print('[WEB COMPOUND CARD] Update response: $response');
         } else {
           // Create new note using new Notes API
-          print('[WEB COMPOUND CARD] Creating new note for compound: ${widget.compound.id}');
           response = await webServices.createNote(
             content: result,
             title: 'Compound Note',
             compoundId: int.tryParse(widget.compound.id),
           );
-          print('[WEB COMPOUND CARD] Create response: $response');
         }
 
         // Update local state immediately
         setState(() {
           _currentNote = result;
         });
-        print('[WEB COMPOUND CARD] Updated _currentNote to: $_currentNote');
 
         // Trigger bloc refresh to reload favorites with updated noteId
-        print('[WEB COMPOUND CARD] Triggering LoadFavoriteCompounds');
         bloc.add(LoadFavoriteCompounds());
 
         if (context.mounted) {

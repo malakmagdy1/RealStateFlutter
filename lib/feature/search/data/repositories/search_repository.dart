@@ -11,6 +11,8 @@ import 'package:real/core/utils/constant.dart' as constants;
 import 'package:real/core/locale/language_service.dart';
 import 'package:real/core/security/input_validator.dart';
 import 'package:real/core/security/rate_limiter.dart';
+import 'package:real/feature/compound/data/web_services/compound_web_services.dart';
+import 'package:real/feature/compound/data/models/compound_model.dart';
 
 class SearchRepository {
   // IMPORTANT: For physical devices, replace this with your computer's IP address
@@ -160,7 +162,15 @@ class SearchRepository {
           '[UNIFIED API] Units found: ${jsonData['units']?.length ?? 0}',
         );
 
-        return FilterUnitsResponse.fromJson(jsonData);
+        final filterResponse = FilterUnitsResponse.fromJson(jsonData);
+
+        // Enrich compounds with detailed data if there are any
+        if (filterResponse.compounds.isNotEmpty) {
+          final enrichedCompounds = await _enrichCompoundsWithDetails(filterResponse.compounds);
+          return filterResponse.copyWith(compounds: enrichedCompounds);
+        }
+
+        return filterResponse;
       } else {
         print('[UNIFIED API] Error: ${response.body}');
         try {
@@ -411,5 +421,39 @@ class SearchRepository {
       filter: filter,
       token: token,
     );
+  }
+
+  /// Enrich compounds with detailed data from individual compound API calls
+  Future<List<Compound>> _enrichCompoundsWithDetails(List<Compound> compounds) async {
+    if (compounds.isEmpty) return compounds;
+
+    try {
+      final compoundWebServices = CompoundWebServices();
+      final compoundIds = compounds.map((c) => c.id).toList();
+
+      // Fetch detailed data for all compounds
+      final detailsMap = await compoundWebServices.getCompoundDetailsForIds(compoundIds);
+
+      // Enrich compounds with detailed data
+      final enrichedCompounds = compounds.map((compound) {
+        final details = detailsMap[compound.id];
+        if (details != null && details['data'] != null) {
+          // Parse the detailed compound data
+          final detailData = details['data'] as Map<String, dynamic>;
+          final mergedJson = {
+            ...compound.toJson(),
+            ...detailData,
+          };
+          return Compound.fromJson(mergedJson);
+        }
+        return compound;
+      }).toList();
+
+      return enrichedCompounds;
+    } catch (e) {
+      print('[SEARCH REPOSITORY] Error enriching compounds: $e');
+      // Return original compounds if enrichment fails
+      return compounds;
+    }
   }
 }

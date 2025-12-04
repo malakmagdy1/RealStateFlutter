@@ -141,6 +141,35 @@ class FilterUnitsResponse extends Equatable {
     return true;
   }
 
+  /// Creates a copy of this response with optionally updated fields
+  FilterUnitsResponse copyWith({
+    bool? success,
+    String? searchQuery,
+    int? totalUnits,
+    int? page,
+    int? limit,
+    int? totalPages,
+    List<String>? filtersApplied,
+    List<FilteredUnit>? units,
+    List<Company>? companies,
+    List<Compound>? compounds,
+    Map<String, dynamic>? subscription,
+  }) {
+    return FilterUnitsResponse(
+      success: success ?? this.success,
+      searchQuery: searchQuery ?? this.searchQuery,
+      totalUnits: totalUnits ?? this.totalUnits,
+      page: page ?? this.page,
+      limit: limit ?? this.limit,
+      totalPages: totalPages ?? this.totalPages,
+      filtersApplied: filtersApplied ?? this.filtersApplied,
+      units: units ?? this.units,
+      companies: companies ?? this.companies,
+      compounds: compounds ?? this.compounds,
+      subscription: subscription ?? this.subscription,
+    );
+  }
+
   @override
   List<Object?> get props => [success, searchQuery, totalUnits, page, limit, totalPages, filtersApplied, units, companies, compounds, subscription];
 }

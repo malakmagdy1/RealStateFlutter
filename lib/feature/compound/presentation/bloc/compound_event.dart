@@ -10,11 +10,12 @@ abstract class CompoundEvent extends Equatable {
 class FetchCompoundsEvent extends CompoundEvent {
   final int page;
   final int limit;
+  final bool forceRefresh;
 
-  FetchCompoundsEvent({this.page = 1, this.limit = 20});
+  FetchCompoundsEvent({this.page = 1, this.limit = 20, this.forceRefresh = false});
 
   @override
-  List<Object?> get props => [page, limit];
+  List<Object?> get props => [page, limit, forceRefresh];
 }
 
 class FetchCompoundsByCompanyEvent extends CompoundEvent {

@@ -629,5 +629,21 @@
   "devicesUsed": "{current} / {max} جهاز مستخدم",
   "noDevicesFound": "لا توجد أجهزة",
   "minPriceHint": "الحد الأدنى",
-  "maxPriceHint": "الحد الأقصى"
+  "maxPriceHint": "الحد الأقصى",
+
+  "deleteAccount": "حذف الحساب",
+  "deleteAccountTitle": "حذف الحساب",
+  "deleteAccountWarning": "تحذير: لا يمكن التراجع عن هذا الإجراء. سيتم حذف جميع بياناتك نهائياً.",
+  "deleteAccountConfirm": "هل أنت متأكد من رغبتك في حذف حسابك؟",
+  "deleteAccountReason": "سبب الحذف (اختياري)",
+  "deleteAccountReasonHint": "أخبرنا لماذا تريد حذف حسابك",
+  "deleteAccountSuccess": "تم تقديم طلب حذف حسابك. ستتلقى رسالة تأكيد عبر البريد الإلكتروني خلال 48 ساعة.",
+  "deleteAccountError": "فشل في تقديم طلب حذف الحساب. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.",
+  "typeDeleteToConfirm": "اكتب DELETE للتأكيد",
+  "deleteConfirmationRequired": "يرجى كتابة DELETE للتأكيد",
+
+  "months": "شهر",
+  "totalInstallments": "إجمالي الأقساط",
+  "balanceAfterDown": "الرصيد بعد المقدم",
+  "pricePerSqm": "السعر/م²"
 }

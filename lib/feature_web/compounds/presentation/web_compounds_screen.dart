@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:real/core/animations/animated_list_item.dart';
+import 'package:real/core/cache/cache_service.dart';
 import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/widget/robust_network_image.dart';
@@ -534,6 +535,35 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen>
     context.read<CompoundBloc>().add(FetchCompoundsEvent(page: 1, limit: _pageLimit));
   }
 
+  /// Refresh data from server (clears cache)
+  void _refreshData() async {
+    // Clear cache first
+    await CacheService.clearCompounds();
+
+    if (!mounted) return;
+
+    // Reset pagination
+    setState(() {
+      _currentPage = 1;
+      _allCompounds.clear();
+      _hasMorePages = true;
+      _showSearchResults = false;
+    });
+
+    // Clear search
+    _searchController.clear();
+    _searchBloc.add(ClearSearchEvent());
+
+    // Reload with forceRefresh to skip any remaining cache
+    context.read<CompoundBloc>().add(FetchCompoundsEvent(
+      page: 1,
+      limit: _pageLimit,
+      forceRefresh: true,
+    ));
+
+    print('[WEB COMPOUNDS] Cache cleared and data refreshed');
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context); // Required for AutomaticKeepAliveClientMixin
@@ -617,6 +647,19 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen>
                               ),
                             ),
                           ],
+                          const Spacer(),
+                          // Refresh button to get fresh data from server
+                          Tooltip(
+                            message: 'Refresh',
+                            child: IconButton(
+                              onPressed: () => _refreshData(),
+                              icon: Icon(
+                                Icons.refresh_rounded,
+                                size: 28,
+                                color: AppColors.mainColor,
+                              ),
+                            ),
+                          ),
                         ],
                       );
                     },
@@ -2214,7 +2257,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen>
       project: data.name,
       location: data.location,
       images: data.images,
-      builtUpArea: '0',
+      builtUpArea: data.builtUpArea,
       howManyFloors: '0',
       completionProgress: data.completionProgress,
       club: '0',
@@ -2226,7 +2269,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen>
       companyName: data.company.name,
       companyLogo: data.company.logo,
       soldUnits: '0',
-      availableUnits: data.unitsCount,
+      availableUnits: data.availableUnits,
       sales: [],
     );
   }

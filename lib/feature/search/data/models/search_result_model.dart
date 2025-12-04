@@ -216,6 +216,8 @@ class CompoundSearchData extends Equatable {
   final String status;
   final String completionProgress;
   final String unitsCount;
+  final String availableUnits;
+  final String builtUpArea;
   final CompanyInfo company;
   final List<String> images;
   final String createdAt;
@@ -227,6 +229,8 @@ class CompoundSearchData extends Equatable {
     required this.status,
     required this.completionProgress,
     required this.unitsCount,
+    required this.availableUnits,
+    required this.builtUpArea,
     required this.company,
     required this.images,
     required this.createdAt,
@@ -247,6 +251,8 @@ class CompoundSearchData extends Equatable {
       status: json['status']?.toString() ?? '',
       completionProgress: json['completion_progress']?.toString() ?? '0',
       unitsCount: json['units_count']?.toString() ?? '0',
+      availableUnits: json['available_units']?.toString() ?? json['units_count']?.toString() ?? '0',
+      builtUpArea: json['built_up_area']?.toString() ?? '0',
       company: CompanyInfo.fromJson(json['company'] ?? {}),
       images: imagesList,
       createdAt: json['created_at']?.toString() ?? '',
@@ -289,6 +295,8 @@ class CompoundSearchData extends Equatable {
         status,
         completionProgress,
         unitsCount,
+        availableUnits,
+        builtUpArea,
         company,
         images,
         createdAt,

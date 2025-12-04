@@ -3337,6 +3337,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Max'**
   String get maxPriceHint;
+
+  /// No description provided for @deleteAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccount;
+
+  /// No description provided for @deleteAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Account'**
+  String get deleteAccountTitle;
+
+  /// No description provided for @deleteAccountWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Warning: This action cannot be undone. All your data will be permanently deleted.'**
+  String get deleteAccountWarning;
+
+  /// No description provided for @deleteAccountConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete your account?'**
+  String get deleteAccountConfirm;
+
+  /// No description provided for @deleteAccountReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason for deletion (optional)'**
+  String get deleteAccountReason;
+
+  /// No description provided for @deleteAccountReasonHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us why you want to delete your account'**
+  String get deleteAccountReasonHint;
+
+  /// No description provided for @deleteAccountSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Your account deletion request has been submitted. You will receive a confirmation email within 48 hours.'**
+  String get deleteAccountSuccess;
+
+  /// No description provided for @deleteAccountError.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to submit account deletion request. Please try again or contact support.'**
+  String get deleteAccountError;
+
+  /// No description provided for @typeDeleteToConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Type DELETE to confirm'**
+  String get typeDeleteToConfirm;
+
+  /// No description provided for @deleteConfirmationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please type DELETE to confirm'**
+  String get deleteConfirmationRequired;
+
+  /// No description provided for @months.
+  ///
+  /// In en, this message translates to:
+  /// **'Months'**
+  String get months;
+
+  /// No description provided for @totalInstallments.
+  ///
+  /// In en, this message translates to:
+  /// **'Total Installments'**
+  String get totalInstallments;
+
+  /// No description provided for @balanceAfterDown.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance After Down'**
+  String get balanceAfterDown;
+
+  /// No description provided for @pricePerSqm.
+  ///
+  /// In en, this message translates to:
+  /// **'Price/m²'**
+  String get pricePerSqm;
 }
 
 class _AppLocalizationsDelegate

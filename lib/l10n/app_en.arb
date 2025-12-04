@@ -831,5 +831,21 @@
   },
   "noDevicesFound": "No devices found",
   "minPriceHint": "Min",
-  "maxPriceHint": "Max"
+  "maxPriceHint": "Max",
+
+  "deleteAccount": "Delete Account",
+  "deleteAccountTitle": "Delete Account",
+  "deleteAccountWarning": "Warning: This action cannot be undone. All your data will be permanently deleted.",
+  "deleteAccountConfirm": "Are you sure you want to delete your account?",
+  "deleteAccountReason": "Reason for deletion (optional)",
+  "deleteAccountReasonHint": "Tell us why you want to delete your account",
+  "deleteAccountSuccess": "Your account deletion request has been submitted. You will receive a confirmation email within 48 hours.",
+  "deleteAccountError": "Failed to submit account deletion request. Please try again or contact support.",
+  "typeDeleteToConfirm": "Type DELETE to confirm",
+  "deleteConfirmationRequired": "Please type DELETE to confirm",
+
+  "months": "Months",
+  "totalInstallments": "Total Installments",
+  "balanceAfterDown": "Balance After Down",
+  "pricePerSqm": "Price/m²"
 }

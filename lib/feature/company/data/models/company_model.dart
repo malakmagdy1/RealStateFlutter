@@ -125,6 +125,7 @@ class Company extends Equatable {
   final String nameAr;
   final String? logo;
   final String email;
+  final String? phone;
   final String numberOfCompounds;
   final String numberOfAvailableUnits;
   final String createdAt;
@@ -145,6 +146,7 @@ class Company extends Equatable {
     required this.nameAr,
     this.logo,
     required this.email,
+    this.phone,
     required this.numberOfCompounds,
     required this.numberOfAvailableUnits,
     required this.createdAt,
@@ -208,6 +210,7 @@ class Company extends Equatable {
       nameAr: json['name_ar']?.toString() ?? '',
       logo: logo,
       email: json['email']?.toString() ?? '',
+      phone: json['phone']?.toString(),
       numberOfCompounds: json['number_of_compounds']?.toString() ?? '0',
       numberOfAvailableUnits: json['number_of_available_units']?.toString() ?? '0',
       createdAt: json['created_at']?.toString() ?? '',
@@ -230,6 +233,7 @@ class Company extends Equatable {
       'name_ar': nameAr,
       'logo': logo,
       'email': email,
+      'phone': phone,
       'number_of_compounds': numberOfCompounds,
       'number_of_available_units': numberOfAvailableUnits,
       'created_at': createdAt,
@@ -252,6 +256,7 @@ class Company extends Equatable {
         nameAr,
         logo,
         email,
+        phone,
         numberOfCompounds,
         numberOfAvailableUnits,
         createdAt,
@@ -267,6 +272,6 @@ class Company extends Equatable {
 
   @override
   String toString() {
-    return 'Company{id: $id, name: $name, nameEn: $nameEn, nameAr: $nameAr, logo: $logo, email: $email, numberOfCompounds: $numberOfCompounds, numberOfAvailableUnits: $numberOfAvailableUnits}';
+    return 'Company{id: $id, name: $name, nameEn: $nameEn, nameAr: $nameAr, logo: $logo, email: $email, phone: $phone, numberOfCompounds: $numberOfCompounds, numberOfAvailableUnits: $numberOfAvailableUnits}';
   }
 }

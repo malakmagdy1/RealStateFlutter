@@ -224,6 +224,8 @@ class SearchBloc extends Bloc<SearchEvent, SearchState> {
       status: compound.status,
       completionProgress: compound.completionProgress ?? '0',
       unitsCount: compound.totalUnits,
+      availableUnits: compound.availableUnits,
+      builtUpArea: compound.builtUpArea,
       company: CompanyInfo(
         id: compound.companyId,
         name: compound.companyName,

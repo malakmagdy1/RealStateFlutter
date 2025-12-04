@@ -49,7 +49,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
 
   // Recommended compounds pagination
   int _recommendedPage = 1;
-  int _recommendedLimit = 9;
+  int _recommendedLimit = 12; // Show 12 initially
   bool _hasMoreRecommended = true;
   bool _isLoadingMoreRecommended = false;
   final ScrollController _recommendedScrollController = ScrollController();
@@ -142,14 +142,21 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
       _isLoadingMoreRecommended = true;
     });
 
-    // Load 5 more compounds
+    // Load 6 more compounds
     Future.delayed(Duration(milliseconds: 300), () {
       if (mounted) {
+        // Get total available from BLoC
+        final compoundState = context.read<CompoundBloc>().state;
+        int totalAvailable = 0;
+        if (compoundState is CompoundSuccess) {
+          totalAvailable = compoundState.response.data.length;
+        }
+
         setState(() {
-          _recommendedLimit += 5;
+          _recommendedLimit += 6;
           _isLoadingMoreRecommended = false;
-          // Update _hasMoreRecommended here to prevent infinite loop
-          _hasMoreRecommended = true; // Will be checked on next scroll
+          // Update _hasMoreRecommended based on actual data
+          _hasMoreRecommended = _recommendedLimit < totalAvailable;
         });
       }
     });
@@ -222,7 +229,6 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
       if (compoundState is CompoundDetailSuccess ||
           compoundState is CompoundDetailLoading ||
           compoundState is CompoundDetailError) {
-        print('[WEB HOME] Returning from compound detail, refetching recommendations...');
         context.read<CompoundBloc>().add(FetchWeeklyRecommendedCompoundsEvent());
       }
     }
@@ -840,7 +846,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
                             return Padding(
                               padding: EdgeInsets.symmetric(vertical: 12),
                               child: SizedBox(
-                                height: 300,
+                                height: 420,
                                 child: ListView.builder(
                                   clipBehavior: Clip.none,
                                   controller: _recommendedScrollController,
@@ -873,7 +879,7 @@ class _WebHomeScreenState extends State<WebHomeScreen> with AutomaticKeepAliveCl
                                             context.push('/compound/${compound.id}');
                                           },
                                           child: SizedBox(
-                                            width: 270,
+                                            width: 250,
                                             child: WebCompoundCard(compound: compound),
                                           ),
                                         ),
