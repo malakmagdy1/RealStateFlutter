@@ -1,13 +1,27 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/notification_model.dart';
 
-class NotificationCacheService {
+class NotificationCacheService extends ChangeNotifier {
   static final NotificationCacheService _instance = NotificationCacheService._internal();
   factory NotificationCacheService() => _instance;
   NotificationCacheService._internal();
 
   static String _notificationsKey = 'cached_notifications';
+
+  // Cached unread count for quick access
+  int _unreadCount = 0;
+  int get unreadCount => _unreadCount;
+
+  /// Update and notify listeners about unread count change
+  void _updateUnreadCount(List<NotificationModel> notifications) {
+    final newCount = notifications.where((n) => !n.isRead).length;
+    if (_unreadCount != newCount) {
+      _unreadCount = newCount;
+      notifyListeners();
+    }
+  }
 
   /// Generate a content hash for duplicate detection
   /// This helps identify the same notification even with different IDs
@@ -55,6 +69,7 @@ class NotificationCacheService {
       // Convert to JSON and save
       List<String> jsonList = notifications.map((n) => jsonEncode(n.toJson())).toList();
       await prefs.setStringList(_notificationsKey, jsonList);
+      _updateUnreadCount(notifications);
     } catch (e) {
       print('❌ Error saving notification to cache: $e');
     }
@@ -78,6 +93,7 @@ class NotificationCacheService {
       // Sort by timestamp (most recent first)
       notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
+      _updateUnreadCount(notifications);
       return notifications;
     } catch (e) {
       print('❌ Error loading notifications from cache: $e');
@@ -99,6 +115,7 @@ class NotificationCacheService {
       // Save updated list
       List<String> jsonList = notifications.map((n) => jsonEncode(n.toJson())).toList();
       await prefs.setStringList(_notificationsKey, jsonList);
+      _updateUnreadCount(notifications);
 
       print('✅ Notification deleted from cache: $notificationId');
     } catch (e) {
@@ -111,6 +128,14 @@ class NotificationCacheService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_notificationsKey);
+      // Also set to empty list to ensure it's cleared on web
+      await prefs.setStringList(_notificationsKey, []);
+      await prefs.remove(_notificationsKey);
+      // Force reload to clear any memory cache
+      await prefs.reload();
+      // Reset unread count to 0 and notify
+      _unreadCount = 0;
+      notifyListeners();
       print('✅ All notifications cleared from cache');
     } catch (e) {
       print('❌ Error clearing notifications from cache: $e');
@@ -122,8 +147,13 @@ class NotificationCacheService {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // Get existing notifications
-      List<NotificationModel> notifications = await getAllNotifications();
+      // Get existing notifications (without triggering update)
+      List<String>? jsonList = prefs.getStringList(_notificationsKey);
+      if (jsonList == null || jsonList.isEmpty) return;
+
+      List<NotificationModel> notifications = jsonList
+          .map((json) => NotificationModel.fromJson(jsonDecode(json)))
+          .toList();
 
       // Find and update the notification
       int index = notifications.indexWhere((n) => n.id == notificationId);
@@ -131,8 +161,9 @@ class NotificationCacheService {
         notifications[index] = notifications[index].copyWith(isRead: true);
 
         // Save updated list
-        List<String> jsonList = notifications.map((n) => jsonEncode(n.toJson())).toList();
-        await prefs.setStringList(_notificationsKey, jsonList);
+        List<String> updatedJsonList = notifications.map((n) => jsonEncode(n.toJson())).toList();
+        await prefs.setStringList(_notificationsKey, updatedJsonList);
+        _updateUnreadCount(notifications);
 
         print('✅ Notification marked as read: $notificationId');
       }
@@ -146,15 +177,24 @@ class NotificationCacheService {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      // Get existing notifications
-      List<NotificationModel> notifications = await getAllNotifications();
+      // Get existing notifications (without triggering update)
+      List<String>? jsonList = prefs.getStringList(_notificationsKey);
+      if (jsonList == null || jsonList.isEmpty) return;
+
+      List<NotificationModel> notifications = jsonList
+          .map((json) => NotificationModel.fromJson(jsonDecode(json)))
+          .toList();
 
       // Mark all as read
       notifications = notifications.map((n) => n.copyWith(isRead: true)).toList();
 
       // Save updated list
-      List<String> jsonList = notifications.map((n) => jsonEncode(n.toJson())).toList();
-      await prefs.setStringList(_notificationsKey, jsonList);
+      List<String> updatedJsonList = notifications.map((n) => jsonEncode(n.toJson())).toList();
+      await prefs.setStringList(_notificationsKey, updatedJsonList);
+
+      // Reset unread count to 0 and notify
+      _unreadCount = 0;
+      notifyListeners();
 
       print('✅ All notifications marked as read');
     } catch (e) {

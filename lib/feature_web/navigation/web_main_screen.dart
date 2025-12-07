@@ -64,6 +64,9 @@ class _WebMainScreenState extends State<WebMainScreen> {
     _loadUnreadCount();
     _loadComparisonCount();
 
+    // Listen to notification count changes from the cache service
+    _cacheService.addListener(_onNotificationCountChanged);
+
     // Check for new notifications every 30 seconds (reduced frequency to prevent duplicate issues)
     // Note: Real-time updates come from service worker stream, this is just a fallback
     _notificationCheckTimer = Timer.periodic(Duration(seconds: 30), (timer) {
@@ -83,6 +86,14 @@ class _WebMainScreenState extends State<WebMainScreen> {
     if (mounted) {
       setState(() {
         _comparisonCount = _comparisonService.count;
+      });
+    }
+  }
+
+  void _onNotificationCountChanged() {
+    if (mounted) {
+      setState(() {
+        _unreadNotifications = _cacheService.unreadCount;
       });
     }
   }
@@ -154,6 +165,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
   void dispose() {
     _notificationCheckTimer?.cancel();
     _comparisonService.removeListener(_onComparisonListChanged);
+    _cacheService.removeListener(_onNotificationCountChanged);
     super.dispose();
   }
 

@@ -135,7 +135,11 @@ Future<void> clearNotificationsFromIndexedDB() async {
     await transaction.completed;
     db.close();
 
-    print('[WEB] Cleared all notifications from IndexedDB');
+    // Also clear localStorage fallback for SharedPreferences
+    html.window.localStorage.remove('cached_notifications');
+    html.window.localStorage.remove('flutter.cached_notifications');
+
+    print('[WEB] Cleared all notifications from IndexedDB and localStorage');
   } catch (e) {
     print('[WEB] Error clearing IndexedDB: $e');
   }
