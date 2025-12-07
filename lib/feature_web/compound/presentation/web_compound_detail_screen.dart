@@ -219,8 +219,24 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
     print('======================================');
 
     // Load salespeople when compound data is available
+    // First check if compound data has direct sales data
     if (_salespeople.isEmpty && !_loadingSalespeople) {
-      _loadSalespeople(actualCompoundData['project'] ?? '');
+      if (actualCompoundData['sales'] != null && (actualCompoundData['sales'] as List).isNotEmpty) {
+        // Use sales data directly from compound response
+        print('[WEB COMPOUND DETAIL] Using direct sales data from compound: ${(actualCompoundData['sales'] as List).length} salespeople');
+        // Schedule setState for after build completes
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            setState(() {
+              _salespeople = actualCompoundData['sales'] as List;
+              _loadingSalespeople = false;
+            });
+          }
+        });
+      } else {
+        // Fall back to API call
+        _loadSalespeople(actualCompoundData['project'] ?? '');
+      }
     }
 
     final isArabic = l10n.localeName == 'ar';
@@ -1001,7 +1017,10 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
   }
 
   Widget _buildMasterPlanTab(Map<String, dynamic> compoundData, AppLocalizations l10n) {
-    final masterPlan = _getString(compoundData, 'master_plan');
+    // Prefer master_plan_url (full URL) if available, otherwise use master_plan
+    final masterPlan = _getString(compoundData, 'master_plan_url').isNotEmpty
+        ? _getString(compoundData, 'master_plan_url')
+        : _getString(compoundData, 'master_plan');
     final locationUrl = _getString(compoundData, 'location_url');
 
     return SingleChildScrollView(

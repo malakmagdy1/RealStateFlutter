@@ -212,6 +212,12 @@ abstract class AppLocalizations {
   /// **'Compounds'**
   String get compounds;
 
+  /// No description provided for @compoundNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Compound Number'**
+  String get compoundNumber;
+
   /// No description provided for @units.
   ///
   /// In en, this message translates to:
@@ -259,6 +265,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Error'**
   String get error;
+
+  /// No description provided for @errorReadingImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Error reading image. Please try again.'**
+  String get errorReadingImage;
 
   /// No description provided for @price.
   ///
@@ -3421,6 +3433,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Price/m²'**
   String get pricePerSqm;
+
+  /// No description provided for @map.
+  ///
+  /// In en, this message translates to:
+  /// **'Map'**
+  String get map;
+
+  /// No description provided for @sortByName.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by Name'**
+  String get sortByName;
+
+  /// No description provided for @sortByCompounds.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by Compounds'**
+  String get sortByCompounds;
+
+  /// No description provided for @sortByUnits.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort by Units'**
+  String get sortByUnits;
 }
 
 class _AppLocalizationsDelegate

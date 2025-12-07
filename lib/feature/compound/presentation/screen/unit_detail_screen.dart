@@ -15,6 +15,7 @@ import '../../../../core/widgets/zoomable_image_viewer.dart';
 import '../../../ai_chat/data/models/comparison_item.dart';
 import '../../../ai_chat/data/services/comparison_list_service.dart';
 import '../../../company/data/models/company_user_model.dart';
+import '../../../company/data/models/sales_model.dart';
 import '../../../company/data/web_services/company_web_services.dart';
 import '../../../sale/data/models/sale_model.dart';
 import '../../../sale/data/services/sale_web_services.dart';
@@ -50,6 +51,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   final FavoritesWebServices _favoritesWebServices = FavoritesWebServices();
   late TabController _tabController;
   List<CompanyUser> _salesPeople = [];
+  List<Sales> _compoundSales = []; // Sales people from compound
   bool _isLoadingSalesPeople = false;
   Sale? _unitSale;
   bool _isLoadingSale = false;
@@ -83,6 +85,7 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
 
     _startAutoSlide();
     _fetchSalesPeople();
+    _fetchCompoundSales(); // Also fetch compound sales as fallback
     _fetchUnitNote();
   }
 
@@ -315,6 +318,38 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           _isLoadingSalesPeople = false;
         });
       }
+    }
+  }
+
+  /// Fetch sales people from compound data
+  Future<void> _fetchCompoundSales() async {
+    final unit = _currentUnit ?? widget.unit;
+    if (unit.compoundId == null || unit.compoundId!.isEmpty) {
+      print('[UNIT DETAIL] No compoundId available for this unit');
+      return;
+    }
+
+    try {
+      print('[UNIT DETAIL] Fetching compound sales for compound: ${unit.compoundId}');
+      final compoundData = await _compoundWebServices.getCompoundById(unit.compoundId!);
+
+      if (compoundData['sales'] != null && compoundData['sales'] is List) {
+        final salesList = (compoundData['sales'] as List)
+            .map((sale) => Sales.fromJson(sale as Map<String, dynamic>))
+            .toList();
+
+        print('[UNIT DETAIL] Found ${salesList.length} compound sales people');
+
+        if (mounted) {
+          setState(() {
+            _compoundSales = salesList;
+          });
+        }
+      } else {
+        print('[UNIT DETAIL] No sales data in compound response');
+      }
+    } catch (e) {
+      print('[UNIT DETAIL] Error fetching compound sales: $e');
     }
   }
 
@@ -1992,7 +2027,8 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
       );
     }
 
-    if (_salesPeople.isEmpty) {
+    // If no company sales people, check for compound sales
+    if (_salesPeople.isEmpty && _compoundSales.isEmpty) {
       return SizedBox.shrink();
     }
 
@@ -2010,18 +2046,151 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
           color: AppColors.grey,
         ),
         SizedBox(height: 16),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          itemCount: _salesPeople.length,
-          separatorBuilder: (context, index) => SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            final salesPerson = _salesPeople[index];
-            return _buildSalesPersonCard(salesPerson);
-          },
-        ),
+        // Show company sales people first, fallback to compound sales
+        if (_salesPeople.isNotEmpty)
+          ListView.separated(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            itemCount: _salesPeople.length,
+            separatorBuilder: (context, index) => SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final salesPerson = _salesPeople[index];
+              return _buildSalesPersonCard(salesPerson);
+            },
+          )
+        else if (_compoundSales.isNotEmpty)
+          ListView.separated(
+            shrinkWrap: true,
+            physics: NeverScrollableScrollPhysics(),
+            itemCount: _compoundSales.length,
+            separatorBuilder: (context, index) => SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final salesPerson = _compoundSales[index];
+              return _buildCompoundSalesPersonCard(salesPerson);
+            },
+          ),
         SizedBox(height: 24),
       ],
+    );
+  }
+
+  /// Build a card for compound sales person (Sales model)
+  Widget _buildCompoundSalesPersonCard(Sales salesPerson) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.mainColor.withOpacity(0.2),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: AppColors.mainColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                salesPerson.name.isNotEmpty
+                    ? salesPerson.name[0].toUpperCase()
+                    : 'S',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.mainColor,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: 12),
+          // Info
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomText16(
+                  salesPerson.name,
+                  bold: true,
+                  color: AppColors.greyText,
+                ),
+                SizedBox(height: 4),
+                if (salesPerson.email.isNotEmpty)
+                  Row(
+                    children: [
+                      Icon(Icons.email, size: 14, color: AppColors.grey),
+                      SizedBox(width: 4),
+                      Expanded(
+                        child: CustomText14(
+                          salesPerson.email,
+                          color: AppColors.grey,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                if (salesPerson.phone.isNotEmpty) ...[
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(Icons.phone, size: 14, color: AppColors.grey),
+                      SizedBox(width: 4),
+                      CustomText14(
+                        salesPerson.phone,
+                        color: AppColors.grey,
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Action Buttons
+          if (salesPerson.phone.isNotEmpty)
+            Column(
+              children: [
+                IconButton(
+                  onPressed: () async {
+                    final uri = Uri.parse('tel:${salesPerson.phone}');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri);
+                    }
+                  },
+                  icon: Icon(Icons.phone, color: AppColors.mainColor),
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints(),
+                ),
+                SizedBox(height: 8),
+                IconButton(
+                  onPressed: () async {
+                    final uri = Uri.parse('https://wa.me/${salesPerson.phone}');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: Icon(Icons.chat, color: Color(0xFF25D366)),
+                  padding: EdgeInsets.zero,
+                  constraints: BoxConstraints(),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 

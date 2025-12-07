@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:real/core/utils/url_helpers.dart';
 
@@ -36,37 +37,60 @@ class RobustNetworkImage extends StatelessWidget {
       return _buildErrorWidget(context);
     }
 
-    // Safe conversion for memory cache - handle infinity/NaN
-    int? safeCacheWidth = (width != null && width!.isFinite)
-        ? width!.toInt()
-        : null;
-    int? safeCacheHeight = (height != null && height!.isFinite) ? height!
-        .toInt() : null;
+    Widget imageWidget;
 
-    Widget imageWidget = CachedNetworkImage(
-      imageUrl: fixedUrl,
-      fit: fit,
-      width: width,
-      height: height,
-      // Memory cache optimization (only if dimensions are finite)
-      memCacheWidth: safeCacheWidth,
-      memCacheHeight: safeCacheHeight,
-      // Fade animation
-      fadeInDuration: const Duration(milliseconds: 200),
-      fadeOutDuration: const Duration(milliseconds: 200),
-      // Loading placeholder
-      placeholder: (context, url) {
-        return loadingBuilder?.call(context) ?? _buildLoadingWidget();
-      },
-      // Error widget
-      errorWidget: (context, url, error) {
-        print('[RobustNetworkImage] Error loading: $imageUrl');
-        print('[RobustNetworkImage] Fixed URL: $fixedUrl');
-        print('[RobustNetworkImage] Error: $error');
-        return errorBuilder?.call(context, imageUrl) ??
-            _buildErrorWidget(context);
-      },
-    );
+    // Use Image.network for web to avoid CORS issues with CachedNetworkImage
+    if (kIsWeb) {
+      imageWidget = Image.network(
+        fixedUrl,
+        fit: fit,
+        width: width,
+        height: height,
+        loadingBuilder: (context, child, loadingProgress) {
+          if (loadingProgress == null) return child;
+          return loadingBuilder?.call(context) ?? _buildLoadingWidget();
+        },
+        errorBuilder: (context, error, stackTrace) {
+          print('[RobustNetworkImage] Web Error loading: $imageUrl');
+          print('[RobustNetworkImage] Fixed URL: $fixedUrl');
+          print('[RobustNetworkImage] Error: $error');
+          return errorBuilder?.call(context, imageUrl) ??
+              _buildErrorWidget(context);
+        },
+      );
+    } else {
+      // Safe conversion for memory cache - handle infinity/NaN
+      int? safeCacheWidth = (width != null && width!.isFinite)
+          ? width!.toInt()
+          : null;
+      int? safeCacheHeight = (height != null && height!.isFinite) ? height!
+          .toInt() : null;
+
+      imageWidget = CachedNetworkImage(
+        imageUrl: fixedUrl,
+        fit: fit,
+        width: width,
+        height: height,
+        // Memory cache optimization (only if dimensions are finite)
+        memCacheWidth: safeCacheWidth,
+        memCacheHeight: safeCacheHeight,
+        // Fade animation
+        fadeInDuration: const Duration(milliseconds: 200),
+        fadeOutDuration: const Duration(milliseconds: 200),
+        // Loading placeholder
+        placeholder: (context, url) {
+          return loadingBuilder?.call(context) ?? _buildLoadingWidget();
+        },
+        // Error widget
+        errorWidget: (context, url, error) {
+          print('[RobustNetworkImage] Error loading: $imageUrl');
+          print('[RobustNetworkImage] Fixed URL: $fixedUrl');
+          print('[RobustNetworkImage] Error: $error');
+          return errorBuilder?.call(context, imageUrl) ??
+              _buildErrorWidget(context);
+        },
+      );
+    }
 
     // Apply border radius if provided
     if (borderRadius != null) {

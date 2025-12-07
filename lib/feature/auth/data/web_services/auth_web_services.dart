@@ -743,17 +743,38 @@ class AuthWebServices {
       print('\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$\$');
       print('[API] Uploading profile image');
       print('[API] File path: $filePath');
+      print('[API] Has bytes: ${fileBytes != null}');
+      print('[API] Bytes length: ${fileBytes?.length ?? 0}');
       print('[API] Token: $authToken');
 
       // Create FormData
       FormData formData;
 
       if (fileBytes != null) {
-        // For web platform - use bytes
+        // For web platform - use bytes with proper content type
+        // Determine content type based on file extension or default to jpeg
+        String contentType = 'image/jpeg';
+        String filename = 'profile_image.jpg';
+
+        if (filePath.toLowerCase().contains('.png')) {
+          contentType = 'image/png';
+          filename = 'profile_image.png';
+        } else if (filePath.toLowerCase().contains('.gif')) {
+          contentType = 'image/gif';
+          filename = 'profile_image.gif';
+        } else if (filePath.toLowerCase().contains('.webp')) {
+          contentType = 'image/webp';
+          filename = 'profile_image.webp';
+        }
+
+        print('[API] Using content type: $contentType');
+        print('[API] Using filename: $filename');
+
         formData = FormData.fromMap({
           'image': MultipartFile.fromBytes(
             fileBytes,
-            filename: 'profile_image.jpg',
+            filename: filename,
+            contentType: DioMediaType.parse(contentType),
           ),
         });
       } else {
@@ -772,7 +793,7 @@ class AuthWebServices {
         options: Options(
           headers: {
             'Authorization': 'Bearer $authToken',
-            'Content-Type': 'multipart/form-data',
+            // Don't set Content-Type manually - Dio will set it with proper boundary
           },
         ),
       );

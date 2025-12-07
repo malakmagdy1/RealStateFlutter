@@ -4,6 +4,7 @@ import 'package:real/core/utils/colors.dart';
 import 'package:real/core/utils/text_style.dart';
 import 'package:real/core/widget/robust_network_image.dart';
 import 'package:real/feature/company/data/models/company_model.dart';
+import 'package:real/feature/company/data/models/sales_model.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_bloc.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_event.dart';
 import 'package:real/feature/compound/presentation/bloc/compound_state.dart';
@@ -307,6 +308,32 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
               ),
             SizedBox(height: 24),
 
+            // Sales Team Section
+            if (widget.company.sales.isNotEmpty) ...[
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: CustomText20(
+                  l10n.salesTeam,
+                  bold: true,
+                  color: AppColors.black,
+                ),
+              ),
+              SizedBox(height: 12),
+              SizedBox(
+                height: 140,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: widget.company.sales.length,
+                  itemBuilder: (context, index) {
+                    final salesPerson = widget.company.sales[index];
+                    return _buildSalesPersonCard(salesPerson, l10n);
+                  },
+                ),
+              ),
+              SizedBox(height: 24),
+            ],
+
             // Compounds Section
             Padding(
               padding: EdgeInsets.all(15),
@@ -465,6 +492,131 @@ class _CompanyDetailScreenState extends State<CompanyDetailScreen> {
           align: TextAlign.center,
         ),
       ],
+    );
+  }
+
+  // Sales person card widget
+  Widget _buildSalesPersonCard(Sales salesPerson, AppLocalizations l10n) {
+    return Container(
+      width: 180,
+      margin: EdgeInsets.only(right: 12),
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.mainColor.withOpacity(0.1),
+                child: Icon(
+                  Icons.person,
+                  color: AppColors.mainColor,
+                  size: 20,
+                ),
+              ),
+              SizedBox(width: 8),
+              Expanded(
+                child: CustomText14(
+                  salesPerson.name,
+                  bold: true,
+                  color: AppColors.black,
+                  maxLines: 1,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 8),
+          if (salesPerson.phone.isNotEmpty) ...[
+            Row(
+              children: [
+                Icon(Icons.phone, size: 14, color: AppColors.grey),
+                SizedBox(width: 4),
+                Expanded(
+                  child: CustomText12(
+                    salesPerson.phone,
+                    color: AppColors.grey,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () async {
+                      final Uri phoneUri = Uri(scheme: 'tel', path: salesPerson.phone);
+                      if (await canLaunchUrl(phoneUri)) {
+                        await launchUrl(phoneUri);
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF26A69A),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.phone, color: Colors.white, size: 14),
+                          SizedBox(width: 4),
+                          Text(
+                            l10n.call,
+                            style: TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () async {
+                      final phone = salesPerson.phone.replaceAll(RegExp(r'[^\d+]'), '');
+                      final Uri whatsappUri = Uri.parse('https://wa.me/$phone');
+                      if (await canLaunchUrl(whatsappUri)) {
+                        await launchUrl(whatsappUri, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF25D366),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.chat, color: Colors.white, size: 14),
+                          SizedBox(width: 4),
+                          Text(
+                            'WhatsApp',
+                            style: TextStyle(color: Colors.white, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

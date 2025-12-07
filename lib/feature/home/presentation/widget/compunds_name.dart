@@ -273,9 +273,15 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
 
                                   try {
                                     final response = await compoundWebServices.getUnitsForCompound(widget.compound.project);
-                                    if (response['success'] == true && response['units'] != null) {
-                                      units = (response['units'] as List).map((unit) => unit as Map<String, dynamic>).toList();
+                                    // Handle multiple response structures
+                                    if (response['success'] == true) {
+                                      if (response['units'] != null) {
+                                        units = (response['units'] as List).map((unit) => unit as Map<String, dynamic>).toList();
+                                      } else if (response['data'] != null && response['data'] is List) {
+                                        units = (response['data'] as List).map((unit) => unit as Map<String, dynamic>).toList();
+                                      }
                                     }
+                                    print('[COMPOUND CARD] Fetched ${units?.length ?? 0} units for share');
                                   } catch (e) {
                                     print('[COMPOUND CARD] Error fetching units: $e');
                                   }

@@ -563,6 +563,11 @@ class _CompoundScreenState extends State<CompoundScreen>
               _compound.finishSpecs!.isNotEmpty)
             _buildDescriptionSection(l10n),
           SizedBox(height: 16),
+          // Compound Number (ID from database)
+          _buildInfoRow(
+            l10n.compoundNumber,
+            '#${_compound.id}',
+          ),
           // Other Details
           if (_compound.availableUnits != "0")
             _buildInfoRow(
@@ -720,22 +725,90 @@ class _CompoundScreenState extends State<CompoundScreen>
 
   // Master Plan Tab Content
   Widget _buildMasterPlanTab(AppLocalizations l10n) {
-    return Center(
+    final masterPlan = _compound.masterPlan;
+    final hasValidMasterPlan = masterPlan != null && masterPlan.isNotEmpty;
+
+    if (!hasValidMasterPlan) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.map_outlined, size: 80, color: AppColors.mainColor.withOpacity(0.3)),
+            SizedBox(height: 16),
+            CustomText16(
+              l10n.masterPlanComingSoon,
+              color: AppColors.grey,
+              align: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.architecture, size: 80, color: AppColors.mainColor),
-          SizedBox(height: 16),
-          CustomText16(
-            l10n.masterPlan,
-            bold: true,
-            color: AppColors.black,
-          ),
-          SizedBox(height: 8),
-          CustomText16(
-            l10n.masterPlanComingSoon,
-            color: Colors.black,
-            align: TextAlign.center,
+          // Location URL button if available
+          if (_compound.locationUrl != null && _compound.locationUrl!.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(bottom: 16),
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final uri = Uri.parse(_compound.locationUrl!);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                icon: Icon(Icons.location_on, size: 18),
+                label: Text(l10n.viewOnMap),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.mainColor,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+              ),
+            ),
+          // Master Plan Image
+          GestureDetector(
+            onTap: () {
+              // Open zoomable image viewer
+              ZoomableImageViewer.show(
+                context,
+                images: [masterPlan],
+                initialIndex: 0,
+              );
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: RobustNetworkImage(
+                imageUrl: masterPlan,
+                width: double.infinity,
+                fit: BoxFit.contain,
+                errorBuilder: (context, url) => Container(
+                  height: 300,
+                  color: Color(0xFFF8F9FA),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.map,
+                          size: 60,
+                          color: AppColors.mainColor.withOpacity(0.3),
+                        ),
+                        SizedBox(height: 8),
+                        Text(
+                          l10n.masterPlanComingSoon,
+                          style: TextStyle(color: AppColors.grey),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -1359,6 +1432,7 @@ class _CompoundScreenState extends State<CompoundScreen>
 
   // Tab Bar
   Widget _buildCornerTabBar() {
+    final l10n = AppLocalizations.of(context)!;
     return Container(
       height: 50,
       child: TabBar(
@@ -1388,12 +1462,12 @@ class _CompoundScreenState extends State<CompoundScreen>
         ),
         labelPadding: EdgeInsets.symmetric(horizontal: 16),
         tabs: [
-          Tab(icon: Icon(Icons.info_outline, size: 18), text: 'Details'),
-          Tab(icon: Icon(Icons.photo_library_outlined, size: 18), text: 'Gallery'),
-          Tab(icon: Icon(Icons.map_outlined, size: 18), text: 'Map'),
-          Tab(icon: Icon(Icons.architecture_outlined, size: 18), text: 'Master Plan'),
-          Tab(icon: Icon(Icons.home_work_outlined, size: 18), text: 'Units'),
-          Tab(icon: Icon(Icons.note_outlined, size: 18), text: 'Notes'),
+          Tab(icon: Icon(Icons.info_outline, size: 18), text: l10n.details),
+          Tab(icon: Icon(Icons.photo_library_outlined, size: 18), text: l10n.gallery),
+          Tab(icon: Icon(Icons.map_outlined, size: 18), text: l10n.map),
+          Tab(icon: Icon(Icons.architecture_outlined, size: 18), text: l10n.masterPlan),
+          Tab(icon: Icon(Icons.home_work_outlined, size: 18), text: l10n.units),
+          Tab(icon: Icon(Icons.note_outlined, size: 18), text: l10n.notes),
         ],
       ),
     );

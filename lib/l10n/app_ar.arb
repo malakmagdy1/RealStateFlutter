@@ -23,6 +23,7 @@
 
   "companies": "الشركات",
   "compounds": "الكمبوندات",
+  "compoundNumber": "رقم الكمبوند",
   "units": "الوحدات",
   "viewAll": "عرض الكل",
   "seeAll": "مشاهدة الكل",
@@ -32,6 +33,7 @@
   "loading": "جاري التحميل...",
   "refreshing": "جاري التحديث...",
   "error": "خطأ",
+  "errorReadingImage": "خطأ في قراءة الصورة. يرجى المحاولة مرة أخرى.",
 
   "price": "السعر",
   "area": "المساحة",
@@ -645,5 +647,9 @@
   "months": "شهر",
   "totalInstallments": "إجمالي الأقساط",
   "balanceAfterDown": "الرصيد بعد المقدم",
-  "pricePerSqm": "السعر/م²"
+  "pricePerSqm": "السعر/م²",
+  "map": "الخريطة",
+  "sortByName": "ترتيب حسب الاسم",
+  "sortByCompounds": "ترتيب حسب الكمبوندات",
+  "sortByUnits": "ترتيب حسب الوحدات"
 }

@@ -16,7 +16,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/widgets/zoomable_image_viewer.dart';
 import '../../../feature/company/data/models/company_user_model.dart';
+import '../../../feature/company/data/models/sales_model.dart';
 import '../../../feature/company/data/web_services/company_web_services.dart';
+import '../../../feature/compound/data/web_services/compound_web_services.dart';
 import '../../../feature/compound/presentation/bloc/favorite/unit_favorite_bloc.dart';
 import '../../../feature/compound/presentation/bloc/favorite/unit_favorite_event.dart';
 import '../../../feature/compound/presentation/bloc/favorite/unit_favorite_state.dart';
@@ -48,8 +50,10 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
   int _selectedImageIndex = 0;
   Timer? _imageTimer;
   final CompanyWebServices _companyWebServices = CompanyWebServices();
+  final CompoundWebServices _compoundWebServices = CompoundWebServices();
   final SaleWebServices _saleWebServices = SaleWebServices();
   List<CompanyUser> _salesPeople = [];
+  List<Sales> _compoundSales = []; // Sales people from compound
   bool _isLoadingSalesPeople = false;
   Sale? _unitSale;
   bool _isLoadingSale = false;
@@ -164,6 +168,7 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
   void _setupUnit() {
     if (_currentUnit != null) {
       _fetchSalesPeople();
+      _fetchCompoundSales(); // Also fetch compound sales as fallback
       // Check if sale is included in unit data first
       if (_currentUnit!.sale != null) {
         print('[WEB UNIT DETAIL] Sale found in unit data: ${_currentUnit!.sale!.saleName}');
@@ -254,6 +259,38 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
       }
     }
   }
+
+  /// Fetch sales people from compound data
+  Future<void> _fetchCompoundSales() async {
+    if (_currentUnit?.compoundId == null || _currentUnit!.compoundId!.isEmpty) {
+      print('[WEB UNIT DETAIL] No compoundId available for this unit');
+      return;
+    }
+
+    try {
+      print('[WEB UNIT DETAIL] Fetching compound sales for compound: ${_currentUnit!.compoundId}');
+      final compoundData = await _compoundWebServices.getCompoundById(_currentUnit!.compoundId!);
+
+      if (compoundData['sales'] != null && compoundData['sales'] is List) {
+        final salesList = (compoundData['sales'] as List)
+            .map((sale) => Sales.fromJson(sale as Map<String, dynamic>))
+            .toList();
+
+        print('[WEB UNIT DETAIL] Found ${salesList.length} compound sales people');
+
+        if (mounted) {
+          setState(() {
+            _compoundSales = salesList;
+          });
+        }
+      } else {
+        print('[WEB UNIT DETAIL] No sales data in compound response');
+      }
+    } catch (e) {
+      print('[WEB UNIT DETAIL] Error fetching compound sales: $e');
+    }
+  }
+
   Future<void> _fetchUnitSale() async {
     if (_isLoadingSale) return;
 
@@ -1828,15 +1865,19 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
       );
     }
 
-    // Get contact info prioritizing sales person from sale
+    // Get contact info prioritizing: sale's sales person > company agent > compound sales
     final salesPerson = _unitSale?.salesPerson;
     final companyAgent = _salesPeople.isNotEmpty ? _salesPeople.first : null;
+    final compoundSalesPerson = _compoundSales.isNotEmpty ? _compoundSales.first : null;
 
-    // Determine which contact to show
-    final String? contactPhone = salesPerson?.phone ?? companyAgent?.phone;
-    final String? contactName = salesPerson?.name ?? companyAgent?.name;
+    // Determine which contact to show (priority: sale > company > compound)
+    final String? contactPhone = salesPerson?.phone ?? companyAgent?.phone ?? compoundSalesPerson?.phone;
+    final String? contactName = salesPerson?.name ?? companyAgent?.name ?? compoundSalesPerson?.name;
     final bool hasContact = contactName != null && contactName.isNotEmpty;
     final bool hasPhone = contactPhone != null && contactPhone.isNotEmpty;
+
+    print('[WEB UNIT DETAIL] Agent card - hasContact: $hasContact, hasPhone: $hasPhone');
+    print('[WEB UNIT DETAIL] SalesPerson: ${salesPerson?.name}, CompanyAgent: ${companyAgent?.name}, CompoundSales: ${compoundSalesPerson?.name}');
 
     return Container(
       padding: EdgeInsets.all(16),

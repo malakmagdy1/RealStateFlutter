@@ -6,6 +6,8 @@ import 'package:real/feature/company/data/models/company_model.dart';
 import 'package:real/feature/company/data/web_services/company_web_services.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
 import 'package:real/feature/share/presentation/widgets/advanced_share_bottom_sheet.dart';
+import 'package:real/feature/sale/data/models/sale_model.dart';
+import 'package:real/feature/sale/data/services/sale_web_services.dart';
 import 'package:real/l10n/app_localizations.dart';
 
 import '../../../feature_web/widgets/web_compound_card.dart';
@@ -27,10 +29,12 @@ class WebCompanyDetailScreen extends StatefulWidget {
 
 class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
   final CompanyWebServices _companyWebServices = CompanyWebServices();
+  final SaleWebServices _saleWebServices = SaleWebServices();
   Company? _currentCompany;
   bool _isLoading = false;
   String? _errorMessage;
   List<Compound> _compounds = [];
+  List<Sale> _activeSales = [];
 
   @override
   void initState() {
@@ -50,6 +54,26 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
     // The widget.company from list view might not have full compound details
     print('[WEB COMPANY DETAIL] Fetching company from API for complete data');
     await _fetchCompany();
+
+    // Fetch active sales for this company
+    await _fetchCompanySales();
+  }
+
+  Future<void> _fetchCompanySales() async {
+    try {
+      print('[WEB COMPANY DETAIL] Fetching sales for company: ${widget.companyId}');
+      final salesData = await _saleWebServices.getSalesByCompany(widget.companyId);
+
+      if (salesData['success'] == true && salesData['data'] != null) {
+        final salesList = salesData['data'] as List;
+        setState(() {
+          _activeSales = salesList.map((s) => Sale.fromJson(s)).toList();
+        });
+        print('[WEB COMPANY DETAIL] Found ${_activeSales.length} active sales');
+      }
+    } catch (e) {
+      print('[WEB COMPANY DETAIL] Error fetching sales: $e');
+    }
   }
 
   /// Convert CompanyCompound objects to Compound objects for display
@@ -313,6 +337,11 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
                       _buildCompoundsSection(l10n),
                       SizedBox(height: 48),
 
+                      // Active Sales/Promotions Section
+                      if (_activeSales.isNotEmpty) ...[
+                        _buildSalesSection(l10n),
+                        SizedBox(height: 48),
+                      ],
 
                       if (_currentCompany!.sales.isNotEmpty) ...[
                         _buildSalespeopleSection(l10n),
@@ -833,6 +862,219 @@ class _WebCompanyDetailScreenState extends State<WebCompanyDetailScreen> {
         ),
       ],
     );
+  }
+
+  Widget _buildSalesSection(AppLocalizations l10n) {
+    final isArabic = l10n.localeName == 'ar';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.local_offer, size: 28, color: Colors.orange),
+            SizedBox(width: 12),
+            Text(
+              l10n.activeSales,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF333333),
+              ),
+            ),
+            SizedBox(width: 12),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${_activeSales.length}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.orange.shade800,
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 24),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            childAspectRatio: 2.2,
+            crossAxisSpacing: 20,
+            mainAxisSpacing: 20,
+          ),
+          itemCount: _activeSales.length,
+          itemBuilder: (context, index) {
+            final sale = _activeSales[index];
+            return _buildSaleCard(sale, l10n, isArabic);
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSaleCard(Sale sale, AppLocalizations l10n, bool isArabic) {
+    // Determine sale type color and icon
+    Color saleColor;
+    IconData saleIcon;
+    String saleTypeLabel;
+
+    switch (sale.saleType.toLowerCase()) {
+      case 'discount':
+        saleColor = Colors.red;
+        saleIcon = Icons.percent;
+        saleTypeLabel = l10n.discount;
+        break;
+      case 'cashback':
+        saleColor = Colors.green;
+        saleIcon = Icons.money;
+        saleTypeLabel = isArabic ? 'استرداد نقدي' : 'Cashback';
+        break;
+      case 'gift':
+        saleColor = Colors.purple;
+        saleIcon = Icons.card_giftcard;
+        saleTypeLabel = isArabic ? 'هدية' : 'Gift';
+        break;
+      case 'installment':
+        saleColor = Colors.blue;
+        saleIcon = Icons.credit_card;
+        saleTypeLabel = isArabic ? 'تقسيط' : 'Installment';
+        break;
+      default:
+        saleColor = Colors.orange;
+        saleIcon = Icons.local_offer;
+        saleTypeLabel = isArabic ? 'عرض' : 'Offer';
+    }
+
+    final title = sale.saleName;
+    final description = sale.description;
+
+    return Container(
+      padding: EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: saleColor.withOpacity(0.3)),
+        boxShadow: [
+          BoxShadow(
+            color: saleColor.withOpacity(0.1),
+            blurRadius: 15,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Icon/Badge
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              color: saleColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(saleIcon, color: saleColor, size: 28),
+                SizedBox(height: 4),
+                if (sale.discountPercentage > 0)
+                  Text(
+                    '${sale.discountPercentage.toStringAsFixed(0)}%',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: saleColor,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          SizedBox(width: 16),
+          // Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Sale type badge
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: saleColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    saleTypeLabel,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: saleColor,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 8),
+                // Title
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF333333),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (description.isNotEmpty) ...[
+                  SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF666666),
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                SizedBox(height: 8),
+                // Dates
+                Row(
+                  children: [
+                    Icon(Icons.calendar_today, size: 12, color: Color(0xFF999999)),
+                    SizedBox(width: 4),
+                    Text(
+                      '${_formatDate(sale.startDate)} - ${_formatDate(sale.endDate)}',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF999999),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '-';
+    try {
+      final date = DateTime.parse(dateStr);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return dateStr;
+    }
   }
 
   Widget _buildCompoundsSection(AppLocalizations l10n) {

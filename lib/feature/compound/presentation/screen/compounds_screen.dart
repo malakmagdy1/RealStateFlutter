@@ -275,7 +275,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
                     icon: Icon(Icons.close),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  CustomText20('Sort By', bold: true, color: AppColors.black),
+                  CustomText20(AppLocalizations.of(context)!.sortBy, bold: true, color: AppColors.black),
                   TextButton(
                     onPressed: () {
                       setState(() {
@@ -285,7 +285,7 @@ class _CompoundsScreenState extends State<CompoundsScreen> with SingleTickerProv
                       _performSearch(_searchController.text);
                       Navigator.pop(context);
                     },
-                    child: CustomText16('Clear', color: Colors.red),
+                    child: CustomText16(AppLocalizations.of(context)!.clear, color: Colors.red),
                   ),
                 ],
               ),

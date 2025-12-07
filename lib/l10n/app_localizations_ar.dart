@@ -66,6 +66,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get compounds => 'الكمبوندات';
 
   @override
+  String get compoundNumber => 'رقم الكمبوند';
+
+  @override
   String get units => 'الوحدات';
 
   @override
@@ -88,6 +91,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get error => 'خطأ';
+
+  @override
+  String get errorReadingImage =>
+      'خطأ في قراءة الصورة. يرجى المحاولة مرة أخرى.';
 
   @override
   String get price => 'السعر';
@@ -1748,4 +1755,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get pricePerSqm => 'السعر/م²';
+
+  @override
+  String get map => 'الخريطة';
+
+  @override
+  String get sortByName => 'ترتيب حسب الاسم';
+
+  @override
+  String get sortByCompounds => 'ترتيب حسب الكمبوندات';
+
+  @override
+  String get sortByUnits => 'ترتيب حسب الوحدات';
 }

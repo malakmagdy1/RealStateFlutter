@@ -26,6 +26,7 @@
 
   "companies": "Companies",
   "compounds": "Compounds",
+  "compoundNumber": "Compound Number",
   "units": "Units",
   "viewAll": "View All",
   "seeAll": "See All",
@@ -35,6 +36,7 @@
   "loading": "Loading...",
   "refreshing": "Refreshing...",
   "error": "Error",
+  "errorReadingImage": "Error reading image. Please try again.",
 
   "price": "Price",
   "area": "Area",
@@ -847,5 +849,9 @@
   "months": "Months",
   "totalInstallments": "Total Installments",
   "balanceAfterDown": "Balance After Down",
-  "pricePerSqm": "Price/m²"
+  "pricePerSqm": "Price/m²",
+  "map": "Map",
+  "sortByName": "Sort by Name",
+  "sortByCompounds": "Sort by Compounds",
+  "sortByUnits": "Sort by Units"
 }

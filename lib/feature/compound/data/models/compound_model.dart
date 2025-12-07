@@ -168,7 +168,8 @@ class Compound extends Equatable {
       landArea: json['land_area']?.toString(),
       builtArea: json['built_area']?.toString(),
       finishSpecs: json['finish_specs']?.toString(),
-      masterPlan: json['master_plan']?.toString(),
+      // Prefer master_plan_url (full URL) if available, otherwise use master_plan
+      masterPlan: json['master_plan_url']?.toString() ?? json['master_plan']?.toString(),
       club: json['club']?.toString() ?? '0',
       isSold: json['is_sold']?.toString() ?? '0',
       // Use localized status if available, fallback to original

@@ -66,6 +66,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get compounds => 'Compounds';
 
   @override
+  String get compoundNumber => 'Compound Number';
+
+  @override
   String get units => 'Units';
 
   @override
@@ -88,6 +91,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get error => 'Error';
+
+  @override
+  String get errorReadingImage => 'Error reading image. Please try again.';
 
   @override
   String get price => 'Price';
@@ -1755,4 +1761,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get pricePerSqm => 'Price/m²';
+
+  @override
+  String get map => 'Map';
+
+  @override
+  String get sortByName => 'Sort by Name';
+
+  @override
+  String get sortByCompounds => 'Sort by Compounds';
+
+  @override
+  String get sortByUnits => 'Sort by Units';
 }

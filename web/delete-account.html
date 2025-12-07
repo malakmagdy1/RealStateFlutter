@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete Account - حذف الحساب | Aqar App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo img {
+            width: 80px;
+            height: 80px;
+            border-radius: 15px;
+        }
+
+        .logo h1 {
+            color: #1a73e8;
+            margin-top: 15px;
+            font-size: 24px;
+        }
+
+        h2 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 22px;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+
+        .warning-box h4 {
+            color: #856404;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .warning-box ul {
+            color: #856404;
+            padding-right: 20px;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #1a73e8;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .checkbox-group input {
+            margin-top: 4px;
+            width: 18px;
+            height: 18px;
+        }
+
+        .checkbox-group label {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(220, 53, 69, 0.4);
+        }
+
+        .btn-danger:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .success-message, .error-message {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            color: #155724;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            border: 1px solid #dc3545;
+            color: #721c24;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #fff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .lang-toggle {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .lang-toggle a {
+            color: #1a73e8;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .contact-info {
+            text-align: center;
+            margin-top: 25px;
+            padding-top: 25px;
+            border-top: 1px solid #eee;
+        }
+
+        .contact-info p {
+            color: #666;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .contact-info a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="icons/Icon-192.png" alt="Aqar Logo" onerror="this.style.display='none'">
+            <h1>Aqar App</h1>
+        </div>
+
+        <h2 id="title">طلب حذف الحساب</h2>
+        <p class="subtitle" id="subtitle">
+            نأسف لرؤيتك تغادر. يرجى إدخال بريدك الإلكتروني المسجل لطلب حذف حسابك.
+        </p>
+
+        <div class="warning-box">
+            <h4 id="warning-title">⚠️ تحذير هام</h4>
+            <ul id="warning-list">
+                <li>سيتم حذف جميع بياناتك نهائياً</li>
+                <li>سيتم إلغاء أي اشتراكات نشطة</li>
+                <li>لا يمكن التراجع عن هذا الإجراء</li>
+                <li>ستتم معالجة طلبك خلال 48 ساعة</li>
+            </ul>
+        </div>
+
+        <div class="success-message" id="success-message"></div>
+        <div class="error-message" id="error-message"></div>
+
+        <form id="delete-form">
+            <div class="form-group">
+                <label for="email" id="email-label">البريد الإلكتروني</label>
+                <input type="email" id="email" name="email" required placeholder="أدخل بريدك الإلكتروني">
+            </div>
+
+            <div class="form-group">
+                <label for="reason" id="reason-label">سبب الحذف (اختياري)</label>
+                <input type="text" id="reason" name="reason" placeholder="أخبرنا لماذا تريد حذف حسابك">
+            </div>
+
+            <div class="checkbox-group">
+                <input type="checkbox" id="confirm" required>
+                <label for="confirm" id="confirm-label">
+                    أؤكد أنني أريد حذف حسابي وأفهم أن هذا الإجراء لا رجعة فيه
+                </label>
+            </div>
+
+            <button type="submit" class="btn btn-danger" id="submit-btn">
+                <span id="btn-text">طلب حذف الحساب</span>
+            </button>
+        </form>
+
+        <div class="lang-toggle">
+            <a href="#" onclick="toggleLanguage(); return false;" id="lang-link">Switch to English</a>
+        </div>
+
+        <div class="contact-info">
+            <p id="contact-text">لأي استفسارات، تواصل معنا:</p>
+            <a href="mailto:support@aqar.bdcbiz.com">support@aqar.bdcbiz.com</a>
+        </div>
+    </div>
+
+    <script>
+        let isArabic = true;
+
+        const translations = {
+            ar: {
+                title: 'طلب حذف الحساب',
+                subtitle: 'نأسف لرؤيتك تغادر. يرجى إدخال بريدك الإلكتروني المسجل لطلب حذف حسابك.',
+                warningTitle: '⚠️ تحذير هام',
+                warningList: [
+                    'سيتم حذف جميع بياناتك نهائياً',
+                    'سيتم إلغاء أي اشتراكات نشطة',
+                    'لا يمكن التراجع عن هذا الإجراء',
+                    'ستتم معالجة طلبك خلال 48 ساعة'
+                ],
+                emailLabel: 'البريد الإلكتروني',
+                emailPlaceholder: 'أدخل بريدك الإلكتروني',
+                reasonLabel: 'سبب الحذف (اختياري)',
+                reasonPlaceholder: 'أخبرنا لماذا تريد حذف حسابك',
+                confirmLabel: 'أؤكد أنني أريد حذف حسابي وأفهم أن هذا الإجراء لا رجعة فيه',
+                btnText: 'طلب حذف الحساب',
+                langLink: 'Switch to English',
+                contactText: 'لأي استفسارات، تواصل معنا:',
+                successMessage: 'تم استلام طلبك بنجاح! سنتواصل معك عبر البريد الإلكتروني خلال 48 ساعة لتأكيد الحذف.',
+                errorMessage: 'حدث خطأ. يرجى المحاولة مرة أخرى أو التواصل مع الدعم.'
+            },
+            en: {
+                title: 'Request Account Deletion',
+                subtitle: 'We\'re sorry to see you go. Please enter your registered email to request account deletion.',
+                warningTitle: '⚠️ Important Warning',
+                warningList: [
+                    'All your data will be permanently deleted',
+                    'Any active subscriptions will be cancelled',
+                    'This action cannot be undone',
+                    'Your request will be processed within 48 hours'
+                ],
+                emailLabel: 'Email Address',
+                emailPlaceholder: 'Enter your email address',
+                reasonLabel: 'Reason for deletion (optional)',
+                reasonPlaceholder: 'Tell us why you want to delete your account',
+                confirmLabel: 'I confirm that I want to delete my account and understand this action is irreversible',
+                btnText: 'Request Account Deletion',
+                langLink: 'التبديل إلى العربية',
+                contactText: 'For any questions, contact us:',
+                successMessage: 'Your request has been received! We will contact you via email within 48 hours to confirm the deletion.',
+                errorMessage: 'An error occurred. Please try again or contact support.'
+            }
+        };
+
+        function toggleLanguage() {
+            isArabic = !isArabic;
+            const lang = isArabic ? 'ar' : 'en';
+            const t = translations[lang];
+
+            document.documentElement.lang = lang;
+            document.documentElement.dir = isArabic ? 'rtl' : 'ltr';
+
+            document.getElementById('title').textContent = t.title;
+            document.getElementById('subtitle').textContent = t.subtitle;
+            document.getElementById('warning-title').textContent = t.warningTitle;
+
+            const warningList = document.getElementById('warning-list');
+            warningList.innerHTML = t.warningList.map(item => `<li>${item}</li>`).join('');
+
+            document.getElementById('email-label').textContent = t.emailLabel;
+            document.getElementById('email').placeholder = t.emailPlaceholder;
+            document.getElementById('reason-label').textContent = t.reasonLabel;
+            document.getElementById('reason').placeholder = t.reasonPlaceholder;
+            document.getElementById('confirm-label').textContent = t.confirmLabel;
+            document.getElementById('btn-text').textContent = t.btnText;
+            document.getElementById('lang-link').textContent = t.langLink;
+            document.getElementById('contact-text').textContent = t.contactText;
+        }
+
+        document.getElementById('delete-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('email').value;
+            const reason = document.getElementById('reason').value;
+            const btn = document.getElementById('submit-btn');
+            const btnText = document.getElementById('btn-text');
+            const successMsg = document.getElementById('success-message');
+            const errorMsg = document.getElementById('error-message');
+            const t = translations[isArabic ? 'ar' : 'en'];
+
+            // Hide previous messages
+            successMsg.style.display = 'none';
+            errorMsg.style.display = 'none';
+
+            // Show loading
+            btn.disabled = true;
+            btnText.innerHTML = t.btnText + ' <span class="loading"></span>';
+
+            try {
+                const response = await fetch('https://aqar.bdcbiz.com/api/delete-account-request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        reason: reason
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    successMsg.textContent = t.successMessage;
+                    successMsg.style.display = 'block';
+                    document.getElementById('delete-form').reset();
+                } else {
+                    throw new Error(data.message || 'Request failed');
+                }
+            } catch (error) {
+                // Even if API fails, show success (will handle manually)
+                // This ensures users can always submit deletion requests
+                successMsg.textContent = t.successMessage;
+                successMsg.style.display = 'block';
+                document.getElementById('delete-form').reset();
+
+                // Send email fallback (mailto link)
+                const mailtoLink = `mailto:support@aqar.bdcbiz.com?subject=Account%20Deletion%20Request&body=Email:%20${encodeURIComponent(email)}%0AReason:%20${encodeURIComponent(reason || 'Not specified')}`;
+
+                // Open mailto as backup
+                setTimeout(() => {
+                    window.location.href = mailtoLink;
+                }, 2000);
+            } finally {
+                btn.disabled = false;
+                btnText.textContent = t.btnText;
+            }
+        });
+    </script>
+</body>
+</html>

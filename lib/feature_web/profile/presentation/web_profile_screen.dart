@@ -120,8 +120,24 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
       );
 
       if (pickedFile != null) {
-        // Read image as bytes for web compatibility
-        final bytes = await pickedFile.readAsBytes();
+        // Read image as bytes immediately after picking for web compatibility
+        // On web, the Blob URL can get revoked, so we read bytes right away
+        Uint8List bytes;
+        try {
+          bytes = await pickedFile.readAsBytes();
+        } catch (e) {
+          // If blob was revoked, try to re-pick
+          print('[PROFILE IMAGE] Error reading bytes: $e');
+          MessageHelper.showError(context, l10n.errorReadingImage);
+          return;
+        }
+
+        // Validate that we have actual image data
+        if (bytes.isEmpty) {
+          MessageHelper.showError(context, l10n.errorReadingImage);
+          return;
+        }
+
         setState(() {
           _imageBytes = bytes;
         });
@@ -135,7 +151,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
 
         final authWebServices = AuthWebServices();
         await authWebServices.uploadProfileImage(
-          pickedFile.path,
+          pickedFile.name, // Use name instead of path for web
           fileBytes: bytes,
         );
 
@@ -150,6 +166,7 @@ class _WebProfileScreenState extends State<WebProfileScreen> {
         });
       }
     } catch (e) {
+      print('[PROFILE IMAGE] Error: $e');
       MessageHelper.showError(context, 'Error uploading image: $e');
     }
   }
