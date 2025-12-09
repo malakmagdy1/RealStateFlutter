@@ -44,6 +44,7 @@ class _WebMainScreenState extends State<WebMainScreen> {
   final NotificationCacheService _cacheService = NotificationCacheService();
   final ComparisonListService _comparisonService = ComparisonListService();
   Timer? _notificationCheckTimer;
+  bool _initialMigrationDone = false; // Only migrate once on initial load
 
   // Screens list - use stable keys to prevent unnecessary rebuilds
   // Cache the screens list to prevent recreation on every setState
@@ -92,8 +93,10 @@ class _WebMainScreenState extends State<WebMainScreen> {
 
   void _onNotificationCountChanged() {
     if (mounted) {
+      final newCount = _cacheService.unreadCount;
+      print('[WEB MAIN] Notification count changed to: $newCount');
       setState(() {
-        _unreadNotifications = _cacheService.unreadCount;
+        _unreadNotifications = newCount;
       });
     }
   }
@@ -171,10 +174,14 @@ class _WebMainScreenState extends State<WebMainScreen> {
 
   Future<void> _loadUnreadCount() async {
     try {
-      // First check for pending notifications from service worker
-      await _checkAndMigrateWebNotifications();
+      // Only check for pending notifications from service worker on initial load
+      // This prevents re-migration after user clears all notifications
+      if (!_initialMigrationDone) {
+        await _checkAndMigrateWebNotifications();
+        _initialMigrationDone = true;
+      }
 
-      // Then load the count
+      // Load the count from cache service (which gets updated by listener)
       final notifications = await _cacheService.getAllNotifications();
       if (mounted) {
         setState(() {

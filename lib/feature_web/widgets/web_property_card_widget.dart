@@ -34,6 +34,7 @@ class WebPropertyCardWidget extends StatelessWidget {
           value: compoundBloc,
           child: WebCompoundCard(
             compound: compound!,
+            suppressComparisonSnackbar: true,
           ),
         );
       } else if (unit != null) {
@@ -46,6 +47,7 @@ class WebPropertyCardWidget extends StatelessWidget {
           value: unitBloc,
           child: WebUnitCard(
             unit: unit!,
+            suppressComparisonSnackbar: true,
           ),
         );
       } else {
@@ -60,10 +62,12 @@ class WebPropertyCardWidget extends StatelessWidget {
       if (compound != null) {
         return WebCompoundCard(
           compound: compound!,
+          suppressComparisonSnackbar: true,
         );
       } else if (unit != null) {
         return WebUnitCard(
           unit: unit!,
+          suppressComparisonSnackbar: true,
         );
       } else {
         return Container(

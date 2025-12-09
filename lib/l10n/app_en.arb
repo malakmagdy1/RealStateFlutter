@@ -853,5 +853,7 @@
   "map": "Map",
   "sortByName": "Sort by Name",
   "sortByCompounds": "Sort by Compounds",
-  "sortByUnits": "Sort by Units"
+  "sortByUnits": "Sort by Units",
+  "tapToZoom": "Tap to zoom",
+  "errorLoadingImage": "Error loading image"
 }

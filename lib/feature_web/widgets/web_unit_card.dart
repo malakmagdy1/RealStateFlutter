@@ -25,8 +25,9 @@ import 'package:real/feature/ai_chat/data/services/comparison_list_service.dart'
 
 class WebUnitCard extends StatefulWidget {
   final Unit unit;
+  final bool suppressComparisonSnackbar;
 
-  WebUnitCard({Key? key, required this.unit}) : super(key: key);
+  WebUnitCard({Key? key, required this.unit, this.suppressComparisonSnackbar = false}) : super(key: key);
 
   @override
   State<WebUnitCard> createState() => _WebUnitCardState();
@@ -763,134 +764,141 @@ class _WebUnitCardState extends State<WebUnitCard> with SingleTickerProviderStat
     );
   }
   // ADDED: Compare dialog method - Toggle comparison state
-  void _showCompareDialog(BuildContext context) {
+  Future<void> _showCompareDialog(BuildContext context) async {
     final comparisonItem = ComparisonItem.fromUnit(widget.unit);
     final comparisonService = ComparisonListService();
     final l10n = AppLocalizations.of(context)!;
 
     // Check if already in comparison - toggle behavior
-    if (comparisonService.contains(comparisonItem)) {
+    if (comparisonService.containsItem(comparisonItem)) {
       // Remove from comparison list
       comparisonService.removeItem(comparisonItem);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.remove_circle, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  l10n.removedFromComparison,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+
+      // Only show snackbar if not suppressed
+      if (!widget.suppressComparisonSnackbar) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.remove_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.removedFromComparison,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 10),
+            action: SnackBarAction(
+              label: l10n.undo,
+              textColor: Colors.white,
+              onPressed: () {
+                comparisonService.addItem(comparisonItem);
+              },
+            ),
           ),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 10),
-          action: SnackBarAction(
-            label: l10n.undo,
-            textColor: Colors.white,
-            onPressed: () {
-              comparisonService.addItem(comparisonItem);
-            },
-          ),
-        ),
-      );
+        );
+      }
       return;
     }
 
     // Add to comparison list
-    final added = comparisonService.addItem(comparisonItem);
+    final added = await comparisonService.addItem(comparisonItem);
 
-    if (added) {
-      // Show success message with Go to AI button
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  l10n.addedToComparison,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-              ),
-              // Go to AI Chat button
-              TextButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  context.push('/ai-chat');
-                },
-                icon: Icon(Icons.smart_toy, color: Colors.white, size: 18),
-                label: Text(
-                  l10n.goToAI,
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.2),
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+    // Only show snackbar if not suppressed
+    if (!widget.suppressComparisonSnackbar) {
+      if (added) {
+        // Show success message with Go to AI button
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.addedToComparison,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(minutes: 2),
-          action: SnackBarAction(
-            label: l10n.undo,
-            textColor: Colors.white,
-            onPressed: () {
-              comparisonService.removeItem(comparisonItem);
-            },
-          ),
-        ),
-      );
-    } else {
-      // Show error (list is full)
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.info_outline, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  l10n.comparisonListFull,
-                  style: TextStyle(fontSize: 14),
-                ),
-              ),
-              // Go to AI Chat button even when full
-              TextButton.icon(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  context.push('/ai-chat');
-                },
-                icon: Icon(Icons.smart_toy, color: Colors.white, size: 18),
-                label: Text(
-                  l10n.goToAI,
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                ),
-                style: TextButton.styleFrom(
-                  backgroundColor: Colors.white.withOpacity(0.2),
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
+                // Go to AI Chat button
+                TextButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    context.push('/ai-chat');
+                  },
+                  icon: Icon(Icons.smart_toy, color: Colors.white, size: 18),
+                  label: Text(
+                    l10n.goToAI,
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.white.withOpacity(0.2),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(minutes: 2),
+            action: SnackBarAction(
+              label: l10n.undo,
+              textColor: Colors.white,
+              onPressed: () {
+                comparisonService.removeItem(comparisonItem);
+              },
+            ),
           ),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 10),
-        ),
-      );
+        );
+      } else {
+        // Show error (list is full)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.comparisonListFull,
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ),
+                // Go to AI Chat button even when full
+                TextButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    context.push('/ai-chat');
+                  },
+                  icon: Icon(Icons.smart_toy, color: Colors.white, size: 18),
+                  label: Text(
+                    l10n.goToAI,
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.white.withOpacity(0.2),
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 10),
+          ),
+        );
+      }
     }
   }
 

@@ -290,8 +290,9 @@ class _CustomNavState extends State<CustomNav> {
         ),
         floatingActionButton: StreamBuilder<List<ComparisonItem>>(
           stream: ComparisonListService().comparisonStream,
+          initialData: ComparisonListService().currentItems,
           builder: (context, snapshot) {
-            final items = snapshot.data ?? [];
+            final items = snapshot.data ?? ComparisonListService().currentItems;
             final count = items.length;
 
             return Badge(

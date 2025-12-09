@@ -1767,4 +1767,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get sortByUnits => 'ترتيب حسب الوحدات';
+
+  @override
+  String get tapToZoom => 'اضغط للتكبير';
+
+  @override
+  String get errorLoadingImage => 'خطأ في تحميل الصورة';
 }

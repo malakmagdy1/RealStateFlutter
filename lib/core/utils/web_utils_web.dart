@@ -126,21 +126,98 @@ Future<void> deleteNotificationFromIndexedDB(String notificationId) async {
 /// Clear all notifications from IndexedDB
 Future<void> clearNotificationsFromIndexedDB() async {
   try {
-    final db = await html.window.indexedDB!.open(_dbName, version: _dbVersion);
+    // Method 1: Clear the object store first
+    try {
+      final db = await html.window.indexedDB!.open(_dbName, version: _dbVersion);
+      final transaction = db.transaction(_storeName, 'readwrite');
+      final store = transaction.objectStore(_storeName);
+      store.clear();
+      await transaction.completed;
+      db.close();
+      print('[WEB] Cleared IndexedDB store');
+    } catch (e) {
+      print('[WEB] Error clearing store: $e');
+    }
 
-    final transaction = db.transaction(_storeName, 'readwrite');
-    final store = transaction.objectStore(_storeName);
-    store.clear();
+    // Method 2: Delete the entire database - properly await the deletion
+    try {
+      await html.window.indexedDB!.deleteDatabase(_dbName).timeout(
+        Duration(seconds: 2),
+        onTimeout: () {
+          print('[WEB] IndexedDB delete timed out, continuing anyway');
+          throw TimeoutException('IndexedDB delete timed out');
+        },
+      );
+      print('[WEB] Deleted IndexedDB database: $_dbName');
+    } catch (e) {
+      print('[WEB] Error deleting database: $e');
+    }
 
-    await transaction.completed;
-    db.close();
-
-    // Also clear localStorage fallback for SharedPreferences
-    html.window.localStorage.remove('cached_notifications');
-    html.window.localStorage.remove('flutter.cached_notifications');
+    // Method 3: Clear localStorage directly
+    _clearAllNotificationStorage();
 
     print('[WEB] Cleared all notifications from IndexedDB and localStorage');
   } catch (e) {
-    print('[WEB] Error clearing IndexedDB: $e');
+    print('[WEB] Error clearing notifications: $e');
   }
+}
+
+/// Clear all notification-related data from localStorage
+void _clearAllNotificationStorage() {
+  try {
+    // Direct keys
+    html.window.localStorage.remove('cached_notifications');
+    html.window.localStorage.remove('flutter.cached_notifications');
+
+    // Find and remove all notification-related keys
+    final allKeys = html.window.localStorage.keys.toList();
+    for (final key in allKeys) {
+      if (key.toLowerCase().contains('notification') ||
+          key.toLowerCase().contains('cached_notification')) {
+        html.window.localStorage.remove(key);
+        print('[WEB] Removed localStorage key: $key');
+      }
+    }
+
+    print('[WEB] Cleared all notification localStorage keys');
+  } catch (e) {
+    print('[WEB] Error clearing localStorage: $e');
+  }
+}
+
+/// Force clear all notification data - call this from Flutter
+Future<void> forceClearAllNotifications() async {
+  print('[WEB] Force clearing all notifications...');
+
+  // Clear localStorage first
+  _clearAllNotificationStorage();
+
+  // Clear IndexedDB - properly await the deletion
+  try {
+    // First try to clear the store
+    try {
+      final db = await html.window.indexedDB!.open(_dbName, version: _dbVersion);
+      final transaction = db.transaction(_storeName, 'readwrite');
+      final store = transaction.objectStore(_storeName);
+      store.clear();
+      await transaction.completed;
+      db.close();
+    } catch (e) {
+      print('[WEB] Error clearing store in force clear: $e');
+    }
+
+    // Then delete the database
+    await html.window.indexedDB!.deleteDatabase(_dbName).timeout(
+      Duration(seconds: 2),
+      onTimeout: () {
+        print('[WEB] Force delete IndexedDB timed out');
+        throw TimeoutException('Force delete IndexedDB timed out');
+      },
+    );
+    print('[WEB] Force deleted IndexedDB');
+  } catch (e) {
+    print('[WEB] Error force deleting IndexedDB: $e');
+  }
+
+  print('[WEB] Force clear completed');
 }

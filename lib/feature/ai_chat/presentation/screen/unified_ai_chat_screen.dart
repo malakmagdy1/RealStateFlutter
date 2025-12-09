@@ -10,7 +10,6 @@ import '../widget/property_card_widget.dart';
 import 'package:real/core/widgets/custom_loading_dots.dart';
 import '../../data/models/comparison_item.dart';
 import '../../data/services/comparison_list_service.dart';
-import '../../core/senior_broker_prompt.dart';
 
 /// 🚀 UNIFIED AI CHAT SCREEN
 /// يجمع Algorithm 1 (Property Search) + Algorithm 2 (Sales Advice)
@@ -256,18 +255,24 @@ class _UnifiedAIChatScreenState extends State<UnifiedAIChatScreen> {
   }
 
   Widget _buildQuickButtons() {
-    // Get Abu Khalid's quick actions based on current language
     final currentLang = LanguageService.currentLanguage;
-    final quickActions = SeniorBrokerPrompt.getQuickActions(currentLang);
+    final isArabic = currentLang == 'ar';
 
-    // Convert to list with icons
-    final quickPrompts = [
-      {'icon': '👤', 'key': 'new_client', 'text': quickActions['new_client']!},
-      {'icon': '🤔', 'key': 'hesitant_client', 'text': quickActions['hesitant_client']!},
-      {'icon': '💰', 'key': 'price_objection', 'text': quickActions['price_objection']!},
-      {'icon': '🎯', 'key': 'close_deal', 'text': quickActions['close_deal']!},
-      {'icon': '🤝', 'key': 'negotiation', 'text': quickActions['negotiation']!},
-      {'icon': '📈', 'key': 'investment', 'text': quickActions['investment']!},
+    // Quick actions - defined locally (prompts handled by backend)
+    final quickPrompts = isArabic ? [
+      {'icon': '👤', 'text': 'إزاي أتعامل مع عميل جديد؟'},
+      {'icon': '🤔', 'text': 'عندي عميل متردد، إيه النصيحة؟'},
+      {'icon': '💰', 'text': 'العميل بيقول السعر غالي، أعمل إيه؟'},
+      {'icon': '🎯', 'text': 'إزاي أقفل الصفقة بنجاح؟'},
+      {'icon': '🤝', 'text': 'نصائح التفاوض على السعر'},
+      {'icon': '📈', 'text': 'عميل عايز يستثمر، أنصحه بإيه؟'},
+    ] : [
+      {'icon': '👤', 'text': 'How to approach a new client?'},
+      {'icon': '🤔', 'text': 'Client is hesitant, what should I do?'},
+      {'icon': '💰', 'text': 'Client says price is too high, how to handle?'},
+      {'icon': '🎯', 'text': 'How to successfully close the deal?'},
+      {'icon': '🤝', 'text': 'Price negotiation tips'},
+      {'icon': '📈', 'text': 'Client wants to invest, what to recommend?'},
     ];
 
     return Container(
@@ -340,15 +345,18 @@ class _UnifiedAIChatScreenState extends State<UnifiedAIChatScreen> {
   }
 
   Widget _buildSuggestionChips() {
-    // Get Abu Khalid's quick actions based on current language
     final currentLang = LanguageService.currentLanguage;
-    final quickActions = SeniorBrokerPrompt.getQuickActions(currentLang);
+    final isArabic = currentLang == 'ar';
 
     // Show first 3 suggestions in empty state
-    final suggestions = [
-      quickActions['new_client']!,
-      quickActions['price_objection']!,
-      quickActions['close_deal']!,
+    final suggestions = isArabic ? [
+      'إزاي أتعامل مع عميل جديد؟',
+      'العميل بيقول السعر غالي، أعمل إيه؟',
+      'إزاي أقفل الصفقة بنجاح؟',
+    ] : [
+      'How to approach a new client?',
+      'Client says price is too high, how to handle?',
+      'How to successfully close the deal?',
     ];
 
     return Wrap(
@@ -630,10 +638,12 @@ class _UnifiedAIChatScreenState extends State<UnifiedAIChatScreen> {
   }
 
   Widget _buildComparisonDropdown() {
+    final comparisonService = ComparisonListService();
     return StreamBuilder<List<ComparisonItem>>(
-      stream: ComparisonListService().comparisonStream,
+      stream: comparisonService.comparisonStream,
+      initialData: comparisonService.currentItems,
       builder: (context, snapshot) {
-        final items = snapshot.data ?? [];
+        final items = snapshot.data ?? comparisonService.currentItems;
         if (items.isEmpty) return const SizedBox.shrink();
 
         final l10n = AppLocalizations.of(context)!;

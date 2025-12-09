@@ -24,8 +24,9 @@ import 'package:real/feature/ai_chat/presentation/screen/unified_ai_chat_screen.
 
 class UnitCard extends StatefulWidget {
   final Unit unit;
+  final bool suppressComparisonSnackbar;
 
-  UnitCard({Key? key, required this.unit}) : super(key: key);
+  UnitCard({Key? key, required this.unit, this.suppressComparisonSnackbar = false}) : super(key: key);
 
   @override
   State<UnitCard> createState() => _UnitCardState();
@@ -735,154 +736,161 @@ class _UnitCardState extends State<UnitCard> with SingleTickerProviderStateMixin
     );
   }
 
-  void _toggleCompare(BuildContext context, bool isInComparison) {
+  Future<void> _toggleCompare(BuildContext context, bool isInComparison) async {
     final comparisonItem = ComparisonItem.fromUnit(widget.unit);
     final comparisonService = ComparisonListService();
     final l10n = AppLocalizations.of(context)!;
 
     if (isInComparison) {
       // Remove from comparison
-      comparisonService.removeItem(comparisonItem);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.remove_circle, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Removed from comparison',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.grey[700],
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
-      );
-    } else {
-      // Add to comparison list
-      final added = comparisonService.addItem(comparisonItem);
+      await comparisonService.removeItem(comparisonItem);
 
-      if (added) {
-        // Show success message with Go to AI button
+      // Only show snackbar if not suppressed
+      if (!widget.suppressComparisonSnackbar) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.white),
-                SizedBox(width: 8),
+                Icon(Icons.remove_circle, color: Colors.white),
+                SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    l10n.addedToComparison,
+                    'Removed from comparison',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ),
-                // Go to AI Chat button
-                GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const UnifiedAIChatScreen(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.smart_toy, color: Colors.white, size: 16),
-                        SizedBox(width: 4),
-                        Text(
-                          l10n.goToAI,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
-            backgroundColor: Colors.green,
+            backgroundColor: Colors.grey[700],
             behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 5),
-            action: SnackBarAction(
-              label: l10n.undo,
-              textColor: Colors.white,
-              onPressed: () {
-                comparisonService.removeItem(comparisonItem);
-              },
-            ),
+            duration: Duration(seconds: 2),
           ),
         );
-      } else {
-        // Show error (list is full) with Go to AI button
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.info_outline, color: Colors.white),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    l10n.comparisonListFull,
-                    style: TextStyle(fontSize: 14),
-                  ),
-                ),
-                // Go to AI Chat button even when full
-                GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const UnifiedAIChatScreen(),
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(16),
+      }
+    } else {
+      // Add to comparison list
+      final added = await comparisonService.addItem(comparisonItem);
+
+      // Only show snackbar if not suppressed
+      if (!widget.suppressComparisonSnackbar) {
+        if (added) {
+          // Show success message with Go to AI button
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.white),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.addedToComparison,
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.smart_toy, color: Colors.white, size: 16),
-                        SizedBox(width: 4),
-                        Text(
-                          l10n.goToAI,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
+                  ),
+                  // Go to AI Chat button
+                  GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const UnifiedAIChatScreen(),
                         ),
-                      ],
+                      );
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.smart_toy, color: Colors.white, size: 16),
+                          SizedBox(width: 4),
+                          Text(
+                            l10n.goToAI,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 5),
+              action: SnackBarAction(
+                label: l10n.undo,
+                textColor: Colors.white,
+                onPressed: () {
+                  comparisonService.removeItem(comparisonItem);
+                },
+              ),
             ),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating,
-            duration: Duration(seconds: 5),
-          ),
-        );
+          );
+        } else {
+          // Show error (list is full) with Go to AI button
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.white),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      l10n.comparisonListFull,
+                      style: TextStyle(fontSize: 14),
+                    ),
+                  ),
+                  // Go to AI Chat button even when full
+                  GestureDetector(
+                    onTap: () {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const UnifiedAIChatScreen(),
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.smart_toy, color: Colors.white, size: 16),
+                          SizedBox(width: 4),
+                          Text(
+                            l10n.goToAI,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
       }
     }
   }

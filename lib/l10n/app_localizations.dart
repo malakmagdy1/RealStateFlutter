@@ -3457,6 +3457,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sort by Units'**
   String get sortByUnits;
+
+  /// No description provided for @tapToZoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to zoom'**
+  String get tapToZoom;
+
+  /// No description provided for @errorLoadingImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Error loading image'**
+  String get errorLoadingImage;
 }
 
 class _AppLocalizationsDelegate

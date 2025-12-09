@@ -1842,29 +1842,6 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
   }
 
   Widget _buildAgentCard(AppLocalizations l10n) {
-    if (_isLoadingSalesPeople) {
-      return Container(
-        padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.all(20),
-            child: CustomLoadingDots(size: 40),
-          ),
-        ),
-      );
-    }
-
     // Get contact info prioritizing: sale's sales person > company agent > compound sales
     final salesPerson = _unitSale?.salesPerson;
     final companyAgent = _salesPeople.isNotEmpty ? _salesPeople.first : null;
@@ -1873,11 +1850,16 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
     // Determine which contact to show (priority: sale > company > compound)
     final String? contactPhone = salesPerson?.phone ?? companyAgent?.phone ?? compoundSalesPerson?.phone;
     final String? contactName = salesPerson?.name ?? companyAgent?.name ?? compoundSalesPerson?.name;
+    final String? contactEmail = salesPerson?.email ?? companyAgent?.email ?? compoundSalesPerson?.email;
     final bool hasContact = contactName != null && contactName.isNotEmpty;
-    final bool hasPhone = contactPhone != null && contactPhone.isNotEmpty;
 
-    print('[WEB UNIT DETAIL] Agent card - hasContact: $hasContact, hasPhone: $hasPhone');
+    print('[WEB UNIT DETAIL] Agent card - hasContact: $hasContact');
     print('[WEB UNIT DETAIL] SalesPerson: ${salesPerson?.name}, CompanyAgent: ${companyAgent?.name}, CompoundSales: ${compoundSalesPerson?.name}');
+
+    // If still loading or no contact available, don't show the section at all
+    if (_isLoadingSalesPeople || !hasContact) {
+      return SizedBox.shrink();
+    }
 
     return Container(
       padding: EdgeInsets.all(16),
@@ -1904,90 +1886,77 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
             ),
           ),
           SizedBox(height: 16),
-          if (hasContact) ...[
-            Row(
-              children: [
-                Container(
-                  width: 45,
-                  height: 45,
-                  decoration: BoxDecoration(
-                    color: AppColors.mainColor.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      contactName!.isNotEmpty ? contactName[0].toUpperCase() : 'A',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.mainColor,
-                      ),
+          // Name
+          Row(
+            children: [
+              Container(
+                width: 45,
+                height: 45,
+                decoration: BoxDecoration(
+                  color: AppColors.mainColor.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(
+                    contactName!.isNotEmpty ? contactName[0].toUpperCase() : 'A',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.mainColor,
                     ),
                   ),
                 ),
-                SizedBox(width: 12),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  contactName,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF333333),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 12),
+          // Phone number
+          if (contactPhone != null && contactPhone.isNotEmpty)
+            Padding(
+              padding: EdgeInsets.only(bottom: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.phone, size: 16, color: Color(0xFF666666)),
+                  SizedBox(width: 8),
+                  SelectableText(
+                    contactPhone,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF333333),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          // Email
+          if (contactEmail != null && contactEmail.isNotEmpty)
+            Row(
+              children: [
+                Icon(Icons.email, size: 16, color: Color(0xFF666666)),
+                SizedBox(width: 8),
                 Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        contactName,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF333333),
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        l10n.salesAgent,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF666666),
-                        ),
-                      ),
-                    ],
+                  child: SelectableText(
+                    contactEmail,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF333333),
+                    ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 16),
-            if (hasPhone) ...[
-              _buildContactButton(
-                icon: Icons.phone,
-                label: l10n.callNow,
-                color: AppColors.mainColor,
-                onTap: () async {
-                  final uri = Uri.parse('tel:$contactPhone');
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri);
-                  }
-                },
-              ),
-              SizedBox(height: 8),
-              _buildContactButton(
-                icon: Icons.chat,
-                label: l10n.whatsapp,
-                color: Color(0xFF25D366),
-                onTap: () async {
-                  final uri = Uri.parse('https://wa.me/$contactPhone');
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  }
-                },
-              ),
-            ],
-          ] else ...[
-            Text(
-              l10n.noSalesPersonAvailable,
-              style: TextStyle(
-                fontSize: 13,
-                color: AppColors.greyText,
-              ),
-            ),
-          ],
         ],
       ),
     );
@@ -2332,15 +2301,133 @@ class _WebUnitDetailScreenState extends State<WebUnitDetailScreen> with SingleTi
   }
 
   Widget _buildFloorPlanTab(AppLocalizations l10n) {
-    return Center(
+    // Get floor plan URL - prioritize floorPlanImage, fallback to floorPlan
+    final floorPlanUrl = _currentUnit?.floorPlanImage ?? _currentUnit?.floorPlan;
+
+    if (floorPlanUrl == null || floorPlanUrl.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.architecture, size: 60, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              l10n.floorPlanNotAvailable,
+              style: TextStyle(fontSize: 14, color: AppColors.greyText),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(24),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.architecture, size: 60, color: Colors.grey),
-          SizedBox(height: 16),
+          GestureDetector(
+            onTap: () {
+              // Show full screen image viewer
+              showDialog(
+                context: context,
+                builder: (context) => Dialog(
+                  backgroundColor: Colors.transparent,
+                  insetPadding: EdgeInsets.all(20),
+                  child: Stack(
+                    children: [
+                      InteractiveViewer(
+                        panEnabled: true,
+                        boundaryMargin: EdgeInsets.all(20),
+                        minScale: 0.5,
+                        maxScale: 4,
+                        child: Image.network(
+                          floorPlanUrl,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Center(
+                              child: CircularProgressIndicator(
+                                color: AppColors.mainColor,
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) => Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.error_outline, size: 40, color: Colors.white),
+                              SizedBox(height: 8),
+                              Text(
+                                l10n.errorLoadingImage,
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.close, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              constraints: BoxConstraints(maxHeight: 500),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.network(
+                  floorPlanUrl,
+                  fit: BoxFit.contain,
+                  width: double.infinity,
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      height: 300,
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.mainColor,
+                        ),
+                      ),
+                    );
+                  },
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 300,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error_outline, size: 40, color: Colors.grey),
+                        SizedBox(height: 8),
+                        Text(
+                          l10n.errorLoadingImage,
+                          style: TextStyle(color: AppColors.greyText),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 12),
           Text(
-            l10n.floorPlanNotAvailable,
-            style: TextStyle(fontSize: 14, color: AppColors.greyText),
+            l10n.tapToZoom,
+            style: TextStyle(
+              color: AppColors.greyText,
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+            ),
           ),
         ],
       ),

@@ -1,26 +1,17 @@
-/// AI Chat Configuration
-///
-/// Get your API key from: https://aistudio.google.com/app/apikey
+/// AI Configuration
+/// Note: API key is now on backend - this is just for model names reference
 class AppConfig {
-  // API key from Google AI Studio (realState2 - Fresh key)
-  static const String geminiApiKey = 'AIzaSyDPqe54op4APQDIANK4UZriK--DCvfpuPA';
-
-  // Model to use (gemini-2.0-flash is free and fast)
+  // Model names (for reference - actual calls go through backend)
   static const String geminiModel = 'gemini-2.0-flash';
-
-  // Temperature: 0.0 = focused/deterministic, 1.0 = creative/random
-  static const double temperature = 0.7;
-
-  // Maximum response length in tokens
-  static const int maxOutputTokens = 2000;
-
-  // Top P sampling parameter
-  static const double topP = 0.95;
-
-  // Top K sampling parameter
-  static const int topK = 40;
-
-  // Sales Assistant Configuration
   static const String salesAssistantModel = 'gemini-2.0-flash';
-  static const int salesMaxOutputTokens = 500; // Short responses for quick calls
+
+  // Generation config (for reference - actual config is on backend)
+  static const double temperature = 0.7;
+  static const int maxOutputTokens = 2000;
+  static const double topP = 0.95;
+  static const int topK = 40;
+  static const int salesMaxOutputTokens = 500;
+
+  // API key removed - now on backend only
+  // static const String geminiApiKey = '...'; // REMOVED FOR SECURITY
 }

@@ -1,10 +1,8 @@
-import 'dart:convert';
-import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:real/feature/ai_chat/domain/config.dart';
 import 'package:real/feature/auth/data/network/local_netwrok.dart';
 import 'package:real/feature/compound/data/models/compound_model.dart';
 
-/// AI-powered weekly recommendations service using Gemini
+/// Weekly recommendations service
+/// Note: AI processing moved to backend for security
 class AIWeeklyRecommendationsService {
   static const String _lastUpdateKey = 'ai_weekly_recommendations_last_update';
   static const String _recommendedIdsKey = 'ai_weekly_recommended_compound_ids';
@@ -102,10 +100,11 @@ class AIWeeklyRecommendationsService {
     }
   }
 
-  /// Use Gemini AI to intelligently select recommended compounds
+  /// Generate recommendations using smart selection
+  /// Note: Full AI processing should be done on backend
   static Future<List<String>> generateAIRecommendations(List<Compound> allCompounds) async {
     try {
-      print('[AI WEEKLY RECOMMENDATIONS] Starting AI-powered selection from ${allCompounds.length} compounds');
+      print('[AI WEEKLY RECOMMENDATIONS] Starting selection from ${allCompounds.length} compounds');
 
       if (allCompounds.isEmpty) {
         return [];
@@ -116,115 +115,65 @@ class AIWeeklyRecommendationsService {
         return allCompounds.map((c) => c.id.toString()).toList();
       }
 
-      // Prepare compound data for AI analysis
-      final compoundsJson = allCompounds.map((compound) {
-        return {
-          'id': compound.id,
-          'project': compound.project,
-          'location': compound.location,
-          'company': compound.companyName,
-          'total_units': compound.totalUnits,
-          'available_units': compound.availableUnits,
-          'status': compound.status,
-          'images_count': compound.images.length,
-          'has_club': compound.club == '1' || compound.club.toLowerCase() == 'yes',
-          'finish_specs': compound.finishSpecs ?? 'N/A',
-        };
-      }).toList();
-
-      final model = GenerativeModel(
-        model: AppConfig.geminiModel,
-        apiKey: AppConfig.geminiApiKey,
-        generationConfig: GenerationConfig(
-          temperature: 0.8, // Higher temperature for more variety
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1000,
-        ),
-      );
-
-      // Create a prompt for the AI to select diverse and interesting compounds
-      final prompt = '''
-You are a real estate recommendation expert. Your task is to select exactly $_recommendationCount diverse and interesting compounds from the following list.
-
-Selection Criteria:
-1. Choose compounds with diverse locations to provide geographical variety
-2. Select compounds from different companies to avoid bias
-3. Prefer compounds with multiple images and good finish specifications
-4. Consider compounds with clubs/amenities for better appeal
-5. Mix of different statuses and unit availability
-6. Pick compounds that would appeal to different buyer personas
-
-Available Compounds (${allCompounds.length} total):
-${jsonEncode(compoundsJson)}
-
-IMPORTANT: Respond with ONLY a JSON array of exactly $_recommendationCount compound IDs. No explanations, no extra text.
-Format: [id1, id2, id3, ...]
-
-Example response: [1, 5, 12, 23, 34, 45, 56, 67, 78, 89]
-''';
-
-      print('[AI WEEKLY RECOMMENDATIONS] Sending request to Gemini AI...');
-
-      // Get AI response
-      final content = [Content.text(prompt)];
-      final response = await model.generateContent(content);
-
-      if (response.text == null || response.text!.isEmpty) {
-        print('[AI WEEKLY RECOMMENDATIONS] AI returned empty response, falling back to random selection');
-        return _fallbackRandomSelection(allCompounds);
-      }
-
-      // Parse AI response
-      final responseText = response.text!.trim();
-      print('[AI WEEKLY RECOMMENDATIONS] AI response: $responseText');
-
-      // Try to extract JSON array from response
-      final jsonMatch = RegExp(r'\[[\d,\s]+\]').firstMatch(responseText);
-      if (jsonMatch == null) {
-        print('[AI WEEKLY RECOMMENDATIONS] Could not parse AI response, falling back to random selection');
-        return _fallbackRandomSelection(allCompounds);
-      }
-
-      final jsonArray = jsonDecode(jsonMatch.group(0)!) as List<dynamic>;
-      final selectedIds = jsonArray.map((id) => id.toString()).toList();
-
-      // Validate that all IDs exist in our compound list
-      final validIds = <String>[];
-      final compoundIdsSet = allCompounds.map((c) => c.id.toString()).toSet();
-
-      for (final id in selectedIds) {
-        if (compoundIdsSet.contains(id)) {
-          validIds.add(id);
-        }
-      }
-
-      // If we don't have enough valid IDs, fill with random selection
-      if (validIds.length < _recommendationCount) {
-        print('[AI WEEKLY RECOMMENDATIONS] AI returned ${validIds.length} valid IDs, filling remaining with random selection');
-        final remaining = _recommendationCount - validIds.length;
-        final availableCompounds = allCompounds
-            .where((c) => !validIds.contains(c.id.toString()))
-            .toList();
-        availableCompounds.shuffle();
-        validIds.addAll(
-          availableCompounds
-              .take(remaining)
-              .map((c) => c.id.toString())
-        );
-      }
-
-      print('[AI WEEKLY RECOMMENDATIONS] AI selected ${validIds.length} compounds');
-      return validIds.take(_recommendationCount).toList();
-
+      // Smart selection based on compound attributes
+      return _smartSelection(allCompounds);
     } catch (e) {
-      print('[AI WEEKLY RECOMMENDATIONS] Error using AI: $e');
-      print('[AI WEEKLY RECOMMENDATIONS] Falling back to random selection');
+      print('[AI WEEKLY RECOMMENDATIONS] Error: $e');
       return _fallbackRandomSelection(allCompounds);
     }
   }
 
-  /// Fallback to random selection if AI fails
+  /// Smart selection based on compound attributes
+  static List<String> _smartSelection(List<Compound> allCompounds) {
+    // Score each compound
+    final scoredCompounds = allCompounds.map((compound) {
+      int score = 0;
+
+      // Prefer compounds with images
+      if (compound.images.isNotEmpty) score += 3;
+
+      // Prefer compounds with available units
+      final availableUnits = int.tryParse(compound.availableUnits) ?? 0;
+      if (availableUnits > 0) score += 2;
+
+      // Prefer compounds with club/amenities
+      if (compound.club == '1' || compound.club.toLowerCase() == 'yes') {
+        score += 1;
+      }
+
+      // Prefer compounds with finish specs
+      if (compound.finishSpecs != null && compound.finishSpecs!.isNotEmpty) {
+        score += 1;
+      }
+
+      return {'compound': compound, 'score': score};
+    }).toList();
+
+    // Sort by score descending
+    scoredCompounds.sort((a, b) => (b['score'] as int).compareTo(a['score'] as int));
+
+    // Take top scored, but also add some randomness for variety
+    final topScored = scoredCompounds.take(_recommendationCount ~/ 2).toList();
+    final remaining = scoredCompounds.skip(_recommendationCount ~/ 2).toList();
+    remaining.shuffle();
+
+    final selected = <String>[];
+
+    // Add top scored
+    for (var item in topScored) {
+      selected.add((item['compound'] as Compound).id.toString());
+    }
+
+    // Add random from remaining
+    for (var item in remaining.take(_recommendationCount - selected.length)) {
+      selected.add((item['compound'] as Compound).id.toString());
+    }
+
+    print('[AI WEEKLY RECOMMENDATIONS] Selected ${selected.length} compounds');
+    return selected;
+  }
+
+  /// Fallback to random selection
   static List<String> _fallbackRandomSelection(List<Compound> allCompounds) {
     final shuffled = List<Compound>.from(allCompounds)..shuffle();
     return shuffled

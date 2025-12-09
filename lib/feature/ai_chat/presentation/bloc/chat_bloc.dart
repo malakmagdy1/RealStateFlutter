@@ -22,6 +22,9 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     on<ResetChatSessionEvent>(_onResetChatSession);
   }
 
+  /// Get the current conversation ID
+  String? get currentConversationId => _remoteDataSource.currentConversationId;
+
   /// Load chat history from local storage
   Future<void> _onLoadChatHistory(
     LoadChatHistoryEvent event,
@@ -30,6 +33,27 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     emit(const ChatHistoryLoading());
 
     try {
+      // First try to get saved conversation ID
+      final savedConversationId = await _historyService.getConversationId();
+
+      if (savedConversationId != null) {
+        // Set the conversation ID in the remote data source
+        _remoteDataSource.setConversationId(savedConversationId);
+
+        // Try to load from server
+        try {
+          final serverMessages = await _historyService.loadConversationFromServer(savedConversationId);
+          if (serverMessages.isNotEmpty) {
+            print('[ChatBloc] Loaded ${serverMessages.length} messages from server');
+            emit(ChatLoaded(messages: serverMessages));
+            return;
+          }
+        } catch (e) {
+          print('[ChatBloc] Could not load from server: $e');
+        }
+      }
+
+      // Fallback to local storage
       final messages = await _historyService.loadChatHistory();
       emit(ChatLoaded(messages: messages));
     } catch (e) {
@@ -46,7 +70,7 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     if (event.message.trim().isEmpty) return;
 
-    print('[ChatBloc] 📨 Processing message: "${event.message}"');
+    print('[ChatBloc] Processing message: "${event.message}"');
 
     final currentState = state;
     final currentMessages = currentState is ChatLoaded
@@ -70,17 +94,25 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
 
     try {
       // Get AI response
-      print('[ChatBloc] 🔄 Calling AI remote data source...');
+      print('[ChatBloc] Calling AI API...');
       final aiMessage = await _remoteDataSource.sendMessage(event.message);
-      print('[ChatBloc] ✅ Received AI response');
+      print('[ChatBloc] Received AI response');
+
       final finalMessages = [...updatedMessages, aiMessage];
 
-      // Save to local storage
+      // Save conversation ID if we have one
+      if (_remoteDataSource.currentConversationId != null) {
+        await _historyService.saveConversationId(_remoteDataSource.currentConversationId);
+      }
+
+      // Save to local storage (backup)
       await _historyService.saveChatHistory(finalMessages);
 
       // Emit success state
       emit(ChatLoaded(messages: finalMessages, isLoading: false));
     } catch (e) {
+      print('[ChatBloc] Error: $e');
+
       // Create error message
       final errorMessage = ChatMessage(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -103,14 +135,28 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   ) async {
     try {
       print('[ChatBloc] Clearing chat history...');
+
+      // Delete conversation from server if we have one
+      final conversationId = _remoteDataSource.currentConversationId;
+      if (conversationId != null) {
+        try {
+          await _historyService.deleteConversation(conversationId);
+        } catch (e) {
+          print('[ChatBloc] Could not delete server conversation: $e');
+        }
+      }
+
+      // Clear local history
       await _historyService.clearChatHistory();
-      print('[ChatBloc] History cleared, resetting chat session...');
+      print('[ChatBloc] Local history cleared, resetting chat session...');
+
       _remoteDataSource.resetChat();
       print('[ChatBloc] Chat session reset, emitting empty state');
+
       emit(const ChatLoaded(messages: []));
-      print('[ChatBloc] ✅ Clear history completed successfully');
+      print('[ChatBloc] Clear history completed successfully');
     } catch (e) {
-      print('[ChatBloc] ❌ Error clearing history: $e');
+      print('[ChatBloc] Error clearing history: $e');
       emit(ChatError(
         message: 'Failed to clear chat history: ${e.toString()}',
         previousMessages: const [],
@@ -118,16 +164,18 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
     }
   }
 
-  /// Reset the chat session (keeps history but resets AI context)
+  /// Reset the chat session (keeps history but starts new conversation)
   Future<void> _onResetChatSession(
     ResetChatSessionEvent event,
     Emitter<ChatState> emit,
   ) async {
     _remoteDataSource.resetChat();
+    await _historyService.saveConversationId(null);
 
     final currentState = state;
     if (currentState is ChatLoaded) {
-      emit(currentState.copyWith());
+      // Clear messages to start fresh
+      emit(const ChatLoaded(messages: []));
     }
   }
 
@@ -135,12 +183,14 @@ class ChatBloc extends Bloc<ChatEvent, ChatState> {
   String _getErrorMessage(dynamic error) {
     final errorStr = error.toString().toLowerCase();
 
-    if (errorStr.contains('api key') || errorStr.contains('invalid_api_key')) {
-      return 'API key is not configured. Please add your Google AI Studio API key in the config file.';
+    if (errorStr.contains('unauthorized') || errorStr.contains('401')) {
+      return 'Please log in to use the AI assistant.';
     } else if (errorStr.contains('network') || errorStr.contains('connection')) {
       return 'Network error. Please check your internet connection and try again.';
+    } else if (errorStr.contains('timeout')) {
+      return 'Request timed out. Please try again.';
     } else if (errorStr.contains('quota') || errorStr.contains('rate limit')) {
-      return 'API quota exceeded. Please try again later.';
+      return 'Too many requests. Please try again later.';
     } else {
       return 'An error occurred. Please try again.';
     }

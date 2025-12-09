@@ -17,10 +17,9 @@ class NotificationCacheService extends ChangeNotifier {
   /// Update and notify listeners about unread count change
   void _updateUnreadCount(List<NotificationModel> notifications) {
     final newCount = notifications.where((n) => !n.isRead).length;
-    if (_unreadCount != newCount) {
-      _unreadCount = newCount;
-      notifyListeners();
-    }
+    // Always update and notify to ensure UI is in sync
+    _unreadCount = newCount;
+    notifyListeners();
   }
 
   /// Generate a content hash for duplicate detection
@@ -115,7 +114,11 @@ class NotificationCacheService extends ChangeNotifier {
       // Save updated list
       List<String> jsonList = notifications.map((n) => jsonEncode(n.toJson())).toList();
       await prefs.setStringList(_notificationsKey, jsonList);
-      _updateUnreadCount(notifications);
+
+      // Always update count and notify (even if count didn't change, ensure UI sync)
+      final newCount = notifications.where((n) => !n.isRead).length;
+      _unreadCount = newCount;
+      notifyListeners();
 
       print('✅ Notification deleted from cache: $notificationId');
     } catch (e) {
@@ -127,12 +130,30 @@ class NotificationCacheService extends ChangeNotifier {
   Future<void> clearAllNotifications() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      // Print all keys for debugging
+      print('🔍 All SharedPreferences keys before clear: ${prefs.getKeys()}');
+
+      // Clear the notifications key
       await prefs.remove(_notificationsKey);
-      // Also set to empty list to ensure it's cleared on web
-      await prefs.setStringList(_notificationsKey, []);
-      await prefs.remove(_notificationsKey);
+
+      // Clear all keys that might contain notification data
+      final allKeys = prefs.getKeys().toList();
+      for (final key in allKeys) {
+        if (key.toLowerCase().contains('notification') ||
+            key.toLowerCase().contains('cached')) {
+          await prefs.remove(key);
+          print('✅ Removed SharedPreferences key: $key');
+        }
+      }
+
       // Force reload to clear any memory cache
       await prefs.reload();
+
+      // Verify it's empty
+      final remaining = await prefs.getStringList(_notificationsKey);
+      print('🔍 Notifications after clear: ${remaining?.length ?? 0}');
+
       // Reset unread count to 0 and notify
       _unreadCount = 0;
       notifyListeners();
@@ -211,5 +232,13 @@ class NotificationCacheService extends ChangeNotifier {
       print('❌ Error getting unread count: $e');
       return 0;
     }
+  }
+
+  /// Force reset the unread count to 0 and notify listeners
+  /// Call this when notifications are cleared externally (e.g., from localStorage)
+  void forceResetCount() {
+    _unreadCount = 0;
+    notifyListeners();
+    print('✅ Force reset notification count to 0');
   }
 }

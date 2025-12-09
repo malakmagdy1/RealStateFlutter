@@ -2470,12 +2470,12 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen>
   }
 
   // Company comparison dialog
-  void _showCompanyCompareDialog(BuildContext context, Company company, AppLocalizations l10n) {
+  Future<void> _showCompanyCompareDialog(BuildContext context, Company company, AppLocalizations l10n) async {
     final comparisonItem = ComparisonItem.fromCompany(company);
     final comparisonService = ComparisonListService();
 
     // Check if already in comparison - toggle behavior
-    if (comparisonService.contains(comparisonItem)) {
+    if (comparisonService.containsItem(comparisonItem)) {
       // Remove from comparison list
       comparisonService.removeItem(comparisonItem);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2508,7 +2508,7 @@ class _WebCompoundsScreenState extends State<WebCompoundsScreen>
     }
 
     // Add to comparison list
-    final added = comparisonService.addItem(comparisonItem);
+    final added = await comparisonService.addItem(comparisonItem);
 
     if (added) {
       // Show success message with Go to AI button

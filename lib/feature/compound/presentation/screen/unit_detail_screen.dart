@@ -1314,13 +1314,125 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
   }
 
   Widget _buildFloorPlanTab(AppLocalizations l10n) {
-    return Center(
+    // Use refreshed unit data from API if available, fallback to widget.unit
+    final unit = _currentUnit ?? widget.unit;
+
+    // Get floor plan URL - prioritize floorPlanImage, fallback to floorPlan
+    final floorPlanUrl = unit.floorPlanImage ?? unit.floorPlan;
+
+    if (floorPlanUrl == null || floorPlanUrl.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.architecture, size: 60, color: AppColors.grey),
+            SizedBox(height: 16),
+            CustomText16(l10n.floorPlanNotAvailable, color: AppColors.grey),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.all(16),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.architecture, size: 60, color: AppColors.grey),
-          SizedBox(height: 16),
-          CustomText16(l10n.floorPlanNotAvailable, color: AppColors.grey),
+          GestureDetector(
+            onTap: () {
+              // Show full screen image viewer using the zoomable viewer
+              showDialog(
+                context: context,
+                builder: (context) => Dialog(
+                  backgroundColor: Colors.transparent,
+                  insetPadding: EdgeInsets.all(10),
+                  child: Stack(
+                    children: [
+                      InteractiveViewer(
+                        panEnabled: true,
+                        boundaryMargin: EdgeInsets.all(20),
+                        minScale: 0.5,
+                        maxScale: 4,
+                        child: RobustNetworkImage(
+                          imageUrl: floorPlanUrl,
+                          fit: BoxFit.contain,
+                          loadingBuilder: (context) => Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.mainColor,
+                            ),
+                          ),
+                          errorBuilder: (context, url) => Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.error_outline, size: 40, color: Colors.white),
+                              SizedBox(height: 8),
+                              Text(
+                                l10n.errorLoadingImage,
+                                style: TextStyle(color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 10,
+                        right: 10,
+                        child: IconButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          icon: Container(
+                            padding: EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.close, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: RobustNetworkImage(
+                imageUrl: floorPlanUrl,
+                fit: BoxFit.contain,
+                width: double.infinity,
+                loadingBuilder: (context) => Container(
+                  height: 250,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.mainColor,
+                    ),
+                  ),
+                ),
+                errorBuilder: (context, url) => Container(
+                  height: 250,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, size: 40, color: AppColors.grey),
+                      SizedBox(height: 8),
+                      Text(
+                        l10n.errorLoadingImage,
+                        style: TextStyle(color: AppColors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SizedBox(height: 12),
+          Text(
+            l10n.tapToZoom,
+            style: TextStyle(
+              color: AppColors.greyText,
+              fontSize: 12,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
         ],
       ),
     );
@@ -2531,13 +2643,13 @@ class _UnitDetailScreenState extends State<UnitDetailScreen> with SingleTickerPr
     }
   }
 
-  void _showCompareDialog() {
+  Future<void> _showCompareDialog() async {
     final comparisonItem = ComparisonItem.fromUnit(widget.unit);
     final comparisonService = ComparisonListService();
     final l10n = AppLocalizations.of(context)!;
 
     // Add to comparison list
-    final added = comparisonService.addItem(comparisonItem);
+    final added = await comparisonService.addItem(comparisonItem);
 
     if (added) {
       // Show success message

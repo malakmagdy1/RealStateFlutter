@@ -193,6 +193,11 @@ class Unit extends Equatable {
   // Payment plans
   final List<PaymentPlan>? paymentPlans;
 
+  // Floor plan fields
+  final String? floorPlan;
+  final String? floorPlanImage;
+  final String? projectPlanImage;
+
   Unit({
     required this.id,
     required this.compoundId,
@@ -250,6 +255,10 @@ class Unit extends Equatable {
     this.sale,
     // Payment plans
     this.paymentPlans,
+    // Floor plan fields
+    this.floorPlan,
+    this.floorPlanImage,
+    this.projectPlanImage,
   });
 
   factory Unit.fromJson(Map<String, dynamic> json) {
@@ -518,6 +527,10 @@ class Unit extends Equatable {
       sale: sale,
       // Payment plans
       paymentPlans: paymentPlansList,
+      // Floor plan fields
+      floorPlan: getNonEmptyString(json['floor_plan']),
+      floorPlanImage: getNonEmptyString(json['floor_plan_image']),
+      projectPlanImage: getNonEmptyString(json['project_plan_image']),
     );
   }
 
@@ -576,6 +589,10 @@ class Unit extends Equatable {
       'sale': sale?.toJson(),
       // Payment plans
       'payment_plans': paymentPlans?.map((plan) => plan.toJson()).toList(),
+      // Floor plan fields
+      'floor_plan': floorPlan,
+      'floor_plan_image': floorPlanImage,
+      'project_plan_image': projectPlanImage,
     };
   }
 
@@ -629,6 +646,9 @@ class Unit extends Equatable {
     hasActiveSale,
     sale,
     paymentPlans,
+    floorPlan,
+    floorPlanImage,
+    projectPlanImage,
   ];
 
   @override

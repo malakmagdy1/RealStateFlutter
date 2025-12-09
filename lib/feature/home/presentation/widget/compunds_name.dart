@@ -30,6 +30,7 @@ class CompoundsName extends StatefulWidget {
   final VoidCallback? onTap;
   final String? heroTagSuffix;
   final bool showRecommendedBadge;
+  final bool suppressComparisonSnackbar;
 
   CompoundsName({
     Key? key,
@@ -37,6 +38,7 @@ class CompoundsName extends StatefulWidget {
     this.onTap,
     this.heroTagSuffix,
     this.showRecommendedBadge = false,
+    this.suppressComparisonSnackbar = false,
   }) : super(key: key);
 
   @override
@@ -318,10 +320,12 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
                               // Compare Button with Active State
                               StreamBuilder<List<ComparisonItem>>(
                                 stream: ComparisonListService().comparisonStream,
+                                initialData: ComparisonListService().currentItems,
                                 builder: (context, snapshot) {
-                                  final items = snapshot.data ?? [];
+                                  final items = snapshot.data ?? ComparisonListService().currentItems;
+                                  final compoundId = widget.compound.id?.toString() ?? '';
                                   final isInComparison = items.any((item) =>
-                                    item.id == widget.compound.id && item.type == 'compound'
+                                    item.id == compoundId && item.type == 'compound'
                                   );
 
                                   return GestureDetector(
@@ -717,65 +721,103 @@ class _CompoundsNameState extends State<CompoundsName> with SingleTickerProvider
     }
   }
 
-  void _showCompareDialog(BuildContext context) {
+  Future<void> _showCompareDialog(BuildContext context) async {
     final comparisonItem = ComparisonItem.fromCompound(widget.compound);
     final comparisonService = ComparisonListService();
     final l10n = AppLocalizations.of(context)!;
 
-    // Add to comparison list
-    final added = comparisonService.addItem(comparisonItem);
+    // Check if already in comparison - toggle behavior
+    if (comparisonService.containsItem(comparisonItem)) {
+      // Remove from comparison list
+      await comparisonService.removeItem(comparisonItem);
 
-    if (added) {
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  l10n.addedToComparison,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+      // Only show snackbar if not suppressed
+      if (!widget.suppressComparisonSnackbar) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.remove_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.removedFromComparison,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            backgroundColor: Colors.grey[700],
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+            action: SnackBarAction(
+              label: l10n.undo,
+              textColor: Colors.white,
+              onPressed: () {
+                comparisonService.addItem(comparisonItem);
+              },
+            ),
           ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-          action: SnackBarAction(
-            label: l10n.undo,
-            textColor: Colors.white,
-            onPressed: () {
-              comparisonService.removeItem(comparisonItem);
-            },
-          ),
-        ),
-      );
-    } else {
-      // Show error (already in list or list is full)
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.info_outline, color: Colors.white),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  comparisonService.isFull
-                      ? l10n.comparisonListFull
-                      : l10n.alreadyInComparison,
-                  style: TextStyle(fontSize: 14),
+        );
+      }
+      return;
+    }
+
+    // Add to comparison list
+    final added = await comparisonService.addItem(comparisonItem);
+
+    // Only show snackbar if not suppressed
+    if (!widget.suppressComparisonSnackbar) {
+      if (added) {
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.addedToComparison,
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+            action: SnackBarAction(
+              label: l10n.undo,
+              textColor: Colors.white,
+              onPressed: () {
+                comparisonService.removeItem(comparisonItem);
+              },
+            ),
           ),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          duration: Duration(seconds: 2),
-        ),
-      );
+        );
+      } else {
+        // Show error (list is full)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.white),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    l10n.comparisonListFull,
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 

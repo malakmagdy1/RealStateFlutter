@@ -50,3 +50,8 @@ Future<void> deleteNotificationFromIndexedDB(String notificationId) async {
 Future<void> clearNotificationsFromIndexedDB() async {
   // No-op on non-web platforms
 }
+
+/// Force clear all notification data (stub)
+Future<void> forceClearAllNotifications() async {
+  // No-op on non-web platforms
+}

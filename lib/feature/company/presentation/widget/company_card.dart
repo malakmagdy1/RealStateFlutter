@@ -219,13 +219,13 @@ class _CompanyCardState extends State<CompanyCard> {
     );
   }
 
-  void _showCompareDialog(BuildContext context) {
+  Future<void> _showCompareDialog(BuildContext context) async {
     final comparisonItem = ComparisonItem.fromCompany(widget.company);
     final comparisonService = ComparisonListService();
     final l10n = AppLocalizations.of(context)!;
 
     // Add to comparison list
-    final added = comparisonService.addItem(comparisonItem);
+    final added = await comparisonService.addItem(comparisonItem);
 
     if (added) {
       // Show success message

@@ -1773,4 +1773,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sortByUnits => 'Sort by Units';
+
+  @override
+  String get tapToZoom => 'Tap to zoom';
+
+  @override
+  String get errorLoadingImage => 'Error loading image';
 }

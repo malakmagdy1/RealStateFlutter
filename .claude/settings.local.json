@@ -112,7 +112,10 @@
       "Bash(start \"\" \"C:\\Users\\B-Smart\\AndroidStudioProjects\\real\\build\\app\\outputs\\flutter-apk\")",
       "Bash(plink -ssh root@31.97.46.103 -pw \"Iibrah@25722\" \"echo connected\")",
       "Bash(pip show:*)",
-      "Bash(git rebase:*)"
+      "Bash(git rebase:*)",
+      "Bash(rsync:*)",
+      "Bash(del \"C:\\Users\\B-Smart\\AndroidStudioProjects\\real\\AIService.php\")",
+      "Bash(del \"C:\\Users\\B-Smart\\AndroidStudioProjects\\real\\AIController.php\" \"C:\\Users\\B-Smart\\AndroidStudioProjects\\real\\AIConversation.php\" \"C:\\Users\\B-Smart\\AndroidStudioProjects\\real\\AIMessage.php\" \"C:\\Users\\B-Smart\\AndroidStudioProjects\\real\\2024_12_08_create_ai_tables.php\" \"C:\\Users\\B-Smart\\AndroidStudioProjects\\real\\api_routes.php\")"
     ],
     "deny": [],
     "ask": []

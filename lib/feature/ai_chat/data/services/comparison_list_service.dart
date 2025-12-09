@@ -1,168 +1,148 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/comparison_item.dart';
 
-/// 🛒 Global Comparison List Service
-/// Manages a persistent list of items selected for comparison
-/// Works across the entire app - items can be added from anywhere
+/// Service for managing comparison list (singleton)
 class ComparisonListService extends ChangeNotifier {
-  // Singleton pattern
   static final ComparisonListService _instance = ComparisonListService._internal();
   factory ComparisonListService() => _instance;
   ComparisonListService._internal() {
-    _loadFromStorage(); // Load saved items on initialization
+    _streamController = StreamController<List<ComparisonItem>>.broadcast();
+    init();
   }
 
-  static const String _storageKey = 'comparison_list_items';
+  static const String _storageKey = 'comparison_list';
+  static const int _maxItems = 5;
 
-  // The comparison list (max 4 items)
   final List<ComparisonItem> _items = [];
+  late final StreamController<List<ComparisonItem>> _streamController;
 
-  // Stream for reactive updates
-  final _comparisonStreamController = BehaviorSubject<List<ComparisonItem>>.seeded([]);
-
-  /// Load items from local storage
-  Future<void> _loadFromStorage() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonString = prefs.getString(_storageKey);
-      if (jsonString != null && jsonString.isNotEmpty) {
-        final List<dynamic> jsonList = json.decode(jsonString);
-        _items.clear();
-        for (var jsonItem in jsonList) {
-          _items.add(ComparisonItem.fromJson(jsonItem));
-        }
-        _comparisonStreamController.add(List.from(_items));
-        notifyListeners();
-        print('[COMPARISON LIST] 📂 Loaded ${_items.length} items from storage');
-      }
-    } catch (e) {
-      print('[COMPARISON LIST] ⚠️ Error loading from storage: $e');
-    }
-  }
-
-  /// Save items to local storage
-  Future<void> _saveToStorage() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final jsonList = _items.map((item) => item.toJson()).toList();
-      await prefs.setString(_storageKey, json.encode(jsonList));
-      print('[COMPARISON LIST] 💾 Saved ${_items.length} items to storage');
-    } catch (e) {
-      print('[COMPARISON LIST] ⚠️ Error saving to storage: $e');
-    }
-  }
-
-  /// Get stream of comparison items
-  Stream<List<ComparisonItem>> get comparisonStream => _comparisonStreamController.stream;
-
-  // Getters
   List<ComparisonItem> get items => List.unmodifiable(_items);
   int get count => _items.length;
   bool get isEmpty => _items.isEmpty;
   bool get isNotEmpty => _items.isNotEmpty;
-  bool get isFull => _items.length >= 4;
-  bool get canCompare => _items.length >= 2;
+  bool get canAddMore => _items.length < _maxItems;
+  bool get isFull => _items.length >= _maxItems;
+
+  /// Get items (alias for items getter)
+  List<ComparisonItem> getItems() => items;
+
+  /// Stream of comparison items for reactive UI
+  Stream<List<ComparisonItem>> get comparisonStream => _streamController.stream;
+
+  /// Get current items (for initialData in StreamBuilder)
+  List<ComparisonItem> get currentItems => List.unmodifiable(_items);
+
+  /// Initialize and load from storage
+  Future<void> init() async {
+    await _loadFromStorage();
+  }
+
+  /// Check if an item is in the list
+  bool contains(String id, String type) {
+    return _items.any((item) => item.id == id && item.type == type);
+  }
+
+  /// Check if a ComparisonItem is in the list
+  bool containsItem(ComparisonItem item) {
+    return contains(item.id, item.type);
+  }
+
+  /// Add item to comparison list (alias)
+  Future<bool> addItem(ComparisonItem item) => add(item);
+
+  /// Remove item from comparison list (alias)
+  Future<void> removeItem(ComparisonItem item) => remove(item.id, item.type);
 
   /// Add item to comparison list
-  /// Returns true if added successfully, false if already exists or list is full
-  bool addItem(ComparisonItem item) {
-    // Check if already exists
-    if (_items.any((i) => i.id == item.id && i.type == item.type)) {
-      print('[COMPARISON LIST] ⚠️ Item already in list: ${item.name}');
+  Future<bool> add(ComparisonItem item) async {
+    if (_items.length >= _maxItems) {
       return false;
     }
 
-    // Check if full
-    if (_items.length >= 4) {
-      print('[COMPARISON LIST] ⚠️ List is full (max 4 items)');
+    if (contains(item.id, item.type)) {
       return false;
     }
 
-    // Add item
     _items.add(item);
-    print('[COMPARISON LIST] ✅ Added: ${item.name} (${item.type}) - Total: ${_items.length}');
-    _comparisonStreamController.add(List.from(_items));
-    _saveToStorage(); // Persist to storage
-    notifyListeners();
+    await _saveToStorage();
+    _notifyChanges();
     return true;
   }
 
   /// Remove item from comparison list
-  void removeItem(ComparisonItem item) {
-    final lengthBefore = _items.length;
-    _items.removeWhere((i) => i.id == item.id && i.type == item.type);
-    if (_items.length < lengthBefore) {
-      print('[COMPARISON LIST] ❌ Removed: ${item.name} - Total: ${_items.length}');
-      _comparisonStreamController.add(List.from(_items));
-      _saveToStorage(); // Persist to storage
-      notifyListeners();
-    }
+  Future<void> remove(String id, String type) async {
+    _items.removeWhere((item) => item.id == id && item.type == type);
+    await _saveToStorage();
+    _notifyChanges();
   }
 
   /// Remove item by index
-  void removeAt(int index) {
+  Future<void> removeAt(int index) async {
     if (index >= 0 && index < _items.length) {
-      final item = _items.removeAt(index);
-      print('[COMPARISON LIST] ❌ Removed at index $index: ${item.name} - Total: ${_items.length}');
-      _comparisonStreamController.add(List.from(_items));
-      _saveToStorage(); // Persist to storage
-      notifyListeners();
+      _items.removeAt(index);
+      await _saveToStorage();
+      _notifyChanges();
     }
   }
 
-  /// Check if item is in the list
-  bool contains(ComparisonItem item) {
-    return _items.any((i) => i.id == item.id && i.type == item.type);
+  /// Toggle item in comparison list
+  Future<bool> toggle(ComparisonItem item) async {
+    if (contains(item.id, item.type)) {
+      await remove(item.id, item.type);
+      return false;
+    } else {
+      return await add(item);
+    }
   }
 
   /// Clear all items
-  void clear() {
+  Future<void> clear() async {
     _items.clear();
-    print('[COMPARISON LIST] 🗑️ Cleared all items');
-    _comparisonStreamController.add(List.from(_items));
-    _saveToStorage(); // Persist to storage
+    await _saveToStorage();
+    _notifyChanges();
+  }
+
+  void _notifyChanges() {
     notifyListeners();
+    _streamController.add(List.unmodifiable(_items));
   }
 
-  /// Get all items and clear the list (used when sending to AI)
-  List<ComparisonItem> getAndClear() {
-    final itemsCopy = List<ComparisonItem>.from(_items);
-    _items.clear();
-    print('[COMPARISON LIST] 📤 Sent ${itemsCopy.length} items to AI and cleared list');
-    _comparisonStreamController.add(List.from(_items));
-    _saveToStorage(); // Persist to storage
-    notifyListeners();
-    return itemsCopy;
-  }
+  /// Load from shared preferences
+  Future<void> _loadFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonString = prefs.getString(_storageKey);
 
-  /// Get items without clearing
-  List<ComparisonItem> getItems() {
-    return List<ComparisonItem>.from(_items);
-  }
-
-  /// Get summary text for display
-  String getSummary() {
-    if (_items.isEmpty) return 'No items selected';
-
-    final counts = <String, int>{};
-    for (var item in _items) {
-      counts[item.type] = (counts[item.type] ?? 0) + 1;
+      if (jsonString != null && jsonString.isNotEmpty) {
+        final jsonList = jsonDecode(jsonString) as List;
+        _items.clear();
+        _items.addAll(
+          jsonList.map((json) => ComparisonItem.fromJson(json as Map<String, dynamic>)),
+        );
+        _notifyChanges();
+      }
+    } catch (e) {
+      print('[ComparisonListService] Error loading: $e');
     }
+  }
 
-    final parts = <String>[];
-    if (counts['unit'] != null) parts.add('${counts['unit']} unit${counts['unit']! > 1 ? 's' : ''}');
-    if (counts['compound'] != null) parts.add('${counts['compound']} compound${counts['compound']! > 1 ? 's' : ''}');
-    if (counts['company'] != null) parts.add('${counts['company']} compan${counts['company']! > 1 ? 'ies' : 'y'}');
-
-    return parts.join(', ');
+  /// Save to shared preferences
+  Future<void> _saveToStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonList = _items.map((item) => item.toJson()).toList();
+      await prefs.setString(_storageKey, jsonEncode(jsonList));
+    } catch (e) {
+      print('[ComparisonListService] Error saving: $e');
+    }
   }
 
   @override
   void dispose() {
-    _comparisonStreamController.close();
+    _streamController.close();
     super.dispose();
   }
 }

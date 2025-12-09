@@ -323,6 +323,8 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
               label: l10n.markAllAsRead,
               onPressed: () async {
                 await _cacheService.markAllAsRead();
+                // Force reset to ensure badge updates immediately
+                _cacheService.forceResetCount();
                 await _loadNotifications();
                 MessageHelper.showSuccess(context, l10n.markedAllAsRead);
               },
@@ -708,7 +710,7 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
     final l10n = AppLocalizations.of(context)!;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),
@@ -719,15 +721,32 @@ class _WebNotificationsScreenState extends State<WebNotificationsScreen> {
         content: Text(l10n.clearAllConfirm),
         actions: [
           TextButton(
-            onPressed: () => context.pop(),
+            onPressed: () => Navigator.of(dialogContext).pop(),
             child: Text(l10n.cancel),
           ),
           ElevatedButton(
             onPressed: () async {
+              // Close dialog first
+              Navigator.of(dialogContext).pop();
+
+              // Clear UI state immediately
+              if (mounted) {
+                setState(() {
+                  notifications = [];
+                  _displayedCount = 15;
+                });
+              }
+
+              // Clear through the cache service first (this updates the badge count)
               await _cacheService.clearAllNotifications();
-              await clearNotificationsFromIndexedDB(); // Also clear IndexedDB
-              await _loadNotifications();
-              context.pop();
+
+              // Force clear all storage (localStorage + IndexedDB)
+              await forceClearAllNotifications();
+              await clearNotificationsFromIndexedDB();
+
+              // Force reset the count again to ensure badge is updated
+              _cacheService.forceResetCount();
+
               MessageHelper.showSuccess(context, l10n.allNotificationsCleared);
             },
             style: ElevatedButton.styleFrom(

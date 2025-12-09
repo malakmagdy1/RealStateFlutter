@@ -664,6 +664,11 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
   Widget _buildSalespeople() {
     final l10n = AppLocalizations.of(context)!;
 
+    // If still loading or no salespeople, don't show the section
+    if (_loadingSalespeople || _salespeople.isEmpty) {
+      return SizedBox.shrink();
+    }
+
     return Container(
       padding: EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -695,70 +700,71 @@ class _WebCompoundDetailScreenState extends State<WebCompoundDetailScreen> with 
             ],
           ),
           SizedBox(height: 24),
-          if (_loadingSalespeople)
-            Center(child: CustomLoadingDots(size: 60))
-          else if (_salespeople.isEmpty)
-            Text(
-              l10n.noSalesPersonAvailable,
-              style: TextStyle(color: AppColors.greyText),
-            )
-          else
-            ..._salespeople.map((salesperson) {
-              return Container(
-                margin: EdgeInsets.only(bottom: 12),
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Color(0xFFF8F9FA),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+          ..._salespeople.map((salesperson) {
+            final name = salesperson['name'] as String?;
+            final phone = salesperson['phone'] as String?;
+            final email = salesperson['email'] as String?;
+
+            return Container(
+              margin: EdgeInsets.only(bottom: 12),
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name
+                  if (name != null && name.isNotEmpty)
                     Text(
-                      salesperson['name'] ?? 'N/A',
+                      name,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: Colors.black,
                       ),
                     ),
+                  // Phone
+                  if (phone != null && phone.isNotEmpty) ...[
                     SizedBox(height: 8),
                     Row(
                       children: [
                         Icon(Icons.phone, size: 16, color: Color(0xFF666666)),
                         SizedBox(width: 8),
-                        Text(
-                          salesperson['phone'] ?? 'N/A',
+                        SelectableText(
+                          phone,
                           style: TextStyle(
                             fontSize: 14,
-                            color: AppColors.greyText,
+                            color: Color(0xFF333333),
                           ),
                         ),
                       ],
                     ),
-                    if (salesperson['phone'] != null) ...[
-                      SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () {
-                            // Open WhatsApp
-                          },
-                          icon: Icon(Icons.chat, size: 16),
-                          label: Text(l10n.whatsapp),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF25D366),
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: EdgeInsets.symmetric(vertical: 8),
+                  ],
+                  // Email
+                  if (email != null && email.isNotEmpty) ...[
+                    SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.email, size: 16, color: Color(0xFF666666)),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: SelectableText(
+                            email,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF333333),
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ],
-                ),
-              );
-            }).toList(),
+                ],
+              ),
+            );
+          }).toList(),
         ],
       ),
     );

@@ -651,5 +651,7 @@
   "map": "الخريطة",
   "sortByName": "ترتيب حسب الاسم",
   "sortByCompounds": "ترتيب حسب الكمبوندات",
-  "sortByUnits": "ترتيب حسب الوحدات"
+  "sortByUnits": "ترتيب حسب الوحدات",
+  "tapToZoom": "اضغط للتكبير",
+  "errorLoadingImage": "خطأ في تحميل الصورة"
 }
